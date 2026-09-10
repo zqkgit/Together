@@ -56,15 +56,111 @@ export interface StudioItem {
   name: string;
   city: string;
   status: string;
+  status_code: number;
+  owner: string;
+  owner_phone: string;
   courses: number;
+  created_at: string;
 }
+
+export interface StudioDetail {
+  studio_id: string;
+  user_id: string;
+  name: string;
+  cover: string | null;
+  type_tags: string[];
+  intro: string | null;
+  address: string | null;
+  lng: number | null;
+  lat: number | null;
+  phone: string | null;
+  hours: string | null;
+  license: string | null;
+  legal_id: string | null;
+  permit: string | null;
+  photos: string[];
+  settle_rate: number;
+  plan_tier: number;
+  status: number;
+  banned_at: string | null;
+  ban_reason: string | null;
+  stats: {
+    orders: number;
+    gmv_raw: number;
+    gmv: string;
+    students: number;
+    courses: number;
+  };
+  owner: {
+    user_id: string;
+    phone: string;
+    nickname: string;
+    avatar: string | null;
+    city: string | null;
+  } | null;
+  latest_application: {
+    id: string;
+    version: number;
+    status: number;
+    submitted_at: string;
+    reviewed_at: string | null;
+    review_reason: string | null;
+  } | null;
+  operator?: {
+    admin_id: string;
+    username: string;
+    role: string;
+  } | null;
+}
+
+export interface StudioListParams {
+  page?: number;
+  size?: number;
+  keyword?: string;
+}
+
+export type ReviewStatus = 0 | 1 | 2;
 
 export interface ReviewItem {
   id: string;
   name: string;
   type: string;
-  studio: string;
+  applicant: string;
+  applicant_phone: string;
+  status: ReviewStatus;
   submittedAt: string;
+}
+
+export interface ReviewDetail {
+  id: string;
+  user_id: string;
+  version: number;
+  name: string;
+  cover: string | null;
+  intro: string | null;
+  address: string | null;
+  phone: string | null;
+  license: string | null;
+  permit: string | null;
+  photos: string[];
+  status: ReviewStatus;
+  submitted_at: string;
+  reviewed_at: string | null;
+  review_reason: string | null;
+  applicant: {
+    user_id: string;
+    phone: string;
+    nickname: string;
+    avatar: string | null;
+    city: string | null;
+  } | null;
+}
+
+export interface ReviewListParams {
+  status?: ReviewStatus | "";
+  page?: number;
+  size?: number;
+  keyword?: string;
 }
 
 export interface SettlementsData {
@@ -89,13 +185,51 @@ export async function fetchDashboardOverview(): Promise<DashboardOverview> {
   return response.data;
 }
 
-export async function fetchStudios(): Promise<StudioItem[]> {
-  const response = await request.get("/admin/studios");
+export async function fetchStudios(params: StudioListParams = {}): Promise<{
+  total: number;
+  page: number;
+  size: number;
+  list: StudioItem[];
+}> {
+  const response = await request.get("/admin/studios", { params });
   return response.data;
 }
 
-export async function fetchReviews(): Promise<{ total: number; list: ReviewItem[] }> {
-  const response = await request.get("/admin/reviews");
+export async function fetchStudioDetail(id: string): Promise<StudioDetail> {
+  const response = await request.get(`/admin/studios/${id}`);
+  return response.data;
+}
+
+export async function banStudio(id: string, reason: string): Promise<StudioDetail> {
+  const response = await request.put(`/admin/studios/${id}/ban`, { reason });
+  return response.data;
+}
+
+export async function unbanStudio(id: string): Promise<StudioDetail> {
+  const response = await request.put(`/admin/studios/${id}/unban`);
+  return response.data;
+}
+
+export async function fetchReviews(params: ReviewListParams = {}): Promise<{
+  total: number;
+  page: number;
+  size: number;
+  list: ReviewItem[];
+}> {
+  const response = await request.get("/admin/reviews", { params });
+  return response.data;
+}
+
+export async function fetchReviewDetail(id: string): Promise<ReviewDetail> {
+  const response = await request.get(`/admin/reviews/${id}`);
+  return response.data;
+}
+
+export async function handleReview(
+  id: string,
+  payload: { action: "approve" | "reject"; reason?: string }
+): Promise<ReviewDetail> {
+  const response = await request.put(`/admin/reviews/${id}`, payload);
   return response.data;
 }
 
