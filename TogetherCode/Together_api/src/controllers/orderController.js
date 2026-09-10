@@ -54,7 +54,7 @@ async function postOrderRefund(req, res) {
       return fail(res, 404, 40420, "Order not found");
     }
 
-    return ok(res, data, "refund created");
+    return ok(res, data, "refund requested");
   } catch (error) {
     const status = /not refundable|in progress|exceed|not found/i.test(error.message) ? 400 : 500;
     return fail(res, status, status === 400 ? 40022 : 50000, error.message || "Internal server error");

@@ -22,10 +22,30 @@ const createRefundValidators = [
   body("reason").optional({ values: "falsy" }).isString().isLength({ max: 255 })
 ];
 
+const studioListOrderValidators = [
+  query("status").optional({ values: "falsy" }).isInt({ min: 0, max: 5 })
+];
+
+const studioOrderIdValidators = [param("id").isString().notEmpty().withMessage("order id is required")];
+
+const studioListRefundValidators = [
+  query("status").optional({ values: "falsy" }).isInt({ min: 0, max: 5 })
+];
+
+const studioReviewRefundValidators = [
+  param("id").isString().notEmpty().withMessage("refund id is required"),
+  body("action").isIn(["approve", "reject"]).withMessage("action is invalid"),
+  body("reason").optional({ values: "falsy" }).isString().isLength({ max: 255 })
+];
+
 module.exports = {
   createOrderValidators,
   payOrderValidators,
   orderIdValidators,
   listOrderValidators,
-  createRefundValidators
+  createRefundValidators,
+  studioListOrderValidators,
+  studioOrderIdValidators,
+  studioListRefundValidators,
+  studioReviewRefundValidators
 };

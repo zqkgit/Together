@@ -1,6 +1,5 @@
 const { Op } = require("sequelize");
 const {
-  sequelize,
   StudioProfile,
   StudioApplication,
   Settlement,

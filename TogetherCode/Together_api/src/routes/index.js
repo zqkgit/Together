@@ -5,6 +5,7 @@ const orderRoutes = require("./order");
 const authRoutes = require("./auth");
 const leaveRoutes = require("./leave");
 const teacherRoutes = require("./teacher");
+const childRoutes = require("./child");
 
 const router = express.Router();
 
@@ -19,6 +20,9 @@ router.use("/courses", courseRoutes);
 
 // 家长端接口：购课、支付、订单、退款。
 router.use("/orders", orderRoutes);
+
+// 家长端接口：孩子管理。
+router.use("/children", childRoutes);
 
 // 家长端接口：请假申请与请假记录。
 router.use("/leave", leaveRoutes);

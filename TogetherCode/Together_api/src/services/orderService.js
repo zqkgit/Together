@@ -377,7 +377,6 @@ async function createRefund(userId, orderId, payload) {
 
     const unitPrice = Math.floor(Number(order.paid_amount) / Number(order.total_lessons));
     const refundAmount = unitPrice * requestedLessons;
-    const remainingAfter = remainingLessons - requestedLessons;
 
     const refund = await Refund.create(
       {
@@ -389,42 +388,7 @@ async function createRefund(userId, orderId, payload) {
         unit_price: unitPrice,
         amount: refundAmount,
         reason: payload.reason || null,
-        status: 3,
-        reviewed_at: new Date(),
-        refunded_at: new Date()
-      },
-      { transaction }
-    );
-
-    await order.update(
-      {
-        refunded_lessons: Number(order.refunded_lessons) + requestedLessons,
-        refund_amount: Number(order.refund_amount) + refundAmount,
-        status: remainingAfter === 0 && Number(order.consumed_lessons) === 0 ? 4 : 3
-      },
-      { transaction }
-    );
-
-    await balance.update(
-      {
-        refunded_lessons: Number(balance.refunded_lessons) + requestedLessons,
-        remaining_lessons: remainingAfter,
-        status: remainingAfter === 0 ? 2 : 1
-      },
-      { transaction }
-    );
-
-    await LessonLog.create(
-      {
-        log_id: generateId(),
-        child_id: order.child_id,
-        course_id: order.course_id,
-        order_id: order.order_id,
-        source: 4,
-        type: 3,
-        delta: -requestedLessons,
-        balance_after: remainingAfter,
-        note: "订单退款扣减剩余课时"
+        status: 0
       },
       { transaction }
     );
@@ -445,5 +409,7 @@ module.exports = {
   payOrder,
   listOrders,
   getOrderDetail,
-  createRefund
+  createRefund,
+  formatOrder,
+  getOrderWithDetails
 };
