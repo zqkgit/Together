@@ -48,6 +48,54 @@ const router = createRouter({
           name: "studio-home",
           component: () => import("../views/studio/HomeView.vue"),
           meta: { title: "经营概览", requiresAuth: true, scopes: ["studio"] }
+        },
+        {
+          path: "/studio-courses",
+          name: "studio-courses",
+          component: () => import("../views/studio/courses/IndexView.vue"),
+          meta: { title: "课程管理", requiresAuth: true, scopes: ["studio"] }
+        },
+        {
+          path: "/studio-classes",
+          name: "studio-classes",
+          component: () => import("../views/studio/classes/IndexView.vue"),
+          meta: { title: "班级管理", requiresAuth: true, scopes: ["studio"] }
+        },
+        {
+          path: "/studio-schedules",
+          name: "studio-schedules",
+          component: () => import("../views/studio/schedules/IndexView.vue"),
+          meta: { title: "排课管理", requiresAuth: true, scopes: ["studio"] }
+        },
+        {
+          path: "/studio-students",
+          name: "studio-students",
+          component: () => import("../views/studio/students/IndexView.vue"),
+          meta: { title: "学员管理", requiresAuth: true, scopes: ["studio"] }
+        },
+        {
+          path: "/studio-orders",
+          name: "studio-orders",
+          component: () => import("../views/studio/orders/IndexView.vue"),
+          meta: { title: "订单管理", requiresAuth: true, scopes: ["studio"] }
+        },
+        {
+          path: "/studio-refunds",
+          name: "studio-refunds",
+          component: () => import("../views/studio/refunds/IndexView.vue"),
+          meta: { title: "退款管理", requiresAuth: true, scopes: ["studio"] }
+        },
+        {
+          path: "/studio-leaves",
+          name: "studio-leaves",
+          component: () => import("../views/studio/leaves/IndexView.vue"),
+          meta: { title: "请假审批", requiresAuth: true, scopes: ["studio"] }
+        },
+        {
+          path: "/studio-settings",
+          name: "studio-settings",
+          component: () => import("../views/studio/settings/IndexView.vue"),
+          meta: { title: "工作室设置", requiresAuth: true, scopes: ["studio"] }
         }
       ]
     },

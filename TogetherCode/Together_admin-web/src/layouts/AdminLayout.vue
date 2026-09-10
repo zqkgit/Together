@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import {
   Calendar,
+  Finished,
+  Coin,
   CreditCard,
   DocumentChecked,
   House,
   Menu,
   OfficeBuilding,
-  SwitchButton
+  Setting,
+  SwitchButton,
+  Tickets,
+  User
 } from "@element-plus/icons-vue";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -26,7 +31,17 @@ const platformMenus = [
   { path: "/settlements", title: "结算分账", icon: CreditCard }
 ];
 
-const studioMenus = [{ path: "/studio-home", title: "经营概览", icon: House }];
+const studioMenus = [
+  { path: "/studio-home", title: "经营概览", icon: House },
+  { path: "/studio-courses", title: "课程管理", icon: Tickets },
+  { path: "/studio-classes", title: "班级管理", icon: OfficeBuilding },
+  { path: "/studio-schedules", title: "排课管理", icon: Calendar },
+  { path: "/studio-students", title: "学员管理", icon: User },
+  { path: "/studio-orders", title: "订单管理", icon: Coin },
+  { path: "/studio-refunds", title: "退款管理", icon: CreditCard },
+  { path: "/studio-leaves", title: "请假审批", icon: Finished },
+  { path: "/studio-settings", title: "工作室设置", icon: Setting }
+];
 
 const menus = computed(() =>
   authStore.account?.scope === "studio" ? studioMenus : platformMenus
