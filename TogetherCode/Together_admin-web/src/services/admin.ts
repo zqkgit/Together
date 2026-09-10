@@ -1,9 +1,54 @@
 import request from "../utils/request";
 
+export interface AdminAccountInfo {
+  admin_id: string;
+  user_id: string | null;
+  username: string;
+  role: string;
+  scope: string;
+  studio_id: string | null;
+  studio: { studio_id: string; name: string } | null;
+  user: { user_id: string; phone: string; nickname: string; avatar: string | null } | null;
+}
+
+export interface LoginResult {
+  access_token: string;
+  refresh_token: string;
+  account: AdminAccountInfo;
+}
+
+export async function loginAdmin(username: string, password: string): Promise<LoginResult> {
+  const response = await request.post("/admin/auth/login", { username, password });
+  return response.data;
+}
+
+export async function loginStudio(username: string, password: string): Promise<LoginResult> {
+  const response = await request.post("/studio/auth/login", { username, password });
+  return response.data;
+}
+
+export async function logoutAdmin(): Promise<void> {
+  await request.post("/admin/auth/logout");
+}
+
+export async function logoutStudio(): Promise<void> {
+  await request.post("/studio/auth/logout");
+}
+
 export interface DashboardOverview {
   statCards: Array<{ label: string; value: string; trend: string }>;
-  timeline: Array<{ timestamp: string; content: string }>;
-  todos: string[];
+  summary: {
+    studio_total: number;
+    studio_new_month: number;
+    student_total: number;
+    student_active: number;
+    course_total: number;
+    order_month: number;
+    gmv_month: number;
+    gmv_month_text: string;
+  };
+  trend30d: Array<{ date: string; gmv: number }>;
+  todos: Array<{ label: string; count: number }>;
 }
 
 export interface StudioItem {

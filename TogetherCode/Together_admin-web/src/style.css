@@ -116,6 +116,23 @@ a {
   color: #726a60;
 }
 
+.user-block {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.user-scope {
+  font-size: 11px;
+  color: #9c9385;
+}
+
+.header-avatar {
+  background: #a87a3e;
+  color: #fff;
+  font-weight: 600;
+}
+
 .admin-main {
   background: #faf7f1;
   padding: 24px;

@@ -5,24 +5,49 @@ import {
   DocumentChecked,
   House,
   Menu,
-  OfficeBuilding
+  OfficeBuilding,
+  SwitchButton
 } from "@element-plus/icons-vue";
+import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { ElMessageBox } from "element-plus";
 import { useAppStore } from "../stores/app";
+import { useAuthStore } from "../stores/auth";
 
 const route = useRoute();
 const router = useRouter();
 const appStore = useAppStore();
+const authStore = useAuthStore();
 
-const menus = [
+const platformMenus = [
   { path: "/dashboard", title: "经营看板", icon: House },
   { path: "/studios", title: "工作室管理", icon: OfficeBuilding },
   { path: "/reviews", title: "认证审核", icon: DocumentChecked },
   { path: "/settlements", title: "结算分账", icon: CreditCard }
 ];
 
+const studioMenus = [{ path: "/studio-home", title: "经营概览", icon: House }];
+
+const menus = computed(() =>
+  authStore.account?.scope === "studio" ? studioMenus : platformMenus
+);
+
 function handleSelect(path: string) {
   router.push(path);
+}
+
+async function handleLogout() {
+  try {
+    await ElMessageBox.confirm("确定要退出登录吗？", "退出登录", {
+      confirmButtonText: "退出",
+      cancelButtonText: "取消",
+      type: "warning"
+    });
+  } catch {
+    return;
+  }
+  await authStore.logout();
+  router.push("/login");
 }
 </script>
 
@@ -30,7 +55,7 @@ function handleSelect(path: string) {
   <el-container class="admin-shell">
     <el-aside :width="appStore.asideWidth" class="admin-aside">
       <div class="brand">
-        <div class="brand-mark">Y</div>
+        <div class="brand-mark">艺</div>
         <div v-if="!appStore.collapsed" class="brand-copy">
           <strong>艺启后台</strong>
           <span>Together Admin</span>
@@ -72,8 +97,15 @@ function handleSelect(path: string) {
             <el-icon><Calendar /></el-icon>
             2026-09
           </el-button>
-          <el-avatar size="small">运</el-avatar>
-          <span class="user-name">{{ appStore.userName }}</span>
+          <el-avatar size="small" class="header-avatar">{{ authStore.displayName.slice(0, 1) }}</el-avatar>
+          <div class="user-block">
+            <span class="user-name">{{ authStore.displayName }}</span>
+            <span class="user-scope">{{ authStore.scopeLabel }}</span>
+          </div>
+          <el-button text @click="handleLogout">
+            <el-icon><SwitchButton /></el-icon>
+            退出
+          </el-button>
         </div>
       </el-header>
 
