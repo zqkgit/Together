@@ -1,5 +1,5 @@
 const { Op } = require("sequelize");
-const { sequelize, Class, Course, TeacherProfile, Schedule, StudioProfile } = require("../models");
+const { sequelize, Class, Course, TeacherProfile, Schedule, StudioProfile, TeacherStudioBinding } = require("../models");
 const { generateId } = require("../utils/id");
 
 function normalizeClassItem(classItem) {
@@ -132,7 +132,11 @@ async function ensureTeacher(teacherId, studioId, transaction) {
   if (!teacher) {
     throw new Error("Teacher not found");
   }
-  if (teacher.studio_id && String(teacher.studio_id) !== String(studioId)) {
+  const binding = await TeacherStudioBinding.findOne({
+    where: { teacher_id: teacherId, studio_id: studioId, status: 1 },
+    transaction
+  });
+  if (!binding) {
     throw new Error("Teacher does not belong to studio");
   }
   return teacher;

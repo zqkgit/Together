@@ -1,11 +1,19 @@
 const { Op } = require("sequelize");
-const { sequelize, TeacherApplication, TeacherProfile, UserRole, User, StudioProfile } = require("../models");
+const {
+  sequelize,
+  TeacherApplication,
+  TeacherProfile,
+  TeacherStudioBinding,
+  UserRole,
+  User,
+  StudioProfile
+} = require("../models");
 const { generateId } = require("../utils/id");
 
 /**
  * 工作室教师管理：
  * - applications：本工作室收到的老师合作申请（TeacherApplication）
- * - staff：本工作室在职老师（TeacherProfile）
+ * - staff：本工作室在职老师（TeacherProfile 经 TeacherStudioBinding 绑定）
  */
 async function getStudioTeachers(studioId, query = {}) {
   const applicationWhere = { studio_id: studioId };
@@ -13,7 +21,7 @@ async function getStudioTeachers(studioId, query = {}) {
     applicationWhere.status = Number(query.status);
   }
 
-  const [applications, staff] = await Promise.all([
+  const [applications, bindings] = await Promise.all([
     TeacherApplication.findAll({
       where: applicationWhere,
       include: [
@@ -30,16 +38,23 @@ async function getStudioTeachers(studioId, query = {}) {
       ],
       order: [["submitted_at", "DESC"]]
     }),
-    TeacherProfile.findAll({
-      where: { studio_id: studioId },
+    TeacherStudioBinding.findAll({
+      where: { studio_id: studioId, status: 1 },
       include: [
         {
-          model: User,
-          as: "user",
-          attributes: ["user_id", "phone", "nickname", "avatar"]
+          model: TeacherProfile,
+          as: "teacher",
+          required: true,
+          include: [
+            {
+              model: User,
+              as: "user",
+              attributes: ["user_id", "phone", "nickname", "avatar"]
+            }
+          ]
         }
       ],
-      order: [["created_at", "DESC"]]
+      order: [["bound_at", "DESC"]]
     })
   ]);
 
@@ -61,21 +76,26 @@ async function getStudioTeachers(studioId, query = {}) {
       nickname: item.user?.nickname || item.real_name,
       avatar: item.user?.avatar || null
     })),
-    staff: (staff || []).map((item) => ({
-      teacher_id: String(item.teacher_id),
-      user_id: String(item.user_id),
-      real_name: item.real_name,
-      subjects: item.subjects || [],
-      years: item.years,
-      intro: item.intro,
-      cert_no: item.cert_no,
-      cert_status: Number(item.cert_status),
-      rating: Number(item.rating),
-      student_count: Number(item.student_count),
-      phone: item.user?.phone || "-",
-      nickname: item.user?.nickname || item.real_name,
-      avatar: item.user?.avatar || null
-    }))
+    staff: (bindings || []).map((item) => {
+      const teacher = item.teacher;
+      return {
+        binding_id: String(item.binding_id),
+        teacher_id: String(teacher.teacher_id),
+        user_id: String(teacher.user_id),
+        real_name: teacher.real_name,
+        subjects: teacher.subjects || [],
+        years: teacher.years,
+        intro: teacher.intro,
+        cert_no: teacher.cert_no,
+        cert_status: Number(teacher.cert_status),
+        rating: Number(teacher.rating),
+        student_count: Number(teacher.student_count),
+        bound_at: item.bound_at,
+        phone: teacher.user?.phone || "-",
+        nickname: teacher.user?.nickname || teacher.real_name,
+        avatar: teacher.user?.avatar || null
+      };
+    })
   };
 }
 
@@ -121,9 +141,8 @@ async function reviewTeacherApplication(studioId, applicationId, payload, operat
         message: "已驳回申请"
       };
     }
-
     // approve：要求申请人已通过平台老师认证（存在 TeacherProfile 档案）
-    let profile = await TeacherProfile.findOne({
+    const profile = await TeacherProfile.findOne({
       where: { user_id: application.user_id },
       transaction
     });
@@ -137,17 +156,27 @@ async function reviewTeacherApplication(studioId, applicationId, payload, operat
       };
     }
 
-    await profile.update(
-      {
-        real_name: application.real_name || profile.real_name,
-        subjects: application.subjects || profile.subjects,
-        years: application.years || profile.years,
-        intro: application.intro || profile.intro,
+    // 老师档案信息仅由平台认证 / 老师本人维护，工作室审批只建立绑定，不修改档案字段
+
+    // 建立/恢复工作室绑定（一对多：一个老师可绑定多个工作室）
+    const [binding] = await TeacherStudioBinding.findOrCreate({
+      where: { teacher_id: profile.teacher_id, studio_id: studioId },
+      defaults: {
+        binding_id: generateId(),
+        teacher_id: profile.teacher_id,
         studio_id: studioId,
-        cert_status: 1
+        status: 1,
+        bound_at: new Date()
       },
-      { transaction }
-    );
+      transaction
+    });
+    if (Number(binding.status) !== 1) {
+      await binding.update({ status: 1, released_at: null, bound_at: new Date() }, { transaction });
+    }
+    // 首次绑定工作室时同步主工作室字段
+    if (!profile.studio_id) {
+      await profile.update({ studio_id: studioId }, { transaction });
+    }
 
     // 开通老师角色（App 端 role=2 登录可用老师接口）
     const [roleRow] = await UserRole.findOrCreate({
@@ -191,7 +220,55 @@ async function reviewTeacherApplication(studioId, applicationId, payload, operat
   });
 }
 
+/**
+ * 取消与老师的合作关系：
+ * - 将 teacher_studio_bindings 置为已解除（status=0 + released_at）
+ * - 若该工作室是老师的主工作室（teacher_profiles.studio_id），同步清空主工作室字段
+ * - 老师档案保留，仍可与其他工作室保持绑定
+ */
+async function releaseTeacher(studioId, teacherId, payload = {}) {
+  return sequelize.transaction(async (transaction) => {
+    const binding = await TeacherStudioBinding.findOne({
+      where: { teacher_id: teacherId, studio_id: studioId, status: 1 },
+      transaction,
+      lock: transaction.LOCK.UPDATE
+    });
+
+    if (!binding) {
+      return { error: { status: 404, message: "该老师与本工作室没有生效的合作关系" } };
+    }
+
+    await binding.update(
+      {
+        status: 0,
+        released_at: new Date()
+      },
+      { transaction }
+    );
+
+    const profile = await TeacherProfile.findOne({
+      where: { teacher_id: teacherId },
+      transaction
+    });
+    if (profile && profile.studio_id && String(profile.studio_id) === String(studioId)) {
+      await profile.update({ studio_id: null }, { transaction });
+    }
+
+    return {
+      data: {
+        binding_id: String(binding.binding_id),
+        teacher_id: String(teacherId),
+        studio_id: String(studioId),
+        status: 0,
+        action: "release"
+      },
+      message: "已解除合作"
+    };
+  });
+}
+
 module.exports = {
   getStudioTeachers,
-  reviewTeacherApplication
+  reviewTeacherApplication,
+  releaseTeacher
 };

@@ -5,7 +5,8 @@ const {
   CoursePackage,
   Class,
   StudioProfile,
-  TeacherProfile
+  TeacherProfile,
+  TeacherStudioBinding
 } = require("../models");
 const { generateId } = require("../utils/id");
 
@@ -71,7 +72,12 @@ async function ensureTeacher(teacherId, studioId, transaction) {
     throw new Error("Teacher not found");
   }
 
-  if (teacher.studio_id && String(teacher.studio_id) !== String(studioId)) {
+  // 校验老师与工作室存在生效绑定（支持一对多绑定）
+  const binding = await TeacherStudioBinding.findOne({
+    where: { teacher_id: teacherId, studio_id: studioId, status: 1 },
+    transaction
+  });
+  if (!binding) {
     throw new Error("Teacher does not belong to studio");
   }
 

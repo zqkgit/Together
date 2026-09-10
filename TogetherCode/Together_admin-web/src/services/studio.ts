@@ -28,6 +28,7 @@ export interface TeacherApplicationItem {
 }
 
 export interface TeacherStaffItem {
+  binding_id: string;
   teacher_id: string;
   user_id: string;
   real_name: string;
@@ -41,6 +42,7 @@ export interface TeacherStaffItem {
   phone: string;
   nickname: string;
   avatar: string | null;
+  bound_at: string;
 }
 
 export async function fetchStudioTeachers(params: {
@@ -55,6 +57,39 @@ export async function reviewTeacherApplication(
   payload: { action: "approve" | "reject"; reason?: string }
 ): Promise<{ id: string; status: number; action: string; teacher_id?: string }> {
   const response = await request.put(`/studio/teachers/${id}`, payload);
+  return response.data;
+}
+
+export async function releaseTeacher(
+  teacherId: string
+): Promise<{ binding_id: string; teacher_id: string; studio_id: string; status: number; action: string }> {
+  const response = await request.delete(`/studio/teachers/${teacherId}`);
+  return response.data;
+}
+
+export interface StudentLessonLogItem {
+  log_id: string;
+  course_id: string;
+  course_title: string;
+  order_id: string;
+  schedule_id: string | null;
+  lesson_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  is_makeup: boolean;
+  source: number;
+  type: number;
+  delta: number;
+  balance_after: number;
+  note: string | null;
+  created_at: string;
+}
+
+export async function fetchStudentLessonLogs(
+  childId: string,
+  params: { limit?: number } = {}
+): Promise<{ child_id: string; nickname: string; total: number; list: StudentLessonLogItem[] }> {
+  const response = await request.get(`/studio/students/${childId}/logs`, { params });
   return response.data;
 }
 

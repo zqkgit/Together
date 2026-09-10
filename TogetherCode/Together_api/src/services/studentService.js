@@ -462,10 +462,88 @@ async function attendSchedule(scheduleId, payload) {
   });
 }
 
+/**
+ * 工作室侧：学员课时流水（消课记录）
+ * 校验该学员属于本工作室（存在本工作室订单/余额），返回 lesson_logs 明细
+ */
+async function listStudentLessonLogs(childId, studioId, query = {}) {
+  const child = await Child.findOne({
+    where: { child_id: childId },
+    include: [
+      {
+        model: ChildCourseBalance,
+        as: "balances",
+        required: true,
+        include: [
+          {
+            model: Order,
+            as: "order",
+            required: true,
+            where: { studio_id: studioId },
+            attributes: ["order_id", "status"]
+          }
+        ]
+      }
+    ]
+  });
+
+  if (!child) {
+    return null;
+  }
+
+  const rows = await LessonLog.findAll({
+    where: {
+      child_id: childId
+    },
+    include: [
+      { model: Course, as: "course", attributes: ["course_id", "title"] },
+      {
+        model: Schedule,
+        as: "schedule",
+        attributes: ["schedule_id", "lesson_date", "start_time", "end_time", "location", "is_makeup"]
+      },
+      {
+        model: Order,
+        as: "order",
+        attributes: ["order_id", "studio_id"],
+        include: [{ model: StudioProfile, as: "studio", attributes: ["studio_id", "name"] }]
+      }
+    ],
+    order: [["created_at", "DESC"]],
+    limit: Math.min(Number(query.limit) || 50, 200),
+    offset: Number(query.offset) || 0
+  });
+
+  return {
+    child_id: String(child.child_id),
+    nickname: child.nickname,
+    birthday: child.birthday,
+    total: rows.length,
+    list: rows.map((item) => ({
+      log_id: String(item.log_id),
+      course_id: String(item.course_id),
+      course_title: item.course ? item.course.title : "-",
+      order_id: String(item.order_id),
+      schedule_id: item.schedule_id ? String(item.schedule_id) : null,
+      lesson_date: item.schedule ? item.schedule.lesson_date : null,
+      start_time: item.schedule ? item.schedule.start_time : null,
+      end_time: item.schedule ? item.schedule.end_time : null,
+      is_makeup: item.schedule ? Boolean(item.schedule.is_makeup) : false,
+      source: Number(item.source),
+      type: Number(item.type),
+      delta: Number(item.delta),
+      balance_after: Number(item.balance_after),
+      note: item.note,
+      created_at: item.created_at
+    }))
+  };
+}
+
 module.exports = {
   listStudioStudents,
   consumeStudentLessons,
   listClassStudents,
   attendSchedule,
-  applyLessonConsumption
+  applyLessonConsumption,
+  listStudentLessonLogs
 };

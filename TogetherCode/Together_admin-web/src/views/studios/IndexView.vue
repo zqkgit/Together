@@ -10,6 +10,9 @@ import {
   type StudioItem,
   type StudioDetail
 } from "../../services/admin";
+import ReviewPanel from "./ReviewPanel.vue";
+
+const activeTab = ref("list");
 
 const loading = ref(false);
 const detailLoading = ref(false);
@@ -146,7 +149,9 @@ onMounted(loadData);
 
 <template>
   <div class="page-stack">
-    <el-card v-loading="loading" shadow="never">
+    <el-tabs v-model="activeTab" class="page-tabs">
+      <el-tab-pane label="工作室列表" name="list">
+        <el-card v-loading="loading" shadow="never">
       <template #header>
         <div class="panel-header">
           <span>工作室列表</span>
@@ -216,6 +221,11 @@ onMounted(loadData);
         />
       </div>
     </el-card>
+      </el-tab-pane>
+      <el-tab-pane label="入驻申请审核" name="review">
+        <ReviewPanel />
+      </el-tab-pane>
+    </el-tabs>
 
     <!-- 工作室详情抽屉 -->
     <el-drawer v-model="drawerOpen" title="工作室详情" size="480px">
@@ -324,6 +334,10 @@ onMounted(loadData);
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.page-tabs {
+  margin-bottom: 4px;
 }
 
 .toolbar-right {

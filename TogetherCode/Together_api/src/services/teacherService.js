@@ -12,7 +12,8 @@ const {
   LeaveRequest,
   Post,
   PostStudent,
-  LessonLog
+  LessonLog,
+  TeacherStudioBinding
 } = require("../models");
 const { applyLessonConsumption } = require("./studentService");
 const { reviewLeaveRequest } = require("./leaveService");
@@ -50,6 +51,8 @@ function normalizeTeacher(teacher) {
     user_id: String(teacher.user_id),
     real_name: teacher.real_name,
     studio_id: teacher.studio_id ? String(teacher.studio_id) : null,
+    studio_ids: (teacher.bindings || []).map((item) => String(item.studio_id)),
+    studio_names: (teacher.bindings || []).map((item) => (item.studio ? item.studio.name : null)),
     subjects: teacher.subjects,
     years: teacher.years,
     intro: teacher.intro,
@@ -160,6 +163,19 @@ async function ensureTeacherProfile(userId, transaction) {
         model: User,
         as: "user",
         attributes: ["user_id", "nickname", "avatar", "phone"]
+      },
+      {
+        model: TeacherStudioBinding,
+        as: "bindings",
+        where: { status: 1 },
+        required: false,
+        include: [
+          {
+            model: require("../models").StudioProfile,
+            as: "studio",
+            attributes: ["studio_id", "name"]
+          }
+        ]
       }
     ],
     transaction
@@ -320,7 +336,11 @@ async function resolvePostContext(teacher, payload, transaction) {
     throw new Error("Course not found");
   }
 
-  if (teacher.studio_id && String(course.studio_id) !== String(teacher.studio_id)) {
+  const binding = await TeacherStudioBinding.findOne({
+    where: { teacher_id: teacher.teacher_id, studio_id: course.studio_id, status: 1 },
+    transaction
+  });
+  if (!binding) {
     throw new Error("Course does not belong to teacher studio");
   }
 

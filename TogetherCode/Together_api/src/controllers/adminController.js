@@ -24,6 +24,7 @@ const {
   updateTag,
   deleteTag
 } = require("../services/tagService");
+const { listPlatformTeachers } = require("../services/adminTeacherService");
 const { fail } = require("../utils/response");
 
 async function getOverview(_req, res) {
@@ -143,6 +144,17 @@ async function putTeacherApplicationReview(req, res) {
   }
 }
 
+// ============ 平台老师管理 ============
+
+async function getTeachersData(req, res) {
+  try {
+    const data = await listPlatformTeachers(req.query);
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 // ============ 标签管理 ============
 
 async function getTagsData(req, res) {
@@ -187,6 +199,7 @@ module.exports = {
   postPayoutSettlement,
   getTeacherApplicationsData,
   putTeacherApplicationReview,
+  getTeachersData,
   getTagsData,
   postTag,
   putTag,

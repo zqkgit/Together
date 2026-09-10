@@ -3,7 +3,8 @@ const { getStudioProfile, updateStudioProfile } = require("../services/studioSer
 const { getStudioOverview } = require("../services/studioOverviewService");
 const {
   getStudioTeachers,
-  reviewTeacherApplication
+  reviewTeacherApplication,
+  releaseTeacher
 } = require("../services/studioTeacherService");
 
 async function getMyStudioProfile(req, res) {
@@ -63,10 +64,24 @@ async function putTeacherReview(req, res) {
   }
 }
 
+async function deleteTeacherBinding(req, res) {
+  try {
+    const result = await releaseTeacher(req.admin.studioId, req.params.id);
+    if (result.error) {
+      return fail(res, result.error.status, result.error.status === 404 ? 40481 : 40081, result.error.message);
+    }
+
+    return ok(res, result.data, result.message);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   getMyStudioProfile,
   putMyStudioProfile,
   getMyStudioOverview,
   getMyStudioTeachers,
-  putTeacherReview
+  putTeacherReview,
+  deleteTeacherBinding
 };

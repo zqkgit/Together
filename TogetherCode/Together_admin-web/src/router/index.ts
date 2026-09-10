@@ -32,16 +32,10 @@ const router = createRouter({
           meta: { title: "工作室管理", requiresAuth: true, scopes: ["platform"] }
         },
         {
-          path: "/reviews",
-          name: "reviews",
-          component: () => import("../views/reviews/IndexView.vue"),
-          meta: { title: "认证审核", requiresAuth: true, scopes: ["platform"] }
-        },
-        {
-          path: "/teacher-reviews",
-          name: "teacher-reviews",
-          component: () => import("../views/teacher-reviews/IndexView.vue"),
-          meta: { title: "老师认证", requiresAuth: true, scopes: ["platform"] }
+          path: "/admin-teachers",
+          name: "admin-teachers",
+          component: () => import("../views/admin-teachers/IndexView.vue"),
+          meta: { title: "老师管理", requiresAuth: true, scopes: ["platform"] }
         },
         {
           path: "/tags",

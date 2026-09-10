@@ -14,6 +14,7 @@ const {
   postPayoutSettlement,
   getTeacherApplicationsData,
   putTeacherApplicationReview,
+  getTeachersData,
   getTagsData,
   postTag,
   putTag,
@@ -52,6 +53,9 @@ router.post("/settlements/:id/payout", postPayoutSettlement);
 // 平台老师认证审核（studio_id 为空的申请：用户申请成为老师）
 router.get("/teacher-applications", getTeacherApplicationsData);
 router.put("/teacher-applications/:id", putTeacherApplicationReview);
+
+// 平台老师管理（已认证老师档案）
+router.get("/teachers", getTeachersData);
 
 // 标签管理（兴趣标签库：1 工作室 / 2 老师 / 3 通用）
 router.get("/tags", getTagsData);

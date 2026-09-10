@@ -77,6 +77,7 @@ module.exports = (sequelize, DataTypes) => {
   TeacherProfile.associate = (models) => {
     TeacherProfile.belongsTo(models.User, { foreignKey: "user_id", as: "user" });
     TeacherProfile.belongsTo(models.StudioProfile, { foreignKey: "studio_id", as: "studio" });
+    TeacherProfile.hasMany(models.TeacherStudioBinding, { foreignKey: "teacher_id", as: "bindings" });
     TeacherProfile.hasMany(models.Course, { foreignKey: "teacher_id", as: "courses" });
     TeacherProfile.hasMany(models.Class, { foreignKey: "teacher_id", as: "classes" });
     TeacherProfile.hasMany(models.Schedule, { foreignKey: "teacher_id", as: "schedules" });

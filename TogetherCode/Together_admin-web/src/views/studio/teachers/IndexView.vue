@@ -1,18 +1,20 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { Refresh } from "@element-plus/icons-vue";
 import {
   fetchStudioTeachers,
   reviewTeacherApplication,
-  type TeacherApplicationItem
+  releaseTeacher,
+  type TeacherApplicationItem,
+  type TeacherStaffItem
 } from "../../../services/studio";
 
 const loading = ref(false);
 const activeTab = ref("applications");
 const status = ref<number | "">(0);
 const applications = ref<TeacherApplicationItem[]>([]);
-const staff = ref<{ teacher_id: string; real_name: string; subjects: string[]; years: number; intro: string | null; cert_status: number; rating: number; student_count: number; phone: string }[]>([]);
+const staff = ref<TeacherStaffItem[]>([]);
 
 const statusMeta: Record<number, { text: string; type: "warning" | "success" | "danger" }> = {
   0: { text: "待处理", type: "warning" },
@@ -77,6 +79,23 @@ async function submitReview() {
 }
 
 onMounted(loadData);
+
+// 解除合作
+async function onRelease(row: TeacherStaffItem) {
+  try {
+    await ElMessageBox.confirm(
+      `解除与「${row.real_name}」的合作关系？解除后老师不再出现在本工作室在职列表，但其档案与其他工作室绑定关系不受影响。`,
+      "解除合作",
+      { type: "warning", confirmButtonText: "确认解除", cancelButtonText: "取消" }
+    );
+    await releaseTeacher(row.teacher_id);
+    ElMessage.success("已解除合作");
+    loadData();
+  } catch (error) {
+    if (error === "cancel" || error === "close") return;
+    // 其他错误由拦截器统一处理
+  }
+}
 </script>
 
 <template>
@@ -191,6 +210,17 @@ onMounted(loadData);
             <template #default="{ row }">{{ Number(row.rating).toFixed(1) }}</template>
           </el-table-column>
           <el-table-column prop="student_count" label="学员数" width="80" align="center" />
+          <el-table-column label="加入时间" width="110">
+            <template #default="{ row }">
+              <span v-if="row.bound_at" class="cell-sub">{{ row.bound_at.slice(0, 10) }}</span>
+              <span v-else class="cell-sub">-</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="120" fixed="right">
+            <template #default="{ row }">
+              <el-button text type="danger" @click="onRelease(row)">解除合作</el-button>
+            </template>
+          </el-table-column>
         </el-table>
         <div v-if="!loading && staff.length === 0" class="empty-tip">暂无在职老师</div>
       </template>

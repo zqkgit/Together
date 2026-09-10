@@ -1,9 +1,14 @@
 const { body, param, query } = require("express-validator");
 
 const listStudioStudentsValidators = [
-  query("studio_id").isString().notEmpty().withMessage("studio_id is required"),
   query("q").optional({ values: "falsy" }).isString(),
   query("status").optional({ values: "falsy" }).isIn(["active", "empty", "all"])
+];
+
+const studentLogsValidators = [
+  param("id").isString().notEmpty().withMessage("child id is required"),
+  query("limit").optional({ values: "falsy" }).isInt({ min: 1, max: 200 }),
+  query("offset").optional({ values: "falsy" }).isInt({ min: 0 })
 ];
 
 const consumeLessonValidators = [
@@ -33,5 +38,6 @@ module.exports = {
   listStudioStudentsValidators,
   consumeLessonValidators,
   classIdValidator,
-  scheduleAttendanceValidators
+  scheduleAttendanceValidators,
+  studentLogsValidators
 };

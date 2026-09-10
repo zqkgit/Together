@@ -5,8 +5,10 @@ import { Refresh, Search } from "@element-plus/icons-vue";
 import {
   fetchStudioStudents,
   consumeStudentLessons,
+  fetchStudentLessonLogs,
   type StudentItem,
-  type StudentBalance
+  type StudentBalance,
+  type StudentLessonLogItem
 } from "../../../services/studio";
 import { useAuthStore } from "../../../stores/auth";
 
@@ -21,6 +23,10 @@ const students = ref<StudentItem[]>([]);
 // 详情
 const drawerOpen = ref(false);
 const current = ref<StudentItem | null>(null);
+
+// 课时流水
+const logsLoading = ref(false);
+const logs = ref<StudentLessonLogItem[]>([]);
 
 // 手动消课
 const consumeVisible = ref(false);
@@ -48,6 +54,29 @@ async function loadData() {
 function openDetail(row: StudentItem) {
   current.value = row;
   drawerOpen.value = true;
+  loadLogs(row.child_id);
+}
+
+async function loadLogs(childId: string) {
+  logsLoading.value = true;
+  try {
+    const data = await fetchStudentLessonLogs(childId);
+    logs.value = data.list;
+  } catch {
+    // 忽略
+  } finally {
+    logsLoading.value = false;
+  }
+}
+
+function sourceText(source: number): string {
+  const map: Record<number, string> = {
+    1: "出勤打卡",
+    2: "排课消课",
+    3: "手动消课",
+    4: "退款扣减"
+  };
+  return map[source] || "其他";
 }
 
 function genderText(gender: string): string {
@@ -179,6 +208,33 @@ onMounted(loadData);
             </template>
           </el-table-column>
         </el-table>
+
+        <div class="log-section">
+          <div class="log-title">课时流水</div>
+          <el-table v-loading="logsLoading" :data="logs" size="small" empty-text="暂无消课记录">
+            <el-table-column label="日期" width="100">
+              <template #default="{ row }">
+                {{ row.lesson_date || "-" }}
+                <div v-if="row.start_time" class="cell-sub">{{ row.start_time }}~{{ row.end_time }}</div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="course_title" label="课程" min-width="130" />
+            <el-table-column label="变动" width="80" align="center">
+              <template #default="{ row }">
+                <span class="consume-delta">{{ row.delta }} 节</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="剩余" width="70" align="center">
+              <template #default="{ row }">{{ row.balance_after }}</template>
+            </el-table-column>
+            <el-table-column label="来源" width="100">
+              <template #default="{ row }">{{ sourceText(row.source) }}</template>
+            </el-table-column>
+            <el-table-column prop="note" label="备注" min-width="100" show-overflow-tooltip>
+              <template #default="{ row }">{{ row.note || "-" }}</template>
+            </el-table-column>
+          </el-table>
+        </div>
       </template>
     </el-drawer>
 
@@ -248,5 +304,20 @@ onMounted(loadData);
   margin: 14px 0;
   font-size: 14px;
   color: #2b2621;
+}
+
+.log-section {
+  margin-top: 20px;
+}
+
+.log-title {
+  font-weight: 600;
+  color: #2b2621;
+  margin-bottom: 10px;
+}
+
+.consume-delta {
+  color: #c15f2c;
+  font-weight: 600;
 }
 </style>

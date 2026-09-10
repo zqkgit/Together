@@ -5,12 +5,12 @@ import {
   Coin,
   Collection,
   CreditCard,
-  DocumentChecked,
   House,
   Menu,
   OfficeBuilding,
   Setting,
   SwitchButton,
+  Avatar,
   Tickets,
   User
 } from "@element-plus/icons-vue";
@@ -28,8 +28,7 @@ const authStore = useAuthStore();
 const platformMenus = [
   { path: "/dashboard", title: "经营看板", icon: House },
   { path: "/studios", title: "工作室管理", icon: OfficeBuilding },
-  { path: "/reviews", title: "认证审核", icon: DocumentChecked },
-  { path: "/teacher-reviews", title: "老师认证", icon: User },
+  { path: "/admin-teachers", title: "老师管理", icon: Avatar },
   { path: "/tags", title: "标签管理", icon: Collection },
   { path: "/settlements", title: "结算分账", icon: CreditCard }
 ];

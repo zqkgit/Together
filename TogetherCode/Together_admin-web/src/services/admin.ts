@@ -310,6 +310,36 @@ export async function reviewTeacherCertification(
   return response.data;
 }
 
+// ============ 平台老师管理（已认证档案） ============
+
+export interface TeacherProfileItem {
+  teacher_id: string;
+  user_id: string;
+  real_name: string;
+  phone: string;
+  nickname: string;
+  avatar: string | null;
+  subjects: string[];
+  years: number;
+  intro: string | null;
+  cert_no: string | null;
+  cert_status: number;
+  studio_id: string | null;
+  studio_name: string | null;
+  studios: Array<{ studio_id: string; name: string | null; bound_at: string }>;
+  rating: number;
+  student_count: number;
+  work_count: number;
+  created_at: string;
+}
+
+export async function fetchTeacherProfiles(
+  params: { cert_status?: number | ""; q?: string } = {}
+): Promise<{ total: number; list: TeacherProfileItem[] }> {
+  const response = await request.get("/admin/teachers", { params });
+  return response.data;
+}
+
 // ============ 标签管理 ============
 
 export interface TagItem {
