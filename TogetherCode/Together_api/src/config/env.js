@@ -26,5 +26,19 @@ module.exports = {
   redisUrl: process.env.REDIS_URL || "redis://127.0.0.1:6379",
   jwtSecret: process.env.JWT_SECRET || "replace-me",
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
-  jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "30d"
+  jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "30d",
+  // 图片上传：配置 OSS_* 后走阿里云 OSS；未配置则回退本地静态目录（开发环境）
+  upload: {
+    dir: process.env.UPLOAD_DIR || path.resolve(__dirname, "../../uploads"),
+    publicUrl: process.env.UPLOAD_PUBLIC_URL || "",
+    maxFiles: Number(process.env.UPLOAD_MAX_FILES || 9),
+    maxSizeMb: Number(process.env.UPLOAD_MAX_SIZE_MB || 10)
+  },
+  oss: {
+    region: process.env.OSS_REGION || "",
+    accessKeyId: process.env.OSS_ACCESS_KEY_ID || "",
+    accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET || "",
+    bucket: process.env.OSS_BUCKET || "",
+    publicUrl: process.env.OSS_PUBLIC_URL || ""
+  }
 };

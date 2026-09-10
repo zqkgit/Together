@@ -13,6 +13,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan(env.nodeEnv === "production" ? "combined" : "dev"));
 
+// 本地回退存储的静态文件（生产配置 OSS 后不再依赖本目录）
+app.use("/uploads", express.static(env.upload.dir));
+
 app.get("/", (_req, res) => {
   res.json({
     code: 0,

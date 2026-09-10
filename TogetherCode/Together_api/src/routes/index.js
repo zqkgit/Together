@@ -9,6 +9,7 @@ const childRoutes = require("./child");
 const tagRoutes = require("./tags");
 const parentRoutes = require("./parent");
 const meRoutes = require("./me");
+const uploadRoutes = require("./upload");
 
 const router = express.Router();
 
@@ -38,6 +39,9 @@ router.use("/tags", tagRoutes);
 
 // 当前用户自身资源：完善资料等。
 router.use("/me", meRoutes);
+
+// 图片上传（OSS 优先，未配置时回退本地 /uploads）。
+router.use("/upload", uploadRoutes);
 
 // 家长端：课时余额 / 消课记录 / 孩子课表。
 router.use("/", parentRoutes);
