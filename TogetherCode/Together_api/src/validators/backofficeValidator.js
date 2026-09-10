@@ -1,13 +1,41 @@
-const { body, param } = require("express-validator");
+const { body, param, query } = require("express-validator");
 
 const studioIdValidator = [param("id").isString().notEmpty().withMessage("studio id is required")];
 
 const reviewIdValidator = [param("id").isString().notEmpty().withMessage("review id is required")];
 
+const listStudiosValidators = [
+  query("page").optional({ values: "falsy" }).isInt({ min: 1 }).withMessage("page must be positive integer"),
+  query("size").optional({ values: "falsy" }).isInt({ min: 1, max: 100 }).withMessage("size must be 1-100"),
+  query("keyword").optional({ values: "falsy" }).isString().isLength({ max: 50 })
+];
+
+const listReviewsValidators = [
+  query("status").optional({ values: "falsy" }).isInt({ min: 0, max: 2 }).withMessage("status must be 0-2"),
+  query("page").optional({ values: "falsy" }).isInt({ min: 1 }).withMessage("page must be positive integer"),
+  query("size").optional({ values: "falsy" }).isInt({ min: 1, max: 100 }).withMessage("size must be 1-100"),
+  query("keyword").optional({ values: "falsy" }).isString().isLength({ max: 50 })
+];
+
 const handleStudioReviewValidators = [
   param("id").isString().notEmpty().withMessage("review id is required"),
   body("action").isIn(["approve", "reject"]).withMessage("action is invalid"),
-  body("reason").optional({ values: "falsy" }).isString().isLength({ max: 255 })
+  body("reason").custom((value, { req }) => {
+    if (req.body.action === "reject" && !String(value || "").trim()) {
+      throw new Error("reason is required when rejecting");
+    }
+    if (value !== undefined && value !== null && value !== "") {
+      if (typeof value !== "string" || value.length > 255) {
+        throw new Error("reason must be a string within 255 chars");
+      }
+    }
+    return true;
+  })
+];
+
+const banStudioValidators = [
+  param("id").isString().notEmpty().withMessage("studio id is required"),
+  body("reason").isString().trim().isLength({ min: 1, max: 255 }).withMessage("ban reason is required")
 ];
 
 const saveStudioProfileValidators = [
@@ -31,6 +59,9 @@ const saveStudioProfileValidators = [
 module.exports = {
   studioIdValidator,
   reviewIdValidator,
+  listStudiosValidators,
+  listReviewsValidators,
   handleStudioReviewValidators,
+  banStudioValidators,
   saveStudioProfileValidators
 };

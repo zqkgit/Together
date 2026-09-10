@@ -6,7 +6,9 @@ const {
   getSettlements,
   getStudioDetail,
   getStudioReviewDetail,
-  reviewStudioApplication
+  reviewStudioApplication,
+  banStudio,
+  unbanStudio
 } = require("../services/adminStore");
 const { fail } = require("../utils/response");
 
@@ -14,8 +16,8 @@ async function getOverview(_req, res) {
   return ok(res, await getDashboardOverview());
 }
 
-async function getStudiosList(_req, res) {
-  return ok(res, await getStudios());
+async function getStudiosList(req, res) {
+  return ok(res, await getStudios(req.query));
 }
 
 async function getStudioDetailById(req, res) {
@@ -27,8 +29,8 @@ async function getStudioDetailById(req, res) {
   return ok(res, data);
 }
 
-async function getReviewsList(_req, res) {
-  return ok(res, await getReviews());
+async function getReviewsList(req, res) {
+  return ok(res, await getReviews(req.query));
 }
 
 async function getReviewDetail(req, res) {
@@ -54,6 +56,34 @@ async function putReview(req, res) {
   }
 }
 
+async function putStudioBan(req, res) {
+  try {
+    const data = await banStudio(req.params.id, req.body, req.admin);
+    if (!data) {
+      return fail(res, 404, 40470, "Studio not found");
+    }
+
+    return ok(res, data, "studio banned");
+  } catch (error) {
+    const status = /already banned/i.test(error.message) ? 400 : 500;
+    return fail(res, status, status === 400 ? 40071 : 50000, error.message || "Internal server error");
+  }
+}
+
+async function putStudioUnban(req, res) {
+  try {
+    const data = await unbanStudio(req.params.id, req.admin);
+    if (!data) {
+      return fail(res, 404, 40470, "Studio not found");
+    }
+
+    return ok(res, data, "studio unbanned");
+  } catch (error) {
+    const status = /not banned/i.test(error.message) ? 400 : 500;
+    return fail(res, status, status === 400 ? 40071 : 50000, error.message || "Internal server error");
+  }
+}
+
 async function getSettlementsData(_req, res) {
   return ok(res, await getSettlements());
 }
@@ -65,5 +95,7 @@ module.exports = {
   getReviewsList,
   getReviewDetail,
   putReview,
+  putStudioBan,
+  putStudioUnban,
   getSettlementsData
 };
