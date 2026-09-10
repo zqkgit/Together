@@ -163,21 +163,45 @@ export interface ReviewListParams {
   keyword?: string;
 }
 
+export interface SettlementItem {
+  id: string;
+  settlement_id: string;
+  studio_id: string;
+  studio: string;
+  period: string;
+  period_start: string;
+  period_end: string;
+  income: string;
+  refund: string;
+  distribution: string;
+  net_amount: string;
+  fee_rate: number;
+  fee_amount: string;
+  payable: string;
+  payable_amount: number;
+  status: number;
+  status_text: string;
+  pay_no: string | null;
+  paid_at: string | null;
+  created_at: string;
+}
+
 export interface SettlementsData {
   summary: {
     pendingNetAmount: string;
     pendingNetTrend: string;
     retryCount: number;
     retryHint: string;
+    pendingCount: number;
   };
-  list: Array<{
-    id: string;
-    studio: string;
-    period: string;
-    income: string;
-    refund: string;
-    payable: string;
-  }>;
+  list: SettlementItem[];
+}
+
+export interface GenerateSettlementsResult {
+  created: Array<{ studio_id: string; studio: string; income: string; refund: string; payable: string }>;
+  skipped: Array<{ studio_id: string; studio: string }>;
+  period: { period_start: string; period_end: string };
+  message: string;
 }
 
 export async function fetchDashboardOverview(): Promise<DashboardOverview> {
@@ -235,5 +259,18 @@ export async function handleReview(
 
 export async function fetchSettlements(): Promise<SettlementsData> {
   const response = await request.get("/admin/settlements");
+  return response.data;
+}
+
+export async function generateSettlements(period?: {
+  period_start?: string;
+  period_end?: string;
+}): Promise<GenerateSettlementsResult> {
+  const response = await request.post("/admin/settlements/generate", period || {});
+  return response.data;
+}
+
+export async function payoutSettlement(id: string): Promise<SettlementItem> {
+  const response = await request.post(`/admin/settlements/${id}/payout`);
   return response.data;
 }

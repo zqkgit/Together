@@ -3,13 +3,17 @@ const {
   getDashboardOverview,
   getStudios,
   getReviews,
-  getSettlements,
   getStudioDetail,
   getStudioReviewDetail,
   reviewStudioApplication,
   banStudio,
   unbanStudio
 } = require("../services/adminStore");
+const {
+  getSettlements,
+  generateSettlements,
+  payoutSettlement
+} = require("../services/settlementService");
 const { fail } = require("../utils/response");
 
 async function getOverview(_req, res) {
@@ -88,6 +92,28 @@ async function getSettlementsData(_req, res) {
   return ok(res, await getSettlements());
 }
 
+async function postGenerateSettlements(req, res) {
+  try {
+    const data = await generateSettlements(req.admin, req.body);
+    return ok(res, data, data.message);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+async function postPayoutSettlement(req, res) {
+  try {
+    const result = await payoutSettlement(req.params.id, req.admin);
+    if (result.error) {
+      return fail(res, result.error.status, result.error.status === 404 ? 40472 : 40072, result.error.message);
+    }
+
+    return ok(res, result.data, "打款成功");
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   getOverview,
   getStudiosList,
@@ -97,5 +123,7 @@ module.exports = {
   putReview,
   putStudioBan,
   putStudioUnban,
-  getSettlementsData
+  getSettlementsData,
+  postGenerateSettlements,
+  postPayoutSettlement
 };

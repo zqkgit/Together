@@ -7,6 +7,46 @@ export interface Paged<T> {
   list: T[];
 }
 
+// ============ 经营概览 ============
+
+export interface StudioOverview {
+  statCards: Array<{ label: string; value: string; trend: string }>;
+  summary: {
+    order_total: number;
+    gmv_total: number;
+    gmv_total_text: string;
+    order_month: number;
+    gmv_month: number;
+    gmv_month_text: string;
+    student_active: number;
+    course_total: number;
+    course_online: number;
+    class_total: number;
+  };
+  trend30d: Array<{ date: string; gmv: number }>;
+  todos: {
+    refunds: Array<{
+      refund_id: string;
+      child_nickname: string;
+      course_title: string;
+      amount: number;
+      created_at: string;
+    }>;
+    leaves: Array<{
+      leave_id: string;
+      child_nickname: string;
+      class_name: string;
+      lesson_date: string | null;
+      created_at: string;
+    }>;
+  };
+}
+
+export async function fetchStudioOverview(): Promise<StudioOverview> {
+  const response = await request.get("/studio/overview");
+  return response.data;
+}
+
 // ============ 工作室资料 ============
 
 export interface StudioProfileInfo {
@@ -108,6 +148,7 @@ export interface CoursePayload {
 }
 
 export async function fetchStudioCourses(params: {
+  studio_id?: string;
   q?: string;
   category?: number | "";
   status?: number | "";

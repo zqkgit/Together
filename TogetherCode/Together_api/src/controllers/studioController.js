@@ -1,5 +1,6 @@
 const { ok, fail } = require("../utils/response");
 const { getStudioProfile, updateStudioProfile } = require("../services/studioService");
+const { getStudioOverview } = require("../services/studioOverviewService");
 
 async function getMyStudioProfile(req, res) {
   try {
@@ -27,7 +28,17 @@ async function putMyStudioProfile(req, res) {
   }
 }
 
+async function getMyStudioOverview(req, res) {
+  try {
+    const data = await getStudioOverview(req.admin.studioId);
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   getMyStudioProfile,
-  putMyStudioProfile
+  putMyStudioProfile,
+  getMyStudioOverview
 };

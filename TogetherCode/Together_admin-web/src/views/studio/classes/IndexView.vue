@@ -79,7 +79,7 @@ async function openCreate() {
     capacity: 12
   };
   try {
-    courses.value = await fetchStudioCourses({ status: 1 });
+    courses.value = await fetchStudioCourses({ studio_id: studioId.value, status: 1 });
   } catch {
     courses.value = [];
   }

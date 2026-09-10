@@ -9,7 +9,9 @@ const {
   putReview,
   putStudioBan,
   putStudioUnban,
-  getSettlementsData
+  getSettlementsData,
+  postGenerateSettlements,
+  postPayoutSettlement
 } = require("../controllers/adminController");
 const adminAuthRoutes = require("./adminAuth");
 const { validateRequest } = require("../middlewares/validate");
@@ -38,5 +40,7 @@ router.get("/reviews", listReviewsValidators, validateRequest, getReviewsList);
 router.get("/reviews/:id", reviewIdValidator, validateRequest, getReviewDetail);
 router.put("/reviews/:id", handleStudioReviewValidators, validateRequest, putReview);
 router.get("/settlements", getSettlementsData);
+router.post("/settlements/generate", postGenerateSettlements);
+router.post("/settlements/:id/payout", postPayoutSettlement);
 
 module.exports = router;

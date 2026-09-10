@@ -57,6 +57,7 @@ async function loadData() {
   loading.value = true;
   try {
     courses.value = await fetchStudioCourses({
+      studio_id: authStore.account?.studio_id || undefined,
       q: q.value.trim() || undefined,
       category: category.value,
       status: status.value
