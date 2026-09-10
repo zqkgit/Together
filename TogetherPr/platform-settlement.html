@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>艺启 · 平台运营后台 — 工作室结算/分账</title>
+<style>
+  :root{
+    --green:#4A7C3F; --green-deep:#3a6431; --green-soft:#eef4ea;
+    --wood:#8B6B3D; --mint:#F7FAF4; --line:#E7EDE2; --ink:#23332a;
+    --muted:#8a958c; --sub:#f3f7f0; --blue:#3a6ea5; --warn:#C8843C; --red:#c0563f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--mint)}
+  .app{display:flex;height:100vh;overflow:hidden}
+  /* sidebar */
+  .side{width:228px;background:linear-gradient(180deg,#2f5230,#3a6431);color:#dcead2;display:flex;flex-direction:column;flex-shrink:0}
+  .logo{padding:18px 18px 14px;font-weight:700;font-size:16px;color:#fff;border-bottom:1px solid rgba(255,255,255,.12)}
+  .logo span{font-size:12px;font-weight:400;color:#a9c79c;display:block;margin-top:2px}
+  .nav{padding:10px 8px;overflow:auto;flex:1}
+  .nav-g{font-size:11px;color:#8fae82;padding:12px 12px 6px;letter-spacing:1px}
+  .ni{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:9px;font-size:14px;cursor:pointer;color:#cfe0c4;margin:2px 0}
+  .ni:hover{background:rgba(255,255,255,.08)}
+  .ni.on{background:#fff;color:var(--green-deep);font-weight:600}
+  .ni .ic{width:18px;text-align:center}
+  .me{padding:12px 16px;border-top:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:9px;font-size:13px}
+  .ava{width:30px;height:30px;border-radius:50%;background:#cfe0c4;color:var(--green-deep);display:flex;align-items:center;justify-content:center;font-weight:700}
+  /* main */
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .topbar{height:56px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 22px;gap:10px;flex-shrink:0}
+  .crumb{color:var(--muted);font-size:14px}
+  .crumb b{color:var(--ink)}
+  .top-r{margin-left:auto;display:flex;align-items:center;gap:14px;color:var(--muted);font-size:13px}
+  .bell{position:relative;font-size:17px}
+  .bell i{position:absolute;top:-4px;right:-6px;background:var(--red);color:#fff;font-size:10px;border-radius:8px;padding:0 4px;font-style:normal}
+  .btn-cfg{background:var(--green-soft);color:var(--green-deep);border:none;border-radius:8px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer}
+  .btn-cfg:hover{background:#e2eed9}
+  .content{flex:1;overflow:auto;padding:22px 24px 40px}
+  .ph{display:flex;align-items:flex-end;gap:12px;margin-bottom:16px}
+  .ph h1{font-size:21px;color:var(--green-deep)}
+  .ph p{color:var(--muted);font-size:13px}
+  /* stats */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;position:relative}
+  .stat .n{font-size:24px;font-weight:700;color:var(--green-deep)}
+  .stat .n small{font-size:13px;font-weight:600}
+  .stat .l{font-size:13px;color:var(--muted);margin-top:2px}
+  .stat .dot{position:absolute;top:14px;right:14px;width:9px;height:9px;border-radius:50%}
+  /* toolbar */
+  .bar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  .tabs{display:flex;background:var(--sub);border-radius:10px;padding:3px}
+  .tab{padding:7px 15px;border-radius:8px;font-size:13.5px;cursor:pointer;color:var(--muted)}
+  .tab.on{background:#fff;color:var(--green-deep);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+  .sel{margin-left:8px;position:relative}
+  .sel select{border:1px solid var(--line);border-radius:9px;padding:8px 30px 8px 12px;font-size:13.5px;background:#fff;color:var(--ink);outline:none;cursor:pointer;appearance:none}
+  .sel::after{content:"▾";position:absolute;right:11px;top:8px;color:var(--muted);pointer-events:none}
+  .sel select:focus{border-color:var(--green)}
+  .search{margin-left:auto;position:relative}
+  .search input{border:1px solid var(--line);border-radius:9px;padding:8px 12px 8px 32px;width:230px;font-size:13.5px;outline:none;background:#fff}
+  .search input:focus{border-color:var(--green)}
+  .search::before{content:"🔍";position:absolute;left:10px;top:8px;font-size:13px;opacity:.6}
+  /* list */
+  .list{display:flex;flex-direction:column;gap:12px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:15px 17px;display:flex;align-items:center;gap:15px;cursor:pointer;transition:.15s}
+  .card:hover{border-color:var(--green);box-shadow:0 3px 12px rgba(74,124,63,.1)}
+  .logo2{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--green),var(--wood));color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+  .info{flex:1;min-width:0}
+  .info .nm{font-weight:700;font-size:15.5px;display:flex;align-items:center;gap:8px}
+  .info .meta{color:var(--muted);font-size:12.5px;margin-top:3px}
+  .amtrow{display:flex;gap:18px;margin-top:7px}
+  .amtrow .a{font-size:12px;color:var(--muted)}
+  .amtrow .a b{font-size:14px;color:var(--ink);font-weight:700;margin-left:3px}
+  .amtrow .a .pay{color:var(--green-deep)}
+  .st{font-size:12px;padding:3px 10px;border-radius:999px;font-weight:600;flex-shrink:0}
+  .st.pending{background:#fff3e3;color:var(--warn)}
+  .st.paying{background:#e7eefb;color:var(--blue)}
+  .st.paid{background:#e7f4df;color:var(--green-deep)}
+  .st.abnormal{background:#fbe9e4;color:var(--red)}
+  .arr{color:var(--muted);font-size:18px;flex-shrink:0}
+  .empty{text-align:center;color:var(--muted);padding:50px 0;font-size:14px}
+  /* drawer */
+  .mask{position:fixed;inset:0;background:rgba(20,30,22,.42);opacity:0;pointer-events:none;transition:.25s;z-index:50}
+  .mask.on{opacity:1;pointer-events:auto}
+  .drawer{position:fixed;top:0;right:0;height:100vh;width:500px;max-width:94vw;background:#fff;transform:translateX(100%);transition:.28s;z-index:60;display:flex;flex-direction:column;box-shadow:-6px 0 26px rgba(0,0,0,.12)}
+  .drawer.on{transform:translateX(0)}
+  .dh{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+  .dh .tt{font-size:17px;font-weight:700;color:var(--green-deep)}
+  .dh .x{margin-left:auto;cursor:pointer;color:var(--muted);font-size:22px;line-height:1}
+  .db{flex:1;overflow:auto;padding:18px 20px}
+  .sec-t{font-size:13px;font-weight:700;color:var(--wood);margin:18px 0 9px;display:flex;align-items:center;gap:6px}
+  .sec-t:first-child{margin-top:0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+  .kv{font-size:13px}
+  .kv .k{color:var(--muted)}
+  .kv .v{color:var(--ink);font-weight:600}
+  /* 金额构成卡 */
+  .amt-card{background:linear-gradient(135deg,#f1f7ee,#eef4ea);border:1px solid var(--line);border-radius:12px;padding:15px 16px;margin-top:4px}
+  .amt-line{display:flex;justify-content:space-between;align-items:center;font-size:13.5px;padding:6px 0;border-bottom:1px dashed var(--line)}
+  .amt-line:last-child{border-bottom:none}
+  .amt-line .lab{color:var(--muted)}
+  .amt-line .val{font-weight:700;color:var(--ink)}
+  .amt-line.minus .val{color:var(--red)}
+  .amt-line.total{margin-top:4px;padding-top:11px;border-top:2px solid var(--green);border-bottom:none}
+  .amt-line.total .lab{color:var(--green-deep);font-weight:700}
+  .amt-line.total .val{font-size:19px;color:var(--green-deep)}
+  .amt-line .rate{font-size:11px;background:#fff;color:var(--wood);padding:1px 7px;border-radius:6px;margin-left:6px;font-weight:600}
+  /* 订单明细表 */
+  .otable{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}
+  .otable th{text-align:left;color:var(--muted);font-weight:600;font-size:12px;padding:7px 8px;border-bottom:1px solid var(--line)}
+  .otable td{padding:8px;border-bottom:1px solid var(--sub)}
+  .otable td b{color:var(--ink)}
+  .mini{font-size:11px;padding:1px 7px;border-radius:6px;background:var(--green-soft);color:var(--green-deep);font-weight:600}
+  .mini.gray{background:var(--sub);color:var(--muted)}
+  .acc{background:var(--sub);border-radius:9px;padding:11px 13px;font-size:13px;line-height:1.7;margin-top:4px}
+  .acc b{color:var(--green-deep)}
+  .actions{border-top:1px solid var(--line);padding:14px 20px;display:flex;gap:10px;background:#fafdf8}
+  .btn{border:none;border-radius:9px;padding:10px 16px;font-size:14px;cursor:pointer;font-weight:600}
+  .btn.g{background:var(--green);color:#fff;flex:1}
+  .btn.g:hover{background:var(--green-deep)}
+  .btn.r{background:#fbe9e4;color:var(--red)}
+  .btn.b{background:#e7eefb;color:var(--blue)}
+  .btn.ghost{background:var(--sub);color:var(--muted)}
+  .paid-tag{background:#e7f4df;color:var(--green-deep);font-size:13px;font-weight:600;padding:9px 0;text-align:center;width:100%;border-radius:9px}
+  .abn{background:#fbe9e4;color:var(--red);font-size:12.5px;padding:9px 12px;border-radius:9px;margin-top:4px;line-height:1.5}
+  /* sheet */
+  .sheet{position:fixed;left:0;right:0;bottom:0;background:#fff;transform:translateY(100%);transition:.28s;z-index:70;border-radius:18px 18px 0 0;padding:18px 20px 22px;box-shadow:0 -6px 26px rgba(0,0,0,.15)}
+  .sheet.on{transform:translateY(0)}
+  .sheet h3{font-size:16px;color:var(--green-deep);margin-bottom:12px}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
+  .field input,.field textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:13.5px;outline:none;font-family:inherit}
+  .field input:focus,.field textarea:focus{border-color:var(--green)}
+  .up-btn{display:inline-flex;align-items:center;gap:7px;border:1px dashed var(--green);background:var(--green-soft);color:var(--green-deep);border-radius:9px;padding:9px 14px;font-size:13px;cursor:pointer;font-weight:600}
+  .up-name{font-size:12.5px;color:var(--blue);margin-left:10px}
+  .srow{display:flex;gap:10px;margin-top:12px}
+  /* config sheet */
+  .cfg-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--sub)}
+  .cfg-row .cn{font-size:14px;font-weight:600;flex:1}
+  .cfg-row .crate{display:flex;align-items:center;gap:4px}
+  .cfg-row input{width:60px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13.5px;text-align:center;outline:none}
+  .cfg-row input:focus{border-color:var(--green)}
+  .cfg-row .pct{color:var(--muted);font-size:13px}
+  .toast{position:fixed;left:50%;top:26px;transform:translateX(-50%) translateY(-20px);background:#23332a;color:#fff;padding:11px 20px;border-radius:10px;font-size:14px;opacity:0;transition:.25s;z-index:99;pointer-events:none}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- sidebar -->
+  <aside class="side">
+    <div class="logo">艺启 · 平台运营<span>Platform Operations Console</span></div>
+    <nav class="nav">
+      <div class="nav-g">工作室治理</div>
+      <div class="ni"><span class="ic">🏢</span>工作室认证/入驻</div>
+      <div class="ni"><span class="ic">📊</span>全平台数据看板</div>
+      <div class="ni"><span class="ic">🛡️</span>平台内容风控</div>
+      <div class="nav-g">资金</div>
+      <div class="ni on"><span class="ic">💰</span>工作室结算/分账</div>
+      <div class="ni"><span class="ic">🔗</span>平台分销与抽成</div>
+      <div class="nav-g">运营</div>
+      <div class="ni"><span class="ic">📣</span>平台公告/活动</div>
+      <div class="ni"><span class="ic">⚙️</span>平台收费配置</div>
+      <div class="ni"><span class="ic">👤</span>平台员工与权限</div>
+    </nav>
+    <div class="me"><div class="ava">运</div><div>平台运营 · 林檬<br><span style="font-size:11px;color:#8fae82">platform_ops</span></div></div>
+  </aside>
+
+  <!-- main -->
+  <section class="main">
+    <header class="topbar">
+      <div class="crumb">平台运营 / <b>工作室结算 / 分账</b></div>
+      <div class="top-r">
+        <button class="btn-cfg" onclick="openConfig()">⚙️ 抽成配置</button>
+        <div class="bell">🔔<i>2</i></div>
+        <div>2026-07-24</div>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="ph">
+        <h1>工作室结算与分账</h1>
+        <p>按周期生成结算单，扣除平台抽成后对公打款，支持异常重打</p>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="n"><small>¥</small><span id="sPending">0</span></div><div class="l">本期待结算合计</div><div class="dot" style="background:var(--warn)"></div></div>
+        <div class="stat"><div class="n"><small>¥</small><span id="sPaid">0</span></div><div class="l">本期已打款</div><div class="dot" style="background:var(--green)"></div></div>
+        <div class="stat"><div class="n"><small>¥</small><span id="sFee">0</span></div><div class="l">平台抽成收入</div><div class="dot" style="background:var(--wood)"></div></div>
+        <div class="stat"><div class="n" id="sAbn">0</div><div class="l">异常结算单</div><div class="dot" style="background:var(--red)"></div></div>
+      </div>
+
+      <div class="bar">
+        <div class="tabs" id="tabs">
+          <div class="tab on" data-f="pending">待结算</div>
+          <div class="tab" data-f="paying">打款中</div>
+          <div class="tab" data-f="paid">已打款</div>
+          <div class="tab" data-f="abnormal">异常</div>
+          <div class="tab" data-f="all">全部</div>
+        </div>
+        <div class="sel"><select id="period" onchange="renderList()">
+          <option value="2026年7月">2026年7月</option>
+          <option value="2026年6月">2026年6月</option>
+        </select></div>
+        <div class="search"><input id="q" placeholder="搜索工作室名称" oninput="renderList()"></div>
+      </div>
+
+      <div class="list" id="list"></div>
+    </div>
+  </section>
+</div>
+
+<!-- drawer -->
+<div class="mask" id="mask" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="dh">
+    <div class="tt">结算单明细</div>
+    <div class="x" onclick="closeDrawer()">×</div>
+  </div>
+  <div class="db" id="db"></div>
+  <div class="actions" id="acts"></div>
+</div>
+
+<!-- pay sheet -->
+<div class="mask" id="mask2" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <h3>确认打款 · 填写打款信息</h3>
+  <div class="field"><label>银行电子回单号 / 流水号</label><input id="payNo" placeholder="如 20260724ZJ88201123"></div>
+  <div class="field">
+    <label>打款凭证</label>
+    <div><span class="up-btn" onclick="document.getElementById('upFile').click()">📎 上传回单截图</span><span class="up-name" id="upName"></span></div>
+    <input type="file" id="upFile" style="display:none" onchange="document.getElementById('upName').textContent=this.files[0]?this.files[0].name:''">
+  </div>
+  <div class="field"><label>备注（可选）</label><textarea id="payNote" placeholder="如对公打款说明、附言…" style="height:64px;resize:none"></textarea></div>
+  <div class="srow">
+    <button class="btn ghost" style="flex:1" onclick="closeSheet()">取消</button>
+    <button class="btn g" style="flex:1.4" onclick="submitPay()">确认打款</button>
+  </div>
+</div>
+
+<!-- config sheet -->
+<div class="mask" id="mask3" onclick="closeConfig()"></div>
+<div class="sheet" id="cfgSheet">
+  <h3>⚙️ 平台抽成配置</h3>
+  <div class="field">
+    <label>全局默认抽成比例</label>
+    <div class="cfg-row" style="border:none;padding:4px 0">
+      <div class="cn">默认</div>
+      <div class="crate"><input id="cfgDef" type="number" step="0.01" min="0" max="1" value="0.12"><span class="pct">（12%）</span></div>
+    </div>
+  </div>
+  <div class="sec-t" style="margin:6px 0 4px">按课程类目覆盖</div>
+  <div id="cfgCats"></div>
+  <div class="srow">
+    <button class="btn ghost" style="flex:1" onclick="closeConfig()">取消</button>
+    <button class="btn g" style="flex:1" onclick="saveConfig()">保存配置</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ---------- 抽成配置 ----------
+  const config = {
+    defaultRate:0.12,
+    cats:[{name:'创意美术',rate:0.12},{name:'书法',rate:0.10},{name:'素描',rate:0.12},{name:'手工',rate:0.15},{name:'国画',rate:0.11}]
+  };
+
+  // ---------- 结算单数据 ----------
+  const settlements = [
+    {id:'JS202607-001', studio:'小树苗艺术工作室', emoji:'🌱', period:'2026年7月', genAt:'07-24 10:02',
+     income:86200, refund:3200, dist:5400, rate:0.12, status:'pending',
+     account:{bank:'招商银行杭州西湖支行', no:'6214 **** 3321', name:'杭州小树苗艺术培训有限公司'},
+     orders:[
+       {no:'P20260718A', parent:'糖糖妈', course:'自然主题·暑期班', amt:2980, st:'已完成'},
+       {no:'P20260715B', parent:'乐乐爸', course:'创意手工 10 课时', amt:1980, st:'已完成'},
+       {no:'P20260709C', parent:'牛牛妈', course:'油画体验课', amt:680, st:'已退款'},
+     ]},
+    {id:'JS202607-002', studio:'彩翼少儿美术馆', emoji:'🎨', period:'2026年7月', genAt:'07-24 09:50',
+     income:154800, refund:0, dist:9800, rate:0.12, status:'paying', payNo:'20260723CY773201',
+     account:{bank:'中国银行成都高新支行', no:'6231 **** 8890', name:'成都彩翼教育咨询有限公司'},
+     orders:[
+       {no:'P20260720D', parent:'朵朵妈', course:'国画年度班', amt:6800, st:'已完成'},
+       {no:'P20260719E', parent:'芽芽爸', course:'书法 20 课时', amt:3980, st:'已完成'},
+     ]},
+    {id:'JS202607-003', studio:'墨白书房', emoji:'🖌️', period:'2026年7月', genAt:'07-24 09:30',
+     income:42300, refund:1200, dist:2600, rate:0.10, status:'paid', payNo:'20260722MB551904',
+     account:{bank:'工商银行苏州园区支行', no:'6212 **** 1175', name:'苏州墨白文化传媒有限公司'},
+     orders:[
+       {no:'P20260717F', parent:'小宇妈', course:'硬笔书法 12 课时', amt:1560, st:'已完成'},
+     ]},
+    {id:'JS202607-004', studio:'森林里画室', emoji:'🌳', period:'2026年7月', genAt:'07-24 08:58',
+     income:67900, refund:4500, dist:3100, rate:0.12, status:'abnormal',
+     abn:'对公账户信息校验失败（户名与营业执照不一致），已退回工作室核对',
+     account:{bank:'建设银行(待更新)', no:'6217 **** 0042', name:'（待补充）'},
+     orders:[
+       {no:'P20260716G', parent:'果果妈', course:'森林写生营', amt:2680, st:'已完成'},
+     ]},
+    {id:'JS202606-021', studio:'小树苗艺术工作室', emoji:'🌱', period:'2026年6月', genAt:'06-30 18:00',
+     income:71200, refund:2000, dist:4800, rate:0.12, status:'paid', payNo:'20260701XS331092',
+     account:{bank:'招商银行杭州西湖支行', no:'6214 **** 3321', name:'杭州小树苗艺术培训有限公司'},
+     orders:[]},
+  ];
+
+  let curFilter='pending', curId=null;
+
+  function net(s){return s.income - s.refund - s.dist;}
+  function fee(s){return Math.round(net(s)*s.rate);}
+  function payable(s){return net(s)-fee(s);}
+  function fmt(n){return n.toLocaleString('zh-CN');}
+
+  function renderStats(){
+    let pending=0,paid=0,feeSum=0,abn=0;
+    settlements.filter(s=>s.period==='2026年7月').forEach(s=>{
+      if(s.status==='pending'||s.status==='paying') pending+=payable(s);
+      if(s.status==='paid'){paid+=payable(s);feeSum+=fee(s);}
+      if(s.status==='paying') feeSum+=fee(s);
+      if(s.status==='abnormal') abn++;
+    });
+    document.getElementById('sPending').textContent=fmt(pending);
+    document.getElementById('sPaid').textContent=fmt(paid);
+    document.getElementById('sFee').textContent=fmt(feeSum);
+    document.getElementById('sAbn').textContent=abn;
+  }
+
+  function renderList(){
+    const q=(document.getElementById('q').value||'').trim();
+    const per=document.getElementById('period').value;
+    const rows=settlements.filter(s=>{
+      if(s.period!==per) return false;
+      if(curFilter!=='all' && s.status!==curFilter) return false;
+      if(q && !s.studio.includes(q)) return false;
+      return true;
+    });
+    const list=document.getElementById('list');
+    if(!rows.length){list.innerHTML='<div class="empty">该条件下暂无结算单</div>';return;}
+    list.innerHTML=rows.map(s=>{
+      const stMap={pending:'待结算',paying:'打款中',paid:'已打款',abnormal:'异常'};
+      return `<div class="card" onclick="openDrawer('${s.id}')">
+        <div class="logo2">${s.emoji}</div>
+        <div class="info">
+          <div class="nm">${s.studio}<span style="font-size:12px;color:var(--muted);font-weight:400">${s.id}</span></div>
+          <div class="meta">${s.period} · 生成 ${s.genAt}</div>
+          <div class="amtrow">
+            <div class="a">应结算<b>¥${fmt(net(s))}</b></div>
+            <div class="a">平台抽成<b>¥${fmt(fee(s))}</b></div>
+            <div class="a">实际打款<b class="pay">¥${fmt(payable(s))}</b></div>
+          </div>
+        </div>
+        <div class="st ${s.status}">${stMap[s.status]}</div>
+        <div class="arr">›</div>
+      </div>`;
+    }).join('');
+  }
+
+  function openDrawer(id){
+    curId=id; const s=settlements.find(x=>x.id===id);
+    const stMap={pending:'待结算',paying:'打款中',paid:'已打款',abnormal:'异常'};
+    let accHtml=`<div class="acc"><b>${s.account.bank}</b><br>户名：${s.account.name}<br>账号：${s.account.no}</div>`;
+    if(s.status==='abnormal') accHtml+=`<div class="abn">⚠️ ${s.abn}</div>`;
+    let ordHtml='';
+    if(s.orders.length){
+      ordHtml=`<table class="otable"><thead><tr><th>订单</th><th>家长</th><th>课程</th><th>金额</th><th>状态</th></tr></thead><tbody>`+
+        s.orders.map(o=>`<tr><td><b>${o.no}</b></td><td>${o.parent}</td><td>${o.course}</td><td>¥${fmt(o.amt)}</td><td><span class="mini ${o.st==='已退款'?'gray':''}">${o.st}</span></td></tr>`).join('')+
+        `</tbody></table>`;
+    } else {
+      ordHtml=`<div class="empty" style="padding:24px 0">本期无明细订单（汇总结算）</div>`;
+    }
+    document.getElementById('db').innerHTML=`
+      <div class="grid2">
+        <div class="kv"><div class="k">结算单号</div><div class="v">${s.id}</div></div>
+        <div class="kv"><div class="k">状态</div><div class="v"><span class="st ${s.status}">${stMap[s.status]}</span></div></div>
+        <div class="kv"><div class="k">工作室</div><div class="v">${s.studio}</div></div>
+        <div class="kv"><div class="k">结算周期</div><div class="v">${s.period}</div></div>
+      </div>
+      <div class="sec-t">💵 金额构成</div>
+      <div class="amt-card">
+        <div class="amt-line"><span class="lab">本期课程收入</span><span class="val">¥${fmt(s.income)}</span></div>
+        <div class="amt-line minus"><span class="lab">退款扣减</span><span class="val">- ¥${fmt(s.refund)}</span></div>
+        <div class="amt-line minus"><span class="lab">分销返利</span><span class="val">- ¥${fmt(s.dist)}</span></div>
+        <div class="amt-line"><span class="lab">应结算净额</span><span class="val">¥${fmt(net(s))}</span></div>
+        <div class="amt-line"><span class="lab">平台抽成<span class="rate">${Math.round(s.rate*100)}%</span></span><span class="val">¥${fmt(fee(s))}</span></div>
+        <div class="amt-line total"><span class="lab">实际应打款</span><span class="val">¥${fmt(payable(s))}</span></div>
+      </div>
+      <div class="sec-t">🏦 对公收款账户</div>
+      ${accHtml}
+      <div class="sec-t">🧾 订单明细</div>
+      ${ordHtml}
+    `;
+    // 动作区
+    const acts=document.getElementById('acts');
+    if(s.status==='pending'){
+      acts.innerHTML=`<button class="btn g" onclick="openPay('${s.id}')">确认打款 ¥${fmt(payable(s))}</button>`;
+    } else if(s.status==='paying'){
+      acts.innerHTML=`<button class="btn ghost" style="flex:1" onclick="closeDrawer()">关闭</button><button class="btn b" style="flex:1.4" onclick="markPaid('${s.id}')">标记已到账</button>`;
+    } else if(s.status==='paid'){
+      acts.innerHTML=`<div class="paid-tag">✅ 已打款 · 流水号 ${s.payNo||'—'}</div>`;
+    } else if(s.status==='abnormal'){
+      acts.innerHTML=`<button class="btn r" style="flex:1" onclick="closeDrawer()">联系工作室</button><button class="btn g" style="flex:1.4" onclick="reprocess('${s.id}')">重新打款</button>`;
+    }
+    document.getElementById('mask').classList.add('on');
+    document.getElementById('drawer').classList.add('on');
+  }
+  function closeDrawer(){document.getElementById('mask').classList.remove('on');document.getElementById('drawer').classList.remove('on');}
+
+  // 打款
+  function openPay(id){curId=id;document.getElementById('payNo').value='';document.getElementById('payNote').value='';document.getElementById('upName').textContent='';
+    document.getElementById('mask2').classList.add('on');document.getElementById('sheet').classList.add('on');}
+  function closeSheet(){document.getElementById('mask2').classList.remove('on');document.getElementById('sheet').classList.remove('on');}
+  function submitPay(){
+    const s=settlements.find(x=>x.id===curId);
+    const no=document.getElementById('payNo').value.trim();
+    if(!no){toast('请填写银行回单/流水号');return;}
+    s.status='paying'; s.payNo=no; closeSheet(); closeDrawer(); renderList(); renderStats();
+    toast(`已提交打款，结算单 ${s.id} 进入打款中`);
+  }
+  function markPaid(id){const s=settlements.find(x=>x.id===id);s.status='paid';closeDrawer();renderList();renderStats();toast(`✅ ${s.studio} 结算款已到账`);}
+  function reprocess(id){const s=settlements.find(x=>x.id===id);s.status='paying';s.abn='';closeDrawer();renderList();renderStats();toast('已重新发起打款');}
+
+  // 抽成配置
+  function openConfig(){
+    document.getElementById('cfgDef').value=config.defaultRate;
+    document.getElementById('cfgCats').innerHTML=config.cats.map((c,i)=>
+      `<div class="cfg-row"><div class="cn">${c.name}</div><div class="crate"><input id="cfgCat${i}" type="number" step="0.01" min="0" max="1" value="${c.rate}"><span class="pct">（${Math.round(c.rate*100)}%）</span></div></div>`
+    ).join('');
+    document.getElementById('mask3').classList.add('on');document.getElementById('cfgSheet').classList.add('on');
+  }
+  function closeConfig(){document.getElementById('mask3').classList.remove('on');document.getElementById('cfgSheet').classList.remove('on');}
+  function saveConfig(){
+    config.defaultRate=parseFloat(document.getElementById('cfgDef').value)||0.12;
+    config.cats.forEach((c,i)=>{c.rate=parseFloat(document.getElementById('cfgCat'+i).value)||c.rate;});
+    closeConfig(); toast('抽成配置已保存（默认 '+Math.round(config.defaultRate*100)+'%）');
+  }
+
+  // toast
+  let tt;
+  function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('on'),2200);}
+
+  // tabs
+  document.querySelectorAll('#tabs .tab').forEach(t=>t.onclick=()=>{
+    document.querySelectorAll('#tabs .tab').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on'); curFilter=t.dataset.f; renderList();
+  });
+
+  // init
+  renderStats(); renderList();
+</script>
+</body>
+</html>

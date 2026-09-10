@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>艺启 · 项目交付包</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* v2「温暖手作」色板 */
+    --green-primary:#2F5D45;
+    --green-dark:#22422F;
+    --wood:#A87A3E;
+    --clay:#C15F2C;
+    --cream:#FAF7F1;
+    --surface:#FFFFFF;
+    --surface-alt:#F4EFE6;
+    --border:#E6DFD3;
+    --ink:#2B2621;
+    --sub:#726A60;
+    --on-dark:#F5F0E6;
+    --on-dark-sub:#A9BCA2;
+    --shadow:0 4px 16px rgba(43,38,33,.08), 0 2px 6px rgba(43,38,33,.04);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{font-family:"Noto Sans SC",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);display:flex;overflow:hidden;background:var(--cream);}
+  /* 左侧导航（v2 深松绿侧边栏） */
+  .side{width:300px;flex-shrink:0;background:var(--green-dark);display:flex;flex-direction:column;height:100%;}
+  .brand{padding:22px 22px 18px;border-bottom:1px solid rgba(245,240,230,.10);}
+  .brand .logo{font-family:"Noto Serif SC",serif;font-size:20px;font-weight:700;color:var(--on-dark);letter-spacing:.5px;}
+  .brand .logo span{color:var(--wood);}
+  .brand .sub{font-size:12px;color:var(--on-dark-sub);margin-top:6px;line-height:1.6;}
+  .nav{flex:1;overflow-y:auto;padding:16px 14px;}
+  .nav::-webkit-scrollbar{width:6px;}
+  .nav::-webkit-scrollbar-thumb{background:rgba(245,240,230,.18);border-radius:3px;}
+  .grp{font-size:11px;font-weight:600;color:#7E9183;letter-spacing:1.5px;padding:16px 10px 7px;text-transform:uppercase;}
+  .grp:first-child{padding-top:2px;}
+  .item{display:block;padding:11px 12px;border-radius:12px;color:var(--on-dark-sub);text-decoration:none;font-size:14px;margin-bottom:5px;cursor:pointer;border:1px solid transparent;transition:.15s;}
+  .item:hover{background:rgba(245,240,230,.07);color:var(--on-dark);}
+  .item.active{background:var(--green-primary);color:var(--on-dark);font-weight:600;box-shadow:var(--shadow);}
+  .item .t{display:flex;align-items:center;gap:11px;}
+  .item .ic{width:20px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .item .ic svg{width:19px;height:19px;display:block;}
+  .item .d{font-size:11.5px;color:#82957F;margin-top:4px;line-height:1.45;padding-left:31px;}
+  .item.active .d{color:rgba(245,240,230,.78);}
+  .item .tag{font-size:10px;background:rgba(245,240,230,.12);color:var(--on-dark);padding:2px 7px;border-radius:9999px;margin-left:auto;font-weight:600;flex-shrink:0;}
+  .item.active .tag{background:rgba(245,240,230,.22);}
+  .foot{padding:14px 18px;border-top:1px solid rgba(245,240,230,.10);font-size:11px;color:#7E9183;line-height:1.6;}
+  /* 右侧内容 */
+  .main{flex:1;display:flex;flex-direction:column;height:100%;background:var(--cream);}
+  .topbar{padding:13px 20px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:13px;color:var(--sub);}
+  .topbar b{color:var(--ink);font-weight:600;}
+  .topbar .open{margin-left:auto;font-size:12.5px;color:var(--green-primary);text-decoration:none;font-weight:600;}
+  .topbar .open:hover{text-decoration:underline;}
+  .frame-wrap{flex:1;overflow:hidden;position:relative;background:var(--cream);padding:14px;}
+  iframe{width:100%;height:100%;border:1px solid var(--border);border-radius:14px;background:var(--surface);box-shadow:var(--shadow);}
+  .hint{font-size:11px;color:var(--sub);}
+</style>
+</head>
+<body>
+  <aside class="side">
+    <div class="brand">
+      <div class="logo">艺启 <span>· 交付包</span></div>
+      <div class="sub">儿童艺术教育平台 · 原型 + 设计文档<br>双击本页即可离线浏览全部页面</div>
+    </div>
+    <nav class="nav" id="nav">
+      <div class="grp">产品原型</div>
+      <a class="item active" data-href="app-prototype.html" onclick="go(this)">
+        <div class="t">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2.5"/><line x1="11" y1="18" x2="13" y2="18"/></svg></span>
+          App 原型 <span class="tag">46 屏</span>
+        </div>
+        <div class="d">家长 / 老师 / 工作室三角色，含私聊家长、成长档案</div>
+      </a>
+      <a class="item" data-href="platform-admin-console.html" onclick="go(this)">
+        <div class="t">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="1.8"/><line x1="9" y1="8" x2="9" y2="8"/><line x1="15" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="9" y2="12"/><line x1="15" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="9" y2="16"/><line x1="15" y1="16" x2="15" y2="16"/></svg></span>
+          平台运营后台 <span class="tag">聚合</span>
+        </div>
+        <div class="d">登录 + 多租户 + 认证审核 + 结算单 + 看板</div>
+      </a>
+
+      <div class="grp">早期单模块原型（已整合进后台）</div>
+      <a class="item" data-href="platform-studio-review.html" onclick="go(this)">
+        <div class="t">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.4l2.3 2.3 4.7-4.9"/></svg></span>
+          平台认证审核 <span class="tag">单页</span>
+        </div>
+        <div class="d">工作室入驻审核流（独立原型）</div>
+      </a>
+      <a class="item" data-href="platform-settlement.html" onclick="go(this)">
+        <div class="t">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="6" width="17" height="13" rx="2.5"/><path d="M3.5 10h17"/><path d="M16.5 14.5h1.6"/></svg></span>
+          平台结算单 <span class="tag">单页</span>
+        </div>
+        <div class="d">平台↔工作室分账打款闭环（独立原型）</div>
+      </a>
+
+      <div class="grp">设计文档</div>
+      <a class="item" data-href="backend-design.html" onclick="go(this)">
+        <div class="t">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></svg></span>
+          后端接口与数据库设计
+        </div>
+        <div class="d">Node+Express+MySQL+Sequelize+Redis+雪花ID，约 30 表 / 40 接口</div>
+      </a>
+      <a class="item" data-href="web-admin-plan.html" onclick="go(this)">
+        <div class="t">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="12" rx="2"/><line x1="9" y1="21" x2="15" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
+          Web 管理端规划
+        </div>
+        <div class="d">Vue3+Element Plus，12 工作室模块 + 8 平台模块 + RBAC</div>
+      </a>
+      <a class="item" data-href="role-capability-analysis.html" onclick="go(this)">
+        <div class="t">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="3"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><circle cx="17" cy="10" r="2.2"/><path d="M15 19c0-2.4 1.2-4 3.5-4"/></svg></span>
+          角色能力对照分析
+        </div>
+        <div class="d">App 三角色 ↔ Web 四角色双向对应表</div>
+      </a>
+    </nav>
+    <div class="foot">单文件 · 零依赖 · 可整体拷到任意电脑离线使用</div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <span>当前：<b id="crumb">App 原型</b></span>
+      <a class="open" id="openLink" href="app-prototype.html" target="_blank">↗ 新窗口打开</a>
+    </div>
+    <div class="frame-wrap">
+      <iframe id="frame" name="frame" src="app-prototype.html" title="预览"></iframe>
+    </div>
+  </main>
+
+<script>
+  const names={
+    'app-prototype.html':'App 原型',
+    'platform-admin-console.html':'平台运营后台',
+    'platform-studio-review.html':'平台认证审核',
+    'platform-settlement.html':'平台结算单',
+    'backend-design.html':'后端接口与数据库设计',
+    'web-admin-plan.html':'Web 管理端规划',
+    'role-capability-analysis.html':'角色能力对照分析'
+  };
+  function go(el){
+    const href=el.dataset.href;
+    document.querySelectorAll('.item').forEach(x=>x.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('frame').src=href;
+    document.getElementById('crumb').textContent=names[href]||href;
+    document.getElementById('openLink').href=href;
+  }
+</script>
+</body>
+</html>

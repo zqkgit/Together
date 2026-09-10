@@ -1,0 +1,1702 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="TWSEOZWHqYypOqrO6mgQJf">
+<head data-page-node-id="7xPC3wO6OKIIpjWC7Cceqy">
+<meta charset="UTF-8" data-page-node-id="V9VCMKOAdixBqAp4lh56lu">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="Yd6w59q15mDBZGogDOqK81">
+<title>艺启 · 平台运营后台</title>
+<style>
+  :root{
+    --green:#4A7C3F; --green-deep:#3a6431; --green-soft:#eef4ea;
+    --wood:#8B6B3D; --mint:#F7FAF4; --line:#E7EDE2; --ink:#23332a;
+    --muted:#8a958c; --sub:#f3f7f0; --blue:#3a6ea5; --warn:#C8843C; --red:#c0563f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--mint)}
+  /* ===== login ===== */
+  .login{position:fixed;inset:0;background:linear-gradient(135deg,#2f5230,#3a6431);display:flex;align-items:center;justify-content:center;z-index:300}
+  .login .box{background:#fff;border-radius:18px;padding:34px 36px;width:360px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,.32)}
+  .login .lg{font-size:22px;font-weight:700;color:var(--green-deep);text-align:center}
+  .login .ls{text-align:center;color:var(--muted);font-size:13px;margin-top:4px;margin-bottom:22px}
+  .login .field{margin-bottom:14px}
+  .login label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  .login input,.login select{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-size:14px;outline:none;background:#fff}
+  .login input:focus,.login select:focus{border-color:var(--green)}
+  .login .btn{width:100%;background:var(--green);color:#fff;border:none;border-radius:10px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px}
+  .login .btn:hover{background:var(--green-deep)}
+  .login .demo{font-size:11.5px;color:#fff;opacity:.78;text-align:center;margin-top:16px;line-height:1.7}
+  /* ===== app shell ===== */
+  .app{display:none;height:100vh;overflow:hidden}
+  .app.on{display:flex}
+  .side{width:228px;background:linear-gradient(180deg,#2f5230,#3a6431);color:#dcead2;display:flex;flex-direction:column;flex-shrink:0}
+  .logo{padding:18px 18px 14px;font-weight:700;font-size:16px;color:#fff;border-bottom:1px solid rgba(255,255,255,.12)}
+  .logo span{font-size:12px;font-weight:400;color:#a9c79c;display:block;margin-top:2px}
+  .nav{padding:10px 8px;overflow:auto;flex:1}
+  .nav-g{font-size:11px;color:#8fae82;padding:12px 12px 6px;letter-spacing:1px}
+  .ni{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:9px;font-size:14px;cursor:pointer;color:#cfe0c4;margin:2px 0}
+  .ni:hover{background:rgba(255,255,255,.08)}
+  .ni.on{background:#fff;color:var(--green-deep);font-weight:600}
+  .ni .ic{width:18px;text-align:center}
+  .me{padding:12px 16px;border-top:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:9px;font-size:13px}
+  .ava{width:30px;height:30px;border-radius:50%;background:#cfe0c4;color:var(--green-deep);display:flex;align-items:center;justify-content:center;font-weight:700}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .topbar{height:56px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 22px;gap:10px;flex-shrink:0}
+  .crumb{color:var(--muted);font-size:14px}
+  .crumb b{color:var(--ink)}
+  .top-r{margin-left:auto;display:flex;align-items:center;gap:14px;color:var(--muted);font-size:13px}
+  .bell{position:relative;font-size:17px}
+  .bell i{position:absolute;top:-4px;right:-6px;background:var(--red);color:#fff;font-size:10px;border-radius:8px;padding:0 4px;font-style:normal}
+  .btn-cfg{background:var(--green-soft);color:var(--green-deep);border:none;border-radius:8px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer}
+  .btn-cfg:hover{background:#e2eed9}
+  .btn-out{background:#fff;border:1px solid var(--line);border-radius:8px;padding:7px 13px;font-size:13px;cursor:pointer;color:var(--muted)}
+  .btn-out:hover{border-color:var(--red);color:var(--red)}
+  .content{flex:1;overflow:auto;padding:22px 24px 40px}
+  .page{display:none}
+  .page.on{display:block}
+  .ph{display:flex;align-items:flex-end;gap:12px;margin-bottom:16px}
+  .ph h1{font-size:21px;color:var(--green-deep)}
+  .ph p{color:var(--muted);font-size:13px}
+  /* stats */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;position:relative}
+  .stat .n{font-size:24px;font-weight:700;color:var(--green-deep)}
+  .stat .n small{font-size:13px;font-weight:600}
+  .stat .l{font-size:13px;color:var(--muted);margin-top:2px}
+  .stat .dot{position:absolute;top:14px;right:14px;width:9px;height:9px;border-radius:50%}
+  /* toolbar */
+  .bar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  .tabs{display:flex;background:var(--sub);border-radius:10px;padding:3px}
+  .tab{padding:7px 15px;border-radius:8px;font-size:13.5px;cursor:pointer;color:var(--muted)}
+  .tab.on{background:#fff;color:var(--green-deep);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+  .sel{margin-left:8px;position:relative}
+  .sel select{border:1px solid var(--line);border-radius:9px;padding:8px 30px 8px 12px;font-size:13.5px;background:#fff;color:var(--ink);outline:none;cursor:pointer;appearance:none}
+  .sel::after{content:"▾";position:absolute;right:11px;top:8px;color:var(--muted);pointer-events:none}
+  .sel select:focus{border-color:var(--green)}
+  .search{margin-left:auto;position:relative}
+  .search input{border:1px solid var(--line);border-radius:9px;padding:8px 12px 8px 32px;width:230px;font-size:13.5px;outline:none;background:#fff}
+  .search input:focus{border-color:var(--green)}
+  .search::before{content:"🔍";position:absolute;left:10px;top:8px;font-size:13px;opacity:.6}
+  /* list cards */
+  .list{display:flex;flex-direction:column;gap:12px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:15px 17px;display:flex;align-items:center;gap:15px;cursor:pointer;transition:.15s}
+  .card:hover{border-color:var(--green);box-shadow:0 3px 12px rgba(74,124,63,.1)}
+  .logo2{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--green),var(--wood));color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+  .info{flex:1;min-width:0}
+  .info .nm{font-weight:700;font-size:15.5px;display:flex;align-items:center;gap:8px}
+  .info .meta{color:var(--muted);font-size:12.5px;margin-top:3px}
+  .docs{display:flex;gap:5px;margin-top:6px}
+  .dchip{font-size:11px;padding:1px 7px;border-radius:6px;background:var(--green-soft);color:var(--green-deep)}
+  .dchip.bad{background:#fbeae4;color:var(--red)}
+  .amtrow{display:flex;gap:18px;margin-top:7px}
+  .amtrow .a{font-size:12px;color:var(--muted)}
+  .amtrow .a b{font-size:14px;color:var(--ink);font-weight:700;margin-left:3px}
+  .amtrow .a .pay{color:var(--green-deep)}
+  .st{font-size:12px;padding:3px 10px;border-radius:999px;font-weight:600;flex-shrink:0}
+  .st.pending{background:#fff3e3;color:var(--warn)}
+  .st.approved{background:#e7f4df;color:var(--green-deep)}
+  .st.rejected{background:#fbe9e4;color:var(--red)}
+  .st.supplement{background:#e7eefb;color:var(--blue)}
+  .st.paying{background:#e7eefb;color:var(--blue)}
+  .st.paid{background:#e7f4df;color:var(--green-deep)}
+  .st.abnormal{background:#fbe9e4;color:var(--red)}
+  .arr{color:var(--muted);font-size:18px;flex-shrink:0}
+  .empty{text-align:center;color:var(--muted);padding:50px 0;font-size:14px}
+  /* drawer */
+  .mask{position:fixed;inset:0;background:rgba(20,30,22,.42);opacity:0;pointer-events:none;transition:.25s;z-index:50}
+  .mask.on{opacity:1;pointer-events:auto}
+  .drawer{position:fixed;top:0;right:0;height:100vh;width:500px;max-width:94vw;background:#fff;transform:translateX(100%);transition:.28s;z-index:60;display:flex;flex-direction:column;box-shadow:-6px 0 26px rgba(0,0,0,.12)}
+  .drawer.on{transform:translateX(0)}
+  .dh{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+  .dh .tt{font-size:17px;font-weight:700;color:var(--green-deep)}
+  .dh .x{margin-left:auto;cursor:pointer;color:var(--muted);font-size:22px;line-height:1}
+  .db{flex:1;overflow:auto;padding:18px 20px}
+  .sec-t{font-size:13px;font-weight:700;color:var(--wood);margin:18px 0 9px;display:flex;align-items:center;gap:6px}
+  .sec-t:first-child{margin-top:0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+  .kv{font-size:13px}
+  .kv .k{color:var(--muted)}
+  .kv .v{color:var(--ink);font-weight:600}
+  .desc{font-size:13px;color:#455;background:var(--sub);border-radius:9px;padding:10px 12px;line-height:1.6}
+  .docrow{display:flex;gap:10px;flex-wrap:wrap}
+  .doc{width:108px;border:1px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer;background:#fff}
+  .doc .th{height:74px;display:flex;align-items:center;justify-content:center;font-size:30px}
+  .doc .cap{font-size:11.5px;padding:5px 7px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line)}
+  .doc .ck{font-size:12px}
+  .ok{color:var(--green-deep)} .no{color:var(--red)}
+  .actions{border-top:1px solid var(--line);padding:14px 20px;display:flex;gap:10px;background:#fafdf8}
+  .btn{border:none;border-radius:9px;padding:10px 16px;font-size:14px;cursor:pointer;font-weight:600}
+  .btn.g{background:var(--green);color:#fff;flex:1}
+  .btn.g:hover{background:var(--green-deep)}
+  .btn.r{background:#fbe9e4;color:var(--red)}
+  .btn.b{background:#e7eefb;color:var(--blue)}
+  .btn.ghost{background:var(--sub);color:var(--muted)}
+  .paid-tag{background:#e7f4df;color:var(--green-deep);font-size:13px;font-weight:600;padding:9px 0;text-align:center;width:100%;border-radius:9px}
+  .abn{background:#fbe9e4;color:var(--red);font-size:12.5px;padding:9px 12px;border-radius:9px;margin-top:4px;line-height:1.5}
+  /* sheet */
+  .sheet{position:fixed;left:0;right:0;bottom:0;background:#fff;transform:translateY(100%);transition:.28s;z-index:70;border-radius:18px 18px 0 0;padding:18px 20px 22px;box-shadow:0 -6px 26px rgba(0,0,0,.15)}
+  .sheet.on{transform:translateY(0)}
+  .sheet h3{font-size:16px;color:var(--green-deep);margin-bottom:12px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+  .cchip{font-size:12.5px;padding:5px 11px;border-radius:999px;background:var(--sub);color:var(--muted);cursor:pointer;border:1px solid var(--line)}
+  .cchip.on{background:var(--green-soft);color:var(--green-deep);border-color:var(--green)}
+  .sheet textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13.5px;resize:none;height:84px;outline:none;font-family:inherit}
+  .sheet textarea:focus{border-color:var(--green)}
+  .srow{display:flex;gap:10px;margin-top:12px}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
+  .field input,.field textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:13.5px;outline:none;font-family:inherit}
+  .field input:focus,.field textarea:focus{border-color:var(--green)}
+  .up-btn{display:inline-flex;align-items:center;gap:7px;border:1px dashed var(--green);background:var(--green-soft);color:var(--green-deep);border-radius:9px;padding:9px 14px;font-size:13px;cursor:pointer;font-weight:600}
+  .up-name{font-size:12.5px;color:var(--blue);margin-left:10px}
+  /* preview modal */
+  .pv{position:fixed;inset:0;background:rgba(20,30,22,.7);display:none;align-items:center;justify-content:center;z-index:80}
+  .pv.on{display:flex}
+  .pv .box{background:#fff;border-radius:14px;padding:18px;width:420px;max-width:90vw;text-align:center}
+  .pv .big{height:240px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:90px;margin-bottom:12px}
+  .pv .cap2{font-size:14px;font-weight:600;color:var(--ink)}
+  .pv .x2{margin-top:14px;color:var(--muted);font-size:13px;cursor:pointer}
+  /* amount card (settle) */
+  .amt-card{background:linear-gradient(135deg,#f1f7ee,#eef4ea);border:1px solid var(--line);border-radius:12px;padding:15px 16px;margin-top:4px}
+  .amt-line{display:flex;justify-content:space-between;align-items:center;font-size:13.5px;padding:6px 0;border-bottom:1px dashed var(--line)}
+  .amt-line:last-child{border-bottom:none}
+  .amt-line .lab{color:var(--muted)}
+  .amt-line .val{font-weight:700;color:var(--ink)}
+  .amt-line.minus .val{color:var(--red)}
+  .amt-line.total{margin-top:4px;padding-top:11px;border-top:2px solid var(--green);border-bottom:none}
+  .amt-line.total .lab{color:var(--green-deep);font-weight:700}
+  .amt-line.total .val{font-size:19px;color:var(--green-deep)}
+  .amt-line .rate{font-size:11px;background:#fff;color:var(--wood);padding:1px 7px;border-radius:6px;margin-left:6px;font-weight:600}
+  .otable{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}
+  .otable th{text-align:left;color:var(--muted);font-weight:600;font-size:12px;padding:7px 8px;border-bottom:1px solid var(--line)}
+  .otable td{padding:8px;border-bottom:1px solid var(--sub)}
+  .otable td b{color:var(--ink)}
+  .mini{font-size:11px;padding:1px 7px;border-radius:6px;background:var(--green-soft);color:var(--green-deep);font-weight:600}
+  .mini.gray{background:var(--sub);color:var(--muted)}
+  .acc{background:var(--sub);border-radius:9px;padding:11px 13px;font-size:13px;line-height:1.7;margin-top:4px}
+  .acc b{color:var(--green-deep)}
+  .cfg-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--sub)}
+  .cfg-row .cn{font-size:14px;font-weight:600;flex:1}
+  .cfg-row .crate{display:flex;align-items:center;gap:4px}
+  .cfg-row input{width:60px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13.5px;text-align:center;outline:none}
+  .cfg-row input:focus{border-color:var(--green)}
+  .cfg-row .pct{color:var(--muted);font-size:13px}
+  /* dashboard */
+  .chart-wrap{background:#fff;border:1px solid var(--line);border-radius:13px;padding:18px 20px;margin-bottom:16px}
+  .chart-t{font-size:15px;font-weight:700;color:var(--green-deep);margin-bottom:12px}
+  .two{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:13px;padding:16px 18px}
+  .panel h3{font-size:15px;font-weight:700;color:var(--green-deep);margin-bottom:10px}
+  .li{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--sub);font-size:13.5px}
+  .li:last-child{border-bottom:none}
+  .li .dotc{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .li .v{margin-left:auto;font-weight:700;color:var(--ink)}
+  /* placeholder */
+  .pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .pcard{background:#fff;border:1px solid var(--line);border-radius:13px;padding:16px 17px}
+  .pcard .pt{font-weight:700;font-size:15px;color:var(--green-deep);display:flex;align-items:center;gap:8px}
+  .pcard .pd{color:var(--muted);font-size:13px;margin-top:6px;line-height:1.6}
+  .pcard .pnum{font-size:22px;font-weight:700;color:var(--wood);margin-top:10px}
+  .toast{position:fixed;left:50%;top:26px;transform:translateX(-50%) translateY(-20px);background:#23332a;color:#fff;padding:11px 20px;border-radius:10px;font-size:14px;opacity:0;transition:.25s;z-index:99;pointer-events:none}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  .tag-n{background:var(--green-soft);color:var(--green-deep);font-size:11px;padding:1px 8px;border-radius:6px;font-weight:600}
+  /* toggle & role badge */
+  .sw{position:relative;width:44px;height:24px;border-radius:24px;background:#d4ddd0;cursor:pointer;transition:.2s;flex-shrink:0;border:none}
+  .sw.on{background:var(--green)}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+  .sw.on::after{left:23px}
+  .role-badge{font-size:11px;padding:2px 8px;border-radius:6px;font-weight:600;background:var(--green-soft);color:var(--green-deep)}
+  .role-badge.super{background:#fbf3e6;color:var(--wood)}
+  .role-badge.disabled{background:var(--sub);color:var(--muted)}
+  /* studio schedule */
+  .sk-week{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;align-items:start}
+  .sk-col{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;min-height:120px}
+  .sk-day{font-weight:700;color:var(--green-deep);font-size:13.5px;margin-bottom:8px;text-align:center;padding-bottom:8px;border-bottom:1px solid var(--sub)}
+  .sk-item{background:var(--green-soft);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px}
+  .sk-item .t{font-weight:700;color:var(--green-deep)}
+  .sk-item .c{color:var(--ink);margin-top:1px}
+  .sk-item .m{color:var(--muted);margin-top:2px}
+  .sk-item.conflict{background:#fbeae4;border:1px solid var(--red)}
+  .sk-item.conflict .t{color:var(--red)}
+  .sk-item .warn{color:var(--red);font-size:11px;margin-top:3px;font-weight:600}
+  .sk-empty{color:var(--muted);font-size:12px;text-align:center;padding:18px 0}
+</style>
+</head>
+<body data-page-node-id="jDBAEVKU62G6MStgnnf4Dd">
+
+<!-- ===== 登录页 ===== -->
+<div class="login" id="login" data-page-node-id="357dqGHlqAuhTbiBqEcfdp">
+  <div class="box" data-page-node-id="anNfVHaGHuJI8vBImb07mP">
+    <div class="lg" data-page-node-id="WiuBnE783SEmwRp0xMHlQn">艺启 · 管理后台</div>
+    <div class="ls" data-page-node-id="nvvHVhOiXecgNZTlC38SBl">Management Console · 请登录（平台 / 工作室）</div>
+    <div class="field" data-page-node-id="VGdNCfBtp7oYNYXLyIvuFD"><label data-page-node-id="AtafOHG3qBAlxEMpzdrx5Z">账号（手机号 / 邮箱）</label><input id="lgUser" value="ops@yiqi.com" data-page-node-id="AxdpApZP4qIzBJET0gFqbU"></div>
+    <div class="field" data-page-node-id="soWeCKlTdGpfVEsGbtFjxm"><label data-page-node-id="4V56YtAubgTOGgIjFAddxM">密码</label><input id="lgPwd" type="password" value="demo1234" data-page-node-id="eULrDRqFaWys7lOWbRmd9p"></div>
+    <div class="field" data-page-node-id="jXFwKcFe6HaEzx9oXNP1s5"><label data-page-node-id="6NJYCEUlHHUC0x157GiQKH">登录角色</label>
+      <select id="lgRole" data-page-node-id="DaVtkZXGM7liA3dHZV6ztM">
+        <optgroup label="平台（跨工作室）" data-page-node-id="x61eJixpijColnihRZvyWm">
+          <option value="platform_ops" data-page-node-id="S5gv46AiXwrpJHD1ILZf6B">平台运营 platform_ops</option>
+          <option value="platform_super" data-page-node-id="LXEe727os718yN0Eh8dJwR">平台超管 platform_super</option>
+        </optgroup>
+        <optgroup label="工作室（单店经营）" data-page-node-id="QJzpVjxztJnVnwjx9Dm0i9">
+          <option value="studio_owner" data-page-node-id="iX2Qyx3rO8rDwgPa1dy70H">工作室主 studio_owner</option>
+          <option value="studio_ops" data-page-node-id="LkcfqhuL38JO4krCyVCM8B">工作室教务 studio_ops</option>
+        </optgroup>
+      </select>
+    </div>
+    <button class="btn" onclick="doLogin()" data-page-node-id="kPpBdBllOnz1EjvghOWIYF">登录后台</button>
+    <div class="demo" data-page-node-id="f1DvpFW7vLAwvHRpKRZQYB">演示账号已预填，任意非空密码均可登录<br data-page-node-id="RuWzVPxy8AUzsureLWZQtV">左侧导航可点击切换 8 个平台模块</div>
+  </div>
+</div>
+
+<!-- ===== 后台壳 ===== -->
+<div class="app" id="app" data-page-node-id="K9xXd6NYZOB2HAMbJPnNUm">
+  <aside class="side" data-page-node-id="gKCxj7JB3leOvt5SCdR2BM">
+    <div class="logo" id="logoBox" data-page-node-id="AGAFBCiZ8Y6lAT2CTehEyC">艺启 · 平台运营<span data-page-node-id="G5EOydJqXDjGlvg58MK2hV">Platform Operations Console</span></div>
+    <nav class="nav" id="nav" data-page-node-id="hq62255pxv9ripsJ7B4Hnf">
+      <div class="nav-g" data-page-node-id="2p9MNQvrkRcBDoMFCAOiBg">工作室治理</div>
+      <div class="ni on" data-p="cert" data-page-node-id="uO6D9cwKN6PGRqg5XuipA1"><span class="ic" data-page-node-id="Y12jSxtLOGiOE36CIq90YH">🏢</span>工作室认证/入驻</div>
+      <div class="ni" data-p="dashboard" data-page-node-id="ntewf1Rt2mqon1FYc1nUXX"><span class="ic" data-page-node-id="Uty7Klt76hDsLswEeh1Lj3">📊</span>全平台数据看板</div>
+      <div class="ni" data-p="risk" data-page-node-id="JGGqMtbLNHduGEyufmkdzG"><span class="ic" data-page-node-id="XRzbXXjNYSCUd9tlwFrH3e">🛡️</span>平台内容风控</div>
+      <div class="nav-g" data-page-node-id="Wm2mdGiZdJrH6crZ2aCCFC">资金</div>
+      <div class="ni" data-p="settle" data-page-node-id="4jfAU0Kh3moGSQJvkv6V37"><span class="ic" data-page-node-id="63M4eRBTGkZovtG2dm8OR2">💰</span>工作室结算/分账</div>
+      <div class="ni" data-p="dist" data-page-node-id="bPtPN7cg4Mhm0U6Hi04kGm"><span class="ic" data-page-node-id="CQlp8lzvjpHFxTUpOP8CUo">🔗</span>平台分销与抽成</div>
+      <div class="nav-g" data-page-node-id="yX5tqzMpH3ELU1k5d3nLmi">运营</div>
+      <div class="ni" data-p="notice" data-page-node-id="hAjk1E1BLgALYaLKN6DZRZ"><span class="ic" data-page-node-id="VphwMkb5szq0e8VJrOopzy">📣</span>平台公告/活动</div>
+      <div class="ni" data-p="charge" data-page-node-id="BxBb8VUm3VOa1oUtfWv2Dl"><span class="ic" data-page-node-id="8Vf9gEFljOShDA1b7olRJy">⚙️</span>平台配置</div>
+      <div class="ni" data-p="staff" data-page-node-id="wxmeH3mEukIdLpSxFQNwEK"><span class="ic" data-page-node-id="PWUQqsLz2A5a6jwdWhklRZ">👤</span>平台员工与权限</div>
+      <div class="ni" data-p="audit" data-page-node-id="3bzU6tPSjdEkhVnaRJOUXa"><span class="ic" data-page-node-id="GWqyBjBusZmoy74R2TPjbo">📋</span>审计日志</div>
+    </nav>
+    <div class="me" data-page-node-id="FJwNBVl1OES9NBY8Uq9WR7"><div class="ava" id="meAva" data-page-node-id="44ckwLv3BtwLdxJBDZYh1u">运</div><div id="meName" data-page-node-id="T7xYUhPcrGyGISCVo1Bj5s">平台运营<br data-page-node-id="g8YTdldpQHf1PNSeaPoHZ9"><span style="font-size:11px;color:#8fae82" id="meRole" data-page-node-id="3k51ja1jEwCWPFgd2WCqBk">platform_ops</span></div></div>
+  </aside>
+
+  <section class="main" data-page-node-id="S3tpIyjmiwZMOj8E4741P9">
+    <header class="topbar" data-page-node-id="KbMoFRblEBSDYjxBq6Gu1N">
+      <div class="crumb" data-page-node-id="KCePtA7vl0GBscsFNvtCdy"><span id="crumbPre" data-page-node-id="EWkGNhiu2owPtBC1pZ01hN">平台运营</span> / <b id="crumb" data-page-node-id="kaL9z5nnbXX0fixdwtjoL4">工作室认证 / 入驻</b></div>
+      <div class="top-r" data-page-node-id="177nCdo7l8Nu9VGU670ORw">
+        <button class="btn-cfg" id="cfgBtn" style="display:none" onclick="setOpenConfig()" data-page-node-id="xjyKWKrxF9I17fcJEusVYl">⚙️ 抽成配置</button>
+        <div class="bell" data-page-node-id="8PAZZewRwRryztlB9rLZaV">🔔<i id="bellN" data-page-node-id="qlAKhBNhrU4jPznN6SPmOz">5</i></div>
+        <div data-page-node-id="y7Xn7M7lXkJwiDQM9CHZ1k">2026-07-24</div>
+        <button class="btn-out" onclick="doLogout()" data-page-node-id="DYApg19du4LD76SXbmnup3">退出</button>
+      </div>
+    </header>
+
+    <div class="content" data-page-node-id="PoaX0qKDGjfemDZks46QWo">
+      <div id="platformRoot" data-page-node-id="zHvi3tjo0O1goLjxroxELv">
+      <!-- P1 认证审核 -->
+      <div class="page on" id="page-cert" data-page-node-id="tFs3oB1MGeQihqQFgKaQfu">
+        <div class="ph" data-page-node-id="ZeAfnZyEXdQILsmk6ssl7n"><h1 data-page-node-id="ibM5FZPcCrumlNS4fceIeY">工作室认证审核</h1><p data-page-node-id="siiM9SlTgFX9zLk8M3YFgD">审核入驻申请、资质材料，通过后工作室正式上架</p></div>
+        <div class="stats" data-page-node-id="yDmWHohAlVC8ZyyfWC6sRr">
+          <div class="stat" data-page-node-id="6c5O0lm1FNicGFGPklBjuD"><div class="n" id="certSPending" data-page-node-id="cjAGjHf8KFBcAlsW3CvjYM">0</div><div class="l" data-page-node-id="w0nyzZlEXrmb4K3r9NBsA7">待审核</div><div class="dot" style="background:var(--warn)" data-page-node-id="r4Y146T7Sci3cKowg0P2Ue"></div></div>
+          <div class="stat" data-page-node-id="2doPxYRaILgOdmjNZfFVwB"><div class="n" id="certSAppr" data-page-node-id="Mj9DzcYH7RniBH3hoVGZAE">0</div><div class="l" data-page-node-id="FFt9VLz73X2E8tYPLDHfnJ">本周通过</div><div class="dot" style="background:var(--green)" data-page-node-id="T3SWert09iXMFAhMWcCGBC"></div></div>
+          <div class="stat" data-page-node-id="TeMHYAAKil0dNlygH7CygX"><div class="n" id="certSRej" data-page-node-id="v9o5geB1X1vJax2dClPVuv">0</div><div class="l" data-page-node-id="kVbjFKaaXtNrRZOufBHLfz">本周驳回</div><div class="dot" style="background:var(--red)" data-page-node-id="VeEl5nc793jUkYhfXwCs59"></div></div>
+          <div class="stat" data-page-node-id="mZBhSkQJ0D4lFs1WBNiyUk"><div class="n" id="certSTotal" data-page-node-id="SYasCa5Umy9kfOsmrowVTj">0</div><div class="l" data-page-node-id="zeQsubNIHpQnrwoIoYbPCK">累计入驻</div><div class="dot" style="background:var(--wood)" data-page-node-id="rNWIrzGDuvadZHz4LAUV2u"></div></div>
+        </div>
+        <div class="bar" data-page-node-id="hiZWTF9P5IPJif4TWtPwWn">
+          <div class="tabs" id="certTabs" data-page-node-id="MYtFEwFFtlWL4uKYC8KGBp">
+            <div class="tab on" data-f="pending" data-page-node-id="SEEmbF4vvSiNE8V7bfDNBo">待审核</div>
+            <div class="tab" data-f="approved" data-page-node-id="FAoKhm8useKNHP2sqbXshZ">已通过</div>
+            <div class="tab" data-f="rejected" data-page-node-id="nglFsvWRFEmlgoDNH3GWao">已驳回</div>
+            <div class="tab" data-f="supplement" data-page-node-id="lSYGYJEdBdcOVGVRwPaGxG">待补充</div>
+            <div class="tab" data-f="all" data-page-node-id="ZfErESuBYeJsMMux7nlkcg">全部</div>
+          </div>
+          <div class="search" data-page-node-id="wCmTHOKeWuXmMju1bS17yO"><input id="certQ" placeholder="搜索工作室名称" data-page-node-id="RLkiQHjrILKHYhQJRGJEgi"></div>
+        </div>
+        <div class="list" id="certList" data-page-node-id="haooUGYQayvbaJzADo3Dns"></div>
+      </div>
+
+      <!-- P2 数据看板 -->
+      <div class="page" id="page-dashboard" data-page-node-id="I68acb1g9jstzFXAEYtFVl">
+        <div class="ph" data-page-node-id="hYzIaKNKg8t3xAxF2PU2xy"><h1 data-page-node-id="FySC4Tr9nR2xVwz8eKZ8AW">全平台数据看板</h1><p data-page-node-id="B0t3a8EQYZc8O8jywJcXvA">平台经营总览：入驻、交易、抽成与风控</p></div>
+        <div class="stats" data-page-node-id="zlp26PCodOfwU8n5GDNspq">
+          <div class="stat" data-page-node-id="en6hzmD30FpBKkCRGvNsNN"><div class="n" data-page-node-id="LweVarLb1RLhnKcdG1NcpS">128</div><div class="l" data-page-node-id="0L2PyWIAi0fByZJG6Gwua5">累计入驻工作室</div><div class="dot" style="background:var(--green)" data-page-node-id="mQv2vyBVmzzoyqML4WT1Bb"></div></div>
+          <div class="stat" data-page-node-id="D0FDzhEeeSEcG6igoh90Cc"><div class="n" data-page-node-id="76XRHI7bndGx7cCdxJlfIj">23</div><div class="l" data-page-node-id="Bu16GECzGZwYFbQVXY1RBd">本月新增</div><div class="dot" style="background:var(--wood)" data-page-node-id="HPsSqpDNCNgCLq47gNZqtp"></div></div>
+          <div class="stat" data-page-node-id="TX6jEPOfY5YvTv9ljlI8Ge"><div class="n" data-page-node-id="YCxgwqWWnes7X1IMCZYoGU"><small data-page-node-id="5dlCoA8UrZxVmH1ujjoLYV">¥</small>386,900</div><div class="l" data-page-node-id="XPwRlReWjsNHi7a5AvqT1N">本月 GMV</div><div class="dot" style="background:var(--blue)" data-page-node-id="N7lBUkfdqLksaMdfaz1uHX"></div></div>
+          <div class="stat" data-page-node-id="dTvy3UDfO7yxbXYGMJ43yT"><div class="n" data-page-node-id="KBHxdEn8EItnSZJZGKNf6Y"><small data-page-node-id="KiEoei6lABycJVkdPI2D8Z">¥</small>46,428</div><div class="l" data-page-node-id="MgNMW7iSv8i99DR6djNR2C">平台抽成收入</div><div class="dot" style="background:var(--warn)" data-page-node-id="wut6sUy70NZ6fFKixU4v21"></div></div>
+        </div>
+        <div class="chart-wrap" data-page-node-id="3rvHOXVW0mS4XljD5qrS1x">
+          <div class="chart-t" data-page-node-id="c1sYYyZRzi9gKtIPrRZBUi">📈 近 6 个月平台 GMV（万元）</div>
+          <div id="dashChart" data-page-node-id="ULGvmefwy44m0qpTYN7CGV"></div>
+        </div>
+        <div class="two" data-page-node-id="nzqcrEnX86FRSdnI5akIh0">
+          <div class="panel" data-page-node-id="9QNxh0vXwRgjOOcCYYPS7g"><h3 data-page-node-id="fgUoM2998ts4s4ipB2GAWA">🏙️ 入驻城市 TOP</h3>
+            <div class="li" data-page-node-id="sHCGC919fWCAc1VHWDnWzY"><span class="dotc" style="background:var(--green)" data-page-node-id="DedCKu3BkcLmMyQdkc6mWq"></span>杭州<div class="v" data-page-node-id="82XlucNXvTVQkA4W6DmwFJ">21 家</div></div>
+            <div class="li" data-page-node-id="DsXLwg32SC70u9UoEDmzAB"><span class="dotc" style="background:var(--wood)" data-page-node-id="hN9t1OeFtvtAccDiLhxYn6"></span>成都<div class="v" data-page-node-id="JR7o3bhSpXz9IIsGcGCyy7">18 家</div></div>
+            <div class="li" data-page-node-id="RGFKv75tkPnKoFZVDDxxNP"><span class="dotc" style="background:var(--blue)" data-page-node-id="XWx05QVM1F9feu2NDcKYiw"></span>苏州<div class="v" data-page-node-id="JWmomKeuCjPCr1mlCzeZmm">15 家</div></div>
+            <div class="li" data-page-node-id="doeZ91QCeWQUhy48ypanCk"><span class="dotc" style="background:var(--warn)" data-page-node-id="KQ8e1y8SLIUW70ypGPYcWA"></span>武汉<div class="v" data-page-node-id="Xupn5WsHsY916zlTtjcw5Z">12 家</div></div>
+            <div class="li" data-page-node-id="ZZvNfCGj28CDKZBNHn3QZP"><span class="dotc" style="background:var(--muted)" data-page-node-id="ifMZBldCYSQqSt58X3lYMH"></span>南京<div class="v" data-page-node-id="XFbhtzWL9TA4weBjP8fheE">9 家</div></div>
+          </div>
+          <div class="panel" data-page-node-id="W494dF4e8w7NREooY7dbEZ"><h3 data-page-node-id="lASZ0oCkIEfGGOqeJpVWJY">🔔 近期待办</h3>
+            <div class="li" data-page-node-id="BkZTorEb6vkETv2tKlAXC3"><span class="dotc" style="background:var(--warn)" data-page-node-id="S4DGC1wby0WzAYsEansGJu"></span>待审核认证<div class="v" data-page-node-id="vJrrXChJklo6FC98RMaKKR">2 单</div></div>
+            <div class="li" data-page-node-id="wc2ZXHmvuPaVuHaIGwqCUH"><span class="dotc" style="background:var(--red)" data-page-node-id="G2j4GkveOYlBwhJS62cgUW"></span>异常结算单<div class="v" data-page-node-id="uT4r6ztpMhBp0KmtmqcL12">1 单</div></div>
+            <div class="li" data-page-node-id="DI7hQBFidHkE7bTs0CkvNB"><span class="dotc" style="background:var(--blue)" data-page-node-id="5MmR7u4g0OwUOvkWMkvNK2"></span>待处理举报<div class="v" data-page-node-id="C5PJlYc9E1SlmSRQV3uqSp">3 条</div></div>
+            <div class="li" data-page-node-id="7ajyUxY5MR2VULBlSgMNiN"><span class="dotc" style="background:var(--green)" data-page-node-id="eU7CGpPox35lhyjqE2UsJt"></span>本月已打款<div class="v" data-page-node-id="a6AzOEkSufyiBDzATSAp0X">¥340,472</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- P3 内容风控 -->
+      <div class="page" id="page-risk">
+        <div class="ph"><h1>平台内容风控</h1><p>动态、作品、评论的审核与违规处置</p></div>
+        <div class="stats">
+          <div class="stat"><div class="n" id="rkSPost"></div><div class="l">待审动态</div><div class="dot" style="background:var(--warn)"></div></div>
+          <div class="stat"><div class="n" id="rkSWork"></div><div class="l">待核作品</div><div class="dot" style="background:var(--blue)"></div></div>
+          <div class="stat"><div class="n" id="rkSReport"></div><div class="l">待处理举报</div><div class="dot" style="background:var(--red)"></div></div>
+          <div class="stat"><div class="n" id="rkSDone"></div><div class="l">今日已处置</div><div class="dot" style="background:var(--green)"></div></div>
+        </div>
+        <div class="bar">
+          <div class="tabs" id="rkTabs">
+            <div class="tab on" data-f="post">待审动态</div>
+            <div class="tab" data-f="work">作品合规</div>
+            <div class="tab" data-f="report">举报处理</div>
+          </div>
+          <div class="search"><input id="rkQ" placeholder="搜索作者 / 内容关键词"></div>
+        </div>
+        <div class="list" id="rkList"></div>
+      </div>
+
+      <!-- P4 结算单 -->
+      <div class="page" id="page-settle" data-page-node-id="GH00rNOgQPM6dbxk3XLrSb">
+        <div class="ph" data-page-node-id="0rDgi7YqJDjRk0ZZ0BPmRg"><h1 data-page-node-id="VOWCKem6Qv4bGaeUOteNUL">工作室结算与分账</h1><p data-page-node-id="AVBO6GceVFmgJimycXhyY8">按周期生成结算单，扣除平台抽成后对公打款，支持异常重打</p></div>
+        <div class="stats" data-page-node-id="HowGvm2Tig6e94ByiQxSXo">
+          <div class="stat" data-page-node-id="U31w8sYIsODA2bNV8aqCDx"><div class="n" data-page-node-id="URaHmxq2SGCAbHVZEFt3cT"><small data-page-node-id="1E7nra3WJkpmZxD4j7Ao8D">¥</small><span id="setSPending" data-page-node-id="N0eunbyBvHZfXljJG9ZDSs">0</span></div><div class="l" data-page-node-id="uecz73D9k7FwLMKBFEwi6t">本期待结算合计</div><div class="dot" style="background:var(--warn)" data-page-node-id="iDJpEbmChBzoHTWwNdQPwb"></div></div>
+          <div class="stat" data-page-node-id="E9pBHBvrtt6PQYLGoL3ik4"><div class="n" data-page-node-id="S0gsC7kEQuxAhpcpJtMJ8F"><small data-page-node-id="KvJaRyQ86BalvTXCmQFnBn">¥</small><span id="setSPaid" data-page-node-id="L73bH3HGDWDeXA01XrsD1S">0</span></div><div class="l" data-page-node-id="pHwLPY4zO7Dg3WYKwd7YCY">本期已打款</div><div class="dot" style="background:var(--green)" data-page-node-id="wO6p3DttFQI1Aqt0a64Bnl"></div></div>
+          <div class="stat" data-page-node-id="AZeGww0bCvK3BU8FDcZKU3"><div class="n" data-page-node-id="HTas0QV06sKZIkgPyuz17b"><small data-page-node-id="D6WWNTN5xHotGrWiSHh8Ch">¥</small><span id="setSFee" data-page-node-id="K6z8kKuImSFpqaYhHdzGjf">0</span></div><div class="l" data-page-node-id="9sWVD8hPbB9KNK1QDc9Bd2">平台抽成收入</div><div class="dot" style="background:var(--wood)" data-page-node-id="whdifSWF8icKYJCeHwpPFh"></div></div>
+          <div class="stat" data-page-node-id="lG85Hegu29piYEdzCY6AcA"><div class="n" id="setSAbn" data-page-node-id="SK8UQjVzdzX5kIL7i12oV9">0</div><div class="l" data-page-node-id="E4n9f7o2RbtFuddOtoo8uH">异常结算单</div><div class="dot" style="background:var(--red)" data-page-node-id="CfWdT8u1k2MBxMeUH2auwl"></div></div>
+        </div>
+        <div class="bar" data-page-node-id="mfnGWgVGGd8yd9anxtqPST">
+          <div class="tabs" id="setTabs" data-page-node-id="blDjT9DI8cLMU36JcsWviL">
+            <div class="tab on" data-f="pending" data-page-node-id="PPBWnI1DEStAQOabhFZFoq">待结算</div>
+            <div class="tab" data-f="paying" data-page-node-id="pXh4hEBcr6mnTBANDB42R2">打款中</div>
+            <div class="tab" data-f="paid" data-page-node-id="dfPTxJDHUfEl6eg02GI64o">已打款</div>
+            <div class="tab" data-f="abnormal" data-page-node-id="EQa1YmZLOZ3pMoK8072rpH">异常</div>
+            <div class="tab" data-f="all" data-page-node-id="WqIryXigXJ2OnDWiBBsfL2">全部</div>
+          </div>
+          <div class="sel" data-page-node-id="p9w0J1p4M667F6Bh0cveAF"><select id="setPeriod" onchange="setRenderList()" data-page-node-id="d0MjfZvntO2TkroAUtlHhS">
+            <option value="2026年7月" data-page-node-id="w2BpDec0HD9xbmp5ijRKNF">2026年7月</option><option value="2026年6月" data-page-node-id="TS644V5JvDXje6xrW27Wm5">2026年6月</option>
+          </select></div>
+          <div class="search" data-page-node-id="r6yVKsZXquCzbAVM2N5g1s"><input id="setQ" placeholder="搜索工作室名称" oninput="setRenderList()" data-page-node-id="k4UexfHcTAfQ3MIzNoCk3y"></div>
+        </div>
+        <div class="list" id="setList" data-page-node-id="eYY5K4t4xg3gm0fcNIZ3n9"></div>
+      </div>
+
+      <!-- P5 分销抽成 -->
+      <div class="page" id="page-dist">
+        <div class="ph"><h1>平台分销与抽成</h1><p>分销员、返利记录与平台级抽成规则</p></div>
+        <div class="stats">
+          <div class="stat"><div class="n" id="dsSAgent"></div><div class="l">分销员总数</div><div class="dot" style="background:var(--green)"></div></div>
+          <div class="stat"><div class="n" id="dsSMonth"></div><div class="l">本月返利支出</div><div class="dot" style="background:var(--warn)"></div></div>
+          <div class="stat"><div class="n" id="dsSPending"></div><div class="l">待结算返利</div><div class="dot" style="background:var(--blue)"></div></div>
+          <div class="stat"><div class="n" id="dsSRange"></div><div class="l">分销返利区间</div><div class="dot" style="background:var(--wood)"></div></div>
+        </div>
+        <div class="bar">
+          <div class="tabs" id="dsTabs">
+            <div class="tab on" data-f="agent">分销员</div>
+            <div class="tab" data-f="record">返利记录</div>
+            <div class="tab" data-f="rule">抽成规则</div>
+          </div>
+          <div class="search" id="dsSearchWrap"><input id="dsQ" placeholder="搜索分销员 / 工作室"></div>
+        </div>
+        <div id="dsBody"></div>
+      </div>
+
+      <!-- P6 公告活动 -->
+      <div class="page" id="page-notice">
+        <div class="ph"><h1>平台公告 / 活动</h1><p>向全平台工作室与 C 端用户下发通知</p></div>
+        <div class="stats">
+          <div class="stat"><div class="n" id="ntSNotice"></div><div class="l">已发公告</div><div class="dot" style="background:var(--green)"></div></div>
+          <div class="stat"><div class="n" id="ntSAct"></div><div class="l">进行中活动</div><div class="dot" style="background:var(--warn)"></div></div>
+          <div class="stat"><div class="n" id="ntSDraft"></div><div class="l">待发布</div><div class="dot" style="background:var(--blue)"></div></div>
+          <div class="stat"><div class="n" id="ntSReach"></div><div class="l">累计触达</div><div class="dot" style="background:var(--wood)"></div></div>
+        </div>
+        <div class="bar">
+          <div class="tabs" id="ntTabs">
+            <div class="tab on" data-f="notice">公告</div>
+            <div class="tab" data-f="activity">活动</div>
+          </div>
+          <div class="search"><input id="ntQ" placeholder="搜索标题 / 关键词"></div>
+          <button class="btn g" onclick="ntOpenAdd()">＋ 新建</button>
+        </div>
+        <div class="list" id="ntList"></div>
+      </div>
+
+      <!-- P7 平台配置 -->
+      <div class="page" id="page-charge" data-page-node-id="MjhnPDF3WXTMBOyTEUxOGt">
+        <div class="ph" data-page-node-id="8QcBt1qt8migOpciD06xsF"><h1 data-page-node-id="Ajaoe1RPWHVO1Z29vwVTpe">平台配置</h1><p data-page-node-id="NYaE7EuHJShhgGAFIHKHK4">交易抽成、入驻年费、增值服务与结算规则，保存后全平台生效</p></div>
+        <div class="stats" data-page-node-id="nSEba6hkAZDGETxCQXzCw5">
+          <div class="stat" data-page-node-id="wc524UVvyC8dDf7hxn4d1M"><div class="n" id="chgSDef" data-page-node-id="TPZEGBQRR7VWZ6PspMcZHt"></div><div class="l" data-page-node-id="XJI3mybhWY078apjb7SzDu">默认抽成比例</div><div class="dot" style="background:var(--green)" data-page-node-id="IONuCPevSJ2RjPYCnIFjLz"></div></div>
+          <div class="stat" data-page-node-id="GzyEGpSWoXMXwQ9IqeoUhQ"><div class="n" id="chgSCat" data-page-node-id="F7eOcUitAepCalC5MXTiFn"></div><div class="l" data-page-node-id="K3mpzutGcjnMrLkP0GSrV6">差异化类目</div><div class="dot" style="background:var(--wood)" data-page-node-id="e9ZYILS8N7DytIY8JkOAIl"></div></div>
+          <div class="stat" data-page-node-id="OgD9osjf5vF3FjLInvlZtz"><div class="n" id="chgSPlan" data-page-node-id="108B36huixM077s0xscxQV"></div><div class="l" data-page-node-id="HXJxeGAMCuOFzLZPO83IEb">入驻套餐档位</div><div class="dot" style="background:var(--blue)" data-page-node-id="OZxvZJzBteFe1dTMT8eBXS"></div></div>
+          <div class="stat" data-page-node-id="8UHWuJa3OM9O2p2CV9jXx3"><div class="n" id="chgSSvc" data-page-node-id="XIwzvm23PcKm5qIqsRmI3m"></div><div class="l" data-page-node-id="nwE6wpeXbE2EHfvriXCKPF">增值服务</div><div class="dot" style="background:var(--warn)" data-page-node-id="SBwTQHM5SnxYIuI3p2nHFE"></div></div>
+        </div>
+        <div class="bar" data-page-node-id="kaCiFxHRIuknpBfHlegUC7">
+          <div class="tabs" id="chgTabs" data-page-node-id="Er1IaR7jXyUsraVMWgm8oL">
+            <div class="tab on" data-t="rate" data-page-node-id="Mkksn1UICwEjiyAy5vcu4K">交易抽成</div>
+            <div class="tab" data-t="plan" data-page-node-id="8re1RFDAwln8o8Y9wm9S70">入驻年费</div>
+            <div class="tab" data-t="svc" data-page-node-id="C54Hy6gV2LZCtDzTY8TFcp">增值服务</div>
+            <div class="tab" data-t="settle" data-page-node-id="rzSnFsbKUuHn8LhnUtMBRm">结算周期</div>
+          </div>
+          <button class="btn g" style="margin-left:auto" onclick="chgSave()" data-page-node-id="rLuY62mRlhIzTeqyIbDW0O">💾 保存全部配置</button>
+        </div>
+        <div id="chgBody" data-page-node-id="HwNWLkmfUmWkFgCDpJ4Iy5"></div>
+      </div>
+
+      <!-- P8 员工权限 -->
+      <div class="page" id="page-staff" data-page-node-id="GUXuDkOxZESDPX2fJ1oybb">
+        <div class="ph" data-page-node-id="0ObdOMpTe0thF0aHk8ZMu1"><h1 data-page-node-id="nEptCY9MzokJplHsA5IN1N">平台员工与权限</h1><p data-page-node-id="pWdp6py83d5wCJgvy9kbbL">员工子账号、角色分配与启用状态，操作留痕见「审计日志」</p></div>
+        <div class="stats" data-page-node-id="jp1G6op4YETsNASUqSM2PN">
+          <div class="stat" data-page-node-id="uEtC8BZipcdSaUSNFXCpNf"><div class="n" id="stfSTotal" data-page-node-id="yknbaUjQDetDrSYv7En5er"></div><div class="l" data-page-node-id="mdeqvY0zQQnNRuRwT789sm">员工账号</div><div class="dot" style="background:var(--green)" data-page-node-id="MtUeDdglkrOmRbUH2Lxhme"></div></div>
+          <div class="stat" data-page-node-id="gLG0fuyHfJUwBIJZihlKfp"><div class="n" id="stfSActive" data-page-node-id="5JgHxSOXiYgkn1YP5Zbtxd"></div><div class="l" data-page-node-id="8Llet4pMsRP6Iwcbzewwsl">启用中</div><div class="dot" style="background:var(--blue)" data-page-node-id="YpISVX6MOKpo5ugIFMMY6Y"></div></div>
+          <div class="stat" data-page-node-id="XPvxHEBpBwIOavUL4ckEtC"><div class="n" id="stfSSuper" data-page-node-id="gYEXjmXQydlDpbDzdzweGX"></div><div class="l" data-page-node-id="DaPIGivSoyZiFBa2wqWCN4">平台超管</div><div class="dot" style="background:var(--wood)" data-page-node-id="hQmsZjMlSNnvjU0sCkrhlH"></div></div>
+          <div class="stat" data-page-node-id="EHLBltDydv7Am5X8KvBZ9M"><div class="n" id="stfSDisabled" data-page-node-id="eVP2whm8P8iaEmBi0kcZfM"></div><div class="l" data-page-node-id="089obJghzLZJHdXl8YILPH">已停用</div><div class="dot" style="background:var(--red)" data-page-node-id="4sLFJPOiH6WkR61OQEmzm2"></div></div>
+        </div>
+        <div class="bar" data-page-node-id="AiRYmaPYZ76gGtWOw3UJIG">
+          <div class="tabs" id="stfTabs" data-page-node-id="pwvKYtEAKP51mwB5ze5T42">
+            <div class="tab on" data-f="all" data-page-node-id="fsMVPT4elaCvbEu3P1IABT">全部</div>
+            <div class="tab" data-f="super" data-page-node-id="gG0hoehWRjddXORNW8mcXZ">超管</div>
+            <div class="tab" data-f="ops" data-page-node-id="71Bi9dvmVXoFKNXeW3Fmhd">运营</div>
+            <div class="tab" data-f="disabled" data-page-node-id="YE9TIyH2lExe853DIR49cR">已停用</div>
+          </div>
+          <div class="search" data-page-node-id="W77iXUE2TFZPISx9LjynkK"><input id="stfQ" placeholder="搜索姓名 / 账号" data-page-node-id="X44dvUOcNHeyfeVgWrGDyS"></div>
+          <button class="btn g" onclick="stfOpenAdd()" data-page-node-id="DsWWh7kvKWDaiHTHOtq54k">＋ 新增员工</button>
+        </div>
+        <div class="list" id="stfList" data-page-node-id="11eYLrEDfNeiWwV8eJlZsR"></div>
+      </div>
+
+      <!-- P9 审计日志 -->
+      <div class="page" id="page-audit" data-page-node-id="Eu5XZ1aSR6DZV07yfprcqj">
+        <div class="ph" data-page-node-id="XWKCv7vqZni7TB7A5iBzx6"><h1 data-page-node-id="mOhHp9QdsN7sfNs8pPWEGC">审计日志</h1><p data-page-node-id="BruGq3NNrhpfC2ndKFwAjZ">关键操作全量留痕：谁、何时、对什么、做了什么、结果如何</p></div>
+        <div class="stats" data-page-node-id="08XXadRGigzHLd9rCu1T9o">
+          <div class="stat" data-page-node-id="WmmjXCF6XoGBHKua6lCj4X"><div class="n" id="audSToday" data-page-node-id="TYrFxge96fTNNBeteFEhMK"></div><div class="l" data-page-node-id="YT9KwhVEeaASI3Q7rJrQvI">今日操作</div><div class="dot" style="background:var(--green)" data-page-node-id="JS2x17SYGckOeDe5BQ74so"></div></div>
+          <div class="stat" data-page-node-id="Ev2a7NEJjDT7NGenjrZqLB"><div class="n" id="audSMoney" data-page-node-id="17FgUBQlb91gfEYf0pkS9S"></div><div class="l" data-page-node-id="8QPQUHUz1K2eHkr6YCbLLk">涉及资金操作</div><div class="dot" style="background:var(--warn)" data-page-node-id="9IjI8H9ietPVojRssk11Ej"></div></div>
+          <div class="stat" data-page-node-id="qJu5c3lHDBNewCHV4kvPF5"><div class="n" id="audSSensitive" data-page-node-id="48PJahI69EOEtuOrUKQ7VQ"></div><div class="l" data-page-node-id="Y1FEB27J9V2z8nTGSEgDiq">敏感操作</div><div class="dot" style="background:var(--red)" data-page-node-id="YZipfznE9HI8OS4ghlUAkU"></div></div>
+          <div class="stat" data-page-node-id="bdUxK40hyFIMyL0FDpjPN6"><div class="n" id="audSFail" data-page-node-id="VKlBVC9w38OvLH6pGFCjEZ"></div><div class="l" data-page-node-id="OaZJWpIvEX90hI3YRF7FEi">失败/拦截</div><div class="dot" style="background:var(--blue)" data-page-node-id="TZr0rnvGvGtWb3tJaS3HqU"></div></div>
+        </div>
+        <div class="bar" data-page-node-id="GRuSYo54DP2s2UuCGKvxMq">
+          <div class="tabs" id="audTabs" data-page-node-id="wFuLT0AvOTaMyo2EnR2u9G">
+            <div class="tab on" data-f="all" data-page-node-id="1IuyWQodlKUHfE6YioqoJX">全部</div>
+            <div class="tab" data-f="settle" data-page-node-id="OpY18tT7FSK4o5ocAORcMr">结算</div>
+            <div class="tab" data-f="cert" data-page-node-id="JccoP9tZHeyCcAoQODHB9K">认证</div>
+            <div class="tab" data-f="risk" data-page-node-id="KWs1eXPQeDcAvhGAjF6KkQ">风控</div>
+            <div class="tab" data-f="config" data-page-node-id="C0OT01sWm8mDivBwsxPxoA">配置</div>
+            <div class="tab" data-f="auth" data-page-node-id="bfRh4GgFs8MgI5F1UJ4FVG">权限</div>
+          </div>
+          <div class="sel" data-page-node-id="Lv6mEjQKHSjZ9tBCkP6ZyS"><select id="audRes" onchange="audRender()" data-page-node-id="RfRfek0Em8VIvaBOhvUnwV"><option value="all" data-page-node-id="2jHku5yHJuQjRCsOtDRfTe">全部结果</option><option value="success" data-page-node-id="iANYzPNZW4RmIYhDIe4gpZ">成功</option><option value="fail" data-page-node-id="wGUGg4aTL2SHaoi9zxYqyH">失败/拦截</option></select></div>
+          <div class="search" data-page-node-id="vtJIxRWnBCnvyjqYcvv3DC"><input id="audQ" placeholder="搜索操作人 / 对象" oninput="audRender()" data-page-node-id="W8U4QFehdDV2EPNl4YpWBm"></div>
+        </div>
+        <div class="list" id="audList" data-page-node-id="hQUGMEDELXBQwHVG5iniRA"></div>
+      </div>
+      </div><!--/platformRoot-->
+
+      <!-- ================= 工作室端（单店经营） ================= -->
+      <div id="studioRoot" style="display:none" data-page-node-id="M9R1kzbnYxLpVOsylUSvta">
+        <!-- 工作台看板 -->
+        <div class="page" id="sp-sd" data-page-node-id="8376gW2bHyiYZpGahoHAGP">
+          <div class="ph" data-page-node-id="FML32Is1gAHR9RBBDzRfyt"><h1 data-page-node-id="8RawJXAHsCbE8ET2fUuvCu">工作台看板</h1><p data-page-node-id="WXaomGXRD3AXkAiEinAxDT">青芽艺术空间 · 单店经营总览</p></div>
+          <div class="stats" data-page-node-id="YugCeHL2GE77n2W44bH5us">
+            <div class="stat" data-page-node-id="WbXK6kz8H61wY9B59bc9fY"><div class="n" data-page-node-id="2g4spiinkJSAIMJxujZLb4"><small data-page-node-id="KBMpGxP3C5QAIdj2w6I8hU">¥</small>86,400</div><div class="l" data-page-node-id="XUCDXdxLoTNvGvLPvty6Pa">本月营收</div><div class="dot" style="background:var(--green)" data-page-node-id="8MDn5FGIwu79aHUrPhTCwX"></div></div>
+            <div class="stat" data-page-node-id="yyNskYPg3GtlxBgS0SzHIx"><div class="n" data-page-node-id="lYJMLrAvtWRyGDr9gqFc3O">128</div><div class="l" data-page-node-id="p7ThhJX0bB7nwCEdoeOZfH">在读学员</div><div class="dot" style="background:var(--wood)" data-page-node-id="6NmHwNK8TKW5Kmqv1Low2G"></div></div>
+            <div class="stat" data-page-node-id="hIUJBBBut8ekNRLUOyQNNh"><div class="n" data-page-node-id="BZl1zvyVVwkIcX7lvucDsa">46</div><div class="l" data-page-node-id="potafF7JgtZPM43tDrX1Se">本周课次</div><div class="dot" style="background:var(--blue)" data-page-node-id="Oh50rzqMeifsvB6jFarlek"></div></div>
+            <div class="stat" data-page-node-id="AXc1HRq70O6CICe1H0gdRs"><div class="n" data-page-node-id="o5svEkAjBUWLg9lahL5YiA">2</div><div class="l" data-page-node-id="irgjURKh3H80x67wwbOVry">待审退款</div><div class="dot" style="background:var(--warn)" data-page-node-id="VziGEaUGSvMW73Em0ohJI6"></div></div>
+          </div>
+          <div class="chart-wrap" data-page-node-id="stuChartWrap">
+            <div class="chart-t" data-page-node-id="stuChartT">📈 营收趋势 <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:8px">近 6 个月 · 青芽艺术空间</span></div>
+            <div style="display:flex;gap:18px;margin-bottom:8px;font-size:12px;color:var(--muted)" data-page-node-id="stuChartLg">
+              <span><i style="display:inline-block;width:18px;height:3px;border-radius:2px;background:#4A7C3F;margin-right:6px;vertical-align:middle"></i>课程营收</span>
+              <span><i style="display:inline-block;width:18px;height:0;border-top:2px dashed #c0563f;margin-right:6px;vertical-align:middle"></i>退款</span>
+            </div>
+            <div id="stuChart" data-page-node-id="stuChartBox"></div>
+          </div>
+          <div class="two" data-page-node-id="jnok5cUdxQ1NPtcTAOlNk0">
+            <div class="panel" data-page-node-id="auqCPopFD1DPCjdT24YOLw"><h3 data-page-node-id="nt7wFJM1ZP4RAPicYr7Udx">🗓️ 今日课表</h3>
+              <div class="li" data-page-node-id="bAkyErUTP4IunZTClkOB61"><span class="dotc" style="background:var(--green)" data-page-node-id="QKlLqxbOF5EiXURTFtd4Mq"></span>09:00 朵朵班·创意美术 <div class="v" data-page-node-id="WPD5T5phoKzn10uJFGECSQ">陈老师 / 2 号画室</div></div>
+              <div class="li" data-page-node-id="4f8QD7zxkDyefUHJnpszgW"><span class="dotc" style="background:var(--wood)" data-page-node-id="FHjbABPkvZFPWKc7DYGEKB"></span>10:30 芽芽班·手工 <div class="v" data-page-node-id="96mnps3pRmqvmtFBMw1ate">林老师 / 1 号画室</div></div>
+              <div class="li" data-page-node-id="PyaPCxCAxaD4nprLlNJ444"><span class="dotc" style="background:var(--blue)" data-page-node-id="cUwyUvDcJiWR4mIS9KHr7g"></span>14:00 中级班·国画 <div class="v" data-page-node-id="s0kiupZltQWmPOAApniCar">周老师 / 3 号画室</div></div>
+              <div class="li" data-page-node-id="WBTqhxZC0KjHVwOsKGk885"><span class="dotc" style="background:var(--warn)" data-page-node-id="ZglhSbPDxhWRSu66EiCBhU"></span>16:00 硬笔书法启蒙 <div class="v" data-page-node-id="C79qCVf21Wx6LiHbb3l383">吴老师 / 书法室</div></div>
+            </div>
+            <div class="panel" data-page-node-id="39CsuJ3qFRJg4z6Ryu2Gl7"><h3 data-page-node-id="4cp8DSnV0tZMeFuyZrL9wC">🧾 最近订单</h3>
+              <div class="li" data-page-node-id="CExzAdIAkMqU723U03FGHR"><span class="dotc" style="background:var(--green)" data-page-node-id="hBkFjUgHEzcH2zMogTGEvd"></span>自然主题·暑期班 <div class="v" data-page-node-id="vc7LAYPyo3Khez1B9SCbfC">¥2,980</div></div>
+              <div class="li" data-page-node-id="VgyGqVf1Vz4UQLqg0FJOnr"><span class="dotc" style="background:var(--green)" data-page-node-id="Vq2TaJOUGF34VvW3BbyeUm"></span>国画年度班 <div class="v" data-page-node-id="c7FfAgQEcd9CTueS8UK2xT">¥6,800</div></div>
+              <div class="li" data-page-node-id="x4YLSw9jMbNjsvMrLaJy3y"><span class="dotc" style="background:var(--warn)" data-page-node-id="LQLAkZd0MZBNcwHwrsUAa9"></span>森林写生营·退款中 <div class="v" data-page-node-id="CnbYIpGsgF6WijWDsixAdm">¥2,680</div></div>
+              <div class="li" data-page-node-id="MkgqDOzivwT7JXcWYNBYcY"><span class="dotc" style="background:var(--red)" data-page-node-id="FHmnyjmiJaSWLsa6XYu9lf"></span>油画体验课·已退款 <div class="v" data-page-node-id="jgsx9qCRTe0bYqfNl5d1Qm">¥680</div></div>
+            </div>
+          </div>
+        </div>
+        <!-- 课程管理 -->
+        <div class="page" id="sp-sc" data-page-node-id="Kt0T6XiODlc5j07AHGTCBT"><div class="ph" data-page-node-id="Hi3BATWWpsCqjILSzOWv17"><h1 data-page-node-id="XaXXCC7aozgiP348MqQopF">课程管理</h1><p data-page-node-id="autcWUBaTyPC0q7iRhlBIM">本工作室在售课程与课时定价</p></div><div class="list" id="scList" data-page-node-id="FDsuRDVT23pLgEETUohOen"></div></div>
+        <!-- 班级管理 -->
+        <div class="page" id="sp-cl">
+          <div class="ph"><h1>班级管理</h1><p>班级、学员与带班老师</p></div>
+          <div class="stats">
+            <div class="stat"><div class="n" id="clSTotal"></div><div class="l">班级总数</div><div class="dot" style="background:var(--green)"></div></div>
+            <div class="stat"><div class="n" id="clSStu"></div><div class="l">在读学员</div><div class="dot" style="background:var(--wood)"></div></div>
+            <div class="stat"><div class="n" id="clSFull"></div><div class="l">已满班</div><div class="dot" style="background:var(--red)"></div></div>
+            <div class="stat"><div class="n" id="clSFree"></div><div class="l">可插班席位</div><div class="dot" style="background:var(--blue)"></div></div>
+          </div>
+          <div class="bar">
+            <div class="tabs" id="clTabs">
+              <div class="tab on" data-f="all">全部</div>
+              <div class="tab" data-f="启蒙">启蒙</div>
+              <div class="tab" data-f="进阶">进阶</div>
+              <div class="tab" data-f="full">已满班</div>
+            </div>
+            <div class="search"><input id="clQ" placeholder="搜索班级 / 老师"></div>
+            <button class="btn g" onclick="clOpenAdd()">＋ 新建班级</button>
+          </div>
+          <div class="list" id="clList"></div>
+        </div>
+        <!-- 排课/课表 -->
+        <div class="page" id="sp-sk">
+          <div class="ph"><h1>排课 / 课表</h1><p>本周课表与冲突检测</p></div>
+          <div class="stats">
+            <div class="stat"><div class="n" id="skSLessons"></div><div class="l">本周课次</div><div class="dot" style="background:var(--green)"></div></div>
+            <div class="stat"><div class="n" id="skSConflict"></div><div class="l">冲突</div><div class="dot" style="background:var(--red)"></div></div>
+            <div class="stat"><div class="n" id="skSTeacher"></div><div class="l">授课老师</div><div class="dot" style="background:var(--blue)"></div></div>
+            <div class="stat"><div class="n" id="skSRoom"></div><div class="l">使用教室</div><div class="dot" style="background:var(--wood)"></div></div>
+          </div>
+          <div class="bar">
+            <div class="tabs" id="skTabs">
+              <div class="tab on" data-f="all">全周</div>
+              <div class="tab" data-f="conflict">只看冲突</div>
+            </div>
+            <button class="btn g" style="margin-left:auto" onclick="skOpenAdd()">＋ 排新课程</button>
+          </div>
+          <div id="skBody"></div>
+        </div>
+        <!-- 老师管理 -->
+        <div class="page" id="sp-tc">
+          <div class="ph"><h1>老师管理</h1><p>全职 / 兼职老师与授课统计</p></div>
+          <div class="stats">
+            <div class="stat"><div class="n" id="tcSTotal"></div><div class="l">老师总数</div><div class="dot" style="background:var(--green)"></div></div>
+            <div class="stat"><div class="n" id="tcSFull"></div><div class="l">全职</div><div class="dot" style="background:var(--wood)"></div></div>
+            <div class="stat"><div class="n" id="tcSPart"></div><div class="l">兼职</div><div class="dot" style="background:var(--blue)"></div></div>
+            <div class="stat"><div class="n" id="tcSLessons"></div><div class="l">本月总课时</div><div class="dot" style="background:var(--warn)"></div></div>
+          </div>
+          <div class="bar">
+            <div class="tabs" id="tcTabs">
+              <div class="tab on" data-f="all">全部</div>
+              <div class="tab" data-f="全职">全职</div>
+              <div class="tab" data-f="兼职">兼职</div>
+            </div>
+            <div class="search"><input id="tcQ" placeholder="搜索老师 / 专长"></div>
+            <button class="btn g" onclick="tcOpenAdd()">＋ 新增老师</button>
+          </div>
+          <div class="list" id="tcList"></div>
+        </div>
+        <!-- 学员管理 -->
+        <div class="page" id="sp-st" data-page-node-id="dzsXHMUfghRA4luxv0NVCA">
+          <div class="ph" data-page-node-id="zggVGh1LDYPdsj50DnZW1s"><h1 data-page-node-id="taQN2UW4Fe2w2SZHYv4rup">学员管理</h1><p data-page-node-id="z3Gzo728inuKdW7WsZJ5Pa">在读学员、剩余课时与请假</p></div>
+          <div class="bar" data-page-node-id="lDPREuRyRdEF7B3XmWRMEe">
+            <div class="tabs" id="stuTabs" data-page-node-id="GbJVVp5PLOaFlsM7eQlaxA"><div class="tab on" data-f="all" data-page-node-id="XuYYRhgM7jFPgjdUHChtlq">全部</div><div class="tab" data-f="low" data-page-node-id="ZiZE6y9zFscceVe9OYRpX6">课时不足</div><div class="tab" data-f="leave" data-page-node-id="jwKM9qZezKzZmD0XBJAu34">请假中</div></div>
+            <div class="search" data-page-node-id="N7Smesh14slEaZ8Ep5HEmH"><input id="stuQ" placeholder="搜索学员 / 家长" data-page-node-id="LdERUvCyWZmEkGquZqY6Ny"></div>
+          </div>
+          <div class="list" id="stuList" data-page-node-id="NqLmaAS8wEmQOUMAdAUJAe"></div>
+        </div>
+        <!-- 订单与退款 -->
+        <div class="page" id="sp-od" data-page-node-id="ox8pP830UuGPQNaEQEPlAt">
+          <div class="ph" data-page-node-id="fDICK7QeZHaMY8Ha7fQxFi"><h1 data-page-node-id="P1hWG2zwokZ5UyvREQggTI">订单与退款</h1><p data-page-node-id="xDKoDrnILiNPXuPGmHem9i">购课订单、消课与退款处理</p></div>
+          <div class="bar" data-page-node-id="f62YPY9bPUxyf6GEin6mwv">
+            <div class="tabs" id="odTabs" data-page-node-id="EGgw7qv1nhAoWVDJptrGxn"><div class="tab on" data-f="all" data-page-node-id="LGlYV12XrZEAt8KeDN4NiD">全部</div><div class="tab" data-f="completed" data-page-node-id="ZXk1DyjnwyVwXlFVkATBtK">已完成</div><div class="tab" data-f="refunding" data-page-node-id="CUJI97i69llGMU1USuLM3B">退款中</div><div class="tab" data-f="refunded" data-page-node-id="NupAELMj8hUMJbEw2uHjXZ">已退款</div></div>
+            <div class="search" data-page-node-id="03Hn5XCSHwBzuLqprp5FA1"><input id="odQ" placeholder="搜索订单 / 家长" data-page-node-id="CdECEc4s8ZVIfoZaQr9B1t"></div>
+          </div>
+          <div class="list" id="odList" data-page-node-id="gSBsXsqqguDLS1RvILkcL6"></div>
+        </div>
+        <!-- 分销管理 -->
+        <div class="page" id="sp-ds">
+          <div class="ph"><h1>分销管理</h1><p>分销员与返利（返利由本工作室承担）</p></div>
+          <div class="stats">
+            <div class="stat"><div class="n" id="sdSAgent"></div><div class="l">分销员</div><div class="dot" style="background:var(--green)"></div></div>
+            <div class="stat"><div class="n" id="sdSMonth"></div><div class="l">本月返利</div><div class="dot" style="background:var(--warn)"></div></div>
+            <div class="stat"><div class="n" id="sdSPending"></div><div class="l">待到账</div><div class="dot" style="background:var(--blue)"></div></div>
+            <div class="stat"><div class="n" id="sdSRate"></div><div class="l">返利区间</div><div class="dot" style="background:var(--wood)"></div></div>
+          </div>
+          <div class="bar">
+            <div class="tabs" id="sdTabs">
+              <div class="tab on" data-f="agent">分销员</div>
+              <div class="tab" data-f="record">返利记录</div>
+              <div class="tab" data-f="rule">返利规则</div>
+            </div>
+            <div class="search"><input id="sdQ" placeholder="搜索分销员 / 订单"></div>
+          </div>
+          <div id="sdBody"></div>
+        </div>
+        <!-- 财务对账 -->
+        <div class="page" id="sp-fn">
+          <div class="ph"><h1>财务对账</h1><p>营收、退款与平台结算</p></div>
+          <div class="stats">
+            <div class="stat"><div class="n" id="fnSIncome"></div><div class="l">本月营收</div><div class="dot" style="background:var(--green)"></div></div>
+            <div class="stat"><div class="n" id="fnSRefund"></div><div class="l">退款</div><div class="dot" style="background:var(--red)"></div></div>
+            <div class="stat"><div class="n" id="fnSComm"></div><div class="l">平台抽成</div><div class="dot" style="background:var(--warn)"></div></div>
+            <div class="stat"><div class="n" id="fnSNet"></div><div class="l">待结算净额</div><div class="dot" style="background:var(--blue)"></div></div>
+          </div>
+          <div class="bar">
+            <div class="tabs" id="fnTabs">
+              <div class="tab on" data-f="settle">结算单</div>
+              <div class="tab" data-f="flow">营收明细</div>
+            </div>
+          </div>
+          <div id="fnBody"></div>
+        </div>
+        <!-- 内容审核 -->
+        <div class="page" id="sp-cm">
+          <div class="ph"><h1>内容审核</h1><p>本工作室动态 / 作品复核</p></div>
+          <div class="stats">
+            <div class="stat"><div class="n" id="cmSPost"></div><div class="l">待审动态</div><div class="dot" style="background:var(--green)"></div></div>
+            <div class="stat"><div class="n" id="cmSWork"></div><div class="l">待核作品</div><div class="dot" style="background:var(--blue)"></div></div>
+            <div class="stat"><div class="n" id="cmSReport"></div><div class="l">举报</div><div class="dot" style="background:var(--red)"></div></div>
+            <div class="stat"><div class="n" id="cmSDone"></div><div class="l">已处置</div><div class="dot" style="background:var(--wood)"></div></div>
+          </div>
+          <div class="bar">
+            <div class="tabs" id="cmTabs">
+              <div class="tab on" data-f="post">动态</div>
+              <div class="tab" data-f="work">作品</div>
+              <div class="tab" data-f="report">举报</div>
+            </div>
+            <div class="search"><input id="cmQ" placeholder="搜索内容 / 作者"></div>
+          </div>
+          <div class="list" id="cmList"></div>
+        </div>
+        <!-- 消息通知 -->
+        <div class="page" id="sp-mg">
+          <div class="ph"><h1>消息通知</h1><p>站内信与推送触达</p></div>
+          <div class="stats">
+            <div class="stat"><div class="n" id="mgSUnread"></div><div class="l">未读</div><div class="dot" style="background:var(--red)"></div></div>
+            <div class="stat"><div class="n" id="mgSSent"></div><div class="l">本周已发</div><div class="dot" style="background:var(--green)"></div></div>
+            <div class="stat"><div class="n" id="mgSReach"></div><div class="l">触达率</div><div class="dot" style="background:var(--blue)"></div></div>
+            <div class="stat"><div class="n" id="mgSReply"></div><div class="l">待回复</div><div class="dot" style="background:var(--warn)"></div></div>
+          </div>
+          <div class="bar">
+            <div class="tabs" id="mgTabs">
+              <div class="tab on" data-f="inbox">站内信</div>
+              <div class="tab" data-f="push">推送记录</div>
+              <div class="tab" data-f="reply">待回复</div>
+            </div>
+            <button class="btn g" style="margin-left:auto" onclick="mgOpenCompose()">＋ 发通知</button>
+          </div>
+          <div class="list" id="mgList"></div>
+        </div>
+        <!-- 工作室设置 -->
+        <div class="page" id="sp-cf">
+          <div class="ph"><h1>工作室设置</h1><p>基本信息、对账配置与收款账户</p><button class="btn g" style="margin-left:auto" onclick="cfOpenEdit()">✏️ 编辑基本信息</button></div>
+          <div class="two" style="grid-template-columns:1.2fr 1fr">
+            <div class="panel"><h3>🏢 基本信息</h3>
+              <div class="li"><span>工作室名称</span><div class="v">青芽艺术空间</div></div>
+              <div class="li"><span>所属类目</span><div class="v">儿童画 / 创意手工</div></div>
+              <div class="li"><span>所在城市</span><div class="v">杭州·西湖区</div></div>
+              <div class="li"><span>入驻时间</span><div class="v">2025-03-12</div></div>
+              <div class="li"><span>套餐档位</span><div class="v">成长版</div></div>
+            </div>
+            <div class="panel"><h3>🏷️ 抽成与对账</h3>
+              <div class="li"><span>平台抽成</span><div class="v">12%</div></div>
+              <div class="li"><span>对账周期</span><div class="v">月结</div></div>
+              <div class="li"><span>打款时效</span><div class="v">结算后 3 个工作日</div></div>
+              <div class="li"><span>最低打款额</span><div class="v">¥100</div></div>
+              <div class="li"><span>分销返利</span><div class="v">8%–10%</div></div>
+            </div>
+          </div>
+          <div class="panel" style="margin-top:16px"><h3>🏦 收款账户</h3>
+            <div class="li"><span>开户银行</span><div class="v">招商银行杭州西湖支行</div></div>
+            <div class="li"><span>银行账号</span><div class="v">6214 **** 3321</div></div>
+            <div class="li"><span>户名</span><div class="v">杭州青芽艺术培训有限公司</div></div>
+            <div class="li"><span>账户状态</span><div class="v"><span class="st approved">已认证</span></div></div>
+          </div>
+        </div>
+      </div><!--/studioRoot-->
+    </div>
+  </section>
+</div>
+
+<!-- ===== 浮层：认证详情 ===== -->
+<div class="mask" id="certMask" onclick="certClose()" data-page-node-id="IV3yUDFQscCH5u4ERoFU9G"></div>
+<div class="drawer" id="certDrawer" data-page-node-id="g9jYnsKs5dMN95vmJmeTxK"><div class="dh" data-page-node-id="4ACZE4QiczsieL7ES4JQwP"><div class="tt" data-page-node-id="frOOXmzq1SE5FJOyhBc22M">工作室认证详情</div><div class="x" onclick="certClose()" data-page-node-id="9Igy5ytbjJHE0PKJt12Yz6">×</div></div><div class="db" id="certDb" data-page-node-id="J3GAnC6FvCKnSAaH8jzMCr"></div><div class="actions" id="certActs" data-page-node-id="23QBCHg0gd533ObdDiJUVK"></div></div>
+<div class="mask" id="certMask2" onclick="certCloseSheet()" data-page-node-id="ZJyxYTGsinsyq6t830Bvvi"></div>
+<div class="sheet" id="certSheet" data-page-node-id="B1H3l3Gzc0HC4xQIyl9OUb">
+  <h3 data-page-node-id="26dtCSCmpQTW0w0HVbpBIS">驳回申请 · 填写理由</h3>
+  <div class="chips" id="certRchips" data-page-node-id="XLarUGbubx7PuXmRGA3Egl">
+    <div class="cchip" data-r="营业执照不清晰或已过期" data-page-node-id="K6hcap2vefITghAIybF0Yi">营业执照不清晰/过期</div>
+    <div class="cchip" data-r="缺少办学许可证" data-page-node-id="Zf91rl4tRDMS6vI7cbLFJ0">缺少办学许可证</div>
+    <div class="cchip" data-r="师资证明不足" data-page-node-id="tSs4QV5BSS9M7Awb10FeRE">师资证明不足</div>
+    <div class="cchip" data-r="场地照片不符合要求" data-page-node-id="Eo06o4QzNPAzkReN2HKFJD">场地照片不符</div>
+    <div class="cchip" data-r="信息与其他平台重复/疑似虚假" data-page-node-id="4LXLjOduOAmVC5omgJhvAu">疑似虚假信息</div>
+  </div>
+  <textarea id="certRreason" placeholder="请说明驳回原因，将通知申请人…"></textarea>
+  <div class="srow" data-page-node-id="cTH4gHAwBUkwgowISauiGP"><button class="btn ghost" style="flex:1" onclick="certCloseSheet()" data-page-node-id="9uuEqMNP72bXkskPotZZKh">取消</button><button class="btn r" style="flex:1" onclick="certSubmitReject()" data-page-node-id="3u4mypgCudjwzlk5y9HzUv">确认驳回</button></div>
+</div>
+<div class="pv" id="certPv" onclick="certClosePv()" data-page-node-id="21IJZ0YBF2upMIeDCDtGe0"><div class="box" data-page-node-id="pkJHTxn3VuSDHztyER2Rml"><div class="big" id="certPvBig" data-page-node-id="cFIt9fX7pCP9BaYcxp0RX4">📄</div><div class="cap2" id="certPvCap" data-page-node-id="p3kmZtT16CscbydEL4Sc1j"></div><div class="x2" data-page-node-id="5zPZ3yzjoKbtI8yLQOxuRq">点击任意处关闭</div></div></div>
+
+<!-- ===== 浮层：结算明细 + 打款 + 配置 ===== -->
+<div class="mask" id="setMask" onclick="setClose()" data-page-node-id="na29kwv2C1ZDBpEYIgzzfY"></div>
+<div class="drawer" id="setDrawer" data-page-node-id="czBaL2pZBmPSr1zCJJqt4B"><div class="dh" data-page-node-id="UqSAEGqav2dLd9qk3I4iVR"><div class="tt" data-page-node-id="wxhtwLQ8VowveB5kmOiVD5">结算单明细</div><div class="x" onclick="setClose()" data-page-node-id="22DTfuaiRCLqA03Nzf1C19">×</div></div><div class="db" id="setDb" data-page-node-id="h7H57lCxA2ALsF8Vk02jTh"></div><div class="actions" id="setActs" data-page-node-id="zKFT4l5MF2NF71tXKsBZxl"></div></div>
+<div class="mask" id="setMask2" onclick="setCloseSheet()" data-page-node-id="itCkPS1lunFvZExABtS1cv"></div>
+<div class="sheet" id="setSheet" data-page-node-id="TYM7NAdvtCoOR6lhBnBC24">
+  <h3 data-page-node-id="O47U1ysprIiywR1VR5j6Aj">确认打款 · 填写打款信息</h3>
+  <div class="field" data-page-node-id="Wu73slrODB4tIAPyYokr44"><label data-page-node-id="QDkRUcuFgg53DBUk9zMF4A">银行电子回单号 / 流水号</label><input id="setPayNo" placeholder="如 20260724ZJ88201123" data-page-node-id="0hCQ6Xa5CGUikO1oogXDew"></div>
+  <div class="field" data-page-node-id="5Ci5f8xbPe9KyjK5diyKAA"><label data-page-node-id="xx7z5TWZOrIyqZOFHyuNTr">打款凭证</label><div data-page-node-id="8p5AEg3laZpGtmBryTGDPT"><span class="up-btn" onclick="document.getElementById('setUpFile').click()" data-page-node-id="VArTJ7i0ePtxMFKUCIisTr">📎 上传回单截图</span><span class="up-name" id="setUpName" data-page-node-id="A2MKWrRRc3WKZEBqD0zc0W"></span></div><input type="file" id="setUpFile" style="display:none" onchange="document.getElementById('setUpName').textContent=this.files[0]?this.files[0].name:''" data-page-node-id="HXzcuEALGYGqFpjULmTogn"></div>
+  <div class="field" data-page-node-id="dmTyjNrbdIEr0Kng7ruCCO"><label data-page-node-id="kdikKuC916PnWNGW3WIdlv">备注（可选）</label><textarea id="setPayNote" placeholder="如对公打款说明、附言…" style="height:64px;resize:none"></textarea></div>
+  <div class="srow" data-page-node-id="PptALMnD4swjZ87B5tAMEE"><button class="btn ghost" style="flex:1" onclick="setCloseSheet()" data-page-node-id="mrPmRdnA4OTZK5HJOOejZU">取消</button><button class="btn g" style="flex:1.4" onclick="setSubmitPay()" data-page-node-id="C5gd4AEZ5cJnBqDcQvuTpC">确认打款</button></div>
+</div>
+<div class="mask" id="cfgMask" onclick="setCloseConfig()" data-page-node-id="7ARmxAAubsbCDoky6ndaR6"></div>
+<div class="sheet" id="cfgSheet" data-page-node-id="QnpuAweB0Mx5Nfks9NqLqG">
+  <h3 data-page-node-id="SsVkYXmdNIjPtoPmuHPjV4">⚙️ 平台抽成配置</h3>
+  <div class="field" data-page-node-id="6cpt2jI5iT3R3CG93S7sk4"><label data-page-node-id="lM4j66F9Hd4XLiJk4XDRGq">全局默认抽成比例</label>
+    <div class="cfg-row" style="border:none;padding:4px 0" data-page-node-id="cn8xVlFCO2wJLG4NxUtzb6"><div class="cn" data-page-node-id="aTdGDxlDUIHkpg82FuKNgj">默认</div><div class="crate" data-page-node-id="8H8mAgzdYF0nDvdsmBeSGN"><input id="cfgDef" type="number" step="0.01" min="0" max="1" value="0.12" data-page-node-id="dn67oHUEXPe10wzOZvWfog"><span class="pct" data-page-node-id="t8CJeRkEQjasdwF0ATttCH">（12%）</span></div></div>
+  </div>
+  <div class="sec-t" style="margin:6px 0 4px" data-page-node-id="SlETXALhppLWLHXlDQsOUX">按课程类目覆盖</div>
+  <div id="cfgCats" data-page-node-id="1WjWnpoSqaGSoR8znKVhb0"></div>
+  <div class="srow" data-page-node-id="SlpDRMyOg92zTHb64wxq97"><button class="btn ghost" style="flex:1" onclick="setCloseConfig()" data-page-node-id="MvPni80e7mwf9a6JzWdF2Y">取消</button><button class="btn g" style="flex:1" onclick="setSaveConfig()" data-page-node-id="gbibMMigCFbWxJRajriwXf">保存配置</button></div>
+</div>
+
+<div class="mask" id="stfMask" onclick="stfCloseAdd()" data-page-node-id="G9bZGPnoFQQVMhjybjhVwt"></div>
+<div class="sheet" id="stfSheet" data-page-node-id="Zfs2V7QXi4mD7WGDOqt3GU">
+  <h3 data-page-node-id="Ir2aHbobw3PoHOgzeVsAwi">＋ 新增平台员工</h3>
+  <div class="field" data-page-node-id="fqK1IInGEbKd8ml0Dgj0ZD"><label data-page-node-id="VttK7GshQQm7EXzE5i5Rlb">姓名</label><input id="stfName" placeholder="如 张运营" data-page-node-id="edGZVALw9MUXkcrPhecHOw"></div>
+  <div class="field" data-page-node-id="6Lqfx5cTpGbZ1wf6pavYtY"><label data-page-node-id="0mRPCMyJE7dFLdYwCttYP8">登录账号（邮箱 / 手机）</label><input id="stfAcct" placeholder="zhang.ops@yiqi.com" data-page-node-id="XZJXQFeHeQh8yRYNfmjfOz"></div>
+  <div class="field" data-page-node-id="RH6lvGWWkAUVEdGVJpgIcf"><label data-page-node-id="YPsoqasM02GjN7yzBeBZlz">角色</label>
+    <select id="stfRole" style="width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:13.5px;outline:none;background:#fff" data-page-node-id="zbY3km4nzoDvte79jh5JwK">
+      <option value="platform_ops" data-page-node-id="djDVANIjU7ImPxT2ytPmeC">平台运营 platform_ops</option>
+      <option value="platform_super" data-page-node-id="MZy3B8UwpGYrYtBaYWO67h">平台超管 platform_super</option>
+    </select>
+  </div>
+  <div class="field" data-page-node-id="T4Nye0vbQKLljm1DGdHxFi"><label data-page-node-id="DkdxNxLO5oxFcVRmXReM5v">所属分组</label><input id="stfDept" placeholder="如 结算组 / 风控组 / 治理组" data-page-node-id="uOVTLgCwpDTZcaQ0BpCevW"></div>
+  <div class="srow" data-page-node-id="DuQpU3asEKi8pNVyIBo5gQ"><button class="btn ghost" style="flex:1" onclick="stfCloseAdd()" data-page-node-id="Og526C04atF9IDQnsScLre">取消</button><button class="btn g" style="flex:1" onclick="stfSubmitAdd()" data-page-node-id="CGOcQQ9fWylIST5cYeCKc7">确认新增</button></div>
+</div>
+<div class="mask" id="audMask" onclick="audClose()" data-page-node-id="8dI4P6zCZQxYU9Ex8Uzzxg"></div>
+<div class="drawer" id="audDrawer" data-page-node-id="DVUrCgY1B41GwU8AF6zGEV"><div class="dh" data-page-node-id="rW8yLsIQByi7czqOESZUHo"><div class="tt" data-page-node-id="EtPQbNVz2fCVv6feqUt6CQ">审计日志详情</div><div class="x" onclick="audClose()" data-page-node-id="QcipRFxyZdfWWnw0KEBLpy">×</div></div><div class="db" id="audDb" data-page-node-id="UByHatH8U2H1XplxqDTVvd"></div><div class="actions" data-page-node-id="hlipSS1sqcmPcCrCjZJzq0"><button class="btn ghost" style="flex:1" onclick="audClose()" data-page-node-id="kxDwe30yVAImaJuyVA8iNX">关闭</button></div></div>
+
+<!-- ===== 浮层：风控处置 ===== -->
+<div class="mask" id="rkMask" onclick="rkClose()"></div>
+<div class="drawer" id="rkDrawer"><div class="dh"><div class="tt">风控处置</div><div class="x" onclick="rkClose()">×</div></div><div class="db" id="rkDb"></div><div class="actions" id="rkActs"></div></div>
+
+<!-- ===== 浮层：新建公告 / 活动 ===== -->
+<div class="mask" id="ntMask" onclick="ntClose()"></div>
+<div class="sheet" id="ntSheet">
+  <h3 id="ntSheetTitle">新建公告</h3>
+  <div class="field" style="margin-bottom:10px"><label>标题</label><input id="ntTitle" placeholder="请输入标题"></div>
+  <div class="field" style="margin-bottom:10px"><label>类型 / 分类</label>
+    <select id="ntType" style="width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:13.5px;outline:none;background:#fff">
+      <option value="rule">规则公告</option><option value="notice">运营通知</option><option value="feature">功能更新</option><option value="promo">营销活动</option>
+    </select>
+  </div>
+  <div class="field" style="margin-bottom:10px"><label>推送范围</label>
+    <select id="ntScope" style="width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:13.5px;outline:none;background:#fff">
+      <option value="all">全部工作室</option><option value="city">指定城市</option><option value="cat">指定类目</option><option value="user">C 端用户</option>
+    </select>
+  </div>
+  <div class="field" style="margin-bottom:12px"><label>内容</label><textarea id="ntContent" placeholder="公告 / 活动正文"></textarea></div>
+  <div class="srow"><button class="btn ghost" style="flex:1" onclick="ntClose()">取消</button><button class="btn g" style="flex:1" onclick="ntSubmit()">确认发布</button></div>
+</div>
+
+<!-- ===== 浮层：工作室端 ===== -->
+<div class="mask" id="clMask" onclick="clCloseAdd()"></div>
+<div class="sheet" id="clSheet">
+  <h3>＋ 新建班级</h3>
+  <div class="field" style="margin-bottom:10px"><label>班级名称</label><input id="clName" placeholder="如 彩虹班"></div>
+  <div class="field" style="margin-bottom:10px"><label>年龄段 / 阶段</label>
+    <select id="clStage" style="width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:13.5px;outline:none;background:#fff"><option value="启蒙">启蒙</option><option value="进阶">进阶</option></select>
+  </div>
+  <div class="field" style="margin-bottom:10px"><label>课程方向</label><input id="clSubject" placeholder="如 创意美术"></div>
+  <div class="field" style="margin-bottom:10px"><label>带班老师</label><input id="clTeacher" placeholder="如 陈老师"></div>
+  <div class="field" style="margin-bottom:12px"><label>班级上限</label><input id="clCap" type="number" value="20"></div>
+  <div class="srow"><button class="btn ghost" style="flex:1" onclick="clCloseAdd()">取消</button><button class="btn g" style="flex:1" onclick="clSubmitAdd()">确认新建</button></div>
+</div>
+
+<div class="mask" id="tcMask" onclick="tcCloseAdd()"></div>
+<div class="sheet" id="tcSheet">
+  <h3>＋ 新增老师</h3>
+  <div class="field" style="margin-bottom:10px"><label>姓名</label><input id="tcName" placeholder="如 李老师"></div>
+  <div class="field" style="margin-bottom:10px"><label>类型</label>
+    <select id="tcType" style="width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:13.5px;outline:none;background:#fff"><option value="全职">全职</option><option value="兼职">兼职</option></select>
+  </div>
+  <div class="field" style="margin-bottom:12px"><label>专长</label><input id="tcExpert" placeholder="如 创意美术 / 书法"></div>
+  <div class="srow"><button class="btn ghost" style="flex:1" onclick="tcCloseAdd()">取消</button><button class="btn g" style="flex:1" onclick="tcSubmitAdd()">确认新增</button></div>
+</div>
+
+<div class="mask" id="skMask" onclick="skCloseAdd()"></div>
+<div class="sheet" id="skSheet">
+  <h3>＋ 排新课程</h3>
+  <div class="field" style="margin-bottom:10px"><label>星期</label>
+    <select id="skDay" style="width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:13.5px;outline:none;background:#fff"><option>周一</option><option>周二</option><option>周三</option><option>周四</option><option>周五</option><option>周六</option><option>周日</option></select>
+  </div>
+  <div class="field" style="margin-bottom:10px"><label>时间</label><input id="skTime" placeholder="如 09:00"></div>
+  <div class="field" style="margin-bottom:10px"><label>班级</label><input id="skCls" placeholder="如 朵朵班"></div>
+  <div class="field" style="margin-bottom:10px"><label>授课老师</label><input id="skTc" placeholder="如 陈老师"></div>
+  <div class="field" style="margin-bottom:12px"><label>教室</label><input id="skRoom" placeholder="如 2 号画室"></div>
+  <div class="srow"><button class="btn ghost" style="flex:1" onclick="skCloseAdd()">取消</button><button class="btn g" style="flex:1" onclick="skSubmitAdd()">确认排课</button></div>
+</div>
+
+<div class="mask" id="mgMask" onclick="mgCloseCompose()"></div>
+<div class="sheet" id="mgSheet">
+  <h3>＋ 发通知</h3>
+  <div class="field" style="margin-bottom:10px"><label>标题</label><input id="mgTitle" placeholder="如 本周课程安排"></div>
+  <div class="field" style="margin-bottom:10px"><label>发送对象</label>
+    <select id="mgScope" style="width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:13.5px;outline:none;background:#fff"><option value="all">全部学员家长</option><option value="cls">指定班级</option></select>
+  </div>
+  <div class="field" style="margin-bottom:12px"><label>内容</label><textarea id="mgContent" placeholder="通知正文"></textarea></div>
+  <div class="srow"><button class="btn ghost" style="flex:1" onclick="mgCloseCompose()">取消</button><button class="btn g" style="flex:1" onclick="mgSubmit()">确认发送</button></div>
+</div>
+
+<div class="mask" id="cfMask" onclick="cfCloseEdit()"></div>
+<div class="sheet" id="cfSheet">
+  <h3>✏️ 编辑基本信息</h3>
+  <div class="field" style="margin-bottom:10px"><label>工作室名称</label><input id="cfName" value="青芽艺术空间"></div>
+  <div class="field" style="margin-bottom:10px"><label>所属类目</label><input id="cfCat" value="儿童画 / 创意手工"></div>
+  <div class="field" style="margin-bottom:10px"><label>所在城市</label><input id="cfCity" value="杭州·西湖区"></div>
+  <div class="field" style="margin-bottom:12px"><label>简介</label><textarea id="cfDesc" style="height:64px">深耕 3-8 岁创意美术教育。</textarea></div>
+  <div class="srow"><button class="btn ghost" style="flex:1" onclick="cfCloseEdit()">取消</button><button class="btn g" style="flex:1" onclick="cfSubmit()">保存</button></div>
+</div>
+
+<div class="toast" id="toast" data-page-node-id="E9iatnooaKtiYV4t2pqYeg"></div>
+
+<script>
+  // ============== 登录 ==============
+  function doLogin(){
+    const u=document.getElementById('lgUser').value.trim();
+    const p=document.getElementById('lgPwd').value.trim();
+    const role=document.getElementById('lgRole').value;
+    if(!u||!p){toast('请输入账号和密码');return;}
+    currentRole=role; currentTier=role.startsWith('platform')?'platform':'studio';
+    document.getElementById('login').style.display='none';
+    document.getElementById('app').classList.add('on');
+    setupShell(currentTier, role);
+  }
+  function doLogout(){
+    document.getElementById('app').classList.remove('on');
+    document.getElementById('login').style.display='flex';
+  }
+
+  // ============== 多租户路由（平台 / 工作室） ==============
+  const menus={
+    platform:[
+      {g:'工作室治理', items:[{p:'cert',t:'工作室认证/入驻',ic:'🏢'},{p:'dashboard',t:'全平台数据看板',ic:'📊'},{p:'risk',t:'平台内容风控',ic:'🛡️'}]},
+      {g:'资金', items:[{p:'settle',t:'工作室结算/分账',ic:'💰'},{p:'dist',t:'平台分销与抽成',ic:'🔗'}]},
+      {g:'运营', items:[{p:'notice',t:'平台公告/活动',ic:'📣'},{p:'charge',t:'平台配置',ic:'⚙️'},{p:'staff',t:'平台员工与权限',ic:'👤'},{p:'audit',t:'审计日志',ic:'📋'}]}
+    ],
+    studio:[
+      {g:'经营', items:[{p:'sd',t:'工作台看板',ic:'🏠'},{p:'sc',t:'课程管理',ic:'📚'},{p:'cl',t:'班级管理',ic:'🧑‍🎨'},{p:'sk',t:'排课/课表',ic:'🗓️'},{p:'tc',t:'老师管理',ic:'👩‍🏫'},{p:'st',t:'学员管理',ic:'🧒'}]},
+      {g:'交易', items:[{p:'od',t:'订单与退款',ic:'🧾'},{p:'ds',t:'分销管理',ic:'🔗'},{p:'fn',t:'财务对账',ic:'💰'}]},
+      {g:'运营', items:[{p:'cm',t:'内容审核',ic:'🛡️'},{p:'mg',t:'消息通知',ic:'📨'},{p:'cf',t:'工作室设置',ic:'⚙️'}]}
+    ]
+  };
+  const crumbs={
+    platform:{cert:'工作室认证 / 入驻',dashboard:'全平台数据看板',risk:'平台内容风控',settle:'工作室结算 / 分账',dist:'平台分销与抽成',notice:'平台公告 / 活动',charge:'平台配置',staff:'平台员工与权限',audit:'审计日志'},
+    studio:{sd:'工作台看板',sc:'课程管理',cl:'班级管理',sk:'排课 / 课表',tc:'老师管理',st:'学员管理',od:'订单与退款',ds:'分销管理',fn:'财务对账',cm:'内容审核',mg:'消息通知',cf:'工作室设置'}
+  };
+  let currentTier='platform', currentRole='platform_ops', crumbPrefix='平台运营';
+  function renderNav(tier){
+    const html=menus[tier].map(g=>`<div class="nav-g">${g.g}</div>`+g.items.map(it=>`<div class="ni" data-p="${it.p}" data-tier="${tier}"><span class="ic">${it.ic}</span>${it.t}</div>`).join('')).join('');
+    const nav=document.getElementById('nav'); nav.innerHTML=html;
+    nav.querySelectorAll('.ni').forEach(n=>n.onclick=()=>{
+      nav.querySelectorAll('.ni').forEach(x=>x.classList.remove('on')); n.classList.add('on');
+      switchPage(tier, n.dataset.p);
+    });
+  }
+  function switchPage(tier,p){
+    const pr=document.getElementById('platformRoot'), sr=document.getElementById('studioRoot');
+    if(tier==='platform'){
+      pr.style.display='block'; sr.style.display='none';
+      pr.querySelectorAll('.page').forEach(pg=>pg.classList.remove('on'));
+      pr.querySelector('#page-'+p).classList.add('on');
+    } else {
+      sr.style.display='block'; pr.style.display='none';
+      sr.querySelectorAll('.page').forEach(pg=>pg.classList.remove('on'));
+      sr.querySelector('#sp-'+p).classList.add('on');
+    }
+    document.getElementById('crumb').textContent=crumbs[tier][p];
+    document.getElementById('cfgBtn').style.display=(tier==='platform'&&p==='settle')?'inline-block':'none';
+    dispatchRender(tier,p);
+  }
+  function dispatchRender(tier,p){
+    if(tier==='platform'){
+      if(p==='risk')renderRisk(); if(p==='dist')renderDist(); if(p==='notice')renderNotice(); if(p==='charge')renderCharge(); if(p==='staff')renderStaff(); if(p==='audit')renderAudit();
+    } else {
+      if(p==='sd')stuDash();
+      if(p==='st')stuStudents();
+      if(p==='od')stuOrders();
+      if(p==='sc')stuCourses();
+      if(p==='cl')renderCl();
+      if(p==='sk')renderSk();
+      if(p==='tc')renderTc();
+      if(p==='ds')renderSd();
+      if(p==='cm')renderCm();
+      if(p==='mg')renderMg();
+      if(p==='fn')renderFn();
+    }
+  }
+  function setupShell(tier, role){
+    const isPlatform=tier==='platform';
+    const logo=document.getElementById('logoBox');
+    if(isPlatform){
+      const sup=role==='platform_super';
+      logo.innerHTML='艺启 · 平台运营<span>Platform Operations Console</span>';
+      document.getElementById('meAva').textContent=sup?'超':'运';
+      document.getElementById('meName').innerHTML=(sup?'平台超管':'平台运营')+'<br><span style="font-size:11px;color:#8fae82">'+role+'</span>';
+      document.getElementById('bellN').textContent='5'; crumbPrefix='平台运营';
+    } else {
+      const map={studio_owner:['主','工作室主'],studio_ops:['教','工作室教务']};
+      const m=map[role]||['主','工作室主'];
+      logo.innerHTML='艺启 · 青芽艺术空间<span>Studio Console · 单店经营后台</span>';
+      document.getElementById('meAva').textContent=m[0];
+      document.getElementById('meName').innerHTML=m[1]+' · 青芽艺术空间<br><span style="font-size:11px;color:#8fae82">'+role+'</span>';
+      document.getElementById('bellN').textContent='3'; crumbPrefix='青芽艺术空间';
+    }
+    document.getElementById('crumbPre').textContent=crumbPrefix;
+    renderNav(tier);
+    switchPage(tier, menus[tier][0].items[0].p);
+  }
+
+  // ============== P1 认证审核 ==============
+  const certApps=[
+    {id:'S2041', name:'小树苗艺术工作室', emoji:'🌱', owner:'周敏', phone:'138****6021', city:'杭州·西湖区', addr:'文三路 456 号 2 层', cat:'儿童画 / 创意手工', submitted:'07-24 09:12', status:'pending', desc:'深耕 3-8 岁创意美术，主打自然主题课程，现有 2 名全职老师。', students:34, years:3,
+     docs:[{t:'营业执照',ok:true,ic:'📄',c1:'#eef4ea',c2:'#cfe0c4'},{t:'办学许可证',ok:true,ic:'📜',c1:'#e7eefb',c2:'#cdddf5'},{t:'师资证明',ok:false,ic:'⚠️',c1:'#fbeae4',c2:'#f3c9bd'},{t:'场地照片',ok:true,ic:'🏞️',c1:'#eef7f0',c2:'#cdebd4'}]},
+    {id:'S2042', name:'彩翼少儿美术馆', emoji:'🎨', owner:'李文博', phone:'139****8842', city:'成都·高新区', addr:'天府大道 88 号 5F', cat:'国画 / 书法 / 素描', submitted:'07-23 17:40', status:'pending', desc:'连锁品牌西南首店，配置 4 间专业画室与展厅。', students:0, years:8,
+     docs:[{t:'营业执照',ok:true,ic:'📄',c1:'#eef4ea',c2:'#cfe0c4'},{t:'办学许可证',ok:true,ic:'📜',c1:'#e7eefb',c2:'#cdddf5'},{t:'师资证明',ok:true,ic:'🎓',c1:'#eef7f0',c2:'#cdebd4'},{t:'场地照片',ok:true,ic:'🏞️',c1:'#fbf3e6',c2:'#f0dcc0'}]},
+    {id:'S2039', name:'童画里亲子画室', emoji:'🖍️', owner:'陈静', phone:'137****2210', city:'南京·建邺区', addr:'江东中路 12 号', cat:'亲子美术 / 绘本', submitted:'07-22 11:05', status:'supplement', desc:'社区型亲子画室，申请补充场地消防证明。', students:21, years:2,
+     docs:[{t:'营业执照',ok:true,ic:'📄',c1:'#eef4ea',c2:'#cfe0c4'},{t:'办学许可证',ok:false,ic:'⚠️',c1:'#fbeae4',c2:'#f3c9bd'},{t:'师资证明',ok:true,ic:'🎓',c1:'#eef7f0',c2:'#cdebd4'},{t:'场地照片',ok:true,ic:'🏞️',c1:'#eef7f0',c2:'#cdebd4'}]},
+    {id:'S2030', name:'墨韵书法学堂', emoji:'🖌️', owner:'赵磊', phone:'135****7733', city:'苏州·工业园区', addr:'星海街 9 号', cat:'硬笔 / 软笔书法', submitted:'07-20 14:22', status:'approved', desc:'专注少儿书法启蒙，已通过认证并上架。', students:58, years:5,
+     docs:[{t:'营业执照',ok:true,ic:'📄',c1:'#eef4ea',c2:'#cfe0c4'},{t:'办学许可证',ok:true,ic:'📜',c1:'#e7eefb',c2:'#cdddf5'},{t:'师资证明',ok:true,ic:'🎓',c1:'#eef7f0',c2:'#cdebd4'},{t:'场地照片',ok:true,ic:'🏞️',c1:'#eef7f0',c2:'#cdebd4'}]},
+    {id:'S2027', name:'彩虹豆艺术中心', emoji:'🌈', owner:'吴芳', phone:'136****1190', city:'武汉·武昌区', addr:'中南路 33 号', cat:'综合艺术 / 舞蹈', submitted:'07-18 10:48', status:'rejected', desc:'因缺少办学许可证且场地为住宅被驳回。', students:0, years:1, reason:'缺少办学许可证，场地不符合办学要求',
+     docs:[{t:'营业执照',ok:true,ic:'📄',c1:'#eef4ea',c2:'#cfe0c4'},{t:'办学许可证',ok:false,ic:'⚠️',c1:'#fbeae4',c2:'#f3c9bd'},{t:'师资证明',ok:false,ic:'⚠️',c1:'#fbeae4',c2:'#f3c9bd'},{t:'场地照片',ok:false,ic:'⚠️',c1:'#fbeae4',c2:'#f3c9bd'}]}
+  ];
+  const certMap={pending:['待审核','pending'],approved:['已通过','approved'],rejected:['已驳回','rejected'],supplement:['待补充','supplement']};
+  let certFilter='pending', certQ='', certRejectId=null;
+  function certRender(){
+    const list=document.getElementById('certList');
+    let data=certApps.filter(a=>certFilter==='all'?true:a.status===certFilter);
+    if(certQ) data=data.filter(a=>a.name.includes(certQ)||a.owner.includes(certQ)||a.id.includes(certQ));
+    document.getElementById('certSPending').textContent=certApps.filter(a=>a.status==='pending').length;
+    document.getElementById('certSAppr').textContent=certApps.filter(a=>a.status==='approved').length;
+    document.getElementById('certSRej').textContent=certApps.filter(a=>a.status==='rejected').length;
+    document.getElementById('certSTotal').textContent=certApps.filter(a=>a.status==='approved').length;
+    if(!data.length){list.innerHTML='<div class="empty">暂无符合条件的申请</div>';return;}
+    list.innerHTML=data.map(a=>{
+      const [label,cls]=certMap[a.status];
+      const docs=a.docs.map(d=>`<span class="dchip ${d.ok?'':'bad'}">${d.t}${d.ok?'✓':'✕'}</span>`).join('');
+      return `<div class="card" onclick="certOpen('${a.id}')"><div class="logo2">${a.emoji}</div><div class="info"><div class="nm">${a.name} <span class="tag-n">${a.id}</span></div><div class="meta">申请人 ${a.owner} · ${a.city} · 提交 ${a.submitted}</div><div class="docs">${docs}</div></div><div class="st ${cls}">${label}</div><div class="arr">›</div></div>`;
+    }).join('');
+  }
+  function certOpen(id){
+    const a=certApps.find(x=>x.id===id);const [label,cls]=certMap[a.status];
+    const docs=a.docs.map((d,i)=>`<div class="doc" onclick="event.stopPropagation();certPreview('${d.t}','${d.ic}','${d.c1}','${d.c2}',${d.ok})"><div class="th" style="background:linear-gradient(135deg,${d.c1},${d.c2})">${d.ic}</div><div class="cap"><span>${d.t}</span><span class="ck ${d.ok?'ok':'no'}">${d.ok?'✓':'✕'}</span></div></div>`).join('');
+    document.getElementById('certDb').innerHTML=`<div class="sec-t">📋 基本信息</div><div class="grid2"><div class="kv"><div class="k">工作室名称</div><div class="v">${a.name}</div></div><div class="kv"><div class="k">申请编号</div><div class="v">${a.id}</div></div><div class="kv"><div class="k">申请人</div><div class="v">${a.owner}</div></div><div class="kv"><div class="k">联系电话</div><div class="v">${a.phone}</div></div><div class="kv"><div class="k">所在城市</div><div class="v">${a.city}</div></div><div class="kv"><div class="k">详细地址</div><div class="v">${a.addr}</div></div><div class="kv"><div class="k">课程方向</div><div class="v">${a.cat}</div></div><div class="kv"><div class="k">办学年限</div><div class="v">${a.years} 年</div></div></div><div class="sec-t">📝 简介</div><div class="desc">${a.desc}</div><div class="sec-t">📎 资质材料（点击预览）</div><div class="docrow">${docs}</div>${a.reason?`<div class="sec-t">⛔ 驳回原因</div><div class="desc" style="background:#fbe9e4;color:#a8432c">${a.reason}</div>`:''}`;
+    const acts=document.getElementById('certActs');
+    if(a.status==='pending'){acts.innerHTML=`<button class="btn b" onclick="certReqSup('${a.id}')">要求补充材料</button><button class="btn r" onclick="certOpenSheet('${a.id}')">驳回</button><button class="btn g" onclick="certApprove('${a.id}')">通过认证</button>`;}
+    else if(a.status==='supplement'){acts.innerHTML=`<button class="btn g" onclick="certApprove('${a.id}')">补充后通过</button><button class="btn r" onclick="certOpenSheet('${a.id}')">驳回</button>`;}
+    else{acts.innerHTML=`<button class="btn ghost" style="flex:1" onclick="certClose()">${a.status==='approved'?'已上架':'已驳回'} · 关闭</button>`;}
+    document.getElementById('certMask').classList.add('on');document.getElementById('certDrawer').classList.add('on');
+  }
+  function certClose(){document.getElementById('certMask').classList.remove('on');document.getElementById('certDrawer').classList.remove('on');}
+  function certApprove(id){const a=certApps.find(x=>x.id===id);a.status='approved';a.reason='';toast(`已通过 ${a.name} 的认证，工作室已激活并上架`);certClose();certRender();}
+  function certReqSup(id){const a=certApps.find(x=>x.id===id);a.status='supplement';toast(`已要求 ${a.name} 补充材料，通知已发送`);certClose();certRender();}
+  function certOpenSheet(id){certRejectId=id;document.getElementById('certSheet').classList.add('on');document.getElementById('certMask2').classList.add('on');}
+  function certCloseSheet(){document.getElementById('certSheet').classList.remove('on');document.getElementById('certMask2').classList.remove('on');document.getElementById('certRreason').value='';document.querySelectorAll('.cchip').forEach(c=>c.classList.remove('on'));}
+  function certSubmitReject(){const a=certApps.find(x=>x.id===certRejectId);if(!a)return;const r=document.getElementById('certRreason').value.trim();if(!r){toast('请填写驳回原因');return;}a.status='rejected';a.reason=r;toast(`已驳回 ${a.name}：${r}`);certCloseSheet();certClose();certRender();}
+  document.querySelectorAll('#certRchips .cchip').forEach(c=>c.addEventListener('click',()=>{const on=c.classList.contains('on');document.querySelectorAll('#certRchips .cchip').forEach(x=>x.classList.remove('on'));if(!on){c.classList.add('on');document.getElementById('certRreason').value=c.dataset.r;}}));
+  function certPreview(t,ic,c1,c2,ok){document.getElementById('certPvBig').textContent=ic;document.getElementById('certPvBig').style.background=`linear-gradient(135deg,${c1},${c2})`;document.getElementById('certPvCap').textContent=`${t} ${ok?'（已通过核验）':'（待补充/不符）'}`;document.getElementById('certPv').classList.add('on');}
+  function certClosePv(){document.getElementById('certPv').classList.remove('on');}
+  document.getElementById('certTabs').addEventListener('click',e=>{if(!e.target.dataset.f)return;document.querySelectorAll('#certTabs .tab').forEach(t=>t.classList.remove('on'));e.target.classList.add('on');certFilter=e.target.dataset.f;certRender();});
+  document.getElementById('certQ').addEventListener('input',e=>{certQ=e.target.value.trim();certRender();});
+
+  // ============== P4 结算单 ==============
+  const chargeData={
+    defaultRate:0.12,
+    cats:[
+      {name:'创意美术',rate:0.12,gmv:'¥15.6万'},
+      {name:'书法',rate:0.10,gmv:'¥8.8万'},
+      {name:'素描',rate:0.12,gmv:'¥6.4万'},
+      {name:'手工',rate:0.15,gmv:'¥4.7万'},
+      {name:'国画',rate:0.11,gmv:'¥3.9万'},
+    ],
+    plans:[
+      {tier:'基础版',price:1980,rate:0.12,desc:'标准抽成、月结打款、3 名员工账号、基础客服'},
+      {tier:'成长版',price:4980,rate:0.11,desc:'抽成优惠、T+3 打款、10 名员工账号、数据看板'},
+      {tier:'旗舰版',price:9980,rate:0.10,desc:'最低抽成、T+1 打款、专属运营、首页推荐、无限账号'},
+    ],
+    services:[
+      {name:'首页推荐位',price:299,unit:'周',on:true},
+      {name:'数据看板高级版',price:199,unit:'月',on:true},
+      {name:'营销活动模板',price:499,unit:'次',on:true},
+      {name:'私域直播工具',price:999,unit:'月',on:false},
+      {name:'招生线索包',price:899,unit:'月',on:false},
+    ],
+    settle:{cycle:'月结',payDelay:7,minWithdraw:100,autoSettle:true},
+  };
+  const settlements=[
+    {id:'JS202607-001', studio:'小树苗艺术工作室', emoji:'🌱', period:'2026年7月', genAt:'07-24 10:02', income:86200, refund:3200, dist:5400, rate:0.12, status:'pending', account:{bank:'招商银行杭州西湖支行',no:'6214 **** 3321',name:'杭州小树苗艺术培训有限公司'}, orders:[{no:'P20260718A',parent:'糖糖妈',course:'自然主题·暑期班',amt:2980,st:'已完成'},{no:'P20260715B',parent:'乐乐爸',course:'创意手工 10 课时',amt:1980,st:'已完成'},{no:'P20260709C',parent:'牛牛妈',course:'油画体验课',amt:680,st:'已退款'}]},
+    {id:'JS202607-002', studio:'彩翼少儿美术馆', emoji:'🎨', period:'2026年7月', genAt:'07-24 09:50', income:154800, refund:0, dist:9800, rate:0.12, status:'paying', payNo:'20260723CY773201', account:{bank:'中国银行成都高新支行',no:'6231 **** 8890',name:'成都彩翼教育咨询有限公司'}, orders:[{no:'P20260720D',parent:'朵朵妈',course:'国画年度班',amt:6800,st:'已完成'},{no:'P20260719E',parent:'芽芽爸',course:'书法 20 课时',amt:3980,st:'已完成'}]},
+    {id:'JS202607-003', studio:'墨白书房', emoji:'🖌️', period:'2026年7月', genAt:'07-24 09:30', income:42300, refund:1200, dist:2600, rate:0.10, status:'paid', payNo:'20260722MB551904', account:{bank:'工商银行苏州园区支行',no:'6212 **** 1175',name:'苏州墨白文化传媒有限公司'}, orders:[{no:'P20260717F',parent:'小宇妈',course:'硬笔书法 12 课时',amt:1560,st:'已完成'}]},
+    {id:'JS202607-004', studio:'森林里画室', emoji:'🌳', period:'2026年7月', genAt:'07-24 08:58', income:67900, refund:4500, dist:3100, rate:0.12, status:'abnormal', abn:'对公账户信息校验失败（户名与营业执照不一致），已退回工作室核对', account:{bank:'建设银行(待更新)',no:'6217 **** 0042',name:'（待补充）'}, orders:[{no:'P20260716G',parent:'果果妈',course:'森林写生营',amt:2680,st:'已完成'}]},
+    {id:'JS202606-021', studio:'小树苗艺术工作室', emoji:'🌱', period:'2026年6月', genAt:'06-30 18:00', income:71200, refund:2000, dist:4800, rate:0.12, status:'paid', payNo:'20260701XS331092', account:{bank:'招商银行杭州西湖支行',no:'6214 **** 3321',name:'杭州小树苗艺术培训有限公司'}, orders:[]},
+  ];
+  let setFilter='pending', setCurId=null;
+  function setNet(s){return s.income-s.refund-s.dist;}
+  function setFee(s){return Math.round(setNet(s)*s.rate);}
+  function setPayable(s){return setNet(s)-setFee(s);}
+  function setFmt(n){return n.toLocaleString('zh-CN');}
+  function setRenderStats(){
+    let pending=0,paid=0,feeSum=0,abn=0;
+    settlements.filter(s=>s.period==='2026年7月').forEach(s=>{
+      if(s.status==='pending'||s.status==='paying') pending+=setPayable(s);
+      if(s.status==='paid'){paid+=setPayable(s);feeSum+=setFee(s);}
+      if(s.status==='paying') feeSum+=setFee(s);
+      if(s.status==='abnormal') abn++;
+    });
+    document.getElementById('setSPending').textContent=setFmt(pending);
+    document.getElementById('setSPaid').textContent=setFmt(paid);
+    document.getElementById('setSFee').textContent=setFmt(feeSum);
+    document.getElementById('setSAbn').textContent=abn;
+  }
+  function setRenderList(){
+    const q=(document.getElementById('setQ').value||'').trim();const per=document.getElementById('setPeriod').value;
+    const rows=settlements.filter(s=>{if(s.period!==per)return false;if(setFilter!=='all'&&s.status!==setFilter)return false;if(q&&!s.studio.includes(q))return false;return true;});
+    const list=document.getElementById('setList');
+    if(!rows.length){list.innerHTML='<div class="empty">该条件下暂无结算单</div>';return;}
+    const stMap={pending:'待结算',paying:'打款中',paid:'已打款',abnormal:'异常'};
+    list.innerHTML=rows.map(s=>`<div class="card" onclick="setOpen('${s.id}')"><div class="logo2">${s.emoji}</div><div class="info"><div class="nm">${s.studio}<span style="font-size:12px;color:var(--muted);font-weight:400">${s.id}</span></div><div class="meta">${s.period} · 生成 ${s.genAt}</div><div class="amtrow"><div class="a">应结算<b>¥${setFmt(setNet(s))}</b></div><div class="a">平台抽成<b>¥${setFmt(setFee(s))}</b></div><div class="a">实际打款<b class="pay">¥${setFmt(setPayable(s))}</b></div></div></div><div class="st ${s.status}">${stMap[s.status]}</div><div class="arr">›</div></div>`).join('');
+  }
+  function setOpen(id){
+    setCurId=id;const s=settlements.find(x=>x.id===id);const stMap={pending:'待结算',paying:'打款中',paid:'已打款',abnormal:'异常'};
+    let accHtml=`<div class="acc"><b>${s.account.bank}</b><br>户名：${s.account.name}<br>账号：${s.account.no}</div>`;
+    if(s.status==='abnormal') accHtml+=`<div class="abn">⚠️ ${s.abn}</div>`;
+    let ordHtml=s.orders.length?`<table class="otable"><thead><tr><th>订单</th><th>家长</th><th>课程</th><th>金额</th><th>状态</th></tr></thead><tbody>`+s.orders.map(o=>`<tr><td><b>${o.no}</b></td><td>${o.parent}</td><td>${o.course}</td><td>¥${setFmt(o.amt)}</td><td><span class="mini ${o.st==='已退款'?'gray':''}">${o.st}</span></td></tr>`).join('')+`</tbody></table>`:`<div class="empty" style="padding:24px 0">本期无明细订单（汇总结算）</div>`;
+    document.getElementById('setDb').innerHTML=`<div class="grid2"><div class="kv"><div class="k">结算单号</div><div class="v">${s.id}</div></div><div class="kv"><div class="k">状态</div><div class="v"><span class="st ${s.status}">${stMap[s.status]}</span></div></div><div class="kv"><div class="k">工作室</div><div class="v">${s.studio}</div></div><div class="kv"><div class="k">结算周期</div><div class="v">${s.period}</div></div></div><div class="sec-t">💵 金额构成</div><div class="amt-card"><div class="amt-line"><span class="lab">本期课程收入</span><span class="val">¥${setFmt(s.income)}</span></div><div class="amt-line minus"><span class="lab">退款扣减</span><span class="val">- ¥${setFmt(s.refund)}</span></div><div class="amt-line minus"><span class="lab">分销返利</span><span class="val">- ¥${setFmt(s.dist)}</span></div><div class="amt-line"><span class="lab">应结算净额</span><span class="val">¥${setFmt(setNet(s))}</span></div><div class="amt-line"><span class="lab">平台抽成<span class="rate">${Math.round(s.rate*100)}%</span></span><span class="val">¥${setFmt(setFee(s))}</span></div><div class="amt-line total"><span class="lab">实际应打款</span><span class="val">¥${setFmt(setPayable(s))}</span></div></div><div class="sec-t">🏦 对公收款账户</div>${accHtml}<div class="sec-t">🧾 订单明细</div>${ordHtml}`;
+    const acts=document.getElementById('setActs');
+    if(s.status==='pending') acts.innerHTML=`<button class="btn g" onclick="setOpenPay('${s.id}')">确认打款 ¥${setFmt(setPayable(s))}</button>`;
+    else if(s.status==='paying') acts.innerHTML=`<button class="btn ghost" style="flex:1" onclick="setClose()">关闭</button><button class="btn b" style="flex:1.4" onclick="setMarkPaid('${s.id}')">标记已到账</button>`;
+    else if(s.status==='paid') acts.innerHTML=`<div class="paid-tag">✅ 已打款 · 流水号 ${s.payNo||'—'}</div>`;
+    else if(s.status==='abnormal') acts.innerHTML=`<button class="btn r" style="flex:1" onclick="setClose()">联系工作室</button><button class="btn g" style="flex:1.4" onclick="setReprocess('${s.id}')">重新打款</button>`;
+    document.getElementById('setMask').classList.add('on');document.getElementById('setDrawer').classList.add('on');
+  }
+  function setClose(){document.getElementById('setMask').classList.remove('on');document.getElementById('setDrawer').classList.remove('on');}
+  function setOpenPay(id){setCurId=id;document.getElementById('setPayNo').value='';document.getElementById('setPayNote').value='';document.getElementById('setUpName').textContent='';document.getElementById('setMask2').classList.add('on');document.getElementById('setSheet').classList.add('on');}
+  function setCloseSheet(){document.getElementById('setMask2').classList.remove('on');document.getElementById('setSheet').classList.remove('on');}
+  function setSubmitPay(){const s=settlements.find(x=>x.id===setCurId);const no=document.getElementById('setPayNo').value.trim();if(!no){toast('请填写银行回单/流水号');return;}s.status='paying';s.payNo=no;setCloseSheet();setClose();setRenderList();setRenderStats();toast(`已提交打款，结算单 ${s.id} 进入打款中`);}
+  function setMarkPaid(id){const s=settlements.find(x=>x.id===id);s.status='paid';setClose();setRenderList();setRenderStats();toast(`✅ ${s.studio} 结算款已到账`);}
+  function setReprocess(id){const s=settlements.find(x=>x.id===id);s.status='paying';s.abn='';setClose();setRenderList();setRenderStats();toast('已重新发起打款');}
+  function setOpenConfig(){document.getElementById('cfgDef').value=chargeData.defaultRate;document.getElementById('cfgCats').innerHTML=chargeData.cats.map((c,i)=>`<div class="cfg-row"><div class="cn">${c.name}</div><div class="crate"><input id="cfgCat${i}" type="number" step="0.01" min="0" max="1" value="${c.rate}"><span class="pct">（${Math.round(c.rate*100)}%）</span></div></div>`).join('');document.getElementById('cfgMask').classList.add('on');document.getElementById('cfgSheet').classList.add('on');}
+  function setCloseConfig(){document.getElementById('cfgMask').classList.remove('on');document.getElementById('cfgSheet').classList.remove('on');}
+  function setSaveConfig(){chargeData.defaultRate=parseFloat(document.getElementById('cfgDef').value)||0.12;chargeData.cats.forEach((c,i)=>{c.rate=parseFloat(document.getElementById('cfgCat'+i).value)||c.rate;});setCloseConfig();chgRenderStats();toast('抽成配置已保存（默认 '+Math.round(chargeData.defaultRate*100)+'%）');}
+  document.getElementById('setTabs').addEventListener('click',e=>{if(!e.target.dataset.f)return;document.querySelectorAll('#setTabs .tab').forEach(t=>t.classList.remove('on'));e.target.classList.add('on');setFilter=e.target.dataset.f;setRenderList();});
+
+  // ============== 占位模块（骨架） ==============
+  // ============== P3 内容风控 ==============
+  const riskData=[
+    {id:'RK20260724-01',cat:'post',type:'家长动态',author:'糖糖妈',title:'晒娃作品：暑期自然写生',content:'孩子这期自然写生课的成果，老师点评很棒，附报名优惠……',hit:'命中「招生返佣」敏感词',time:'07-24 10:02',st:'pending'},
+    {id:'RK20260724-02',cat:'post',type:'老师动态',author:'陈老师（青芽）',title:'新开暑期班',content:'暑期创意班少量名额，欢迎私信咨询。',hit:'疑似导流至站外',time:'07-24 09:40',st:'pending'},
+    {id:'RK20260724-03',cat:'post',type:'家长动态',author:'牛牛妈',title:'课程评价',content:'老师很负责，孩子进步明显，推荐。',hit:'无命中',time:'07-24 09:11',st:'pending'},
+    {id:'RK20260724-04',cat:'work',type:'作品',author:'果果',title:'《森林小鹿》',content:'6 岁作品，画面含未成年人正面肖像。',hit:'需肖像权复核',time:'07-23 18:30',st:'pending'},
+    {id:'RK20260724-05',cat:'work',type:'作品',author:'朵朵',title:'《水墨江南》',content:'8 岁国画作品，构图完整。',hit:'无风险',time:'07-23 17:05',st:'pending'},
+    {id:'RK20260724-06',cat:'report',type:'评论举报',author:'匿名用户',title:'举报评论',content:'用户在课程评论区发布「加微返现」诱导交易信息。',hit:'诱导交易',time:'07-23 16:22',st:'pending'},
+    {id:'RK20260724-07',cat:'report',type:'私信举报',author:'朵朵妈',title:'举报骚扰私信',content:'收到陌生人私信推销非本平台课程。',hit:'站外导流',time:'07-23 14:48',st:'pending'},
+    {id:'RK20260723-09',cat:'post',type:'家长动态',author:'芽芽爸',title:'作品分享',content:'书法课作品展示，无违规。',hit:'无命中',time:'07-23 11:20',st:'done',deal:'pass'}
+  ];
+  let rkFilter='post', rkQ='';
+  function renderRisk(){
+    document.querySelectorAll('#rkTabs .tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('#rkTabs .tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');rkFilter=t.dataset.f;renderRisk();});
+    document.getElementById('rkQ').oninput=e=>{rkQ=e.target.value.trim();renderRisk();};
+    const pend=riskData.filter(r=>r.st!=='done');
+    document.getElementById('rkSPost').textContent=pend.filter(r=>r.cat==='post').length;
+    document.getElementById('rkSWork').textContent=pend.filter(r=>r.cat==='work').length;
+    document.getElementById('rkSReport').textContent=pend.filter(r=>r.cat==='report').length;
+    document.getElementById('rkSDone').textContent=riskData.filter(r=>r.st==='done').length;
+    let d=riskData.filter(r=>r.cat===rkFilter);
+    if(rkQ)d=d.filter(r=>r.author.includes(rkQ)||r.title.includes(rkQ)||r.content.includes(rkQ));
+    const list=document.getElementById('rkList');
+    if(!d.length){list.innerHTML='<div class="empty">暂无待处置内容</div>';return;}
+    const catEmoji={post:'📝',work:'🖼️',report:'⚠️'};
+    list.innerHTML=d.map(r=>`<div class="card" onclick="rkOpen('${r.id}')"><div class="logo2">${catEmoji[r.cat]}</div><div class="info"><div class="nm">${r.title} <span class="tag-n">${r.type}</span></div><div class="meta">${r.author} · ${r.time}</div><div class="meta" style="margin-top:2px">${r.hit}</div></div><div class="st ${r.st==='done'?'approved':'pending'}">${r.st==='done'?'已处置':'待处置'}</div><div class="arr">›</div></div>`).join('');
+  }
+  function rkOpen(id){
+    const r=riskData.find(x=>x.id===id);
+    document.querySelector('#rkDrawer .tt').textContent='风控处置';
+    document.getElementById('rkDb').innerHTML=`<div class="grid2"><div class="kv"><div class="k">编号</div><div class="v">${r.id}</div></div><div class="kv"><div class="k">类型</div><div class="v">${r.type}</div></div><div class="kv"><div class="k">作者</div><div class="v">${r.author}</div></div><div class="kv"><div class="k">时间</div><div class="v">${r.time}</div></div></div><div class="sec-t">📄 内容</div><div class="desc">${r.content}</div><div class="sec-t">🚩 命中风险</div><div class="desc" style="background:#fbeae4;color:var(--red)">${r.hit}</div>`;
+    document.getElementById('rkActs').innerHTML=`<button class="btn r" style="flex:1" onclick="rkDeal('${r.id}','down')">下架 / 删除</button><button class="btn b" style="flex:1" onclick="rkDeal('${r.id}','warn')">警告</button><button class="btn g" style="flex:1" onclick="rkDeal('${r.id}','pass')">通过放行</button>`;
+    document.getElementById('rkMask').classList.add('on');document.getElementById('rkDrawer').classList.add('on');
+  }
+  function rkClose(){document.getElementById('rkMask').classList.remove('on');document.getElementById('rkDrawer').classList.remove('on');}
+  function rkDeal(id,act){const r=riskData.find(x=>x.id===id);r.st='done';r.deal=act;rkClose();renderRisk();toast(`${r.title} ${({down:'已下架',warn:'已警告',pass:'已放行'})[act]}`);}
+
+  // ============== P5 分销抽成 ==============
+  const distAgents=[
+    {id:'D1001',name:'糖糖妈',emoji:'👩',role:'家长推广员',studio:'青芽艺术空间',invited:12,comm:3260,settled:2100,pending:1160,on:true},
+    {id:'D1002',name:'林老师',emoji:'👩‍🏫',role:'工作室员工',studio:'青芽艺术空间',invited:8,comm:1980,settled:1980,pending:0,on:true},
+    {id:'D1003',name:'朵朵妈',emoji:'🌸',role:'家长推广员',studio:'彩翼少儿美术馆',invited:6,comm:1450,settled:800,pending:650,on:true},
+    {id:'D1004',name:'吴女士',emoji:'💁',role:'家长推广员',studio:'墨白书房',invited:3,comm:640,settled:640,pending:0,on:true},
+    {id:'D1005',name:'赵先生',emoji:'👨',role:'家长推广员',studio:'小树苗艺术工作室',invited:2,comm:420,settled:0,pending:420,on:true},
+    {id:'D1006',name:'已停用账号',emoji:'👤',role:'家长推广员',studio:'青芽艺术空间',invited:0,comm:0,settled:0,pending:0,on:false}
+  ];
+  const distRecords=[
+    {no:'P20260718A',agent:'糖糖妈',course:'自然主题·暑期班',amt:2980,rate:0.08,comm:238,st:'settled',at:'07-20'},
+    {no:'P20260720D',agent:'朵朵妈',course:'国画年度班',amt:6800,rate:0.10,comm:680,st:'settled',at:'07-22'},
+    {no:'P20260717F',agent:'吴女士',course:'硬笔书法 12 课时',amt:1560,rate:0.08,comm:125,st:'settled',at:'07-19'},
+    {no:'P20260722X',agent:'朵朵妈',course:'森林写生营',amt:2680,rate:0.10,comm:268,st:'pending',at:'—'},
+    {no:'P20260716G',agent:'赵先生',course:'森林写生营',amt:2680,rate:0.08,comm:214,st:'pending',at:'—'},
+    {no:'P20260709C',agent:'糖糖妈',course:'油画体验课',amt:680,rate:0.08,comm:54,st:'reversed',at:'07-11'}
+  ];
+  let dsTab='agent', dsQ='';
+  function renderDist(){
+    document.querySelectorAll('#dsTabs .tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('#dsTabs .tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');dsTab=t.dataset.f;renderDist();});
+    document.getElementById('dsQ').oninput=e=>{dsQ=e.target.value.trim();renderDist();};
+    document.getElementById('dsSAgent').textContent=distAgents.filter(a=>a.on).length;
+    document.getElementById('dsSMonth').textContent='¥'+distRecords.filter(r=>r.st!=='reversed').reduce((s,r)=>s+r.comm,0).toLocaleString('zh-CN');
+    document.getElementById('dsSPending').textContent='¥'+distRecords.filter(r=>r.st==='pending').reduce((s,r)=>s+r.comm,0).toLocaleString('zh-CN');
+    document.getElementById('dsSRange').textContent='5%–15%';
+    const b=document.getElementById('dsBody');
+    if(dsTab==='agent'){
+      let d=distAgents.filter(a=>!dsQ||a.name.includes(dsQ)||a.studio.includes(dsQ)||a.role.includes(dsQ));
+      b.innerHTML=`<div class="list">${d.map(a=>`<div class="card"><div class="logo2">${a.emoji}</div><div class="info"><div class="nm">${a.name} <span class="role-badge ${a.on?'':'disabled'}">${a.role}</span></div><div class="meta">${a.studio} · 邀请 ${a.invited} 人</div><div class="amtrow"><div class="a">累计佣金<b>¥${a.comm.toLocaleString('zh-CN')}</b></div><div class="a">待结算<b style="color:var(--warn)">¥${a.pending.toLocaleString('zh-CN')}</b></div></div></div><div class="st ${a.on?'approved':'rejected'}">${a.on?'启用':'已停用'}</div></div>`).join('')}</div>`;
+    } else if(dsTab==='record'){
+      let d=distRecords.filter(r=>!dsQ||r.agent.includes(dsQ)||r.course.includes(dsQ)||r.no.includes(dsQ));
+      const stMap={settled:['已到账','approved'],pending:['待到账','pending'],reversed:['已回扣','rejected']};
+      b.innerHTML=`<div class="list">${d.map(r=>{const [lab,cls]=stMap[r.st];return `<div class="card"><div class="logo2">💸</div><div class="info"><div class="nm">${r.course} <span class="tag-n">${r.no}</span></div><div class="meta">${r.agent} · 返利比例 ${Math.round(r.rate*100)}%${r.st==='reversed'?' · 退款回扣':''}</div><div class="amtrow"><div class="a">订单额<b>¥${r.amt.toLocaleString('zh-CN')}</b></div><div class="a">返利<b style="color:var(--green-deep)">¥${r.comm.toLocaleString('zh-CN')}</b></div></div></div><div class="st ${cls}">${lab}</div></div>`;}).join('')}</div>`;
+    } else {
+      b.innerHTML=`<div class="two" style="grid-template-columns:1fr 1fr"><div class="panel"><h3>📐 平台抽成（按类目）</h3>${chargeData.cats.map(c=>`<div class="li"><span class="dotc" style="background:var(--green)"></span>${c.name}<div class="v">${Math.round(c.rate*100)}%</div></div>`).join('')}<div class="li" style="border:none"><span class="dotc" style="background:var(--muted)"></span>未覆盖类目（默认）<div class="v">${Math.round(chargeData.defaultRate*100)}%</div></div></div><div class="panel"><h3>🔗 分销返利规则</h3><div class="li"><span class="dotc" style="background:var(--wood)"></span>返利区间<div class="v">5%–15%</div></div><div class="li"><span class="dotc" style="background:var(--wood)"></span>到账条件<div class="v" style="font-weight:600">订单完成+7天</div></div><div class="li"><span class="dotc" style="background:var(--wood)"></span>退款处置<div class="v" style="font-weight:600">回扣已发返利</div></div><div class="desc" style="margin-top:10px">💡 分销返利由工作室承担，与平台抽成独立核算；反欺诈：识别「自买自链」不计佣。配置入口见「平台配置」。</div></div></div>`;
+    }
+  }
+
+  // ============== P6 公告 / 活动 ==============
+  const noticeData=[
+    {id:'N20260724',title:'平台结算周期调整通知',type:'rule',typeName:'规则公告',scope:'全部工作室',time:'07-24 09:00',reach:'128 家',st:'published',content:'自 8 月起结算周期统一调整为月结，打款时效为结算后 3 个工作日。'},
+    {id:'N20260722',title:'「课包」功能正式上线',type:'feature',typeName:'功能更新',scope:'全部工作室',time:'07-22 14:30',reach:'128 家',st:'published',content:'支持 12/24/48 节课时包套餐，可在课程管理中配置。'},
+    {id:'N20260720',title:'暑期拼团购课活动报名开启',type:'promo',typeName:'营销活动',scope:'杭州 / 成都 / 苏州',time:'07-20 10:00',reach:'54 家',st:'running',content:'暑期公开课拼团，平台补贴 10% 流量位，报名截至 7 月 28 日。'},
+    {id:'N20260718',title:'未成年人肖像发布规范重申',type:'rule',typeName:'规则公告',scope:'全部工作室',time:'07-18 16:20',reach:'128 家',st:'published',content:'涉及未成年人正面肖像的作品须经监护人授权后方可发布。'},
+    {id:'N20260715',title:'二季度优秀工作室评选',type:'promo',typeName:'营销活动',scope:'全部工作室',time:'07-15 09:00',reach:'128 家',st:'ended',content:'二季度优秀工作室评选结果公示，获奖者可享下季度推荐位。'},
+    {id:'N20260712',title:'结算对账入口迁移公告',type:'notice',typeName:'运营通知',scope:'全部工作室',time:'07-12 11:00',reach:'128 家',st:'published',content:'财务对账功能迁移至新后台，旧入口 7 月 20 日下线。'},
+    {id:'N20260728',title:'8 月亲子公开课排期',type:'promo',typeName:'营销活动',scope:'待定',time:'—',reach:'—',st:'draft',content:'8 月亲子公开课排期草稿，待确认合作工作室后发布。'}
+  ];
+  let ntTab='notice', ntQ='';
+  function renderNotice(){
+    document.querySelectorAll('#ntTabs .tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('#ntTabs .tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');ntTab=t.dataset.f;renderNotice();});
+    document.getElementById('ntQ').oninput=e=>{ntQ=e.target.value.trim();renderNotice();};
+    document.getElementById('ntSNotice').textContent=noticeData.filter(n=>n.st==='published').length;
+    document.getElementById('ntSAct').textContent=noticeData.filter(n=>n.st==='running').length;
+    document.getElementById('ntSDraft').textContent=noticeData.filter(n=>n.st==='draft').length;
+    document.getElementById('ntSReach').textContent='566 家次';
+    let d=noticeData.filter(n=>ntTab==='notice'?n.type!=='promo':n.type==='promo');
+    if(ntQ)d=d.filter(n=>n.title.includes(ntQ)||n.typeName.includes(ntQ)||n.scope.includes(ntQ));
+    const list=document.getElementById('ntList');
+    if(!d.length){list.innerHTML='<div class="empty">暂无内容</div>';return;}
+    const stMap={published:['已发布','approved'],running:['进行中','pending'],ended:['已结束','supplement'],draft:['待发布','rejected']};
+    const typeEmoji={rule:'📜',notice:'📣',feature:'✨',promo:'🎁'};
+    list.innerHTML=d.map(n=>{const [lab,cls]=stMap[n.st];return `<div class="card" onclick="ntOpen('${n.id}')"><div class="logo2">${typeEmoji[n.type]||'📣'}</div><div class="info"><div class="nm">${n.title} <span class="tag-n">${n.typeName}</span></div><div class="meta">范围：${n.scope} · ${n.time} · 触达 ${n.reach}</div></div><div class="st ${cls}">${lab}</div>${n.st==='draft'?`<div class="sw" onclick="event.stopPropagation();ntPublish('${n.id}')" title="点击发布"></div>`:''}</div>`;}).join('');
+  }
+  function ntOpen(id){
+    const n=noticeData.find(x=>x.id===id);
+    const stMap={published:['已发布','approved'],running:['进行中','pending'],ended:['已结束','supplement'],draft:['待发布','rejected']};
+    const [lab,cls]=stMap[n.st];
+    document.querySelector('#rkDrawer .tt').textContent='公告 / 活动详情';
+    document.getElementById('rkDb').innerHTML=`<div class="grid2"><div class="kv"><div class="k">编号</div><div class="v">${n.id}</div></div><div class="kv"><div class="k">类型</div><div class="v">${n.typeName}</div></div><div class="kv"><div class="k">推送范围</div><div class="v">${n.scope}</div></div><div class="kv"><div class="k">发布时间</div><div class="v">${n.time||'—'}</div></div><div class="kv"><div class="k">触达</div><div class="v">${n.reach}</div></div><div class="kv"><div class="k">状态</div><div class="v"><span class="st ${cls}">${lab}</span></div></div></div><div class="sec-t">📄 内容</div><div class="desc">${n.content}</div>`;
+    document.getElementById('rkActs').innerHTML=`<button class="btn ghost" style="flex:1" onclick="rkClose()">关闭</button>${n.st==='draft'?`<button class="btn g" style="flex:1" onclick="ntPublish('${n.id}')">发布</button>`:''}`;
+    document.getElementById('rkMask').classList.add('on');document.getElementById('rkDrawer').classList.add('on');
+  }
+  function ntPublish(id){const n=noticeData.find(x=>x.id===id);n.st='published';n.time='07-24 10:20';n.reach='128 家';rkClose();renderNotice();toast(`「${n.title}」已发布`);}
+  function ntOpenAdd(){document.getElementById('ntSheetTitle').textContent=ntTab==='activity'?'新建活动':'新建公告';document.getElementById('ntTitle').value='';document.getElementById('ntContent').value='';document.getElementById('ntType').value=ntTab==='activity'?'promo':'notice';document.getElementById('ntMask').classList.add('on');document.getElementById('ntSheet').classList.add('on');}
+  function ntClose(){document.getElementById('ntMask').classList.remove('on');document.getElementById('ntSheet').classList.remove('on');}
+  function ntSubmit(){
+    const title=document.getElementById('ntTitle').value.trim();
+    const type=document.getElementById('ntType').value;
+    const scope=document.getElementById('ntScope').value;
+    const content=document.getElementById('ntContent').value.trim();
+    if(!title||!content){toast('请填写标题与内容');return;}
+    const typeName={rule:'规则公告',notice:'运营通知',feature:'功能更新',promo:'营销活动'}[type];
+    const scopeName={all:'全部工作室',city:'指定城市',cat:'指定类目',user:'C 端用户'}[scope];
+    noticeData.unshift({id:'N'+Date.now(),title,type,typeName,scope:scopeName,time:'刚刚',reach:'—',st:type==='promo'?'running':'published',content});
+    ntClose();renderNotice();toast(`「${title}」已发布`);
+  }
+  function renderCharge(){
+    chgRenderStats();
+    document.querySelectorAll('#chgTabs .tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('#chgTabs .tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');chgTab=t.dataset.t;chgBody();});
+    chgBody();
+  }
+  function renderStaff(){
+    document.querySelectorAll('#stfTabs .tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('#stfTabs .tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');stfFilter=t.dataset.f;stfRender();});
+    document.getElementById('stfQ').oninput=e=>{stfQ=e.target.value.trim();stfRender();};
+    stfRender();
+  }
+  function renderAudit(){
+    document.querySelectorAll('#audTabs .tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('#audTabs .tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');audFilter=t.dataset.f;audRender();});
+    document.getElementById('audQ').oninput=e=>{audQ=e.target.value.trim();audRender();};
+    audRender();
+  }
+
+  // ============== P7 平台配置 ==============
+  let chgTab='rate';
+  function chgRenderStats(){
+    document.getElementById('chgSDef').textContent=Math.round(chargeData.defaultRate*100)+'%';
+    document.getElementById('chgSCat').textContent=chargeData.cats.length+' 个';
+    document.getElementById('chgSPlan').textContent=chargeData.plans.length+' 档';
+    document.getElementById('chgSSvc').textContent=chargeData.services.filter(s=>s.on).length+' 项';
+  }
+  function chgSetDef(v){chargeData.defaultRate=parseFloat(v)||0;}
+  function chgSetCat(i,v){chargeData.cats[i].rate=parseFloat(v)||0;}
+  function chgSetPlanPrice(i,v){chargeData.plans[i].price=parseInt(v)||0;}
+  function chgSetPlanRate(i,v){chargeData.plans[i].rate=parseFloat(v)||0;}
+  function chgToggleSvc(i){chargeData.services[i].on=!chargeData.services[i].on;chgBody();chgRenderStats();}
+  function chgSetSvcPrice(i,v){chargeData.services[i].price=parseInt(v)||0;}
+  function chgSetCycle(v){chargeData.settle.cycle=v;chgBody();}
+  function chgSetDelay(v){chargeData.settle.payDelay=parseInt(v)||0;}
+  function chgSetMin(v){chargeData.settle.minWithdraw=parseInt(v)||0;}
+  function chgSetAuto(){chargeData.settle.autoSettle=!chargeData.settle.autoSettle;chgBody();}
+  function chgBody(){
+    const b=document.getElementById('chgBody');if(!b)return;
+    if(chgTab==='rate'){
+      b.innerHTML=`<div class="panel" style="margin-bottom:14px"><h3>默认抽成比例</h3><div class="cfg-row" style="border:none"><div class="cn">全平台默认（未覆盖类目按此执行）</div><div class="crate"><input type="number" step="0.01" min="0" max="1" value="${chargeData.defaultRate}" oninput="chgSetDef(this.value)"><span class="pct">（${Math.round(chargeData.defaultRate*100)}%）</span></div></div></div>
+      <div class="panel"><h3>按类目差异化抽成</h3><table class="otable"><thead><tr><th>类目</th><th>近月 GMV</th><th>抽成比例</th><th>生效范围</th></tr></thead><tbody>${chargeData.cats.map((c,i)=>`<tr><td><b>${c.name}</b></td><td>${c.gmv}</td><td><input type="number" step="0.01" min="0" max="1" value="${c.rate}" oninput="chgSetCat(${i},this.value)" style="width:72px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;text-align:center;font-size:13px"> <span class="mini">${Math.round(c.rate*100)}%</span></td><td>${c.rate===chargeData.defaultRate?'<span class="mini gray">跟随默认</span>':'<span class="mini">已覆盖</span>'}</td></tr>`).join('')}</tbody></table><div class="desc" style="margin-top:10px">💡 抽成按「结算净额 = 课程收入 − 退款 − 分销返利」计取，类目未单独设置时跟随全局默认。</div></div>`;
+    } else if(chgTab==='plan'){
+      b.innerHTML=`<div class="panel"><h3>入驻年费套餐</h3><table class="otable"><thead><tr><th>套餐</th><th>年费（元/年）</th><th>适用抽成</th><th>权益说明</th></tr></thead><tbody>${chargeData.plans.map((p,i)=>`<tr><td><b>${p.tier}</b></td><td><input type="number" step="1" min="0" value="${p.price}" oninput="chgSetPlanPrice(${i},this.value)" style="width:90px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;text-align:center;font-size:13px"></td><td><input type="number" step="0.01" min="0" max="1" value="${p.rate}" oninput="chgSetPlanRate(${i},this.value)" style="width:64px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;text-align:center;font-size:13px"> <span class="mini">${Math.round(p.rate*100)}%</span></td><td style="font-size:12.5px;color:var(--muted)">${p.desc}</td></tr>`).join('')}</tbody></table><div class="desc" style="margin-top:10px">💡 套餐决定工作室的抽成档位与结算优先级；到期未续费自动降为基础版。</div></div>`;
+    } else if(chgTab==='svc'){
+      b.innerHTML=`<div class="panel"><h3>增值服务定价</h3>${chargeData.services.map((s,i)=>`<div class="cfg-row"><div class="sw ${s.on?'on':''}" onclick="chgToggleSvc(${i})"></div><div class="cn">${s.name}</div><div class="crate"><input type="number" step="1" min="0" value="${s.price}" oninput="chgSetSvcPrice(${i},this.value)"><span class="pct">元 / ${s.unit}</span></div><span class="mini ${s.on?'':'gray'}">${s.on?'已上架':'已下架'}</span></div>`).join('')}<div class="desc" style="margin-top:12px">💡 上架后工作室可在入驻后台按需订阅；下架不影响已订阅工作室的服务期。</div></div>`;
+    } else {
+      b.innerHTML=`<div class="panel"><h3>结算与打款规则</h3>
+        <div class="cfg-row"><div class="cn">对账周期</div><div class="crate" style="gap:6px">${['月结','半月结','周结'].map(c=>`<span class="cchip ${chargeData.settle.cycle===c?'on':''}" onclick="chgSetCycle('${c}')">${c}</span>`).join('')}</div></div>
+        <div class="cfg-row"><div class="cn">结算后打款时效</div><div class="crate"><input type="number" step="1" min="0" value="${chargeData.settle.payDelay}" oninput="chgSetDelay(this.value)"><span class="pct">个工作日</span></div></div>
+        <div class="cfg-row"><div class="cn">最低打款门槛</div><div class="crate"><input type="number" step="1" min="0" value="${chargeData.settle.minWithdraw}" oninput="chgSetMin(this.value)"><span class="pct">元</span></div></div>
+        <div class="cfg-row" style="border:none"><div class="cn">自动生成结算单</div><div class="sw ${chargeData.settle.autoSettle?'on':''}" onclick="chgSetAuto()"></div></div>
+        <div class="desc" style="margin-top:10px">💡 每期结算单自动汇总当期订单，扣减退款与分销返利后按抽成比例计平台费用，生成后进入「结算/分账」待处理。</div></div>`;
+    }
+  }
+  function chgSave(){chgRenderStats();toast('平台配置已保存并全量生效');}
+
+  // ============== P8 员工与权限 ==============
+  const staffData=[
+    {name:'李超管',acct:'li.super@yiqi.com',role:'platform_super',roleName:'平台超管',dept:'管理组',last:'07-24 09:12',on:true},
+    {name:'王运营',acct:'wang.ops@yiqi.com',role:'platform_ops',roleName:'平台运营',dept:'结算组',last:'07-24 10:05',on:true},
+    {name:'赵风控',acct:'zhao.risk@yiqi.com',role:'platform_ops',roleName:'风控审核',dept:'风控组',last:'07-23 18:40',on:true},
+    {name:'陈审核',acct:'chen.audit@yiqi.com',role:'platform_ops',roleName:'认证审核',dept:'治理组',last:'07-23 16:22',on:true},
+    {name:'周财务',acct:'zhou.fin@yiqi.com',role:'platform_ops',roleName:'财务审核',dept:'资金组',last:'07-22 15:31',on:true},
+    {name:'刘运营',acct:'liu.ops@yiqi.com',role:'platform_ops',roleName:'平台运营',dept:'活动组',last:'07-22 11:08',on:true},
+    {name:'孙客服',acct:'sun.cs@yiqi.com',role:'platform_ops',roleName:'客服',dept:'客服组',last:'07-21 09:55',on:true},
+    {name:'吴旧账号',acct:'wu.old@yiqi.com',role:'platform_ops',roleName:'平台运营',dept:'—',last:'06-02 10:00',on:false},
+  ];
+  let stfFilter='all', stfQ='';
+  function stfRender(){
+    let d=staffData.filter(s=>{
+      if(stfFilter==='super'&&s.role!=='platform_super')return false;
+      if(stfFilter==='ops'&&s.role!=='platform_ops')return false;
+      if(stfFilter==='disabled'&&s.on)return false;
+      if(stfQ&&!(s.name.includes(stfQ)||s.acct.includes(stfQ)||s.dept.includes(stfQ)))return false;
+      return true;
+    });
+    document.getElementById('stfSTotal').textContent=staffData.length;
+    document.getElementById('stfSActive').textContent=staffData.filter(s=>s.on).length;
+    document.getElementById('stfSSuper').textContent=staffData.filter(s=>s.role==='platform_super').length;
+    document.getElementById('stfSDisabled').textContent=staffData.filter(s=>!s.on).length;
+    const list=document.getElementById('stfList');
+    if(!d.length){list.innerHTML='<div class="empty">暂无符合条件的员工</div>';return;}
+    list.innerHTML=d.map(s=>`<div class="card"><div class="logo2">${s.name[0]}</div><div class="info"><div class="nm">${s.name} <span class="role-badge ${s.role==='platform_super'?'super':''} ${s.on?'':'disabled'}">${s.roleName}</span></div><div class="meta">${s.acct} · ${s.dept}</div><div class="meta" style="margin-top:2px">最近登录 ${s.last}</div></div><div class="sw ${s.on?'on':''}" onclick="event.stopPropagation();stfToggle('${s.acct}')" title="点击启用/停用"></div><div class="st ${s.on?'approved':'rejected'}">${s.on?'启用':'停用'}</div></div>`).join('');
+  }
+  function stfToggle(acct){const s=staffData.find(x=>x.acct===acct);s.on=!s.on;stfRender();toast(`${s.name} 已${s.on?'启用':'停用'}`);}
+  function stfOpenAdd(){document.getElementById('stfName').value='';document.getElementById('stfAcct').value='';document.getElementById('stfDept').value='';document.getElementById('stfMask').classList.add('on');document.getElementById('stfSheet').classList.add('on');}
+  function stfCloseAdd(){document.getElementById('stfMask').classList.remove('on');document.getElementById('stfSheet').classList.remove('on');}
+  function stfSubmitAdd(){
+    const name=document.getElementById('stfName').value.trim();
+    const acct=document.getElementById('stfAcct').value.trim();
+    const role=document.getElementById('stfRole').value;
+    const dept=document.getElementById('stfDept').value.trim()||'—';
+    if(!name||!acct){toast('请填写姓名与登录账号');return;}
+    if(staffData.some(s=>s.acct===acct)){toast('该登录账号已存在');return;}
+    staffData.unshift({name,acct,role,roleName:role==='platform_super'?'平台超管':'平台运营',dept,last:'—',on:true});
+    stfCloseAdd();stfRender();toast(`已新增员工 ${name}（${role}）`);
+  }
+
+  // ============== P9 审计日志 ==============
+  const auditLogs=[
+    {id:'AU20260724-8821',time:'07-24 10:05:22',actor:'王运营',role:'platform_ops',roleName:'平台运营',module:'settle',modName:'结算',action:'确认打款',target:'结算单 JS202607-001',result:'success',ip:'10.20.3.17',detail:{金额:'¥75,152',收款方:'杭州小树苗艺术培训有限公司',流水号:'20260724ZJ88201123',说明:'7 月结算对公打款'}},
+    {id:'AU20260724-8819',time:'07-24 09:58:41',actor:'赵风控',role:'platform_ops',roleName:'风控审核',module:'risk',modName:'风控',action:'下架动态',target:'帖子 #89231',result:'success',ip:'10.20.3.22',detail:{原因:'命中敏感词「招生返佣」',处置:'下架并通知工作室',关联工作室:'青芽艺术空间'}},
+    {id:'AU20260724-8817',time:'07-24 09:52:13',actor:'陈审核',role:'platform_ops',roleName:'认证审核',module:'cert',modName:'认证',action:'通过认证',target:'工作室 S2041 小树苗艺术工作室',result:'success',ip:'10.20.3.30',detail:{资质核验:'营业执照✓ 办学许可✓',结果:'上架生效'}},
+    {id:'AU20260724-8815',time:'07-24 09:40:07',actor:'李超管',role:'platform_super',roleName:'平台超管',module:'config',modName:'配置',action:'修改抽成配置',target:'平台配置 · 交易抽成',result:'success',ip:'10.20.1.5',detail:{变更:'手工类目 12% → 15%',影响:'全平台手工类目结算'}},
+    {id:'AU20260724-8812',time:'07-24 09:31:55',actor:'周财务',role:'platform_ops',roleName:'财务审核',module:'settle',modName:'结算',action:'重新发起打款',target:'结算单 JS202607-004 森林里画室',result:'success',ip:'10.20.3.41',detail:{原因:'对公账户校验失败后修正',原状态:'异常',现状态:'打款中'}},
+    {id:'AU20260724-8808',time:'07-24 08:55:19',actor:'孙客服',role:'platform_ops',roleName:'客服',module:'auth',modName:'权限',action:'越权访问被拦截',target:'结算单 JS202607-001',result:'fail',ip:'10.20.5.77',detail:{拦截原因:'孙客服无结算模块权限',处置:'已拦截并记录'}},
+    {id:'AU20260723-8799',time:'07-23 18:22:40',actor:'王运营',role:'platform_ops',roleName:'平台运营',module:'cert',modName:'认证',action:'驳回认证',target:'工作室 S2027 彩虹豆艺术中心',result:'success',ip:'10.20.3.17',detail:{原因:'缺少办学许可证，场地不符合办学要求'}},
+    {id:'AU20260723-8795',time:'07-23 17:08:02',actor:'李超管',role:'platform_super',roleName:'平台超管',module:'auth',modName:'权限',action:'新增员工账号',target:'员工 陈审核 chen.audit@yiqi.com',result:'success',ip:'10.20.1.5',detail:{角色:'platform_ops',分组:'治理组'}},
+    {id:'AU20260723-8790',time:'07-23 16:45:33',actor:'赵风控',role:'platform_ops',roleName:'风控审核',module:'risk',modName:'风控',action:'封禁工作室',target:'工作室 彩虹豆艺术中心',result:'success',ip:'10.20.3.22',detail:{原因:'资质造假+违规内容',处置:'下架全部课程并冻结结算'}},
+    {id:'AU20260723-8786',time:'07-23 15:20:11',actor:'周财务',role:'platform_ops',roleName:'财务审核',module:'settle',modName:'结算',action:'标记到账',target:'结算单 JS202607-003 墨白书房',result:'success',ip:'10.20.3.41',detail:{金额:'¥36,000',流水号:'20260722MB551904'}},
+    {id:'AU20260723-8781',time:'07-23 14:02:58',actor:'陈审核',role:'platform_ops',roleName:'认证审核',module:'cert',modName:'认证',action:'要求补充材料',target:'工作室 S2039 童画里亲子画室',result:'success',ip:'10.20.3.30',detail:{补充项:'场地消防证明'}},
+  ];
+  const audEmoji={settle:'💰',cert:'🏢',risk:'🛡️',config:'⚙️',auth:'🔐'};
+  let audFilter='all', audQ='';
+  function audRender(){
+    const res=document.getElementById('audRes').value;
+    let d=auditLogs.filter(l=>{
+      if(audFilter!=='all'&&l.module!==audFilter)return false;
+      if(res!=='all'&&l.result!==res)return false;
+      if(audQ&&!(l.actor.includes(audQ)||l.target.includes(audQ)||l.action.includes(audQ)||l.id.includes(audQ)))return false;
+      return true;
+    });
+    document.getElementById('audSToday').textContent=auditLogs.filter(l=>l.time.startsWith('07-24')).length;
+    document.getElementById('audSMoney').textContent=auditLogs.filter(l=>l.module==='settle').length;
+    document.getElementById('audSSensitive').textContent=auditLogs.filter(l=>l.module==='risk'||l.module==='auth').length;
+    document.getElementById('audSFail').textContent=auditLogs.filter(l=>l.result==='fail').length;
+    const list=document.getElementById('audList');
+    if(!d.length){list.innerHTML='<div class="empty">暂无符合条件的日志</div>';return;}
+    list.innerHTML=d.map(l=>`<div class="card" onclick="audOpen('${l.id}')"><div class="logo2">${audEmoji[l.module]||'📋'}</div><div class="info"><div class="nm">${l.action} <span class="tag-n">${l.modName}</span></div><div class="meta">${l.actor}（${l.roleName}）· ${l.target}</div><div class="meta" style="margin-top:2px">${l.time} · IP ${l.ip}</div></div><div class="st ${l.result==='success'?'approved':'rejected'}">${l.result==='success'?'成功':'失败/拦截'}</div><div class="arr">›</div></div>`).join('');
+  }
+  function audOpen(id){
+    const l=auditLogs.find(x=>x.id===id);
+    const det=Object.entries(l.detail).map(([k,v])=>`<div class="kv"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+    document.getElementById('audDb').innerHTML=`<div class="grid2"><div class="kv"><div class="k">日志编号</div><div class="v">${l.id}</div></div><div class="kv"><div class="k">操作时间</div><div class="v">${l.time}</div></div><div class="kv"><div class="k">操作人</div><div class="v">${l.actor}（${l.roleName}）</div></div><div class="kv"><div class="k">角色标识</div><div class="v">${l.role}</div></div><div class="kv"><div class="k">模块</div><div class="v">${l.modName}</div></div><div class="kv"><div class="k">操作</div><div class="v">${l.action}</div></div><div class="kv"><div class="k">对象</div><div class="v">${l.target}</div></div><div class="kv"><div class="k">结果</div><div class="v"><span class="st ${l.result==='success'?'approved':'rejected'}">${l.result==='success'?'成功':'失败/拦截'}</span></div></div><div class="kv"><div class="k">来源 IP</div><div class="v">${l.ip}</div></div></div><div class="sec-t">📄 操作详情</div><div class="grid2">${det}</div><div class="sec-t">🔗 溯源说明</div><div class="desc">审计日志由后端 RBAC 中间件在关键接口调用时自动写入 audit_logs 表，记录操作者、动作、对象与结果，不可篡改、不可删除，供合规回溯与风控取证。</div>`;
+    document.getElementById('audMask').classList.add('on');document.getElementById('audDrawer').classList.add('on');
+  }
+  function audClose(){document.getElementById('audMask').classList.remove('on');document.getElementById('audDrawer').classList.remove('on');}
+
+  // ============== 工作室端（单店经营） ==============
+  const stuStudentData=[
+    {id:'ST01',n:'糖糖',cls:'朵朵班',emoji:'🍬',lessons:3,total:12,course:'自然主题·暑期班',parent:'糖糖妈',phone:'138****2210',join:'2026-07-01',st:'normal',rec:[{d:'07-22',c:'创意美术',t:'陈老师'},{d:'07-17',c:'创意美术',t:'陈老师'},{d:'07-10',c:'创意美术',t:'陈老师'}]},
+    {id:'ST02',n:'乐乐',cls:'芽芽班',emoji:'🦁',lessons:0,total:10,course:'创意手工 10 课时',parent:'乐乐爸',phone:'139****8821',join:'2026-07-08',st:'low',rec:[{d:'07-15',c:'创意手工',t:'林老师'}]},
+    {id:'ST03',n:'牛牛',cls:'中级班',emoji:'🐮',lessons:1,total:48,course:'国画年度班',parent:'牛牛妈',phone:'137****5530',join:'2026-06-15',st:'leave',rec:[{d:'07-20',c:'国画',t:'周老师'}]},
+    {id:'ST04',n:'朵朵',cls:'朵朵班',emoji:'🌸',lessons:12,total:12,course:'自然主题·暑期班',parent:'朵朵妈',phone:'136****3091',join:'2026-06-20',st:'normal',rec:[{d:'07-23',c:'创意美术',t:'陈老师'},{d:'07-16',c:'创意美术',t:'陈老师'}]},
+    {id:'ST05',n:'芽芽',cls:'芽芽班',emoji:'🌱',lessons:6,total:12,course:'创意手工 10 课时',parent:'芽芽爸',phone:'135****7712',join:'2026-06-28',st:'normal',rec:[{d:'07-21',c:'创意手工',t:'林老师'},{d:'07-14',c:'创意手工',t:'林老师'}]},
+    {id:'ST06',n:'果果',cls:'中级班',emoji:'🍎',lessons:2,total:12,course:'自然主题·暑期班',parent:'果果妈',phone:'133****4419',join:'2026-07-12',st:'low',rec:[{d:'07-18',c:'创意美术',t:'王老师'},{d:'07-11',c:'创意美术',t:'王老师'}]}
+  ];
+  const stuOrderData=[
+    {no:'P20260718A',parent:'糖糖妈',course:'自然主题·暑期班',amt:2980,lessons:12,consumed:9,date:'2026-07-18',method:'微信支付',st:'completed'},
+    {no:'P20260720D',parent:'朵朵妈',course:'国画年度班',amt:6800,lessons:48,consumed:36,date:'2026-07-20',method:'微信支付',st:'completed'},
+    {no:'P20260722X',parent:'果果妈',course:'森林写生营',amt:2680,lessons:10,consumed:2,date:'2026-07-22',method:'支付宝',st:'refunding',reason:'家庭搬迁，申请退剩余课时'},
+    {no:'P20260709C',parent:'牛牛妈',course:'油画体验课',amt:680,lessons:4,consumed:4,date:'2026-07-09',method:'微信支付',st:'refunded',refund:680,refundAt:'2026-07-15'}
+  ];
+  const stuCourseData=[
+    {n:'自然主题·暑期班',cat:'创意美术',emoji:'🌿',lessons:12,price:2980,students:18},
+    {n:'硬笔书法启蒙',cat:'书法',emoji:'🖌️',lessons:12,price:1560,students:24},
+    {n:'国画年度班',cat:'国画',emoji:'🎨',lessons:48,price:6800,students:15},
+    {n:'创意手工 10 课时',cat:'手工',emoji:'✂️',lessons:10,price:1980,students:11}
+  ];
+  function stuDash(){
+    const trend=[
+      {m:'2月',inc:32000,ref:1800},{m:'3月',inc:45200,ref:2400},{m:'4月',inc:41000,ref:3200},
+      {m:'5月',inc:58600,ref:2100},{m:'6月',inc:72400,ref:3500},{m:'7月',inc:86400,ref:4600}
+    ];
+    const x0=60,x1=660,step=120,base=180,top=26,incMax=90000,refMax=5000;
+    const xs=trend.map((d,i)=>x0+i*step);
+    const incY=trend.map(d=>base-(d.inc/incMax)*(base-top));
+    const refY=trend.map(d=>base-(d.ref/refMax)*(base-top));
+    const incPts=xs.map((x,i)=>x+','+incY[i].toFixed(1)).join(' ');
+    const refPts=xs.map((x,i)=>x+','+refY[i].toFixed(1)).join(' ');
+    const area=`${x0},${base} ${incPts} ${x1},${base}`;
+    const grid=[0.25,0.5,0.75].map(r=>{const y=base-(base-top)*r;return `<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="#E7EDE2" stroke-dasharray="3 3"></line><text x="${x0-8}" y="${y+4}" text-anchor="end" font-size="10" fill="#8a958c">${(incMax*r/10000).toFixed(1)}万</text>`;}).join('');
+    const xLabels=xs.map((x,i)=>`<text x="${x}" y="${base+24}" text-anchor="middle" font-size="11" fill="#8a958c">${trend[i].m}</text>`).join('');
+    const incDots=xs.map((x,i)=>`<circle cx="${x}" cy="${incY[i].toFixed(1)}" r="4" fill="#4A7C3F" stroke="#fff" stroke-width="1.5"></circle>`).join('');
+    const refDots=xs.map((x,i)=>`<circle cx="${x}" cy="${refY[i].toFixed(1)}" r="3.5" fill="#c0563f" stroke="#fff" stroke-width="1.5"></circle>`).join('');
+    const incLbls=xs.map((x,i)=>`<text x="${x}" y="${(incY[i]-10).toFixed(1)}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#3a6431">¥${(trend[i].inc/10000).toFixed(1)}万</text>`).join('');
+    const refLbls=xs.map((x,i)=>`<text x="${x}" y="${(refY[i]-9).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#c0563f">¥${(trend[i].ref/1000).toFixed(1)}k</text>`).join('');
+    document.getElementById('stuChart').innerHTML=`<svg viewBox="0 0 680 226" style="width:100%;height:212px" preserveAspectRatio="none">${grid}<polygon points="${area}" fill="rgba(74,124,63,.09)"></polygon><polyline points="${incPts}" fill="none" stroke="#4A7C3F" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"></polyline><polyline points="${refPts}" fill="none" stroke="#c0563f" stroke-width="1.8" stroke-dasharray="4 3" stroke-linejoin="round" stroke-linecap="round"></polyline>${incDots}${refDots}${incLbls}${refLbls}${xLabels}<line x1="${x0}" y1="${base}" x2="${x1}" y2="${base}" stroke="#D9E2D5" stroke-width="1"></line></svg>`;
+  }
+  let stuFilter='all';
+  function stuStudents(){
+    const q=(document.getElementById('stuQ').value||'').trim();
+    let d=stuStudentData.filter(s=>stuFilter==='all'?true:(stuFilter==='low'?(s.lessons<=1&&s.st!=='leave'):s.st==='leave'));
+    if(q)d=d.filter(s=>s.n.includes(q)||s.parent.includes(q)||s.cls.includes(q));
+    const list=document.getElementById('stuList');
+    if(!d.length){list.innerHTML='<div class="empty">暂无符合条件的学员</div>';return;}
+    const stMap={normal:['在读','approved'],low:['课时不足','pending'],leave:['请假中','supplement']};
+    list.innerHTML=d.map(s=>{const [lab,cls]=stMap[s.st];const low=s.lessons<=1;return `<div class="card" onclick="stuOpen('${s.id}')"><div class="logo2">${s.emoji}</div><div class="info"><div class="nm">${s.n} <span class="tag-n">${s.cls}</span></div><div class="meta">家长 ${s.parent} · ${s.course}</div><div class="amtrow"><div class="a">剩余课时<b style="color:${low?'var(--red)':'var(--ink)'}">${s.lessons} 节</b></div><div class="a">总课时<b>${s.total} 节</b></div></div></div><div class="st ${cls}">${lab}</div><div class="arr">›</div></div>`;}).join('');
+  }
+  function stuOpen(id){
+    const s=stuStudentData.find(x=>x.id===id);
+    const used=s.total-s.lessons;
+    const pct=Math.round(used/s.total*100);
+    const stLab=s.st==='leave'?'请假中':(s.st==='low'?'课时不足':'在读');
+    document.querySelector('#rkDrawer .tt').textContent='学员详情';
+    document.getElementById('rkDb').innerHTML=`<div style="display:flex;align-items:center;gap:14px;margin-bottom:6px"><div class="logo2" style="width:56px;height:56px;font-size:26px;border-radius:16px">${s.emoji}</div><div><div style="font-size:17px;font-weight:700;color:var(--ink)">${s.n}</div><div style="font-size:12.5px;color:var(--muted);margin-top:2px">${s.cls} · ${s.course}</div></div></div><div class="grid2"><div class="kv"><div class="k">家长</div><div class="v">${s.parent}</div></div><div class="kv"><div class="k">联系电话</div><div class="v">${s.phone}</div></div><div class="kv"><div class="k">入学时间</div><div class="v">${s.join}</div></div><div class="kv"><div class="k">当前状态</div><div class="v"><span class="st ${s.st==='leave'?'supplement':(s.st==='low'?'pending':'approved')}">${stLab}</span></div></div></div><div class="sec-t">📚 课时进度</div><div class="amt-card"><div class="amt-line"><span class="lab">总课时</span><span class="val">${s.total} 节</span></div><div class="amt-line"><span class="lab">已消课时</span><span class="val">${used} 节</span></div><div class="amt-line"><span class="lab">剩余课时</span><span class="val" style="color:${s.lessons<=1?'var(--red)':'var(--green-deep)'}">${s.lessons} 节</span></div><div class="amt-line total"><span class="lab">课时消耗进度</span><span class="val">${pct}%</span></div></div><div class="desc" style="margin-top:12px">${s.lessons<=1?'⚠️ 剩余课时不足 2 节，建议提醒家长续费。':'✅ 课时充足，家长可随时查看剩余课时与消课记录。'}${s.st==='leave'?' 该学员当前处于请假中，请假期间课程保留不扣课，复课后由老师安排补课。':''}</div><div class="sec-t">🧾 最近消课记录</div>${s.rec.length?`<table class="otable"><tr><th>日期</th><th>课程</th><th>授课老师</th></tr>${s.rec.map(r=>`<tr><td>${r.d}</td><td>${r.c}</td><td>${r.t}</td></tr>`).join('')}</table>`:'<div class="desc">暂无消课记录</div>'}`;
+    document.getElementById('rkActs').innerHTML=`<button class="btn ghost" style="flex:1" onclick="rkClose()">关闭</button>`;
+    document.getElementById('rkMask').classList.add('on');document.getElementById('rkDrawer').classList.add('on');
+  }
+  let odFilter='all';
+  function stuOrders(){
+    const q=(document.getElementById('odQ').value||'').trim();
+    let d=stuOrderData.filter(s=>odFilter==='all'?true:(odFilter==='refunding'?s.st==='refunding':s.st===odFilter));
+    if(q)d=d.filter(s=>s.parent.includes(q)||s.course.includes(q)||s.no.includes(q));
+    const list=document.getElementById('odList');
+    if(!d.length){list.innerHTML='<div class="empty">暂无符合条件的订单</div>';return;}
+    const clsMap={completed:'approved',refunding:'pending',refunded:'rejected'};
+    list.innerHTML=d.map(s=>{const c=clsMap[s.st]||'approved';const amt=s.amt.toLocaleString('zh-CN');return `<div class="card" onclick="odOpen('${s.no}')"><div class="logo2">🧾</div><div class="info"><div class="nm">${s.course} <span class="tag-n">${s.no}</span></div><div class="meta">${s.parent} · ${s.lessons} 课时</div><div class="amtrow"><div class="a">金额<b class="pay">¥${amt}</b></div></div></div><div class="st ${c}">${s.st==='completed'?'已完成':s.st==='refunding'?'退款中':'已退款'}</div><div class="arr">›</div></div>`;}).join('');
+  }
+  function odOpen(no){
+    const s=stuOrderData.find(x=>x.no===no);
+    const stLab=s.st==='completed'?'已完成':(s.st==='refunding'?'退款中':'已退款');
+    const stCls=s.st==='completed'?'approved':(s.st==='refunding'?'pending':'rejected');
+    const remain=s.lessons-s.consumed;
+    const refundable=s.st==='refunding'?Math.round(s.amt*remain/s.lessons):(s.st==='refunded'?(s.refund||0):0);
+    document.querySelector('#rkDrawer .tt').textContent='订单详情';
+    document.getElementById('rkDb').innerHTML=`<div class="grid2"><div class="kv"><div class="k">订单号</div><div class="v">${s.no}</div></div><div class="kv"><div class="k">状态</div><div class="v"><span class="st ${stCls}">${stLab}</span></div></div><div class="kv"><div class="k">家长</div><div class="v">${s.parent}</div></div><div class="kv"><div class="k">下单时间</div><div class="v">${s.date}</div></div><div class="kv"><div class="k">课程</div><div class="v">${s.course}</div></div><div class="kv"><div class="k">支付方式</div><div class="v">${s.method}</div></div></div><div class="sec-t">💰 金额与课时</div><div class="amt-card"><div class="amt-line"><span class="lab">实付金额</span><span class="val">¥${s.amt.toLocaleString('zh-CN')}</span></div><div class="amt-line"><span class="lab">总课时</span><span class="val">${s.lessons} 节</span></div><div class="amt-line"><span class="lab">已消课时</span><span class="val">${s.consumed} 节</span></div><div class="amt-line"><span class="lab">剩余课时</span><span class="val">${remain} 节</span></div><div class="amt-line total"><span class="lab">课时单价</span><span class="val">¥${Math.round(s.amt/s.lessons)}/节</span></div></div>${s.st==='refunding'?`<div class="sec-t">↩️ 退款申请</div><div class="abn">${s.reason||'用户申请退款'}</div><div class="amt-card" style="margin-top:10px"><div class="amt-line"><span class="lab">应退金额（按剩余课时折算）</span><span class="val" style="color:var(--red)">¥${refundable.toLocaleString('zh-CN')}</span></div><div class="amt-line"><span class="lab">已消耗课时</span><span class="val">${s.consumed} 节</span></div></div><div class="desc" style="margin-top:12px">💡 退款按「实付 ÷ 总课时」单价折算已消耗部分，剩余课时原路退回；已发放的分销返利同步回扣。</div>`:''}${s.st==='refunded'?`<div class="sec-t">✅ 退款完成</div><div class="amt-card"><div class="amt-line"><span class="lab">退款金额</span><span class="val" style="color:var(--red)">¥${(s.refund||0).toLocaleString('zh-CN')}</span></div><div class="amt-line"><span class="lab">退款时间</span><span class="val">${s.refundAt||'—'}</span></div></div>`:''}`;
+    document.getElementById('rkActs').innerHTML=`<button class="btn ghost" style="flex:1" onclick="rkClose()">关闭</button>`;
+    document.getElementById('rkMask').classList.add('on');document.getElementById('rkDrawer').classList.add('on');
+  }
+  function stuCourses(){
+    document.getElementById('scList').innerHTML=stuCourseData.map(c=>`<div class="card"><div class="logo2">${c.emoji}</div><div class="info"><div class="nm">${c.n} <span class="tag-n">${c.cat}</span></div><div class="meta">${c.lessons} 课时 · ¥${c.price.toLocaleString('zh-CN')}</div><div class="amtrow"><div class="a">在读学员<b>${c.students}</b> 人</div></div></div><div class="arr">›</div></div>`).join('');
+  }
+  // ============ 班级管理 ============
+  const stuClassData=[
+    {id:'CL01',name:'朵朵班',stage:'启蒙',age:'3-5 岁',emoji:'🧑‍🎨',teacher:'陈老师',assist:'王助教',cur:18,cap:20,subject:'创意美术',schedule:'周一/三/五 09:00',st:'active'},
+    {id:'CL02',name:'芽芽班',stage:'启蒙',age:'5-7 岁',emoji:'🌱',teacher:'林老师',assist:'—',cur:16,cap:20,subject:'创意手工',schedule:'周二/四 15:00',st:'active'},
+    {id:'CL03',name:'中级班',stage:'进阶',age:'7-10 岁',emoji:'🎨',teacher:'周老师',assist:'赵助教',cur:22,cap:22,subject:'国画',schedule:'周末全天',st:'full'},
+    {id:'CL04',name:'书法班',stage:'进阶',age:'6-9 岁',emoji:'🖌️',teacher:'吴老师',assist:'—',cur:15,cap:18,subject:'硬笔书法',schedule:'周一/四 16:00',st:'active'},
+    {id:'CL05',name:'素描班',stage:'进阶',age:'9-12 岁',emoji:'✏️',teacher:'周老师',assist:'—',cur:12,cap:16,subject:'素描',schedule:'周六 14:00',st:'active'}
+  ];
+  let clFilter='all', clQ='';
+  function renderCl(){
+    document.querySelectorAll('#clTabs .tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('#clTabs .tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');clFilter=t.dataset.f;renderCl();});
+    document.getElementById('clQ').oninput=e=>{clQ=e.target.value.trim();renderCl();};
+    document.getElementById('clSTotal').textContent=stuClassData.length;
+    document.getElementById('clSStu').textContent=stuClassData.reduce((s,c)=>s+c.cur,0);
+    document.getElementById('clSFull').textContent=stuClassData.filter(c=>c.cur>=c.cap).length;
+    document.getElementById('clSFree').textContent=stuClassData.reduce((s,c)=>s+Math.max(0,c.cap-c.cur),0);
+    let d=stuClassData.filter(c=>clFilter==='all'?true:(clFilter==='full'?c.cur>=c.cap:c.stage===clFilter));
+    if(clQ)d=d.filter(c=>c.name.includes(clQ)||c.teacher.includes(clQ)||c.subject.includes(clQ));
+    const list=document.getElementById('clList');
+    if(!d.length){list.innerHTML='<div class="empty">暂无符合条件的班级</div>';return;}
+    list.innerHTML=d.map(c=>`<div class="card" onclick="clOpen('${c.id}')"><div class="logo2">${c.emoji}</div><div class="info"><div class="nm">${c.name} <span class="tag-n">${c.stage}</span>${c.cur>=c.cap?'<span class="tag-n" style="background:#fbeae4;color:var(--red)">已满班</span>':''}</div><div class="meta">${c.age} · ${c.subject} · ${c.schedule}</div><div class="amtrow"><div class="a">带班<b>${c.teacher}</b></div><div class="a">在读<b>${c.cur}/${c.cap}</b> 人</div></div></div><div class="st ${c.cur>=c.cap?'rejected':'approved'}">${c.cur>=c.cap?'已满班':'招生中'}</div><div class="arr">›</div></div>`).join('');
+  }
+  function clOpen(id){
+    const c=stuClassData.find(x=>x.id===id);
+    document.querySelector('#rkDrawer .tt').textContent='班级详情';
+    document.getElementById('rkDb').innerHTML=`<div class="grid2"><div class="kv"><div class="k">班级名称</div><div class="v">${c.name}</div></div><div class="kv"><div class="k">阶段</div><div class="v">${c.stage}</div></div><div class="kv"><div class="k">年龄段</div><div class="v">${c.age}</div></div><div class="kv"><div class="k">课程方向</div><div class="v">${c.subject}</div></div><div class="kv"><div class="k">带班老师</div><div class="v">${c.teacher}</div></div><div class="kv"><div class="k">助教</div><div class="v">${c.assist}</div></div><div class="kv"><div class="k">在读 / 上限</div><div class="v">${c.cur} / ${c.cap} 人</div></div><div class="kv"><div class="k">上课时间</div><div class="v">${c.schedule}</div></div></div><div class="sec-t">📊 班额进度</div><div class="desc">已招 ${c.cur} 人，剩余 ${c.cap-c.cur} 个席位${c.cur>=c.cap?'，班级已满员，建议新开平行班。':'。'}</div>`;
+    document.getElementById('rkActs').innerHTML=`<button class="btn ghost" style="flex:1" onclick="rkClose()">关闭</button>`;
+    document.getElementById('rkMask').classList.add('on');document.getElementById('rkDrawer').classList.add('on');
+  }
+  function clOpenAdd(){document.getElementById('clName').value='';document.getElementById('clSubject').value='';document.getElementById('clTeacher').value='';document.getElementById('clCap').value=20;document.getElementById('clMask').classList.add('on');document.getElementById('clSheet').classList.add('on');}
+  function clCloseAdd(){document.getElementById('clMask').classList.remove('on');document.getElementById('clSheet').classList.remove('on');}
+  function clSubmitAdd(){
+    const name=document.getElementById('clName').value.trim();
+    if(!name){toast('请填写班级名称');return;}
+    const stage=document.getElementById('clStage').value;
+    stuClassData.push({id:'CL'+Date.now(),name,stage,age:stage==='启蒙'?'3-6 岁':'7-12 岁',emoji:'🧩',teacher:document.getElementById('clTeacher').value.trim()||'待分配',assist:'—',cur:0,cap:parseInt(document.getElementById('clCap').value)||20,subject:document.getElementById('clSubject').value.trim()||'待定',schedule:'待排课',st:'active'});
+    clCloseAdd();renderCl();toast(`班级「${name}」已创建`);
+  }
+
+  // ============ 排课 / 课表 ============
+  const stuSchedule=[
+    {day:'周一',items:[{t:'09:00',c:'朵朵班·创意美术',tc:'陈老师',rm:'2 号画室'},{t:'16:00',c:'书法班·硬笔',tc:'吴老师',rm:'书法室'}]},
+    {day:'周二',items:[{t:'15:00',c:'芽芽班·手工',tc:'林老师',rm:'1 号画室'}]},
+    {day:'周三',items:[{t:'09:00',c:'朵朵班·创意美术',tc:'陈老师',rm:'2 号画室'},{t:'15:00',c:'芽芽班·手工',tc:'林老师',rm:'1 号画室'}]},
+    {day:'周四',items:[{t:'16:00',c:'书法班·硬笔',tc:'吴老师',rm:'书法室'}]},
+    {day:'周五',items:[{t:'09:00',c:'朵朵班·创意美术',tc:'陈老师',rm:'2 号画室'}]},
+    {day:'周六',items:[{t:'10:00',c:'中级班·国画',tc:'周老师',rm:'3 号画室'},{t:'14:00',c:'素描班·素描',tc:'周老师',rm:'3 号画室',conflict:'与中级班·国画教室冲突'}]},
+    {day:'周日',items:[{t:'10:00',c:'中级班·国画',tc:'周老师',rm:'3 号画室'}]}
+  ];
+  let skFilter='all';
+  function renderSk(){
+    document.querySelectorAll('#skTabs .tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('#skTabs .tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');skFilter=t.dataset.f;renderSk();});
+    let allItems=[];stuSchedule.forEach(d=>d.items.forEach(i=>allItems.push(i)));
+    document.getElementById('skSLessons').textContent=allItems.length;
+    document.getElementById('skSConflict').textContent=allItems.filter(i=>i.conflict).length;
+    document.getElementById('skSTeacher').textContent=new Set(allItems.map(i=>i.tc)).size;
+    document.getElementById('skSRoom').textContent=new Set(allItems.map(i=>i.rm)).size;
+    document.getElementById('skBody').innerHTML=`<div class="sk-week">${stuSchedule.map(d=>{
+      let items=d.items;
+      if(skFilter==='conflict')items=items.filter(i=>i.conflict);
+      return `<div class="sk-col"><div class="sk-day">${d.day}</div>${items.length?items.map(i=>`<div class="sk-item${i.conflict?' conflict':''}"><div class="t">${i.t}</div><div class="c">${i.c}</div><div class="m">${i.tc} · ${i.rm}</div>${i.conflict?`<div class="warn">⚠ ${i.conflict}</div>`:''}</div>`).join(''):'<div class="sk-empty">无课</div>'}</div>`;
+    }).join('')}</div>`;
+  }
+  function skOpenAdd(){document.getElementById('skTime').value='';document.getElementById('skCls').value='';document.getElementById('skTc').value='';document.getElementById('skRoom').value='';document.getElementById('skMask').classList.add('on');document.getElementById('skSheet').classList.add('on');}
+  function skCloseAdd(){document.getElementById('skMask').classList.remove('on');document.getElementById('skSheet').classList.remove('on');}
+  function skSubmitAdd(){
+    const day=document.getElementById('skDay').value, t=document.getElementById('skTime').value.trim(), c=document.getElementById('skCls').value.trim(), tc=document.getElementById('skTc').value.trim(), rm=document.getElementById('skRoom').value.trim();
+    if(!t||!c){toast('请填写时间与班级');return;}
+    stuSchedule.find(d=>d.day===day).items.push({t,c,tc:tc||'待分配',rm:rm||'待分配'});
+    skCloseAdd();renderSk();toast(`已排入 ${day} ${t}「${c}」`);
+  }
+
+  // ============ 老师管理 ============
+  const stuTeacherData=[
+    {id:'TC01',name:'陈老师',emoji:'👩‍🏫',type:'全职',expert:'创意美术',cls:2,stu:40,lessons:96,on:true},
+    {id:'TC02',name:'林老师',emoji:'👩‍🎨',type:'全职',expert:'创意手工',cls:2,stu:34,lessons:78,on:true},
+    {id:'TC03',name:'周老师',emoji:'🧑‍🎨',type:'全职',expert:'国画 / 素描',cls:2,stu:34,lessons:72,on:true},
+    {id:'TC04',name:'吴老师',emoji:'🖌️',type:'全职',expert:'硬笔书法',cls:1,stu:15,lessons:40,on:true},
+    {id:'TC05',name:'王老师',emoji:'👨‍🏫',type:'兼职',expert:'创意美术',cls:1,stu:18,lessons:26,on:true},
+    {id:'TC06',name:'赵老师',emoji:'🧑‍🎨',type:'兼职',expert:'素描',cls:0,stu:0,lessons:0,on:false}
+  ];
+  let tcFilter='all', tcQ='';
+  function renderTc(){
+    document.querySelectorAll('#tcTabs .tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('#tcTabs .tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');tcFilter=t.dataset.f;renderTc();});
+    document.getElementById('tcQ').oninput=e=>{tcQ=e.target.value.trim();renderTc();};
+    document.getElementById('tcSTotal').textContent=stuTeacherData.length;
+    document.getElementById('tcSFull').textContent=stuTeacherData.filter(t=>t.type==='全职').length;
+    document.getElementById('tcSPart').textContent=stuTeacherData.filter(t=>t.type==='兼职').length;
+    document.getElementById('tcSLessons').textContent=stuTeacherData.reduce((s,t)=>s+t.lessons,0);
+    let d=stuTeacherData.filter(t=>tcFilter==='all'?true:t.type===tcFilter);
+    if(tcQ)d=d.filter(t=>t.name.includes(tcQ)||t.expert.includes(tcQ));
+    const list=document.getElementById('tcList');
+    if(!d.length){list.innerHTML='<div class="empty">暂无符合条件的老师</div>';return;}
+    list.innerHTML=d.map(t=>`<div class="card"><div class="logo2">${t.emoji}</div><div class="info"><div class="nm">${t.name} <span class="role-badge ${t.type==='全职'?'':'super'}">${t.type}</span></div><div class="meta">专长：${t.expert}</div><div class="amtrow"><div class="a">带班<b>${t.cls}</b> 个</div><div class="a">学员<b>${t.stu}</b> 人</div><div class="a">本月课时<b>${t.lessons}</b> 节</div></div></div><div class="sw ${t.on?'on':''}" onclick="tcToggle('${t.id}')" title="启用/停用"></div></div>`).join('');
+  }
+  function tcToggle(id){const t=stuTeacherData.find(x=>x.id===id);t.on=!t.on;renderTc();toast(`${t.name} ${t.on?'已启用':'已停用'}`);}
+  function tcOpenAdd(){document.getElementById('tcName').value='';document.getElementById('tcExpert').value='';document.getElementById('tcMask').classList.add('on');document.getElementById('tcSheet').classList.add('on');}
+  function tcCloseAdd(){document.getElementById('tcMask').classList.remove('on');document.getElementById('tcSheet').classList.remove('on');}
+  function tcSubmitAdd(){
+    const name=document.getElementById('tcName').value.trim();
+    if(!name){toast('请填写老师姓名');return;}
+    stuTeacherData.push({id:'TC'+Date.now(),name,emoji:'👩‍🏫',type:document.getElementById('tcType').value,expert:document.getElementById('tcExpert').value.trim()||'待定',cls:0,stu:0,lessons:0,on:true});
+    tcCloseAdd();renderTc();toast(`老师「${name}」已加入`);
+  }
+
+  // ============ 分销管理 ============
+  const stuDistAgents=[
+    {id:'SD01',name:'糖糖妈',emoji:'👩',role:'家长推广员',invited:6,comm:980,settled:520,pending:460,on:true},
+    {id:'SD02',name:'林老师',emoji:'👩‍🏫',role:'工作室员工',invited:4,comm:760,settled:760,pending:0,on:true},
+    {id:'SD03',name:'朵朵妈',emoji:'🌸',role:'家长推广员',invited:3,comm:640,settled:400,pending:240,on:true},
+    {id:'SD04',name:'果果妈',emoji:'🍎',role:'家长推广员',invited:2,comm:380,settled:180,pending:200,on:true},
+    {id:'SD05',name:'牛牛妈',emoji:'🐮',role:'家长推广员',invited:1,comm:120,settled:120,pending:0,on:true},
+    {id:'SD06',name:'已停用',emoji:'👤',role:'家长推广员',invited:0,comm:0,settled:0,pending:0,on:false}
+  ];
+  const stuDistRecords=[
+    {no:'P20260718A',agent:'糖糖妈',course:'自然主题·暑期班',amt:2980,rate:0.08,comm:238,st:'settled',at:'07-20'},
+    {no:'P20260720D',agent:'朵朵妈',course:'国画年度班',amt:6800,rate:0.08,comm:544,st:'pending',at:'—'},
+    {no:'P20260717F',agent:'林老师',course:'硬笔书法 12 课时',amt:1560,rate:0.08,comm:125,st:'settled',at:'07-19'},
+    {no:'P20260722X',agent:'果果妈',course:'森林写生营',amt:2680,rate:0.08,comm:214,st:'pending',at:'—'},
+    {no:'P20260709C',agent:'糖糖妈',course:'油画体验课',amt:680,rate:0.08,comm:54,st:'reversed',at:'07-11'}
+  ];
+  let sdTab='agent', sdQ='';
+  function renderSd(){
+    document.querySelectorAll('#sdTabs .tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('#sdTabs .tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');sdTab=t.dataset.f;renderSd();});
+    document.getElementById('sdQ').oninput=e=>{sdQ=e.target.value.trim();renderSd();};
+    document.getElementById('sdSAgent').textContent=stuDistAgents.filter(a=>a.on).length;
+    document.getElementById('sdSMonth').textContent='¥'+stuDistRecords.filter(r=>r.st!=='reversed').reduce((s,r)=>s+r.comm,0).toLocaleString('zh-CN');
+    document.getElementById('sdSPending').textContent='¥'+stuDistRecords.filter(r=>r.st==='pending').reduce((s,r)=>s+r.comm,0).toLocaleString('zh-CN');
+    document.getElementById('sdSRate').textContent='8%–10%';
+    const b=document.getElementById('sdBody');
+    if(sdTab==='agent'){
+      let d=stuDistAgents.filter(a=>!sdQ||a.name.includes(sdQ)||a.role.includes(sdQ));
+      b.innerHTML=`<div class="list">${d.map(a=>`<div class="card"><div class="logo2">${a.emoji}</div><div class="info"><div class="nm">${a.name} <span class="role-badge ${a.on?'':'disabled'}">${a.role}</span></div><div class="meta">邀请 ${a.invited} 人</div><div class="amtrow"><div class="a">累计佣金<b>¥${a.comm.toLocaleString('zh-CN')}</b></div><div class="a">待结算<b style="color:var(--warn)">¥${a.pending.toLocaleString('zh-CN')}</b></div></div></div><div class="sw ${a.on?'on':''}" onclick="sdToggle('${a.id}')"></div></div>`).join('')}</div>`;
+    } else if(sdTab==='record'){
+      let d=stuDistRecords.filter(r=>!sdQ||r.agent.includes(sdQ)||r.course.includes(sdQ)||r.no.includes(sdQ));
+      const stMap={settled:['已到账','approved'],pending:['待到账','pending'],reversed:['已回扣','rejected']};
+      b.innerHTML=`<div class="list">${d.map(r=>{const [lab,cls]=stMap[r.st];return `<div class="card"><div class="logo2">💸</div><div class="info"><div class="nm">${r.course} <span class="tag-n">${r.no}</span></div><div class="meta">${r.agent} · 返利比例 ${Math.round(r.rate*100)}%${r.st==='reversed'?' · 退款回扣':''}</div><div class="amtrow"><div class="a">订单额<b>¥${r.amt.toLocaleString('zh-CN')}</b></div><div class="a">返利<b style="color:var(--green-deep)">¥${r.comm.toLocaleString('zh-CN')}</b></div></div></div><div class="st ${cls}">${lab}</div></div>`;}).join('')}</div>`;
+    } else {
+      b.innerHTML=`<div class="two" style="grid-template-columns:1fr 1fr"><div class="panel"><h3>🔗 返利规则</h3><div class="li"><span class="dotc" style="background:var(--wood)"></span>返利区间<div class="v">8%–10%</div></div><div class="li"><span class="dotc" style="background:var(--wood)"></span>到账条件<div class="v" style="font-weight:600">订单完成+7天</div></div><div class="li"><span class="dotc" style="background:var(--wood)"></span>退款处置<div class="v" style="font-weight:600">回扣已发返利</div></div></div><div class="panel"><h3>📐 平台抽成（本店适用）</h3><div class="li"><span class="dotc" style="background:var(--green)"></span>儿童画 / 创意手工<div class="v">12%</div></div><div class="li"><span class="dotc" style="background:var(--green)"></span>书法<div class="v">10%</div></div><div class="desc" style="margin-top:10px">💡 分销返利由本工作室承担；平台抽成与返利独立核算，抽成比例由平台配置、本店无权修改。</div></div></div>`;
+    }
+  }
+  function sdToggle(id){const a=stuDistAgents.find(x=>x.id===id);a.on=!a.on;renderSd();toast(`${a.name} ${a.on?'已启用':'已停用'}`);}
+
+  // ============ 财务对账 ============
+  const stuSettles=[
+    {id:'JS202607-005',period:'2026年7月',income:86400,refund:3280,dist:3240,rate:0.12,status:'paying',genAt:'07-31 自动生成',orders:[{no:'P20260720D',parent:'朵朵妈',course:'国画年度班',amt:6800},{no:'P20260718A',parent:'糖糖妈',course:'自然主题·暑期班',amt:2980},{no:'P20260722X',parent:'果果妈',course:'森林写生营',amt:2680}]},
+    {id:'JS202606-021',period:'2026年6月',income:71200,refund:2000,dist:4800,rate:0.12,status:'paid',genAt:'06-30 自动生成',orders:[]},
+    {id:'JS202605-017',period:'2026年5月',income:65800,refund:1200,dist:3900,rate:0.12,status:'paid',genAt:'05-31 自动生成',orders:[]}
+  ];
+  let fnTab='settle';
+  function renderFn(){
+    document.querySelectorAll('#fnTabs .tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('#fnTabs .tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');fnTab=t.dataset.f;renderFn();});
+    const cur=stuSettles[0];
+    document.getElementById('fnSIncome').textContent='¥'+cur.income.toLocaleString('zh-CN');
+    document.getElementById('fnSRefund').textContent='¥'+cur.refund.toLocaleString('zh-CN');
+    document.getElementById('fnSComm').textContent='¥'+Math.round(cur.income*cur.rate).toLocaleString('zh-CN');
+    document.getElementById('fnSNet').textContent='¥'+Math.round(cur.income-cur.refund-cur.income*cur.rate-cur.dist).toLocaleString('zh-CN');
+    const b=document.getElementById('fnBody');
+    if(fnTab==='settle'){
+      b.innerHTML=`<div class="list">${stuSettles.map(s=>{const cls=s.status==='paid'?'approved':(s.status==='paying'?'paying':'abnormal');const lab=s.status==='paid'?'已打款':(s.status==='paying'?'待平台打款':'异常');return `<div class="card" onclick="fnOpen('${s.id}')"><div class="logo2">🧾</div><div class="info"><div class="nm">${s.period} 结算单 <span class="tag-n">${s.id}</span></div><div class="meta">${s.genAt} · 营收 ¥${s.income.toLocaleString('zh-CN')}</div><div class="amtrow"><div class="a">待结算净额<b class="pay">¥${Math.round(s.income-s.refund-s.income*s.rate-s.dist).toLocaleString('zh-CN')}</b></div></div></div><div class="st ${cls}">${lab}</div><div class="arr">›</div></div>`;}).join('')}</div>`;
+    } else {
+      const s=stuSettles[0];
+      const net=Math.round(s.income-s.refund-s.income*s.rate-s.dist);
+      b.innerHTML=`<div class="panel"><h3>💰 本月营收构成</h3><div class="amt-card"><div class="amt-line"><span class="lab">课程营收</span><span class="val">¥${s.income.toLocaleString('zh-CN')}</span></div><div class="amt-line minus"><span class="lab">退款</span><span class="val">−¥${s.refund.toLocaleString('zh-CN')}</span></div><div class="amt-line minus"><span class="lab">平台抽成（${Math.round(s.rate*100)}%）</span><span class="val">−¥${Math.round(s.income*s.rate).toLocaleString('zh-CN')}</span></div><div class="amt-line minus"><span class="lab">分销返利</span><span class="val">−¥${s.dist.toLocaleString('zh-CN')}</span></div><div class="amt-line total"><span class="lab">待结算净额</span><span class="val">¥${net.toLocaleString('zh-CN')}</span></div></div><div class="desc" style="margin-top:12px">💡 结算周期月结，平台在结算后 3 个工作日内对公打款至已认证的收款账户。</div></div>`;
+    }
+  }
+  function fnOpen(id){
+    const s=stuSettles.find(x=>x.id===id);
+    const net=Math.round(s.income-s.refund-s.income*s.rate-s.dist);
+    document.querySelector('#rkDrawer .tt').textContent='结算单明细';
+    document.getElementById('rkDb').innerHTML=`<div class="grid2"><div class="kv"><div class="k">结算单号</div><div class="v">${s.id}</div></div><div class="kv"><div class="k">周期</div><div class="v">${s.period}</div></div><div class="kv"><div class="k">生成时间</div><div class="v">${s.genAt}</div></div><div class="kv"><div class="k">状态</div><div class="v">${s.status==='paid'?'已打款':'待平台打款'}</div></div></div><div class="sec-t">💰 金额明细</div><div class="amt-card"><div class="amt-line"><span class="lab">课程营收</span><span class="val">¥${s.income.toLocaleString('zh-CN')}</span></div><div class="amt-line minus"><span class="lab">退款</span><span class="val">−¥${s.refund.toLocaleString('zh-CN')}</span></div><div class="amt-line minus"><span class="lab">平台抽成（${Math.round(s.rate*100)}%）</span><span class="val">−¥${Math.round(s.income*s.rate).toLocaleString('zh-CN')}</span></div><div class="amt-line minus"><span class="lab">分销返利</span><span class="val">−¥${s.dist.toLocaleString('zh-CN')}</span></div><div class="amt-line total"><span class="lab">净额</span><span class="val">¥${net.toLocaleString('zh-CN')}</span></div></div>${s.orders.length?`<div class="sec-t">🧾 关联订单</div><table class="otable"><tr><th>订单号</th><th>家长</th><th>课程</th><th>金额</th></tr>${s.orders.map(o=>`<tr><td>${o.no}</td><td>${o.parent}</td><td>${o.course}</td><td><b>¥${o.amt.toLocaleString('zh-CN')}</b></td></tr>`).join('')}</table>`:''}`;
+    document.getElementById('rkActs').innerHTML=`<button class="btn ghost" style="flex:1" onclick="rkClose()">关闭</button>`;
+    document.getElementById('rkMask').classList.add('on');document.getElementById('rkDrawer').classList.add('on');
+  }
+
+  // ============ 内容审核 ============
+  const stuCmData=[
+    {id:'CM01',cat:'post',type:'老师动态',author:'陈老师',title:'暑期班作品展示',content:'本周朵朵班学员作品合集。',hit:'无风险',time:'07-24 10:00',st:'pending'},
+    {id:'CM02',cat:'post',type:'家长动态',author:'糖糖妈',title:'晒娃作品',content:'孩子这期作品，附报名优惠信息。',hit:'疑似导流',time:'07-24 09:30',st:'pending'},
+    {id:'CM03',cat:'work',type:'作品',author:'朵朵',title:'《水墨江南》',content:'8 岁国画作品，构图完整。',hit:'无风险',time:'07-23 17:00',st:'pending'},
+    {id:'CM04',cat:'work',type:'作品',author:'果果',title:'《森林小鹿》',content:'6 岁作品，含正面肖像。',hit:'需肖像权复核',time:'07-23 16:20',st:'pending'},
+    {id:'CM05',cat:'report',type:'评论举报',author:'匿名用户',title:'举报评论',content:'课程评论区出现「加微返现」诱导信息。',hit:'诱导交易',time:'07-23 14:00',st:'pending'},
+    {id:'CM06',cat:'post',type:'家长动态',author:'芽芽爸',title:'作品分享',content:'书法作品展示，无违规。',hit:'无风险',time:'07-22 11:00',st:'done',deal:'pass'}
+  ];
+  let cmFilter='post', cmQ='';
+  function renderCm(){
+    document.querySelectorAll('#cmTabs .tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('#cmTabs .tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');cmFilter=t.dataset.f;renderCm();});
+    document.getElementById('cmQ').oninput=e=>{cmQ=e.target.value.trim();renderCm();};
+    const pend=stuCmData.filter(r=>r.st!=='done');
+    document.getElementById('cmSPost').textContent=pend.filter(r=>r.cat==='post').length;
+    document.getElementById('cmSWork').textContent=pend.filter(r=>r.cat==='work').length;
+    document.getElementById('cmSReport').textContent=pend.filter(r=>r.cat==='report').length;
+    document.getElementById('cmSDone').textContent=stuCmData.filter(r=>r.st==='done').length;
+    let d=stuCmData.filter(r=>r.cat===cmFilter);
+    if(cmQ)d=d.filter(r=>r.author.includes(cmQ)||r.title.includes(cmQ)||r.content.includes(cmQ));
+    const list=document.getElementById('cmList');
+    if(!d.length){list.innerHTML='<div class="empty">暂无待处置内容</div>';return;}
+    const catEmoji={post:'📝',work:'🖼️',report:'⚠️'};
+    list.innerHTML=d.map(r=>`<div class="card" onclick="cmOpen('${r.id}')"><div class="logo2">${catEmoji[r.cat]}</div><div class="info"><div class="nm">${r.title} <span class="tag-n">${r.type}</span></div><div class="meta">${r.author} · ${r.time}</div><div class="meta" style="margin-top:2px">${r.hit}</div></div><div class="st ${r.st==='done'?'approved':'pending'}">${r.st==='done'?'已处置':'待处置'}</div><div class="arr">›</div></div>`).join('');
+  }
+  function cmOpen(id){
+    const r=stuCmData.find(x=>x.id===id);
+    document.querySelector('#rkDrawer .tt').textContent='内容处置';
+    document.getElementById('rkDb').innerHTML=`<div class="grid2"><div class="kv"><div class="k">编号</div><div class="v">${r.id}</div></div><div class="kv"><div class="k">类型</div><div class="v">${r.type}</div></div><div class="kv"><div class="k">作者</div><div class="v">${r.author}</div></div><div class="kv"><div class="k">时间</div><div class="v">${r.time}</div></div></div><div class="sec-t">📄 内容</div><div class="desc">${r.content}</div><div class="sec-t">🚩 命中风险</div><div class="desc" style="background:#fbeae4;color:var(--red)">${r.hit}</div>`;
+    document.getElementById('rkActs').innerHTML=`<button class="btn r" style="flex:1" onclick="cmDeal('${r.id}','down')">下架</button><button class="btn b" style="flex:1" onclick="cmDeal('${r.id}','warn')">警告</button><button class="btn g" style="flex:1" onclick="cmDeal('${r.id}','pass')">通过</button>`;
+    document.getElementById('rkMask').classList.add('on');document.getElementById('rkDrawer').classList.add('on');
+  }
+  function cmDeal(id,act){const r=stuCmData.find(x=>x.id===id);r.st='done';r.deal=act;rkClose();renderCm();toast(`${r.title} ${({down:'已下架',warn:'已警告',pass:'已通过'})[act]}`);}
+
+  // ============ 消息通知 ============
+  const stuMsgData=[
+    {id:'MG01',cat:'inbox',type:'系统通知',title:'7 月结算单已生成',from:'平台',time:'07-24 09:50',st:'unread',content:'本月结算单已生成，待结算净额 ¥69,512，预计 3 个工作日内到账。'},
+    {id:'MG02',cat:'inbox',type:'家长留言',title:'关于暑期班补课安排',from:'糖糖妈',time:'07-23 20:12',st:'reply',content:'糖糖请假的那节课能否安排在下周六补上？'},
+    {id:'MG03',cat:'push',type:'推送',title:'开课提醒',from:'系统',time:'07-23 09:00',st:'read',content:'朵朵班今日 09:00 创意美术课，已推送 18 位家长，触达率 100%。',reach:'18/18'},
+    {id:'MG04',cat:'push',type:'推送',title:'消课通知',from:'系统',time:'07-22 16:30',st:'read',content:'今日消课通知已推送 34 位家长，触达率 97%。',reach:'33/34'},
+    {id:'MG05',cat:'inbox',type:'家长留言',title:'请假申请',from:'牛牛妈',time:'07-22 10:00',st:'reply',content:'牛牛本周三请假一次，请老师批一下。'},
+    {id:'MG06',cat:'push',type:'推送',title:'续费提醒',from:'系统',time:'07-21 18:00',st:'read',content:'乐乐剩余课时不足 3 节，已推送续费提醒，触达率 100%。',reach:'1/1'}
+  ];
+  let mgTab='inbox';
+  function renderMg(){
+    document.querySelectorAll('#mgTabs .tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('#mgTabs .tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');mgTab=t.dataset.f;renderMg();});
+    document.getElementById('mgSUnread').textContent=stuMsgData.filter(m=>m.st==='unread'||m.st==='reply').length;
+    document.getElementById('mgSSent').textContent=stuMsgData.filter(m=>m.cat==='push').length;
+    document.getElementById('mgSReach').textContent='98%';
+    document.getElementById('mgSReply').textContent=stuMsgData.filter(m=>m.st==='reply').length;
+    let d=stuMsgData.filter(m=>mgTab==='inbox'?m.cat==='inbox':(mgTab==='push'?m.cat==='push':m.st==='reply'));
+    const list=document.getElementById('mgList');
+    if(!d.length){list.innerHTML='<div class="empty">暂无消息</div>';return;}
+    const catEmoji={inbox:'📨',push:'🔔'};
+    list.innerHTML=d.map(m=>`<div class="card" onclick="mgOpen('${m.id}')"><div class="logo2">${catEmoji[m.cat]}</div><div class="info"><div class="nm">${m.title} <span class="tag-n">${m.type}</span>${m.st==='unread'?'<span class="st pending" style="margin-left:2px">未读</span>':''}${m.st==='reply'?'<span class="st supplement" style="margin-left:2px">待回复</span>':''}</div><div class="meta">${m.from} · ${m.time}${m.reach?' · 触达 '+m.reach:''}</div></div><div class="arr">›</div></div>`).join('');
+  }
+  function mgOpen(id){
+    const m=stuMsgData.find(x=>x.id===id);
+    if(m.st==='unread'){m.st='read';}
+    document.querySelector('#rkDrawer .tt').textContent='消息详情';
+    document.getElementById('rkDb').innerHTML=`<div class="grid2"><div class="kv"><div class="k">类型</div><div class="v">${m.type}</div></div><div class="kv"><div class="k">发送方</div><div class="v">${m.from}</div></div><div class="kv"><div class="k">时间</div><div class="v">${m.time}</div></div><div class="kv"><div class="k">状态</div><div class="v">${m.st==='reply'?'待回复':(m.st==='read'?'已读':'未读')}</div></div></div><div class="sec-t">📄 内容</div><div class="desc">${m.content}</div>`;
+    document.getElementById('rkActs').innerHTML=`${m.st==='reply'?`<button class="btn g" style="flex:1" onclick="mgReply('${m.id}')">回复</button>`:''}<button class="btn ghost" style="flex:1" onclick="rkClose()">关闭</button>`;
+    document.getElementById('rkMask').classList.add('on');document.getElementById('rkDrawer').classList.add('on');
+    renderMg();
+  }
+  function mgReply(id){const m=stuMsgData.find(x=>x.id===id);m.st='read';rkClose();renderMg();toast(`已标记「${m.title}」为已回复`);}
+  function mgOpenCompose(){document.getElementById('mgTitle').value='';document.getElementById('mgContent').value='';document.getElementById('mgMask').classList.add('on');document.getElementById('mgSheet').classList.add('on');}
+  function mgCloseCompose(){document.getElementById('mgMask').classList.remove('on');document.getElementById('mgSheet').classList.remove('on');}
+  function mgSubmit(){
+    const title=document.getElementById('mgTitle').value.trim(), content=document.getElementById('mgContent').value.trim();
+    if(!title||!content){toast('请填写标题与内容');return;}
+    stuMsgData.unshift({id:'MG'+Date.now(),cat:'push',type:'推送',title,from:'本工作室',time:'刚刚',st:'read',content,reach:'发送中'});
+    mgCloseCompose();renderMg();toast(`「${title}」已发送`);
+  }
+
+  // ============ 工作室设置 ============
+  function cfOpenEdit(){document.getElementById('cfMask').classList.add('on');document.getElementById('cfSheet').classList.add('on');}
+  function cfCloseEdit(){document.getElementById('cfMask').classList.remove('on');document.getElementById('cfSheet').classList.remove('on');}
+  function cfSubmit(){cfCloseEdit();toast('基本信息已保存（原型演示）');}
+
+  function stuInit(){
+    document.querySelectorAll('#stuTabs .tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('#stuTabs .tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');stuFilter=t.dataset.f;stuStudents();});
+    document.getElementById('stuQ').addEventListener('input',()=>stuStudents());
+    document.querySelectorAll('#odTabs .tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('#odTabs .tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');odFilter=t.dataset.f;stuOrders();});
+    document.getElementById('odQ').addEventListener('input',()=>stuOrders());
+    // 预填充，避免首切空白
+    stuDash();stuStudents();stuOrders();stuCourses();
+    renderCl();renderSk();renderTc();renderSd();renderFn();renderCm();renderMg();
+  }
+
+  // ============== toast ==============
+  let toastT;function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),2200);}
+
+  // ============== 看板图表 ==============
+  function dashRender(){
+    const data=[{m:'2月',v:12},{m:'3月',v:30},{m:'4月',v:45},{m:'5月',v:62},{m:'6月',v:80},{m:'7月',v:95}];
+    const bars=data.map((d,i)=>{const h=d.v/100*150;const x=70+i*100;return `<rect x="${x}" y="${180-h}" width="46" height="${h}" rx="6" fill="#4A7C3F"></rect><text x="${x+23}" y="196" text-anchor="middle" font-size="11" fill="#8a958c">${d.m}</text><text x="${x+23}" y="${180-h-6}" text-anchor="middle" font-size="10" fill="#3a6431">${(d.v*4.2).toFixed(0)}</text>`;}).join('');
+    document.getElementById('dashChart').innerHTML=`<svg viewBox="0 0 680 220" style="width:100%;height:200px"><line x1="40" y1="180" x2="660" y2="180" stroke="#E7EDE2" stroke-width="1"></line>${bars}</svg>`;
+  }
+
+  // ============== init ==============
+  certRender(); setRenderStats(); setRenderList(); dashRender(); stuInit(); renderRisk(); renderDist(); renderNotice(); renderCharge(); renderStaff(); renderAudit();
+</script>
+</body>
+</html>

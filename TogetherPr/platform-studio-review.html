@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>艺启 · 平台运营后台 — 工作室认证审核</title>
+<style>
+  :root{
+    --green:#4A7C3F; --green-deep:#3a6431; --green-soft:#eef4ea;
+    --wood:#8B6B3D; --mint:#F7FAF4; --line:#E7EDE2; --ink:#23332a;
+    --muted:#8a958c; --sub:#f3f7f0; --blue:#3a6ea5; --warn:#C8843C; --red:#c0563f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--mint)}
+  .app{display:flex;height:100vh;overflow:hidden}
+  /* sidebar */
+  .side{width:228px;background:linear-gradient(180deg,#2f5230,#3a6431);color:#dcead2;display:flex;flex-direction:column;flex-shrink:0}
+  .logo{padding:18px 18px 14px;font-weight:700;font-size:16px;color:#fff;border-bottom:1px solid rgba(255,255,255,.12)}
+  .logo span{font-size:12px;font-weight:400;color:#a9c79c;display:block;margin-top:2px}
+  .nav{padding:10px 8px;overflow:auto;flex:1}
+  .nav-g{font-size:11px;color:#8fae82;padding:12px 12px 6px;letter-spacing:1px}
+  .ni{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:9px;font-size:14px;cursor:pointer;color:#cfe0c4;margin:2px 0}
+  .ni:hover{background:rgba(255,255,255,.08)}
+  .ni.on{background:#fff;color:var(--green-deep);font-weight:600}
+  .ni .ic{width:18px;text-align:center}
+  .me{padding:12px 16px;border-top:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:9px;font-size:13px}
+  .ava{width:30px;height:30px;border-radius:50%;background:#cfe0c4;color:var(--green-deep);display:flex;align-items:center;justify-content:center;font-weight:700}
+  /* main */
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .topbar{height:56px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 22px;gap:10px;flex-shrink:0}
+  .crumb{color:var(--muted);font-size:14px}
+  .crumb b{color:var(--ink)}
+  .top-r{margin-left:auto;display:flex;align-items:center;gap:14px;color:var(--muted);font-size:13px}
+  .bell{position:relative;font-size:17px}
+  .bell i{position:absolute;top:-4px;right:-6px;background:var(--red);color:#fff;font-size:10px;border-radius:8px;padding:0 4px;font-style:normal}
+  .content{flex:1;overflow:auto;padding:22px 24px 40px}
+  .ph{display:flex;align-items:flex-end;gap:12px;margin-bottom:16px}
+  .ph h1{font-size:21px;color:var(--green-deep)}
+  .ph p{color:var(--muted);font-size:13px}
+  /* stats */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;position:relative}
+  .stat .n{font-size:26px;font-weight:700;color:var(--green-deep)}
+  .stat .l{font-size:13px;color:var(--muted);margin-top:2px}
+  .stat .dot{position:absolute;top:14px;right:14px;width:9px;height:9px;border-radius:50%}
+  /* toolbar */
+  .bar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  .tabs{display:flex;background:var(--sub);border-radius:10px;padding:3px}
+  .tab{padding:7px 15px;border-radius:8px;font-size:13.5px;cursor:pointer;color:var(--muted)}
+  .tab.on{background:#fff;color:var(--green-deep);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+  .search{margin-left:auto;position:relative}
+  .search input{border:1px solid var(--line);border-radius:9px;padding:8px 12px 8px 32px;width:230px;font-size:13.5px;outline:none;background:#fff}
+  .search input:focus{border-color:var(--green)}
+  .search::before{content:"🔍";position:absolute;left:10px;top:8px;font-size:13px;opacity:.6}
+  /* list */
+  .list{display:flex;flex-direction:column;gap:12px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:15px 17px;display:flex;align-items:center;gap:15px;cursor:pointer;transition:.15s}
+  .card:hover{border-color:var(--green);box-shadow:0 3px 12px rgba(74,124,63,.1)}
+  .logo2{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--green),var(--wood));color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+  .info{flex:1;min-width:0}
+  .info .nm{font-weight:700;font-size:15.5px;display:flex;align-items:center;gap:8px}
+  .info .meta{color:var(--muted);font-size:12.5px;margin-top:3px}
+  .docs{display:flex;gap:5px;margin-top:6px}
+  .dchip{font-size:11px;padding:1px 7px;border-radius:6px;background:var(--green-soft);color:var(--green-deep)}
+  .dchip.bad{background:#fbeae4;color:var(--red)}
+  .st{font-size:12px;padding:3px 10px;border-radius:999px;font-weight:600;flex-shrink:0}
+  .st.pending{background:#fff3e3;color:var(--warn)}
+  .st.approved{background:#e7f4df;color:var(--green-deep)}
+  .st.rejected{background:#fbe9e4;color:var(--red)}
+  .st.supplement{background:#e7eefb;color:var(--blue)}
+  .arr{color:var(--muted);font-size:18px;flex-shrink:0}
+  .empty{text-align:center;color:var(--muted);padding:50px 0;font-size:14px}
+  /* drawer */
+  .mask{position:fixed;inset:0;background:rgba(20,30,22,.42);opacity:0;pointer-events:none;transition:.25s;z-index:50}
+  .mask.on{opacity:1;pointer-events:auto}
+  .drawer{position:fixed;top:0;right:0;height:100vh;width:480px;max-width:92vw;background:#fff;transform:translateX(100%);transition:.28s;z-index:60;display:flex;flex-direction:column;box-shadow:-6px 0 26px rgba(0,0,0,.12)}
+  .drawer.on{transform:translateX(0)}
+  .dh{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+  .dh .tt{font-size:17px;font-weight:700;color:var(--green-deep)}
+  .dh .x{margin-left:auto;cursor:pointer;color:var(--muted);font-size:22px;line-height:1}
+  .db{flex:1;overflow:auto;padding:18px 20px}
+  .sec-t{font-size:13px;font-weight:700;color:var(--wood);margin:18px 0 9px;display:flex;align-items:center;gap:6px}
+  .sec-t:first-child{margin-top:0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+  .kv{font-size:13px}
+  .kv .k{color:var(--muted)}
+  .kv .v{color:var(--ink);font-weight:600}
+  .desc{font-size:13px;color:#455;background:var(--sub);border-radius:9px;padding:10px 12px;line-height:1.6}
+  .docrow{display:flex;gap:10px;flex-wrap:wrap}
+  .doc{width:108px;border:1px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer;background:#fff}
+  .doc .th{height:74px;display:flex;align-items:center;justify-content:center;font-size:30px}
+  .doc .cap{font-size:11.5px;padding:5px 7px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line)}
+  .doc .ck{font-size:12px}
+  .ok{color:var(--green-deep)} .no{color:var(--red)}
+  .df{flex-shrink:0}
+  .actions{border-top:1px solid var(--line);padding:14px 20px;display:flex;gap:10px;background:#fafdf8}
+  .btn{border:none;border-radius:9px;padding:10px 16px;font-size:14px;cursor:pointer;font-weight:600}
+  .btn.g{background:var(--green);color:#fff;flex:1}
+  .btn.g:hover{background:var(--green-deep)}
+  .btn.r{background:#fbe9e4;color:var(--red)}
+  .btn.b{background:#e7eefb;color:var(--blue)}
+  .btn.ghost{background:var(--sub);color:var(--muted)}
+  /* sheet */
+  .sheet{position:fixed;left:0;right:0;bottom:0;background:#fff;transform:translateY(100%);transition:.28s;z-index:70;border-radius:18px 18px 0 0;padding:18px 20px 22px;box-shadow:0 -6px 26px rgba(0,0,0,.15)}
+  .sheet.on{transform:translateY(0)}
+  .sheet h3{font-size:16px;color:var(--green-deep);margin-bottom:12px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+  .cchip{font-size:12.5px;padding:5px 11px;border-radius:999px;background:var(--sub);color:var(--muted);cursor:pointer;border:1px solid var(--line)}
+  .cchip.on{background:var(--green-soft);color:var(--green-deep);border-color:var(--green)}
+  .sheet textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13.5px;resize:none;height:84px;outline:none;font-family:inherit}
+  .sheet textarea:focus{border-color:var(--green)}
+  .srow{display:flex;gap:10px;margin-top:12px}
+  /* preview modal */
+  .pv{position:fixed;inset:0;background:rgba(20,30,22,.7);display:none;align-items:center;justify-content:center;z-index:80}
+  .pv.on{display:flex}
+  .pv .box{background:#fff;border-radius:14px;padding:18px;width:420px;max-width:90vw;text-align:center}
+  .pv .big{height:240px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:90px;margin-bottom:12px}
+  .pv .cap2{font-size:14px;font-weight:600;color:var(--ink)}
+  .pv .x2{margin-top:14px;color:var(--muted);font-size:13px;cursor:pointer}
+  /* toast */
+  .toast{position:fixed;left:50%;top:26px;transform:translateX(-50%) translateY(-20px);background:#23332a;color:#fff;padding:11px 20px;border-radius:10px;font-size:14px;opacity:0;transition:.25s;z-index:99;pointer-events:none}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  .tag-n{background:var(--green-soft);color:var(--green-deep);font-size:11px;padding:1px 8px;border-radius:6px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- sidebar -->
+  <aside class="side">
+    <div class="logo">艺启 · 平台运营<span>Platform Operations Console</span></div>
+    <nav class="nav">
+      <div class="nav-g">工作室治理</div>
+      <div class="ni on"><span class="ic">🏢</span>工作室认证/入驻</div>
+      <div class="ni"><span class="ic">📊</span>全平台数据看板</div>
+      <div class="ni"><span class="ic">🛡️</span>平台内容风控</div>
+      <div class="nav-g">资金</div>
+      <div class="ni"><span class="ic">💰</span>工作室结算/分账</div>
+      <div class="ni"><span class="ic">🔗</span>平台分销与抽成</div>
+      <div class="nav-g">运营</div>
+      <div class="ni"><span class="ic">📣</span>平台公告/活动</div>
+      <div class="ni"><span class="ic">⚙️</span>平台收费配置</div>
+      <div class="ni"><span class="ic">👤</span>平台员工与权限</div>
+    </nav>
+    <div class="me"><div class="ava">运</div><div>平台运营 · 林檬<br><span style="font-size:11px;color:#8fae82">platform_ops</span></div></div>
+  </aside>
+
+  <!-- main -->
+  <section class="main">
+    <header class="topbar">
+      <div class="crumb">平台运营 / <b>工作室认证 / 入驻</b></div>
+      <div class="top-r">
+        <div class="bell">🔔<i>3</i></div>
+        <div>2026-07-24</div>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="ph">
+        <h1>工作室认证审核</h1>
+        <p>审核入驻申请、资质材料，通过后工作室正式上架</p>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="n" id="sPending">0</div><div class="l">待审核</div><div class="dot" style="background:var(--warn)"></div></div>
+        <div class="stat"><div class="n" id="sAppr">0</div><div class="l">本周通过</div><div class="dot" style="background:var(--green)"></div></div>
+        <div class="stat"><div class="n" id="sRej">0</div><div class="l">本周驳回</div><div class="dot" style="background:var(--red)"></div></div>
+        <div class="stat"><div class="n" id="sTotal">0</div><div class="l">累计入驻</div><div class="dot" style="background:var(--wood)"></div></div>
+      </div>
+
+      <div class="bar">
+        <div class="tabs" id="tabs">
+          <div class="tab on" data-f="pending">待审核</div>
+          <div class="tab" data-f="approved">已通过</div>
+          <div class="tab" data-f="rejected">已驳回</div>
+          <div class="tab" data-f="supplement">待补充</div>
+          <div class="tab" data-f="all">全部</div>
+        </div>
+        <div class="search"><input id="q" placeholder="搜索工作室名称"></div>
+      </div>
+
+      <div class="list" id="list"></div>
+    </div>
+  </section>
+</div>
+
+<!-- drawer -->
+<div class="mask" id="mask" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="dh">
+    <div class="tt">工作室认证详情</div>
+    <div class="x" onclick="closeDrawer()">×</div>
+  </div>
+  <div class="db" id="db"></div>
+  <div class="actions" id="acts"></div>
+</div>
+
+<!-- reject sheet -->
+<div class="mask" id="mask2" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <h3>驳回申请 · 填写理由</h3>
+  <div class="chips" id="rchips">
+    <div class="cchip" data-r="营业执照不清晰或已过期">营业执照不清晰/过期</div>
+    <div class="cchip" data-r="缺少办学许可证">缺少办学许可证</div>
+    <div class="cchip" data-r="师资证明不足">师资证明不足</div>
+    <div class="cchip" data-r="场地照片不符合要求">场地照片不符</div>
+    <div class="cchip" data-r="信息与其他平台重复/疑似虚假">疑似虚假信息</div>
+  </div>
+  <textarea id="rreason" placeholder="请说明驳回原因，将通知申请人…"></textarea>
+  <div class="srow">
+    <button class="btn ghost" style="flex:1" onclick="closeSheet()">取消</button>
+    <button class="btn r" style="flex:1" onclick="submitReject()">确认驳回</button>
+  </div>
+</div>
+
+<!-- doc preview -->
+<div class="pv" id="pv" onclick="closePv()">
+  <div class="box">
+    <div class="big" id="pvBig">📄</div>
+    <div class="cap2" id="pvCap"></div>
+    <div class="x2">点击任意处关闭</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ---------- 数据 ----------
+  const apps = [
+    {id:'S2041', name:'小树苗艺术工作室', emoji:'🌱', owner:'周敏', phone:'138****6021', city:'杭州·西湖区',
+     addr:'文三路 456 号 2 层', cat:'儿童画 / 创意手工', submitted:'07-24 09:12', status:'pending',
+     desc:'深耕 3-8 岁创意美术，主打自然主题课程，现有 2 名全职老师。',
+     students:34, years:3,
+     docs:[{t:'营业执照',ok:true,ic:'📄',c1:'#eef4ea',c2:'#cfe0c4'},
+           {t:'办学许可证',ok:true,ic:'📜',c1:'#e7eefb',c2:'#cdddf5'},
+           {t:'师资证明',ok:false,ic:'⚠️',c1:'#fbeae4',c2:'#f3c9bd'},
+           {t:'场地照片',ok:true,ic:'🏞️',c1:'#eef7f0',c2:'#cdebd4'}]},
+    {id:'S2042', name:'彩翼少儿美术馆', emoji:'🎨', owner:'李文博', phone:'139****8842', city:'成都·高新区',
+     addr:'天府大道 88 号 5F', cat:'国画 / 书法 / 素描', submitted:'07-23 17:40', status:'pending',
+     desc:'连锁品牌西南首店，配置 4 间专业画室与展厅。',
+     students:0, years:8,
+     docs:[{t:'营业执照',ok:true,ic:'📄',c1:'#eef4ea',c2:'#cfe0c4'},
+           {t:'办学许可证',ok:true,ic:'📜',c1:'#e7eefb',c2:'#cdddf5'},
+           {t:'师资证明',ok:true,ic:'🎓',c1:'#eef7f0',c2:'#cdebd4'},
+           {t:'场地照片',ok:true,ic:'🏞️',c1:'#fbf3e6',c2:'#f0dcc0'}]},
+    {id:'S2039', name:'童画里亲子画室', emoji:'🖍️', owner:'陈静', phone:'137****2210', city:'南京·建邺区',
+     addr:'江东中路 12 号', cat:'亲子美术 / 绘本', submitted:'07-22 11:05', status:'supplement',
+     desc:'社区型亲子画室，申请补充场地消防证明。',
+     students:21, years:2,
+     docs:[{t:'营业执照',ok:true,ic:'📄',c1:'#eef4ea',c2:'#cfe0c4'},
+           {t:'办学许可证',ok:false,ic:'⚠️',c1:'#fbeae4',c2:'#f3c9bd'},
+           {t:'师资证明',ok:true,ic:'🎓',c1:'#eef7f0',c2:'#cdebd4'},
+           {t:'场地照片',ok:true,ic:'🏞️',c1:'#eef7f0',c2:'#cdebd4'}]},
+    {id:'S2030', name:'墨韵书法学堂', emoji:'🖌️', owner:'赵磊', phone:'135****7733', city:'苏州·工业园区',
+     addr:'星海街 9 号', cat:'硬笔 / 软笔书法', submitted:'07-20 14:22', status:'approved',
+     desc:'专注少儿书法启蒙，已通过认证并上架。',
+     students:58, years:5,
+     docs:[{t:'营业执照',ok:true,ic:'📄',c1:'#eef4ea',c2:'#cfe0c4'},
+           {t:'办学许可证',ok:true,ic:'📜',c1:'#e7eefb',c2:'#cdddf5'},
+           {t:'师资证明',ok:true,ic:'🎓',c1:'#eef7f0',c2:'#cdebd4'},
+           {t:'场地照片',ok:true,ic:'🏞️',c1:'#eef7f0',c2:'#cdebd4'}]},
+    {id:'S2027', name:'彩虹豆艺术中心', emoji:'🌈', owner:'吴芳', phone:'136****1190', city:'武汉·武昌区',
+     addr:'中南路 33 号', cat:'综合艺术 / 舞蹈', submitted:'07-18 10:48', status:'rejected',
+     desc:'因缺少办学许可证且场地为住宅被驳回。',
+     students:0, years:1, reason:'缺少办学许可证，场地不符合办学要求',
+     docs:[{t:'营业执照',ok:true,ic:'📄',c1:'#eef4ea',c2:'#cfe0c4'},
+           {t:'办学许可证',ok:false,ic:'⚠️',c1:'#fbeae4',c2:'#f3c9bd'},
+           {t:'师资证明',ok:false,ic:'⚠️',c1:'#fbeae4',c2:'#f3c9bd'},
+           {t:'场地照片',ok:false,ic:'⚠️',c1:'#fbeae4',c2:'#f3c9bd'}]}
+  ];
+
+  const stMap={pending:['待审核','pending'],approved:['已通过','approved'],rejected:['已驳回','rejected'],supplement:['待补充','supplement']};
+  let curFilter='pending', curQ='', curApp=null, rejectId=null;
+
+  // ---------- 渲染 ----------
+  function render(){
+    const list=document.getElementById('list');
+    let data=apps.filter(a=>curFilter==='all'?true:a.status===curFilter);
+    if(curQ) data=data.filter(a=>a.name.includes(curQ)||a.owner.includes(curQ)||a.id.includes(curQ));
+    document.getElementById('sPending').textContent=apps.filter(a=>a.status==='pending').length;
+    document.getElementById('sAppr').textContent=apps.filter(a=>a.status==='approved').length;
+    document.getElementById('sRej').textContent=apps.filter(a=>a.status==='rejected').length;
+    document.getElementById('sTotal').textContent=apps.filter(a=>a.status==='approved').length;
+    if(!data.length){list.innerHTML='<div class="empty">暂无符合条件的申请</div>';return;}
+    list.innerHTML=data.map(a=>{
+      const [label,cls]=stMap[a.status];
+      const docs=a.docs.map(d=>`<span class="dchip ${d.ok?'':'bad'}">${d.t}${d.ok?'✓':'✕'}</span>`).join('');
+      return `<div class="card" onclick="openDrawer('${a.id}')">
+        <div class="logo2">${a.emoji}</div>
+        <div class="info">
+          <div class="nm">${a.name} <span class="tag-n">${a.id}</span></div>
+          <div class="meta">申请人 ${a.owner} · ${a.city} · 提交 ${a.submitted}</div>
+          <div class="docs">${docs}</div>
+        </div>
+        <div class="st ${cls}">${label}</div>
+        <div class="arr">›</div>
+      </div>`;
+    }).join('');
+  }
+
+  function openDrawer(id){
+    curApp=apps.find(a=>a.id===id);
+    const a=curApp;
+    const [label,cls]=stMap[a.status];
+    const docs=a.docs.map((d,i)=>`<div class="doc" onclick="event.stopPropagation();preview('${d.t}','${d.ic}','${d.c1}','${d.c2}',${d.ok})">
+      <div class="th" style="background:linear-gradient(135deg,${d.c1},${d.c2})">${d.ic}</div>
+      <div class="cap"><span>${d.t}</span><span class="ck ${d.ok?'ok':'no'}">${d.ok?'✓':'✕'}</span></div>
+    </div>`).join('');
+    document.getElementById('db').innerHTML=`
+      <div class="sec-t">📋 基本信息</div>
+      <div class="grid2">
+        <div class="kv"><div class="k">工作室名称</div><div class="v">${a.name}</div></div>
+        <div class="kv"><div class="k">申请编号</div><div class="v">${a.id}</div></div>
+        <div class="kv"><div class="k">申请人</div><div class="v">${a.owner}</div></div>
+        <div class="kv"><div class="k">联系电话</div><div class="v">${a.phone}</div></div>
+        <div class="kv"><div class="k">所在城市</div><div class="v">${a.city}</div></div>
+        <div class="kv"><div class="k">详细地址</div><div class="v">${a.addr}</div></div>
+        <div class="kv"><div class="k">课程方向</div><div class="v">${a.cat}</div></div>
+        <div class="kv"><div class="k">办学年限</div><div class="v">${a.years} 年</div></div>
+      </div>
+      <div class="sec-t">📝 简介</div>
+      <div class="desc">${a.desc}</div>
+      <div class="sec-t">📎 资质材料（点击预览）</div>
+      <div class="docrow">${docs}</div>
+      ${a.reason?`<div class="sec-t">⛔ 驳回原因</div><div class="desc" style="background:#fbe9e4;color:#a8432c">${a.reason}</div>`:''}
+    `;
+    // actions
+    const acts=document.getElementById('acts');
+    if(a.status==='pending'){
+      acts.innerHTML=`<button class="btn b" onclick="reqSupplement('${a.id}')">要求补充材料</button>
+        <button class="btn r" onclick="openSheet('${a.id}')">驳回</button>
+        <button class="btn g" onclick="approve('${a.id}')">通过认证</button>`;
+    }else if(a.status==='supplement'){
+      acts.innerHTML=`<button class="btn g" onclick="approve('${a.id}')">补充后通过</button>
+        <button class="btn r" onclick="openSheet('${a.id}')">驳回</button>`;
+    }else{
+      acts.innerHTML=`<button class="btn ghost" style="flex:1" onclick="closeDrawer()">${a.status==='approved'?'已上架':'已驳回'} · 关闭</button>`;
+    }
+    document.getElementById('drawer').classList.add('on');
+    document.getElementById('mask').classList.add('on');
+  }
+  function closeDrawer(){document.getElementById('drawer').classList.remove('on');document.getElementById('mask').classList.remove('on');}
+
+  // ---------- 操作 ----------
+  function approve(id){
+    const a=apps.find(x=>x.id===id);a.status='approved';a.reason='';
+    toast(`已通过 ${a.name} 的认证，工作室已激活并上架`);closeDrawer();render();
+  }
+  function reqSupplement(id){
+    const a=apps.find(x=>x.id===id);a.status='supplement';
+    toast(`已要求 ${a.name} 补充材料，通知已发送`);closeDrawer();render();
+  }
+  function openSheet(id){rejectId=id;document.getElementById('sheet').classList.add('on');document.getElementById('mask2').classList.add('on');}
+  function closeSheet(){document.getElementById('sheet').classList.remove('on');document.getElementById('mask2').classList.remove('on');document.getElementById('rreason').value='';document.querySelectorAll('.cchip').forEach(c=>c.classList.remove('on'));}
+  function submitReject(){
+    const a=apps.find(x=>x.id===rejectId);if(!a)return;
+    const r=document.getElementById('rreason').value.trim();
+    if(!r){toast('请填写驳回原因');return;}
+    a.status='rejected';a.reason=r;
+    toast(`已驳回 ${a.name}：${r}`);closeSheet();closeDrawer();render();
+  }
+  // reject reason chips
+  document.querySelectorAll('.cchip').forEach(c=>c.addEventListener('click',()=>{
+    const on=c.classList.contains('on');document.querySelectorAll('.cchip').forEach(x=>x.classList.remove('on'));
+    if(!on){c.classList.add('on');document.getElementById('rreason').value=c.dataset.r;}
+  }));
+
+  // ---------- 预览 ----------
+  function preview(t,ic,c1,c2,ok){
+    document.getElementById('pvBig').textContent=ic;
+    document.getElementById('pvBig').style.background=`linear-gradient(135deg,${c1},${c2})`;
+    document.getElementById('pvCap').textContent=`${t} ${ok?'（已通过核验）':'（待补充/不符）'}`;
+    document.getElementById('pv').classList.add('on');
+  }
+  function closePv(){document.getElementById('pv').classList.remove('on');}
+
+  // ---------- 交互绑定 ----------
+  document.getElementById('tabs').addEventListener('click',e=>{
+    if(!e.target.dataset.f)return;
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+    e.target.classList.add('on');curFilter=e.target.dataset.f;render();
+  });
+  document.getElementById('q').addEventListener('input',e=>{curQ=e.target.value.trim();render();});
+
+  function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2400);}
+
+  render();
+</script>
+</body>
+</html>

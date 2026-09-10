@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>艺启 · Web 管理端（工作室后台）技术栈与功能规划</title>
+<style>
+  :root{
+    --green:#4A7C3F; --green-deep:#3a6431; --wood:#8B6B3D; --mint:#F7FAF4;
+    --line:#E7EDE2; --ink:#23332a; --muted:#7c8a7f; --sub:#f3f7f0;
+    --warn:#C8843C; --blue:#3a6ea5;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--mint);color:var(--ink);
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6}
+  .topbar{background:linear-gradient(100deg,var(--green-deep),var(--green));color:#fff;
+    padding:14px 22px;font-weight:600;letter-spacing:.5px;font-size:15px}
+  .topbar b{color:#eafbe2}
+  .main{max-width:1080px;margin:22px auto;padding:0 18px 60px}
+  .sec{margin:26px 0}
+  .sec-h{display:flex;align-items:center;gap:8px;font-size:19px;font-weight:700;
+    color:var(--green-deep);border-left:5px solid var(--green);padding-left:12px;margin:0 0 12px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;
+    margin:12px 0;box-shadow:0 1px 3px rgba(74,124,63,.05)}
+  .ch{font-weight:700;color:var(--wood);font-size:15px;margin-bottom:6px}
+  .cd{color:#455;font-size:14px}
+  .muted{color:var(--muted);font-weight:400;font-size:13px}
+  .pill{display:inline-block;background:var(--sub);color:var(--green-deep);border:1px solid var(--line);
+    border-radius:999px;padding:1px 10px;font-size:12px;margin:2px 4px 2px 0}
+  .type{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#eef4ea;color:var(--green-deep);
+    padding:1px 6px;border-radius:5px;font-size:12.5px}
+  .pk{color:#b8632e;font-weight:700}.fk{color:#3a6ea5;font-weight:700}.opt{color:var(--muted)}
+  .k{font-family:ui-monospace,Menlo,monospace;color:var(--wood);font-weight:600}
+  table{width:100%;border-collapse:collapse;margin:8px 0;font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--sub);color:var(--green-deep);font-weight:700}
+  tr:nth-child(even) td{background:#fbfdf9}
+  ul.tight{margin:6px 0 4px;padding-left:20px}
+  ul.tight li{margin:3px 0}
+  .note{border-radius:10px;padding:10px 14px;font-size:13.5px;margin:10px 0}
+  .ok{background:#eef6ea;border:1px solid #cfe3c4;color:#3a6431}
+  .warn{background:#fbf2e6;border:1px solid #ecd6b8;color:var(--warn)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .road{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}
+  .mil{flex:1;min-width:150px;background:#fff;border:1px solid var(--line);border-top:3px solid var(--green);
+    border-radius:0 0 12px 12px;padding:10px 12px}
+  .mil b{color:var(--green-deep)}
+  .tag{display:inline-block;background:var(--green);color:#fff;border-radius:6px;padding:1px 8px;font-size:12px;margin-right:6px}
+  .diag{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0}
+  svg text{font-family:-apple-system,"PingFang SC",sans-serif}
+</style>
+</head>
+<body>
+<div class="topbar">艺启 · 儿童艺术教育平台 — <b>Web 管理端（工作室后台）技术栈与功能规划</b></div>
+<div class="main">
+
+  <!-- 0 定位 -->
+  <div class="sec">
+    <div class="sec-h">① 管理端定位与使用者</div>
+    <div class="card">
+      <div class="cd">
+        管理端（B 端）同时承载两类使用者：<b>平台员工</b>（运营整盘：工作室认证、全平台风控、结算分账、平台规则）与<b>工作室员工</b>（老板 / 运营 / 教务，经营单店）。两者共用同一套 Web 后台，靠<b>角色 + 数据范围</b>区分——平台角色跨工作室（ALL），工作室角色仅本租户。<b>老师不设 Web 角色</b>：老师在 App 端完成发帖/消课/点评，Web 端的班级/学员/消课记录由 studio_owner/ops 管理。<br>
+        与移动端关系：移动端负责「家长购课 / 老师发帖消课 / 学员看成长」，管理端负责「配课、排班、审单、算账、看数据 <b>+ 平台治理</b>」。<b>共享同一套数据库与业务表</b>，管理端以「写 + 经营/治理分析」为主，移动端以「读 + 业务触发」为主。
+      </div>
+      <div style="margin-top:10px">
+        <span class="pill">平台级：platform_super 平台超管</span>
+        <span class="pill">platform_ops 平台运营</span>
+        <span class="pill">工作室级：studio_owner 工作室主</span>
+        <span class="pill">studio_ops 运营/教务</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1 技术栈 -->
+  <div class="sec">
+    <div class="sec-h">② 技术栈（前端已定 Vue3 + Element Plus）</div>
+    <div class="card">
+      <div class="ch">🧱 前端</div>
+      <ul class="tight">
+        <li><b>框架</b>：Vue 3（<span class="type">Composition API</span>）+ <b>Vite</b> + <b>TypeScript</b></li>
+        <li><b>UI 组件库</b>：<b>Element Plus</b>（表格 / 表单 / 弹窗 / 上传 / 树选，中后台开箱即用）</li>
+        <li><b>状态/路由/请求</b>：<b>Pinia</b> + <b>Vue Router 4</b> + <b>Axios</b>（统一拦截器：token、错误、loading）</li>
+        <li><b>图表</b>：<b>ECharts</b>（经营看板、营收趋势、出勤率）</li>
+        <li><b>工具</b>：<b>dayjs</b>（时间，与后端一致）、<b>vue-clipboard3</b>（分销链接复制）、富文本（动态/公告，可选 <span class="type">@wangeditor</span>）</li>
+        <li><b>权限</b>：前端菜单/按钮级权限由后端返回的角色+权限码驱动（<span class="type">v-permission</span> 指令 + 动态路由）</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="ch">🧱 后端（复用现有 Node/Express，新增 /admin 模块 + RBAC）</div>
+      <ul class="tight">
+        <li><b>复用</b>：Node.js + <b>Express</b> + <b>MySQL</b> + <b>Sequelize</b> + <b>Redis</b> + <b>dayjs</b> + <b>bcrypt</b> + <b>crypto</b> + <b>cors</b> + <b>ali-oss</b> + 雪花 <b>bigint</b> ID</li>
+        <li><b>新增</b>：<span class="type">/admin/*</span> 路由分组、<b>RBAC 中间件</b>（菜单/接口/数据范围）、<b>操作审计日志</b>、<b>Excel 导出</b>（<span class="type">exceljs</span>）</li>
+        <li><b>鉴权</b>：管理端独立 <b>JWT</b>（<span class="type">/admin/login</span> 签发 admin token），与移动端 X-Role 体系隔离；所有写操作强制带 <span class="type">studio_id</span> 行级过滤</li>
+        <li><b>实时</b>：WebSocket 复用（订单提醒、退款待办、新请假推送给教务）</li>
+      </ul>
+      <div class="note ok">复用现有后端 + RBAC 的理由：省一套服务与运维，管理端与 C 端共享业务表与事务（退款审核直接改 <span class="type">refunds</span>、手动消课直接动 <span class="type">lesson_log</span>），数据天然一致。代价是用路由前缀 + 权限中间件做好边界隔离。</div>
+    </div>
+  </div>
+
+  <!-- 2 权限 RBAC -->
+  <div class="sec">
+    <div class="sec-h">③ 权限模型（RBAC + 行级数据隔离）</div>
+    <div class="card">
+      <table>
+        <tr><th>层级</th><th>角色</th><th>数据范围</th><th>典型权限</th></tr>
+        <tr><td rowspan="2"><b>平台级</b><br><span class="muted">艺启平台员工</span></td><td><span class="k">platform_super</span></td><td>全部工作室（ALL）</td><td>全部：工作室认证/封禁、全平台数据、结算分账、平台规则与收费</td></tr>
+        <tr><td><span class="k">platform_ops</span></td><td>全部工作室（ALL）</td><td>工作室入驻审核、全平台内容风控、平台公告/活动、结算初审</td></tr>
+        <tr><td rowspan="2"><b>工作室级</b><br><span class="muted">单工作室员工</span></td><td><span class="k">studio_owner</span></td><td>本工作室</td><td>全部：课程/班级/排课/订单/退款/分销/财务/员工账号</td></tr>
+        <tr><td><span class="k">studio_ops</span></td><td>本工作室</td><td>排课、学员、订单处理、退款初审、内容审核、消息</td></tr>
+      </table>
+      <ul class="tight">
+        <li><b>两级管控</b>：平台级（跨工作室，运营整盘）+ 工作室级（单租户）。平台角色登录后可「下钻某工作室」查看其后台；工作室角色只能看本工作室。</li>
+        <li><b>三级粒度</b>：菜单权限（能否看到页面）→ 接口权限（能否调 API）→ 按钮权限（能否点「审核/导出」）</li>
+        <li><b>数据范围</b>：工作室角色（owner/ops）查询自动注入 <span class="type">WHERE studio_id = ?</span>；平台角色 <span class="type">studio_id = ALL</span>（可下钻具体 studio_id）。App 端老师数据按 <span class="type">teacher_id</span> 隔离（Web 端不另设老师角色）。</li>
+        <li><b>表</b>：<span class="type">admin_users</span> / <span class="type">roles</span> / <span class="type">permissions</span> / <span class="type">role_permissions</span> / <span class="type">admin_studio_map</span> / <span class="type">audit_logs</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 3 功能模块 -->
+  <div class="sec">
+    <div class="sec-h">④ 功能模块规划（12 大模块）</div>
+    <div class="grid2">
+      <div class="card"><div class="ch">A. 工作台 Dashboard</div>
+        <div class="cd">经营概览卡片（今日订单/消课数/新增学员/待办：请假·退款·认证）、近 30 天营收趋势(ECharts)、班级出勤概览、待办清单一键处理。</div></div>
+      <div class="card"><div class="ch">B. 课程管理</div>
+        <div class="cd">课程 CRUD、封面/介绍/价格/课时包编辑、上架下架、课程分类；关联老师可选的授课范围。</div></div>
+      <div class="card"><div class="ch">C. 班级管理</div>
+        <div class="cd">班级列表、新建班级（关联课程+老师+排课）、班级详情（学生名单、课表、消课进度、剩余课时）。</div></div>
+      <div class="card"><div class="ch">D. 排课管理</div>
+        <div class="cd">周课表视图（日历/甘特）、新增排课、调课/代课、老师-教室冲突检测、批量排课。</div></div>
+      <div class="card"><div class="ch">E. 老师管理</div>
+        <div class="cd">老师列表、入驻资质审核、课表与带班、请假/排班、授课评价。</div></div>
+      <div class="card"><div class="ch">F. 学员管理</div>
+        <div class="cd">学员列表（关联家长）、报名/转班记录、课时余额、请假记录、成长档案查看、手动消课/调课。</div></div>
+      <div class="card"><div class="ch">G. 订单与交易</div>
+        <div class="cd">订单列表（购课/续费）、支付流水、<b>退款审核工作流</b>（申请→审核→打款）、发票管理。</div></div>
+      <div class="card"><div class="ch">H. 分销管理</div>
+        <div class="cd">分销员（家长/推广人）列表、分销链接生成、返利规则配置、返利结算与提现审核。</div></div>
+      <div class="card"><div class="ch">I. 内容管理</div>
+        <div class="cd">动态/作品审核（下架/精选）、话题管理、社区氛围与举报处理。</div></div>
+      <div class="card"><div class="ch">J. 消息与通知</div>
+        <div class="cd">通知模板配置、推送记录、系统公告、WebSocket 实时提醒开关。</div></div>
+      <div class="card"><div class="ch">K. 工作室设置</div>
+        <div class="cd">工作室资料、资质认证（营业执照/办学许可）、校区/门店、员工账号与 RBAC、收款账户。</div></div>
+      <div class="card"><div class="ch">L. 财务对账</div>
+        <div class="cd">营收/退款/分销结算报表、按日/月对账、<b>Excel 导出</b>、提现对账。</div></div>
+    </div>
+
+    <div class="sec-h" style="font-size:16px;margin:18px 0 4px">④B 平台运营模块（平台角色专属 · 跨工作室）</div>
+    <div class="grid2">
+      <div class="card"><div class="ch">P1. 工作室认证/入驻</div>
+        <div class="cd">入驻申请列表、资质审核（营业执照/办学许可/师资）、工作室上下架/封禁、生命周期管理。</div></div>
+      <div class="card"><div class="ch">P2. 全平台数据看板</div>
+        <div class="cd">总 GMV、新增工作室/学员、各工作室排行、转化漏斗（ECharts 全平台视角）。</div></div>
+      <div class="card"><div class="ch">P3. 平台内容风控</div>
+        <div class="cd">全平台动态/作品/举报审核、敏感词库、全网下架与回溯、违规工作室处置。</div></div>
+      <div class="card"><div class="ch">P4. 工作室结算/分账</div>
+        <div class="cd">平台与服务商的结算单、抽成配置、对公打款、开票与对账（平台收付侧）。</div></div>
+      <div class="card"><div class="ch">P5. 平台分销与抽成</div>
+        <div class="cd">全局分销规则、平台↔工作室分润比例、分销员跨店归属与反作弊。</div></div>
+      <div class="card"><div class="ch">P6. 平台公告/运营活动</div>
+        <div class="cd">全站推送、活动/专题配置、Banner 与首页运营位、平台级短信/通知模板。</div></div>
+      <div class="card"><div class="ch">P7. 平台收费配置</div>
+        <div class="cd">服务费/抽佣比例、套餐与权益、入驻门槛与认证要求配置。</div></div>
+      <div class="card"><div class="ch">P8. 平台员工与权限</div>
+        <div class="cd">平台侧 admin 账号、角色分配、操作审计，可「下钻」任意工作室后台。</div></div>
+    </div>
+    <div class="note ok">模块分两级：<b>工作室级 12 模块</b>（A–L，单租户经营）+ <b>平台级 8 模块</b>（P1–P8，跨工作室治理），均与后端表一一对应（courses / classes / schedules / orders / refunds / distributions / works / growth_* / studio_* / teacher_* / audit_logs / platform_config 等）。管理端「写」这些表，移动端「读 + 业务触发」。</div>
+  </div>
+
+  <!-- 4 路由清单 -->
+  <div class="sec">
+    <div class="sec-h">⑤ 页面 / 路由清单（示例）</div>
+    <div class="card">
+      <table>
+        <tr><th>模块</th><th>路由</th><th>页面</th><th>主要接口</th></tr>
+        <tr><td>登录</td><td><span class="type">/admin/login</span></td><td>管理端登录</td><td>POST /admin/login</td></tr>
+        <tr><td>A</td><td><span class="type">/admin/dashboard</span></td><td>经营看板</td><td>GET /admin/stats/overview</td></tr>
+        <tr><td>B</td><td><span class="type">/admin/courses</span></td><td>课程列表/编辑</td><td>GET/POST/PUT /admin/courses</td></tr>
+        <tr><td>C</td><td><span class="type">/admin/classes</span></td><td>班级/详情</td><td>GET/POST /admin/classes · /:id</td></tr>
+        <tr><td>D</td><td><span class="type">/admin/schedule</span></td><td>周课表</td><td>GET /admin/schedules/week · POST /admin/schedules</td></tr>
+        <tr><td>E</td><td><span class="type">/admin/teachers</span></td><td>老师/审核</td><td>GET /admin/teachers · PUT /admin/teachers/:id/audit</td></tr>
+        <tr><td>F</td><td><span class="type">/admin/students</span></td><td>学员/档案</td><td>GET /admin/students · POST /admin/students/:id/consume</td></tr>
+        <tr><td>G</td><td><span class="type">/admin/orders</span></td><td>订单/退款</td><td>GET /admin/orders · PUT /admin/refunds/:id</td></tr>
+        <tr><td>H</td><td><span class="type">/admin/distribution</span></td><td>分销/结算</td><td>GET /admin/distribution/links · PUT /admin/withdrawals/:id</td></tr>
+        <tr><td>I</td><td><span class="type">/admin/content</span></td><td>内容审核</td><td>GET /admin/posts · PUT /admin/posts/:id/moderate</td></tr>
+        <tr><td>J</td><td><span class="type">/admin/notify</span></td><td>通知/公告</td><td>GET/POST /admin/notifications</td></tr>
+        <tr><td>K</td><td><span class="type">/admin/settings</span></td><td>设置/RBAC</td><td>GET/PUT /admin/studio · /admin/staff</td></tr>
+        <tr><td>L</td><td><span class="type">/admin/finance</span></td><td>对账/导出</td><td>GET /admin/finance/report · export</td></tr>
+        <tr style="background:#f1f6ee"><td>P</td><td><span class="type">/admin/platform/studios</span></td><td>工作室认证/入驻</td><td>GET /admin/platform/studios · PUT /admin/platform/studios/:id/audit</td></tr>
+        <tr style="background:#f1f6ee"><td>P</td><td><span class="type">/admin/platform/stats</span></td><td>全平台看板</td><td>GET /admin/platform/stats</td></tr>
+        <tr style="background:#f1f6ee"><td>P</td><td><span class="type">/admin/platform/moderation</span></td><td>平台风控</td><td>GET /admin/platform/reports · PUT /admin/platform/posts/:id/moderate</td></tr>
+        <tr style="background:#f1f6ee"><td>P</td><td><span class="type">/admin/platform/settlement</span></td><td>结算/分账</td><td>GET /admin/platform/settlements · PUT /admin/platform/settlements/:id/payout</td></tr>
+        <tr style="background:#f1f6ee"><td>P</td><td><span class="type">/admin/platform/config</span></td><td>抽成/收费配置</td><td>GET/PUT /admin/platform/config</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 5 与移动端复用 -->
+  <div class="sec">
+    <div class="sec-h">⑥ 与移动端 API / 表的复用关系</div>
+    <div class="diag">
+      <svg viewBox="0 0 680 230" width="100%">
+        <defs>
+          <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+            <path d="M0,0 L9,4.5 L0,9 Z" fill="#4A7C3F"/>
+          </marker>
+        </defs>
+        <!-- 管理端 -->
+        <rect x="20" y="30" width="150" height="60" rx="10" fill="#4A7C3F"/>
+        <text x="95" y="56" fill="#fff" font-size="14" font-weight="700" text-anchor="middle">Web 管理端</text>
+        <text x="95" y="76" fill="#eafbe2" font-size="11" text-anchor="middle">Vue3 + Element Plus</text>
+        <!-- 网关/路由 -->
+        <rect x="215" y="30" width="120" height="60" rx="10" fill="#8B6B3D"/>
+        <text x="275" y="56" fill="#fff" font-size="13" font-weight="700" text-anchor="middle">Express 路由</text>
+        <text x="275" y="76" fill="#f3e7d4" font-size="11" text-anchor="middle">/admin + RBAC</text>
+        <!-- 移动端 -->
+        <rect x="215" y="140" width="120" height="60" rx="10" fill="#3a6ea5"/>
+        <text x="275" y="166" fill="#fff" font-size="13" font-weight="700" text-anchor="middle">移动端 API</text>
+        <text x="275" y="186" fill="#dcebff" font-size="11" text-anchor="middle">/v1 + X-Role</text>
+        <!-- 共享服务 -->
+        <rect x="410" y="30" width="240" height="170" rx="12" fill="#F7FAF4" stroke="#cfe3c4"/>
+        <text x="530" y="54" fill="#3a6431" font-size="13" font-weight="700" text-anchor="middle">共享业务层（复用）</text>
+        <text x="430" y="84" fill="#23332a" font-size="12">• Sequelize Models（courses/classes/</text>
+        <text x="430" y="104" fill="#23332a" font-size="12">  orders/refunds/distribution/...）</text>
+        <text x="430" y="124" fill="#23332a" font-size="12">• MySQL（雪花 bigint 主键）</text>
+        <text x="430" y="144" fill="#23332a" font-size="12">• Redis（token/热点/锁）</text>
+        <text x="430" y="164" fill="#23332a" font-size="12">• ali-oss（作品/资质图）</text>
+        <text x="430" y="184" fill="#23332a" font-size="12">• 事务+行锁（并发消课/退款）</text>
+        <line x1="170" y1="60" x2="213" y2="60" stroke="#4A7C3F" stroke-width="2" marker-end="url(#ar)"/>
+        <line x1="170" y1="170" x2="213" y2="170" stroke="#3a6ea5" stroke-width="2" marker-end="url(#ar)"/>
+        <line x1="335" y1="60" x2="408" y2="80" stroke="#4A7C3F" stroke-width="2" marker-end="url(#ar)"/>
+        <line x1="335" y1="170" x2="408" y2="150" stroke="#3a6ea5" stroke-width="2" marker-end="url(#ar)"/>
+      </svg>
+    </div>
+    <div class="note">管理端「写」、移动端「读 + 业务触发」共享同一批表；<b>平台角色可跨工作室读写</b>（<span class="type">studio_id = ALL</span>，可下钻单店），工作室角色仅本租户。如「手动消课」「退款审核」由管理端在事务内直接修改 <span class="type">lesson_log</span> / <span class="type">refunds</span>，移动端实时可见。</div>
+  </div>
+
+  <!-- 6 实施阶段 -->
+  <div class="sec">
+    <div class="sec-h">⑦ 实施阶段（里程碑）</div>
+    <div class="road">
+      <div class="mil"><b>M1 脚手架+权限</b><br>Vite+Vue3+Element Plus 工程、Pinia/Router、Axios、RBAC 登录、动态菜单、工作台雏形。</div>
+      <div class="mil"><b>M2 教务核心</b><br>课程、班级、排课（周课表）、老师管理 CRUD 与审核。</div>
+      <div class="mil"><b>M3 交易与钱</b><br>订单、支付流水、退款审核工作流、分销与提现结算。</div>
+      <div class="mil"><b>M4 内容与数据</b><br>内容审核、消息通知、ECharts 经营看板、Excel 对账导出。</div>
+      <div class="mil"><b>M5 打磨</b><br>细粒度按钮权限、操作审计日志、性能与体验、灰度。</div>
+    </div>
+    <div class="note ok" style="margin-top:10px">平台级模块（P1–P8）建议作为<b>独立并行轨道</b>推进：优先做 <b>P1 工作室认证 + P2 全平台看板 + P4 结算</b>（支撑「工作室入驻→经营→平台抽成回收」闭环）；P3/P5/P6/P7/P8 随规模逐步补齐。平台与工作室共用同一套 RBAC 与 <span class="type">/admin</span> 路由，仅数据范围不同（ALL vs 单 studio_id）。</div>
+  </div>
+
+  <!-- 7 关键技术点 -->
+  <div class="sec">
+    <div class="sec-h">⑧ 关键技术点 / 风险</div>
+    <div class="card">
+      <ul class="tight">
+        <li><span class="tag">隔离</span><b>行级数据隔离（租户）</b>：所有列表/写接口中间件自动注入 <span class="type">studio_id</span>；平台角色为 <span class="type">ALL</span>（可下钻单店），工作室角色锁定本工作室，防越权看别家数据。</li>
+        <li><span class="tag">并发</span><b>并发消课/退款</b>：沿用移动端方案——<span class="type">transaction</span> + 行锁（<span class="type">SELECT ... FOR UPDATE</span>），管理端手动调课同样走此路径防超扣。</li>
+        <li><span class="tag">幂等</span><b>退款/支付回调</b>：以 <span class="type">out_trade_no</span> / 退款单号做幂等键，Redis 防重。</li>
+        <li><span class="tag">上传</span><b>ali-oss 直传</b>：后端签发 STS/签名 URL，前端直传，仅存 URL 到库。</li>
+        <li><span class="tag">审计</span><b>操作日志</b>：关键写操作（审课/审退款/改课时）落 <span class="type">audit_logs</span>，便于追溯。</li>
+        <li><span class="tag">权限</span><b>前端不信任</b>：菜单可隐藏，但接口仍需后端 RBAC 二次校验（防绕过）。</li>
+      </ul>
+    </div>
+  </div>
+
+  <p class="muted">本文件为单文件、零依赖 HTML，可换电脑直接打开。规划基于已定的移动端后端栈（Node+Express+MySQL+Sequelize+Redis+dayjs+bcrypt+crypto+cors+ali-oss+雪花 ID）与 Vue3+Element Plus 前端框架。管理端含<b>平台级（P1–P8）</b>与<b>工作室级（A–L）</b>两级。下一步：① 立 Vite 工程与 RBAC 登录（含 platform/studio 双层级）；② 落 admin_users/roles/permissions/audit_logs/platform_config 表；③ 工作室 M1→M5 与平台 P1/P2/P4 并行推进。</p>
+</div>
+</body>
+</html>
