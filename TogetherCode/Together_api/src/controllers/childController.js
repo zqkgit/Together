@@ -2,6 +2,8 @@ const { ok, fail } = require("../utils/response");
 const {
   listChildren,
   getChildDetail,
+  getChildGrowth,
+  listChildWorks,
   createChild,
   updateChild
 } = require("../services/childService");
@@ -37,6 +39,32 @@ async function postChild(req, res) {
   }
 }
 
+async function getChildGrowthDetail(req, res) {
+  try {
+    const data = await getChildGrowth(req.user.userId, req.params.id);
+    if (!data) {
+      return fail(res, 404, 40430, "Child not found");
+    }
+
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+async function getChildWorks(req, res) {
+  try {
+    const data = await listChildWorks(req.user.userId, req.params.id);
+    if (!data) {
+      return fail(res, 404, 40430, "Child not found");
+    }
+
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 async function putChild(req, res) {
   try {
     const data = await updateChild(req.user.userId, req.params.id, req.body);
@@ -53,6 +81,8 @@ async function putChild(req, res) {
 module.exports = {
   getChildren,
   getChild,
+  getChildGrowthDetail,
+  getChildWorks,
   postChild,
   putChild
 };

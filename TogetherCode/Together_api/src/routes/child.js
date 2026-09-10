@@ -9,6 +9,8 @@ const {
 const {
   getChildren,
   getChild,
+  getChildGrowthDetail,
+  getChildWorks,
   postChild,
   putChild
 } = require("../controllers/childController");
@@ -18,9 +20,11 @@ const router = express.Router();
 router.use(requireAuth);
 
 // 角色归属：家长端接口。
-// 已实现接口：我的孩子列表、孩子详情、添加孩子、编辑孩子。
+// 已实现接口：我的孩子列表、孩子详情、成长档案、作品墙、添加孩子、编辑孩子。
 router.get("/", getChildren);
 router.get("/:id", childIdValidators, validateRequest, getChild);
+router.get("/:id/growth", childIdValidators, validateRequest, getChildGrowthDetail);
+router.get("/:id/works", childIdValidators, validateRequest, getChildWorks);
 router.post("/", createChildValidators, validateRequest, postChild);
 router.put("/:id", updateChildValidators, validateRequest, putChild);
 
