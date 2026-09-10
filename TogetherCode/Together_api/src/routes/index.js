@@ -6,6 +6,7 @@ const authRoutes = require("./auth");
 const leaveRoutes = require("./leave");
 const teacherRoutes = require("./teacher");
 const childRoutes = require("./child");
+const tagRoutes = require("./tags");
 
 const router = express.Router();
 
@@ -29,6 +30,9 @@ router.use("/leave", leaveRoutes);
 
 // 老师端接口：我的班级、课表、请假处理、发帖消课。
 router.use("/teacher", teacherRoutes);
+
+// 公共兴趣标签库（App 申请表单读取）。
+router.use("/tags", tagRoutes);
 
 // 工作室轻量 App 端接口当前还未独立拆分；
 // 现阶段已落地的工作室能力主要集中在 Web 侧 /studio/*。

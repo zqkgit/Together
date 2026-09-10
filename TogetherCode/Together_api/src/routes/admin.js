@@ -11,7 +11,13 @@ const {
   putStudioUnban,
   getSettlementsData,
   postGenerateSettlements,
-  postPayoutSettlement
+  postPayoutSettlement,
+  getTeacherApplicationsData,
+  putTeacherApplicationReview,
+  getTagsData,
+  postTag,
+  putTag,
+  deleteTagItem
 } = require("../controllers/adminController");
 const adminAuthRoutes = require("./adminAuth");
 const { validateRequest } = require("../middlewares/validate");
@@ -42,5 +48,15 @@ router.put("/reviews/:id", handleStudioReviewValidators, validateRequest, putRev
 router.get("/settlements", getSettlementsData);
 router.post("/settlements/generate", postGenerateSettlements);
 router.post("/settlements/:id/payout", postPayoutSettlement);
+
+// 平台老师认证审核（studio_id 为空的申请：用户申请成为老师）
+router.get("/teacher-applications", getTeacherApplicationsData);
+router.put("/teacher-applications/:id", putTeacherApplicationReview);
+
+// 标签管理（兴趣标签库：1 工作室 / 2 老师 / 3 通用）
+router.get("/tags", getTagsData);
+router.post("/tags", postTag);
+router.put("/tags/:id", putTag);
+router.delete("/tags/:id", deleteTagItem);
 
 module.exports = router;

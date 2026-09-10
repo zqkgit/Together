@@ -7,6 +7,57 @@ export interface Paged<T> {
   list: T[];
 }
 
+// ============ 教师管理 ============
+
+export interface TeacherApplicationItem {
+  id: string;
+  user_id: string;
+  real_name: string;
+  subjects: string[];
+  years: number;
+  intro: string | null;
+  cert_no: string | null;
+  portfolio: string[];
+  status: number;
+  submitted_at: string;
+  reviewed_at: string | null;
+  review_reason: string | null;
+  phone: string;
+  nickname: string;
+  avatar: string | null;
+}
+
+export interface TeacherStaffItem {
+  teacher_id: string;
+  user_id: string;
+  real_name: string;
+  subjects: string[];
+  years: number;
+  intro: string | null;
+  cert_no: string | null;
+  cert_status: number;
+  rating: number;
+  student_count: number;
+  phone: string;
+  nickname: string;
+  avatar: string | null;
+}
+
+export async function fetchStudioTeachers(params: {
+  status?: number | "";
+} = {}): Promise<{ applications: TeacherApplicationItem[]; staff: TeacherStaffItem[] }> {
+  const response = await request.get("/studio/teachers", { params });
+  return response.data;
+}
+
+export async function reviewTeacherApplication(
+  id: string,
+  payload: { action: "approve" | "reject"; reason?: string }
+): Promise<{ id: string; status: number; action: string; teacher_id?: string }> {
+  const response = await request.put(`/studio/teachers/${id}`, payload);
+  return response.data;
+}
+
 // ============ 经营概览 ============
 
 export interface StudioOverview {

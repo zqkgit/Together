@@ -3,6 +3,7 @@ import {
   Calendar,
   Finished,
   Coin,
+  Collection,
   CreditCard,
   DocumentChecked,
   House,
@@ -28,6 +29,8 @@ const platformMenus = [
   { path: "/dashboard", title: "经营看板", icon: House },
   { path: "/studios", title: "工作室管理", icon: OfficeBuilding },
   { path: "/reviews", title: "认证审核", icon: DocumentChecked },
+  { path: "/teacher-reviews", title: "老师认证", icon: User },
+  { path: "/tags", title: "标签管理", icon: Collection },
   { path: "/settlements", title: "结算分账", icon: CreditCard }
 ];
 
@@ -35,6 +38,7 @@ const studioMenus = [
   { path: "/studio-home", title: "经营概览", icon: House },
   { path: "/studio-courses", title: "课程管理", icon: Tickets },
   { path: "/studio-classes", title: "班级管理", icon: OfficeBuilding },
+  { path: "/studio-teachers", title: "教师管理", icon: User },
   { path: "/studio-schedules", title: "排课管理", icon: Calendar },
   { path: "/studio-students", title: "学员管理", icon: User },
   { path: "/studio-orders", title: "订单管理", icon: Coin },

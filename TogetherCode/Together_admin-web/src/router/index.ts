@@ -38,6 +38,18 @@ const router = createRouter({
           meta: { title: "认证审核", requiresAuth: true, scopes: ["platform"] }
         },
         {
+          path: "/teacher-reviews",
+          name: "teacher-reviews",
+          component: () => import("../views/teacher-reviews/IndexView.vue"),
+          meta: { title: "老师认证", requiresAuth: true, scopes: ["platform"] }
+        },
+        {
+          path: "/tags",
+          name: "tags",
+          component: () => import("../views/tags/IndexView.vue"),
+          meta: { title: "标签管理", requiresAuth: true, scopes: ["platform"] }
+        },
+        {
           path: "/settlements",
           name: "settlements",
           component: () => import("../views/settlements/IndexView.vue"),
@@ -60,6 +72,12 @@ const router = createRouter({
           name: "studio-classes",
           component: () => import("../views/studio/classes/IndexView.vue"),
           meta: { title: "班级管理", requiresAuth: true, scopes: ["studio"] }
+        },
+        {
+          path: "/studio-teachers",
+          name: "studio-teachers",
+          component: () => import("../views/studio/teachers/IndexView.vue"),
+          meta: { title: "教师管理", requiresAuth: true, scopes: ["studio"] }
         },
         {
           path: "/studio-schedules",

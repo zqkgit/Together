@@ -14,6 +14,16 @@ const {
   generateSettlements,
   payoutSettlement
 } = require("../services/settlementService");
+const {
+  getTeacherApplications,
+  reviewTeacherApplication
+} = require("../services/teacherApplicationService");
+const {
+  listTags,
+  createTag,
+  updateTag,
+  deleteTag
+} = require("../services/tagService");
 const { fail } = require("../utils/response");
 
 async function getOverview(_req, res) {
@@ -114,6 +124,55 @@ async function postPayoutSettlement(req, res) {
   }
 }
 
+// ============ 平台老师认证审核 ============
+
+async function getTeacherApplicationsData(req, res) {
+  return ok(res, await getTeacherApplications(req.query));
+}
+
+async function putTeacherApplicationReview(req, res) {
+  try {
+    const result = await reviewTeacherApplication(req.params.id, req.body, req.admin);
+    if (result.error) {
+      return fail(res, result.error.status, result.error.status === 404 ? 40482 : 40082, result.error.message);
+    }
+
+    return ok(res, result.data, result.message);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+// ============ 标签管理 ============
+
+async function getTagsData(req, res) {
+  return ok(res, await listTags(req.query));
+}
+
+async function postTag(req, res) {
+  const result = await createTag(req.body);
+  if (result.error) {
+    return fail(res, result.error.status, result.error.status === 404 ? 40483 : 40083, result.error.message);
+  }
+  return ok(res, result.data, "标签已创建");
+}
+
+async function putTag(req, res) {
+  const result = await updateTag(req.params.id, req.body);
+  if (result.error) {
+    return fail(res, result.error.status, result.error.status === 404 ? 40483 : 40083, result.error.message);
+  }
+  return ok(res, result.data, "标签已更新");
+}
+
+async function deleteTagItem(req, res) {
+  const result = await deleteTag(req.params.id);
+  if (result.error) {
+    return fail(res, result.error.status, result.error.status === 404 ? 40483 : 40083, result.error.message);
+  }
+  return ok(res, result.data, result.message);
+}
+
 module.exports = {
   getOverview,
   getStudiosList,
@@ -125,5 +184,11 @@ module.exports = {
   putStudioUnban,
   getSettlementsData,
   postGenerateSettlements,
-  postPayoutSettlement
+  postPayoutSettlement,
+  getTeacherApplicationsData,
+  putTeacherApplicationReview,
+  getTagsData,
+  postTag,
+  putTag,
+  deleteTagItem
 };

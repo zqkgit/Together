@@ -1,6 +1,10 @@
 const { ok, fail } = require("../utils/response");
 const { getStudioProfile, updateStudioProfile } = require("../services/studioService");
 const { getStudioOverview } = require("../services/studioOverviewService");
+const {
+  getStudioTeachers,
+  reviewTeacherApplication
+} = require("../services/studioTeacherService");
 
 async function getMyStudioProfile(req, res) {
   try {
@@ -37,8 +41,32 @@ async function getMyStudioOverview(req, res) {
   }
 }
 
+async function getMyStudioTeachers(req, res) {
+  try {
+    const data = await getStudioTeachers(req.admin.studioId, req.query);
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+async function putTeacherReview(req, res) {
+  try {
+    const result = await reviewTeacherApplication(req.admin.studioId, req.params.id, req.body, req.admin);
+    if (result.error) {
+      return fail(res, result.error.status, result.error.status === 404 ? 40481 : 40081, result.error.message);
+    }
+
+    return ok(res, result.data, result.message);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   getMyStudioProfile,
   putMyStudioProfile,
-  getMyStudioOverview
+  getMyStudioOverview,
+  getMyStudioTeachers,
+  putTeacherReview
 };

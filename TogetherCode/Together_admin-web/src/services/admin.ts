@@ -274,3 +274,71 @@ export async function payoutSettlement(id: string): Promise<SettlementItem> {
   const response = await request.post(`/admin/settlements/${id}/payout`);
   return response.data;
 }
+
+// ============ 平台老师认证审核 ============
+
+export interface TeacherCertItem {
+  id: string;
+  user_id: string;
+  real_name: string;
+  subjects: string[];
+  years: number;
+  intro: string | null;
+  cert_no: string | null;
+  portfolio: string[];
+  status: number;
+  submitted_at: string;
+  reviewed_at: string | null;
+  review_reason: string | null;
+  phone: string;
+  nickname: string;
+  avatar: string | null;
+}
+
+export async function fetchTeacherCertifications(
+  params: { status?: number | "" } = {}
+): Promise<{ total: number; list: TeacherCertItem[] }> {
+  const response = await request.get("/admin/teacher-applications", { params });
+  return response.data;
+}
+
+export async function reviewTeacherCertification(
+  id: string,
+  payload: { action: "approve" | "reject"; reason?: string }
+): Promise<{ id: string; status: number; action: string; teacher_id?: string }> {
+  const response = await request.put(`/admin/teacher-applications/${id}`, payload);
+  return response.data;
+}
+
+// ============ 标签管理 ============
+
+export interface TagItem {
+  tag_id: string;
+  name: string;
+  scope: number;
+  sort: number;
+  status: number;
+}
+
+export async function fetchTags(params: { scope?: number | ""; q?: string } = {}): Promise<TagItem[]> {
+  const response = await request.get("/admin/tags", { params });
+  return response.data;
+}
+
+export async function createTag(payload: { name: string; scope: number; sort?: number }): Promise<TagItem> {
+  const response = await request.post("/admin/tags", payload);
+  return response.data;
+}
+
+export async function updateTag(
+  id: string,
+  payload: { name?: string; scope?: number; sort?: number; status?: number }
+): Promise<TagItem> {
+  const response = await request.put(`/admin/tags/${id}`, payload);
+  return response.data;
+}
+
+export async function deleteTag(id: string): Promise<{ tag_id: string; status?: number; deleted?: boolean }> {
+  const response = await request.delete(`/admin/tags/${id}`);
+  return response.data;
+}
