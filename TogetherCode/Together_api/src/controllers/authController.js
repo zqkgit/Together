@@ -5,8 +5,13 @@ const {
   loginWithPassword,
   refreshAccessToken,
   logout,
-  getProfile
+  getProfile,
+  updateProfile
 } = require("../services/authStore");
+const {
+  submitRoleApply,
+  getRoleApplyStatus
+} = require("../services/roleApplyService");
 const { ok, fail } = require("../utils/response");
 
 function requireFields(body, fields) {
@@ -125,6 +130,45 @@ async function getMe(req, res) {
   }
 }
 
+// PUT /v1/me/profile · 注册引导完善资料
+async function putMeProfile(req, res) {
+  try {
+    const result = await updateProfile(req.user.userId, req.body);
+    if (result.error) {
+      return fail(res, result.error.status, result.error.code, result.error.message);
+    }
+    return ok(res, result.data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+// POST /v1/auth/role/apply · 提交老师认证 / 工作室入驻
+async function postRoleApply(req, res) {
+  try {
+    const result = await submitRoleApply(req.user.userId, req.body);
+    if (result.error) {
+      return fail(res, result.error.status, result.error.code, result.error.message);
+    }
+    return ok(res, result.data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+// GET /v1/auth/role/apply/:role · 认证申请状态
+async function getRoleApplyStatusHandler(req, res) {
+  try {
+    const result = await getRoleApplyStatus(req.user.userId, req.params.role);
+    if (result.error) {
+      return fail(res, result.error.status, result.error.code, result.error.message);
+    }
+    return ok(res, result.data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   postSendCode,
   postRegister,
@@ -132,5 +176,8 @@ module.exports = {
   postPasswordLogin,
   postRefresh,
   postLogout,
-  getMe
+  getMe,
+  putMeProfile,
+  postRoleApply,
+  getRoleApplyStatusHandler
 };

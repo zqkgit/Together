@@ -6,7 +6,9 @@ const {
   postPasswordLogin,
   postRefresh,
   postLogout,
-  getMe
+  getMe,
+  postRoleApply,
+  getRoleApplyStatusHandler
 } = require("../controllers/authController");
 const { requireAuth } = require("../middlewares/auth");
 
@@ -21,5 +23,9 @@ router.post("/login-password", postPasswordLogin);
 router.post("/refresh", postRefresh);
 router.post("/logout", postLogout);
 router.get("/me", requireAuth, getMe);
+
+// 角色申请：提交老师认证 / 工作室入驻 + 申请状态查询
+router.post("/role/apply", requireAuth, postRoleApply);
+router.get("/role/apply/:role", requireAuth, getRoleApplyStatusHandler);
 
 module.exports = router;

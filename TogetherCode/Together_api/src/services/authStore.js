@@ -309,6 +309,56 @@ async function getProfile(userId) {
   return buildUserPayload(user);
 }
 
+/**
+ * 完善资料（注册引导 / 个人中心编辑）
+ * 支持：nickname / avatar / city；terms_agreed: true 时留痕协议同意时间
+ */
+async function updateProfile(userId, payload = {}) {
+  const user = await getUserById(userId);
+  if (!user) {
+    return { error: { status: 404, code: 40402, message: "User not found" } };
+  }
+
+  const changes = {};
+
+  if (payload.nickname !== undefined && payload.nickname !== null) {
+    const nickname = String(payload.nickname).trim();
+    if (!nickname) {
+      return { error: { status: 400, code: 40000, message: "昵称不能为空" } };
+    }
+    if (nickname.length > 40) {
+      return { error: { status: 400, code: 40000, message: "昵称长度不能超过 40 字" } };
+    }
+    changes.nickname = nickname;
+  }
+
+  if (payload.avatar !== undefined && payload.avatar !== null) {
+    const avatar = String(payload.avatar).trim();
+    if (avatar.length > 255) {
+      return { error: { status: 400, code: 40000, message: "头像地址过长" } };
+    }
+    changes.avatar = avatar;
+  }
+
+  if (payload.city !== undefined && payload.city !== null) {
+    const city = String(payload.city).trim();
+    if (city.length > 60) {
+      return { error: { status: 400, code: 40000, message: "城市名称过长" } };
+    }
+    changes.city = city;
+  }
+
+  if (payload.terms_agreed === true && !user.terms_agreed_at) {
+    changes.terms_agreed_at = new Date();
+  }
+
+  if (Object.keys(changes).length) {
+    await user.update(changes);
+  }
+
+  return { data: await buildUserPayload(user) };
+}
+
 module.exports = {
   sendCode,
   register,
@@ -316,5 +366,6 @@ module.exports = {
   loginWithPassword,
   refreshAccessToken,
   logout,
-  getProfile
+  getProfile,
+  updateProfile
 };

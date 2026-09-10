@@ -8,6 +8,7 @@ const teacherRoutes = require("./teacher");
 const childRoutes = require("./child");
 const tagRoutes = require("./tags");
 const parentRoutes = require("./parent");
+const meRoutes = require("./me");
 
 const router = express.Router();
 
@@ -34,6 +35,9 @@ router.use("/teacher", teacherRoutes);
 
 // 公共兴趣标签库（App 申请表单读取）。
 router.use("/tags", tagRoutes);
+
+// 当前用户自身资源：完善资料等。
+router.use("/me", meRoutes);
 
 // 家长端：课时余额 / 消课记录 / 孩子课表。
 router.use("/", parentRoutes);
