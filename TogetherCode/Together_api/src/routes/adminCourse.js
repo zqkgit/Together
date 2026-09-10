@@ -5,6 +5,8 @@ const { saveCourseValidators, listCoursesValidators, courseIdValidator } = requi
 
 const router = express.Router();
 
+// 角色归属：工作室后台（Web）。
+// 已实现接口：课程列表、课程详情、新增课程、编辑课程。
 router.get("/", listCoursesValidators, validateRequest, getStudioCourses);
 router.post("/", saveCourseValidators, validateRequest, postCourse);
 router.put("/:id", courseIdValidator, saveCourseValidators, validateRequest, putCourse);

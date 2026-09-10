@@ -5,6 +5,8 @@ const { getStudioStudents, postConsumeLessons } = require("../controllers/studen
 
 const router = express.Router();
 
+// 角色归属：工作室后台（Web）。
+// 已实现接口：学员列表、后台手动消课。
 router.get("/", listStudioStudentsValidators, validateRequest, getStudioStudents);
 router.post("/:id/consume", consumeLessonValidators, validateRequest, postConsumeLessons);
 

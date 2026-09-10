@@ -40,6 +40,27 @@ async function requireAuth(req, res, next) {
   }
 }
 
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        code: 40100,
+        message: "Unauthorized"
+      });
+    }
+
+    if (!roles.includes(Number(req.user.role))) {
+      return res.status(403).json({
+        code: 40300,
+        message: "Forbidden"
+      });
+    }
+
+    return next();
+  };
+}
+
 module.exports = {
-  requireAuth
+  requireAuth,
+  requireRole
 };

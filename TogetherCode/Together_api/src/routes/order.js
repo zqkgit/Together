@@ -19,6 +19,9 @@ const {
 const router = express.Router();
 
 router.use(requireAuth);
+
+// 角色归属：家长端接口。
+// 说明：订单、支付、退款都由家长在 App 端发起，工作室审核走 /admin/*。
 router.get("/", listOrderValidators, validateRequest, getOrders);
 router.get("/:id", orderIdValidators, validateRequest, getOrder);
 router.post("/", createOrderValidators, validateRequest, postOrder);
