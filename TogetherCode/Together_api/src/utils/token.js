@@ -14,11 +14,28 @@ function createAccessToken(user) {
   );
 }
 
+function createBackofficeAccessToken(account, scope) {
+  return jwt.sign(
+    {
+      tokenType: "backoffice",
+      adminId: String(account.admin_id),
+      userId: account.user_id ? String(account.user_id) : null,
+      username: account.username,
+      role: account.role,
+      studioId: account.studio_id ? String(account.studio_id) : null,
+      scope
+    },
+    env.jwtSecret,
+    { expiresIn: env.jwtExpiresIn }
+  );
+}
+
 function createRefreshToken() {
   return crypto.randomBytes(24).toString("hex");
 }
 
 module.exports = {
   createAccessToken,
+  createBackofficeAccessToken,
   createRefreshToken
 };

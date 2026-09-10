@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const env = require("../config/env");
-const { User } = require("../models");
+const { User, AdminAccount } = require("../models");
 
 async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization || "";
@@ -60,7 +60,65 @@ function requireRole(...roles) {
   };
 }
 
+function requireBackofficeAuth(scope) {
+  return async (req, res, next) => {
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.slice(7)
+      : null;
+
+    if (!token) {
+      return res.status(401).json({
+        code: 40110,
+        message: "Unauthorized"
+      });
+    }
+
+    try {
+      const decoded = jwt.verify(token, env.jwtSecret);
+      if (decoded.tokenType !== "backoffice") {
+        return res.status(401).json({
+          code: 40111,
+          message: "Invalid token"
+        });
+      }
+
+      if (scope && decoded.scope !== scope) {
+        return res.status(403).json({
+          code: 40310,
+          message: "Forbidden"
+        });
+      }
+
+      const account = await AdminAccount.findByPk(decoded.adminId);
+      if (!account || Number(account.status) !== 1) {
+        return res.status(401).json({
+          code: 40112,
+          message: "Admin account not found"
+        });
+      }
+
+      req.admin = {
+        adminId: String(account.admin_id),
+        userId: account.user_id ? String(account.user_id) : null,
+        username: account.username,
+        role: account.role,
+        studioId: account.studio_id ? String(account.studio_id) : null,
+        scope: decoded.scope
+      };
+
+      return next();
+    } catch (_error) {
+      return res.status(401).json({
+        code: 40113,
+        message: "Invalid token"
+      });
+    }
+  };
+}
+
 module.exports = {
   requireAuth,
-  requireRole
+  requireRole,
+  requireBackofficeAuth
 };

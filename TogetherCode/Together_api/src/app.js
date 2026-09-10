@@ -4,6 +4,7 @@ const morgan = require("morgan");
 const env = require("./config/env");
 const apiRoutes = require("./routes");
 const adminRoutes = require("./routes/admin");
+const studioRoutes = require("./routes/studio");
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.get("/", (_req, res) => {
 
 app.use(env.apiPrefix, apiRoutes);
 app.use(env.adminPrefix, adminRoutes);
+app.use(env.studioPrefix, studioRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

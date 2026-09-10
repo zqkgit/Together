@@ -1,10 +1,12 @@
 const { Op } = require("sequelize");
 const {
+  sequelize,
   StudioProfile,
-  TeacherApplication,
   StudioApplication,
-  Settlement
+  Settlement,
+  User
 } = require("../models");
+const { generateId } = require("../utils/id");
 const { formatFen } = require("../utils/amount");
 
 async function getDashboardOverview() {
@@ -43,6 +45,13 @@ async function getDashboardOverview() {
 
 async function getStudios() {
   const rows = await StudioProfile.findAll({
+    include: [
+      {
+        model: User,
+        as: "owner",
+        attributes: ["user_id", "phone", "nickname"]
+      }
+    ],
     order: [["created_at", "DESC"]]
   });
 
@@ -51,49 +60,235 @@ async function getStudios() {
     name: item.name,
     city: item.address || "-",
     status: Number(item.status) === 1 ? "营业中" : Number(item.status) === 0 ? "待审核" : "异常",
+    owner: item.owner?.nickname || "-",
+    owner_phone: item.owner?.phone || "-",
     courses: 0
   }));
 }
 
 async function getReviews() {
-  const [teacherRows, studioRows] = await Promise.all([
-    TeacherApplication.findAll({
-      where: { status: 0 },
-      order: [["submitted_at", "DESC"]]
-    }),
-    StudioApplication.findAll({
-      where: { status: 0 },
-      order: [["submitted_at", "DESC"]]
-    })
-  ]);
-
-  const teacherList = teacherRows.map((item) => ({
-    id: `teacher_${item.id}`,
-    name: item.real_name,
-    type: "老师认证",
-    studio: item.studio_id ? String(item.studio_id) : "-",
-    submittedAt: item.submitted_at
-  }));
-
-  const studioList = studioRows.map((item) => ({
-    id: `studio_${item.id}`,
-    name: item.name,
-    type: "工作室入驻",
-    studio: "-",
-    submittedAt: item.submitted_at
-  }));
-
-  const list = [...teacherList, ...studioList].sort((a, b) => {
-    return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+  const rows = await StudioApplication.findAll({
+    where: { status: 0 },
+    include: [
+      {
+        model: User,
+        as: "user",
+        attributes: ["user_id", "phone", "nickname"]
+      }
+    ],
+    order: [["submitted_at", "DESC"]]
   });
 
   return {
-    total: list.length,
-    list: list.map((item) => ({
-      ...item,
-      submittedAt: new Date(item.submittedAt).toLocaleString("zh-CN", { hour12: false })
+    total: rows.length,
+    list: rows.map((item) => ({
+      id: String(item.id),
+      name: item.name,
+      type: "工作室入驻",
+      applicant: item.user?.nickname || "-",
+      applicant_phone: item.user?.phone || "-",
+      status: item.status,
+      submittedAt: new Date(item.submitted_at).toLocaleString("zh-CN", { hour12: false })
     }))
   };
+}
+
+async function getStudioDetail(studioId) {
+  const studio = await StudioProfile.findByPk(studioId, {
+    include: [
+      {
+        model: User,
+        as: "owner",
+        attributes: ["user_id", "phone", "nickname", "avatar", "city"]
+      }
+    ]
+  });
+
+  if (!studio) {
+    return null;
+  }
+
+  const latestApplication = await StudioApplication.findOne({
+    include: [
+      {
+        model: User,
+        as: "user",
+        attributes: ["user_id", "phone", "nickname", "avatar", "city"]
+      }
+    ],
+    where: {
+      user_id: studio.user_id
+    },
+    order: [["version", "DESC"], ["created_at", "DESC"]]
+  });
+
+  return {
+    studio_id: String(studio.studio_id),
+    user_id: String(studio.user_id),
+    name: studio.name,
+    cover: studio.cover,
+    type_tags: studio.type_tags || [],
+    intro: studio.intro,
+    address: studio.address,
+    lng: studio.lng,
+    lat: studio.lat,
+    phone: studio.phone,
+    hours: studio.hours,
+    license: studio.license,
+    legal_id: studio.legal_id,
+    permit: studio.permit,
+    photos: studio.photos || [],
+    settle_rate: Number(studio.settle_rate),
+    plan_tier: studio.plan_tier,
+    status: studio.status,
+    banned_at: studio.banned_at,
+    ban_reason: studio.ban_reason,
+    owner: studio.owner
+      ? {
+          user_id: String(studio.owner.user_id),
+          phone: studio.owner.phone,
+          nickname: studio.owner.nickname,
+          avatar: studio.owner.avatar,
+          city: studio.owner.city
+        }
+      : null,
+    latest_application: latestApplication
+      ? {
+          id: String(latestApplication.id),
+          version: latestApplication.version,
+          status: latestApplication.status,
+          submitted_at: latestApplication.submitted_at,
+          reviewed_at: latestApplication.reviewed_at,
+          review_reason: latestApplication.review_reason
+        }
+      : null
+  };
+}
+
+async function getStudioReviewDetail(reviewId) {
+  const row = await StudioApplication.findByPk(reviewId, {
+    include: [
+      {
+        model: User,
+        as: "user",
+        attributes: ["user_id", "phone", "nickname", "avatar", "city"]
+      }
+    ]
+  });
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: String(row.id),
+    user_id: String(row.user_id),
+    version: row.version,
+    name: row.name,
+    cover: row.cover,
+    intro: row.intro,
+    address: row.address,
+    phone: row.phone,
+    license: row.license,
+    permit: row.permit,
+    photos: row.photos || [],
+    status: row.status,
+    submitted_at: row.submitted_at,
+    reviewed_at: row.reviewed_at,
+    review_reason: row.review_reason,
+    applicant: row.user
+      ? {
+          user_id: String(row.user.user_id),
+          phone: row.user.phone,
+          nickname: row.user.nickname,
+          avatar: row.user.avatar,
+          city: row.user.city
+        }
+      : null
+  };
+}
+
+async function reviewStudioApplication(reviewId, payload, operator = {}) {
+  return sequelize.transaction(async (transaction) => {
+    const application = await StudioApplication.findByPk(reviewId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE
+    });
+
+    if (!application) {
+      return null;
+    }
+
+    if (Number(application.status) !== 0) {
+      throw new Error("Studio application already handled");
+    }
+
+    const reviewedAt = new Date();
+    if (payload.action === "approve") {
+      let studio = await StudioProfile.findOne({
+        where: { user_id: application.user_id },
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+
+      const studioPayload = {
+        name: application.name,
+        cover: application.cover || null,
+        intro: application.intro || null,
+        address: application.address || null,
+        phone: application.phone || null,
+        license: application.license || null,
+        permit: application.permit || null,
+        photos: application.photos || [],
+        status: 1,
+        banned_at: null,
+        ban_reason: null
+      };
+
+      if (!studio) {
+        studio = await StudioProfile.create(
+          {
+            studio_id: generateId(),
+            user_id: application.user_id,
+            ...studioPayload
+          },
+          { transaction }
+        );
+      } else {
+        await studio.update(studioPayload, { transaction });
+      }
+
+      await application.update(
+        {
+          status: 1,
+          reviewed_at: reviewedAt,
+          review_reason: payload.reason || null
+        },
+        { transaction }
+      );
+    } else {
+      await application.update(
+        {
+          status: 2,
+          reviewed_at: reviewedAt,
+          review_reason: payload.reason || "已驳回"
+        },
+        { transaction }
+      );
+    }
+
+    const detail = await getStudioReviewDetail(application.id);
+    return {
+      ...detail,
+      operator: operator.adminId
+        ? {
+            admin_id: operator.adminId,
+            username: operator.username,
+            role: operator.role
+          }
+        : null
+    };
+  });
 }
 
 async function getSettlements() {
@@ -134,6 +329,9 @@ async function getSettlements() {
 module.exports = {
   getDashboardOverview,
   getStudios,
+  getStudioDetail,
   getReviews,
+  getStudioReviewDetail,
+  reviewStudioApplication,
   getSettlements
 };

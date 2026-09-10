@@ -27,6 +27,6 @@ router.use("/leave", leaveRoutes);
 router.use("/teacher", teacherRoutes);
 
 // 工作室轻量 App 端接口当前还未独立拆分；
-// 现阶段已落地的工作室能力主要集中在 Web 侧 /admin/studio/*。
+// 现阶段已落地的工作室能力主要集中在 Web 侧 /studio/*。
 
 module.exports = router;

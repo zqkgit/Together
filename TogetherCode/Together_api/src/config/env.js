@@ -8,6 +8,7 @@ module.exports = {
   port: Number(process.env.PORT || 3000),
   apiPrefix: process.env.API_PREFIX || "/v1",
   adminPrefix: process.env.ADMIN_PREFIX || "/admin",
+  studioPrefix: process.env.STUDIO_PREFIX || "/studio",
   frontendUrl: process.env.FRONTEND_URL || "http://127.0.0.1:5173",
   db: {
     host: process.env.DB_HOST || "127.0.0.1",
