@@ -254,6 +254,81 @@ async function loginWithPassword({ phone, password }) {
   });
 }
 
+/**
+ * 微信一键登录：
+ * - code → code2session 拿 openid/unionid
+ * - 已绑定 unionid 的用户直接登录
+ * - 未绑定时需带手机号+短信验证码完成绑定（注册或给已有账号绑定 unionid）
+ */
+async function wxLogin({ code, phone, smsCode }) {
+  const wx = require("./wxService");
+  const result = await wx.code2session(code);
+  if (result.error) {
+    return result;
+  }
+  if (result.notConfigured) {
+    return { error: { status: 503, code: 50380, message: "微信登录未配置（请配置 WX_APP_ID / WX_APP_SECRET）" } };
+  }
+
+  const { openid, unionid } = result;
+  const unionId = unionid || openid;
+
+  const existing = await User.findOne({ where: { wx_unionid: unionId } });
+  if (existing) {
+    return sequelize.transaction(async (transaction) => {
+      await existing.update(
+        { last_login_at: new Date(), login_fail_count: 0, locked_until: null },
+        { transaction }
+      );
+      return { data: await issueTokens(existing, transaction) };
+    });
+  }
+
+  // 未绑定：需要手机号 + 验证码
+  if (!phone || !smsCode) {
+    return { error: { status: 400, code: 40084, message: "微信未绑定手机号，请提供 phone + sms_code" } };
+  }
+
+  return sequelize.transaction(async (transaction) => {
+    const record = await consumeVerificationCode(String(phone), String(smsCode), transaction);
+    if (!record) {
+      return { error: { status: 400, code: 40001, message: "Invalid verification code" } };
+    }
+
+    const user = await getUserByPhone(phone);
+    if (user) {
+      // 已有账号：绑定 unionid 后登录
+      await user.update({ wx_unionid: unionId }, { transaction });
+      return { data: await issueTokens(user, transaction) };
+    }
+
+    // 新用户：注册家长角色并绑定
+    const created = await User.create(
+      {
+        user_id: generateId(),
+        phone,
+        wx_unionid: unionId,
+        nickname: `用户${String(phone).slice(-4)}`,
+        password_hash: bcrypt.hashSync(DEFAULT_PASSWORD, 10),
+        current_role: 1,
+        status: 1,
+        terms_agreed_at: new Date()
+      },
+      { transaction }
+    );
+    await UserRole.create(
+      {
+        id: generateId(),
+        user_id: created.user_id,
+        role: 1,
+        verified: true
+      },
+      { transaction }
+    );
+    return { data: await issueTokens(created, transaction) };
+  });
+}
+
 async function refreshAccessToken(refreshToken) {
   const tokenRecord = await RefreshToken.findOne({
     where: {
@@ -404,6 +479,7 @@ module.exports = {
   register,
   loginWithCode,
   loginWithPassword,
+  wxLogin,
   refreshAccessToken,
   logout,
   getProfile,

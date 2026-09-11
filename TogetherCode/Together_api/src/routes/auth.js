@@ -4,6 +4,7 @@ const {
   postRegister,
   postLogin,
   postPasswordLogin,
+  postWxLogin,
   postRefresh,
   postLogout,
   getMe,
@@ -21,6 +22,7 @@ router.post("/send-code", postSendCode);
 router.post("/register", postRegister);
 router.post("/login", postLogin);
 router.post("/login-password", postPasswordLogin);
+router.post("/wx-login", postWxLogin);
 router.post("/refresh", postRefresh);
 router.post("/logout", postLogout);
 router.get("/me", requireAuth, getMe);

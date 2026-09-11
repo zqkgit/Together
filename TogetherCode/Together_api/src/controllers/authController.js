@@ -3,6 +3,7 @@ const {
   register,
   loginWithCode,
   loginWithPassword,
+  wxLogin,
   refreshAccessToken,
   logout,
   getProfile,
@@ -183,11 +184,29 @@ async function postRoleSwitch(req, res) {
   }
 }
 
+// POST /v1/auth/wx-login · 微信一键登录（未绑定手机号时需带 phone + sms_code 完成绑定）
+async function postWxLogin(req, res) {
+  try {
+    const result = await wxLogin({
+      code: req.body.code,
+      phone: req.body.phone,
+      smsCode: req.body.sms_code
+    });
+    if (result.error) {
+      return fail(res, result.error.status, result.error.code, result.error.message);
+    }
+    return ok(res, result.data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   postSendCode,
   postRegister,
   postLogin,
   postPasswordLogin,
+  postWxLogin,
   postRefresh,
   postLogout,
   getMe,

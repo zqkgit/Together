@@ -6,6 +6,7 @@ const {
   listPostComments,
   addPostComment,
   deletePostComment,
+  sharePost,
   listFeed,
   listPlaza,
   createParentPost
@@ -87,6 +88,19 @@ async function deleteComment(req, res) {
   }
 }
 
+// POST /posts/:id/share · 分享到小程序
+async function postPostShare(req, res) {
+  try {
+    const result = await sharePost(req.params.id);
+    if (result.error) {
+      return fail(res, result.error.status, result.error.code, result.error.message);
+    }
+    return ok(res, result.data, "分享成功");
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 async function getFeed(req, res) {
   try {
     const data = await listFeed(req.user ? req.user.userId : null, req.query);
@@ -124,6 +138,7 @@ module.exports = {
   getPostComments,
   postPostComment,
   deleteComment,
+  postPostShare,
   getFeed,
   getPlaza,
   postParentPost

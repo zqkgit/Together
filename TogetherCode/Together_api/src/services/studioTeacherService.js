@@ -9,6 +9,7 @@ const {
   StudioProfile
 } = require("../models");
 const { generateId } = require("../utils/id");
+const { createNotification } = require("./messageService");
 
 /**
  * 工作室教师管理：
@@ -267,8 +268,85 @@ async function releaseTeacher(studioId, teacherId, payload = {}) {
   });
 }
 
+/**
+ * 工作室主动邀请老师合作（POST /studio/invite-teacher）
+ * 前置：老师必须先通过平台老师认证（存在 TeacherProfile），工作室侧不修改老师档案。
+ */
+async function inviteTeacher(studioId, payload = {}) {
+  const phone = String(payload.phone || "").trim();
+  if (!phone) {
+    return { error: { status: 400, code: 40090, message: "phone 不能为空" } };
+  }
+
+  const user = await User.findOne({ where: { phone } });
+  if (!user) {
+    return { error: { status: 404, code: 40490, message: "该手机号用户不存在" } };
+  }
+
+  const profile = await TeacherProfile.findOne({ where: { user_id: user.user_id } });
+  if (!profile) {
+    return {
+      error: {
+        status: 400,
+        code: 40091,
+        message: "该老师尚未通过平台老师认证，请先完成老师认证"
+      }
+    };
+  }
+
+  return sequelize.transaction(async (transaction) => {
+    const [binding, created] = await TeacherStudioBinding.findOrCreate({
+      where: { teacher_id: profile.teacher_id, studio_id: studioId },
+      defaults: {
+        binding_id: generateId(),
+        teacher_id: profile.teacher_id,
+        studio_id: studioId,
+        status: 1,
+        bound_at: new Date()
+      },
+      transaction
+    });
+
+    if (!created && Number(binding.status) !== 1) {
+      await binding.update({ status: 1, released_at: null, bound_at: new Date() }, { transaction });
+    }
+    if (!profile.studio_id) {
+      await profile.update({ studio_id: studioId }, { transaction });
+    }
+
+    const studio = await StudioProfile.findByPk(studioId, {
+      attributes: ["studio_id", "name"]
+    });
+
+    // 通知老师：被邀请合作
+    createNotification({
+      userId: user.user_id,
+      type: "invite",
+      title: "工作室邀请你合作",
+      content: `你已被「${studio?.name || "工作室"}」邀请为合作老师`,
+      refType: "studio",
+      refId: studioId
+    }).catch(() => {});
+
+    return {
+      data: {
+        binding_id: String(binding.binding_id),
+        teacher: {
+          teacher_id: String(profile.teacher_id),
+          user_id: String(profile.user_id),
+          real_name: profile.real_name
+        },
+        studio: studio ? { studio_id: String(studio.studio_id), name: studio.name } : null,
+        status: binding.status
+      },
+      message: created ? "已邀请并建立合作" : "该老师已在合作中"
+    };
+  });
+}
+
 module.exports = {
   getStudioTeachers,
   reviewTeacherApplication,
-  releaseTeacher
+  releaseTeacher,
+  inviteTeacher
 };

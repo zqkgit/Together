@@ -13,6 +13,8 @@ const uploadRoutes = require("./upload");
 const postRoutes = require("./post");
 const profileRoutes = require("./profile");
 const messageRoutes = require("./message");
+const commissionRoutes = require("./commission");
+const payRoutes = require("./pay");
 const { getFeed, getPlaza } = require("../controllers/postController");
 
 const router = express.Router();
@@ -48,8 +50,14 @@ router.use("/posts", postRoutes);
 router.get("/feed", getFeed);
 router.get("/plaza", getPlaza);
 
+// 微信支付回调（微信服务器调用，无登录态）——必须挂在任何全局鉴权路由之前。
+router.use("/pay", payRoutes);
+
 // 消息：会话 / 消息 / 通知 / 设备上报 / WS 令牌。
 router.use("/", messageRoutes);
+
+// 分销 / 钱包：分享链接、返利概览与明细、提现。
+router.use("/", commissionRoutes);
 
 // 公共兴趣标签库（App 申请表单读取）。
 router.use("/tags", tagRoutes);

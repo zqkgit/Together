@@ -70,6 +70,11 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: 0.1
       },
+      distribute_rate: {
+        type: DataTypes.DECIMAL(4, 2),
+        allowNull: false,
+        defaultValue: 5.0
+      },
       plan_tier: {
         type: DataTypes.SMALLINT,
         allowNull: false,

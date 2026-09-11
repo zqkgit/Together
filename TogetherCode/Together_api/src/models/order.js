@@ -42,6 +42,10 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: 0
       },
+      distribution_link_id: {
+        type: DataTypes.BIGINT,
+        allowNull: true
+      },
       refunded_lessons: {
         type: DataTypes.SMALLINT,
         allowNull: false,

@@ -7,6 +7,7 @@ const {
   getPostComments,
   postPostComment,
   deleteComment,
+  postPostShare,
   getFeed,
   getPlaza,
   postParentPost
@@ -26,6 +27,7 @@ router.post("/", requireAuth, postParentPost);
 router.post("/:id/like", requireAuth, putPostLike);
 router.delete("/:id/like", requireAuth, deletePostLike);
 router.post("/:id/comments", requireAuth, postPostComment);
+router.post("/:id/share", requireAuth, postPostShare);
 router.delete("/comments/:id", requireAuth, deleteComment);
 
 module.exports = router;

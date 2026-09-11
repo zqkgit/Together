@@ -45,5 +45,13 @@ module.exports = {
   jpush: {
     appKey: process.env.JPUSH_APP_KEY || "",
     masterSecret: process.env.JPUSH_MASTER_SECRET || ""
+  },
+  // 微信开放平台（小程序登录/支付）：未配置时微信相关能力返回"未配置"错误，不影响开发
+  wx: {
+    appId: process.env.WX_APP_ID || "",
+    appSecret: process.env.WX_APP_SECRET || "",
+    payMchId: process.env.WX_PAY_MCH_ID || "",
+    payKey: process.env.WX_PAY_KEY || "",
+    payNotifyUrl: process.env.WX_PAY_NOTIFY_URL || ""
   }
 };

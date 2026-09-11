@@ -297,6 +297,29 @@ async function addPostComment(userId, postId, content) {
 }
 
 /**
+ * 分享帖子（分享到小程序）：计数 +1，返回分享路径
+ */
+async function sharePost(postId) {
+  return sequelize.transaction(async (transaction) => {
+    const post = await Post.findByPk(postId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE
+    });
+    if (!post || Number(post.status) !== 1) {
+      return { error: { status: 404, code: 40460, message: "帖子不存在或已下架" } };
+    }
+    await post.update({ share_count: Number(post.share_count || 0) + 1 }, { transaction });
+    return {
+      data: {
+        post_id: String(postId),
+        share_count: Number(post.share_count || 0) + 1,
+        share_path: `/pages/post-detail?id=${postId}`
+      }
+    };
+  });
+}
+
+/**
  * 删除自己的评论（软删，计数 -1）
  */
 async function deletePostComment(userId, commentId) {
@@ -437,6 +460,7 @@ module.exports = {
   listPostComments,
   addPostComment,
   deletePostComment,
+  sharePost,
   listFeed,
   listPlaza,
   createParentPost
