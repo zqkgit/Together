@@ -14,6 +14,7 @@ const {
 } = require("../models");
 const { formatOrder, getOrderWithDetails } = require("./orderService");
 const { generateId } = require("../utils/id");
+const { createNotification } = require("./messageService");
 
 function formatStudioRefund(refund) {
   return {
@@ -190,6 +191,18 @@ async function reviewStudioRefund(studioId, refundId, payload, operator = {}) {
         { transaction }
       );
 
+      // 通知家长：退款被驳回
+      if (refund.order?.user?.user_id) {
+        createNotification({
+          userId: refund.order.user.user_id,
+          type: "refund",
+          title: "退款申请被驳回",
+          content: `${refund.order.course?.title || "课程"} ${refund.order.child?.nickname || ""} 的退款申请被驳回${payload.reason ? `：${payload.reason}` : ""}`,
+          refType: "refund",
+          refId: refund.refund_id
+        }).catch(() => {});
+      }
+
       const latest = await Refund.findByPk(refund.refund_id, {
         include: [
           {
@@ -243,6 +256,18 @@ async function reviewStudioRefund(studioId, refundId, payload, operator = {}) {
       },
       { transaction }
     );
+
+    // 通知家长：退款已通过
+    if (refund.order?.user?.user_id) {
+      createNotification({
+        userId: refund.order.user.user_id,
+        type: "refund",
+        title: "退款已通过",
+        content: `${refund.order.course?.title || "课程"} ${refund.order.child?.nickname || ""} 退款 ${refund.amount || 0} 元已通过，课时将自动扣减`,
+        refType: "refund",
+        refId: refund.refund_id
+      }).catch(() => {});
+    }
 
     await order.update(
       {

@@ -10,9 +10,11 @@ const {
   ChildCourseBalance,
   Order,
   Attendance,
-  LessonLog
+  LessonLog,
+  TeacherProfile
 } = require("../models");
 const { generateId } = require("../utils/id");
+const { createNotification } = require("./messageService");
 
 function normalizeLeaveItem(item) {
   return {
@@ -393,6 +395,18 @@ async function reviewLeaveRequest(leaveId, payload) {
         },
         { transaction }
       );
+
+      // 通知家长：请假已通过
+      if (leave.parent?.user_id) {
+        createNotification({
+          userId: leave.parent.user_id,
+          type: "leave",
+          title: "请假已通过",
+          content: `${leave.child?.nickname || "孩子"} ${leave.schedule?.lesson_date || ""} 的请假申请已通过`,
+          refType: "leave",
+          refId: leave.leave_id
+        }).catch(() => {});
+      }
     } else {
       await leave.update(
         {
@@ -402,6 +416,18 @@ async function reviewLeaveRequest(leaveId, payload) {
         },
         { transaction }
       );
+
+      // 通知家长：请假被拒绝
+      if (leave.parent?.user_id) {
+        createNotification({
+          userId: leave.parent.user_id,
+          type: "leave",
+          title: "请假未通过",
+          content: `${leave.child?.nickname || "孩子"} ${leave.schedule?.lesson_date || ""} 的请假申请未通过${payload.note ? `：${payload.note}` : ""}`,
+          refType: "leave",
+          refId: leave.leave_id
+        }).catch(() => {});
+      }
     }
 
     return normalizeLeaveItem(leave);
@@ -584,7 +610,7 @@ async function cancelMyLeaveRequest(parentUserId, leaveId) {
       include: [
         { model: Child, as: "child", attributes: ["child_id", "nickname", "birthday"] },
         { model: User, as: "parent", attributes: ["user_id", "phone", "nickname"] },
-        { model: Class, as: "classItem", attributes: ["class_id", "name"] },
+        { model: Class, as: "classItem", attributes: ["class_id", "name", "teacher_id"] },
         {
           model: Schedule,
           as: "schedule",
@@ -597,6 +623,23 @@ async function cancelMyLeaveRequest(parentUserId, leaveId) {
         }
       ]
     });
+
+    // 通知老师：家长取消了请假
+    if (row?.classItem?.teacher_id) {
+      const teacherProfile = await TeacherProfile.findOne({
+        where: { teacher_id: row.classItem.teacher_id }
+      });
+      if (teacherProfile?.user_id) {
+        createNotification({
+          userId: teacherProfile.user_id,
+          type: "leave",
+          title: "请假已取消",
+          content: `${row.parent?.nickname || "家长"} 取消了 ${row.child?.nickname || "孩子"} ${row.schedule?.lesson_date || ""} 的请假申请`,
+          refType: "leave",
+          refId: leave.leave_id
+        }).catch(() => {});
+      }
+    }
 
     return normalizeLeaveItem(row);
   });

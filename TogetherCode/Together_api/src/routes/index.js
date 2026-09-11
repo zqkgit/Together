@@ -12,6 +12,7 @@ const meRoutes = require("./me");
 const uploadRoutes = require("./upload");
 const postRoutes = require("./post");
 const profileRoutes = require("./profile");
+const messageRoutes = require("./message");
 const { getFeed, getPlaza } = require("../controllers/postController");
 
 const router = express.Router();
@@ -46,6 +47,9 @@ router.use("/posts", postRoutes);
 // 顶层信息流与广场（App 按设计文档直接访问 /v1/feed、/v1/plaza）。
 router.get("/feed", getFeed);
 router.get("/plaza", getPlaza);
+
+// 消息：会话 / 消息 / 通知 / 设备上报 / WS 令牌。
+router.use("/", messageRoutes);
 
 // 公共兴趣标签库（App 申请表单读取）。
 router.use("/tags", tagRoutes);

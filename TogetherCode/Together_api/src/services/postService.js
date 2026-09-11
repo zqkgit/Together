@@ -1,6 +1,7 @@
 const { Op } = require("sequelize");
 const { sequelize, Post, PostLike, PostComment, User, Child, Course } = require("../models");
 const { generateId } = require("../utils/id");
+const { createNotification } = require("./messageService");
 
 const AUTHOR_ROLE_TEXT = {
   1: "家长",
@@ -147,6 +148,18 @@ async function likePost(userId, postId) {
 
     await post.update({ like_count: Number(post.like_count || 0) + 1 }, { transaction });
 
+    // 通知作者（自己给自己点赞不通知）
+    if (String(post.author_id) !== String(userId)) {
+      createNotification({
+        userId: post.author_id,
+        type: "like",
+        title: "收到新的赞",
+        content: "有人赞了你的动态",
+        refType: "post",
+        refId: postId
+      }).catch(() => {});
+    }
+
     return { post_id: String(postId), liked: true };
   });
 }
@@ -255,6 +268,18 @@ async function addPostComment(userId, postId, content) {
     );
 
     await post.update({ comment_count: Number(post.comment_count || 0) + 1 }, { transaction });
+
+    // 通知作者（评论自己的帖子不通知）
+    if (String(post.author_id) !== String(userId)) {
+      createNotification({
+        userId: post.author_id,
+        type: "comment",
+        title: "收到新的评论",
+        content: `评论：${String(content).slice(0, 50)}`,
+        refType: "post",
+        refId: postId
+      }).catch(() => {});
+    }
 
     const row = await PostComment.findByPk(comment.comment_id, {
       transaction,

@@ -40,5 +40,10 @@ module.exports = {
     accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET || "",
     bucket: process.env.OSS_BUCKET || "",
     publicUrl: process.env.OSS_PUBLIC_URL || ""
+  },
+  // 极光推送：配置 JPUSH_* 后离线推送自动生效；未配置时静默跳过（只走 WebSocket/轮询）
+  jpush: {
+    appKey: process.env.JPUSH_APP_KEY || "",
+    masterSecret: process.env.JPUSH_MASTER_SECRET || ""
   }
 };
