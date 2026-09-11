@@ -9,6 +9,7 @@ const {
   sharePost,
   listFeed,
   listPlaza,
+  listMyPosts,
   createParentPost
 } = require("../services/postService");
 
@@ -110,6 +111,15 @@ async function getFeed(req, res) {
   }
 }
 
+async function getMyPosts(req, res) {
+  try {
+    const data = await listMyPosts(req.user.userId, req.query);
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 async function getPlaza(req, res) {
   try {
     const data = await listPlaza(req.query);
@@ -141,5 +151,6 @@ module.exports = {
   postPostShare,
   getFeed,
   getPlaza,
+  getMyPosts,
   postParentPost
 };

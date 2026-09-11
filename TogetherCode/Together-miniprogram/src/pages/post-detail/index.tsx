@@ -3,6 +3,7 @@ import Taro, { useShareAppMessage } from "@tarojs/taro";
 import { View, Text, Image, Input, Textarea } from "@tarojs/components";
 import { getPostDetail, getPostComments, likePost, unlikePost, postComment, sharePost, type PostItem, type PostComment } from "../../services/post";
 import { createDistributionLink } from "../../services/distribution";
+import { addFavorite, removeFavorite, getFavoriteIds } from "../../services/interaction";
 import { useAuthStore } from "../../store/auth";
 import { buildPostSharePath, getDistFromParams, getShareUid } from "../../utils/share";
 import "./index.scss";
@@ -16,6 +17,7 @@ export default function PostDetailPage() {
   const [commentText, setCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [isFav, setIsFav] = useState(false);
   // 分销分享码：帖子挂了课程时生成，分享卡片带码 → 被分享者下单归因到发帖人
   const [shareCode, setShareCode] = useState("");
 
@@ -32,6 +34,14 @@ export default function PostDetailPage() {
       const data = await getPostDetail(id);
       setPost(data);
       prefetchShareCode(data);
+      if (isLoggedIn) {
+        try {
+          const ids = await getFavoriteIds("post");
+          setIsFav(ids.includes(data.post_id));
+        } catch {
+          // 忽略
+        }
+      }
     } catch {
       // 拦截器已提示
     }
@@ -63,6 +73,26 @@ export default function PostDetailPage() {
       setComments(data);
     } catch {
       // 忽略
+    }
+  };
+
+  const toggleFav = async () => {
+    if (!post || !isLoggedIn) {
+      Taro.showToast({ title: "请先登录", icon: "none" });
+      return;
+    }
+    try {
+      if (isFav) {
+        await removeFavorite("post", post.post_id);
+        setIsFav(false);
+        Taro.showToast({ title: "已取消收藏", icon: "none" });
+      } else {
+        await addFavorite("post", post.post_id);
+        setIsFav(true);
+        Taro.showToast({ title: "已收藏", icon: "success" });
+      }
+    } catch {
+      // 拦截器已提示
     }
   };
 
@@ -186,6 +216,9 @@ export default function PostDetailPage() {
         )}
 
         <View className="post-stats">
+          <View className={`stat ${isFav ? "fav" : ""}`} onClick={toggleFav}>
+            {isFav ? "♥" : "♡"} 收藏
+          </View>
           <View className={`stat ${post.is_liked ? "liked" : ""}`} onClick={toggleLike}>
             {post.is_liked ? "♥" : "♡"} {post.like_count}
           </View>

@@ -412,6 +412,30 @@ async function listPlaza(query = {}) {
  * 家长发帖（author_role=1，不关联学员消课）
  * type: 1 图文动态 / 2 作品分享
  */
+
+/**
+ * 我的帖子：当前用户发布的全部帖子（含待审核/被隐藏），按时间倒序
+ */
+async function listMyPosts(userId, query = {}) {
+  const page = Math.max(1, Number(query.page) || 1);
+  const size = Math.min(Number(query.size) || 20, 50);
+
+  const { rows, count } = await Post.findAndCountAll({
+    where: { author_id: userId },
+    include: postInclude(userId),
+    order: [["created_at", "DESC"]],
+    offset: (page - 1) * size,
+    limit: size
+  });
+
+  return {
+    total: count,
+    page,
+    size,
+    list: rows.map((row) => normalizePostItem(row, userId))
+  };
+}
+
 async function createParentPost(userId, payload) {
   const content = String(payload.content || "").trim();
   const images = Array.isArray(payload.images) ? payload.images.slice(0, 9) : [];
@@ -463,5 +487,6 @@ module.exports = {
   sharePost,
   listFeed,
   listPlaza,
+  listMyPosts,
   createParentPost
 };

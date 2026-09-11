@@ -2,9 +2,9 @@
  * 收藏：课程 / 老师 / 工作室通用
  */
 const { Op } = require("sequelize");
-const { Favorite, Course, TeacherProfile, StudioProfile, User, TeacherStudioBinding } = require("../models");
+const { Favorite, Course, TeacherProfile, StudioProfile, User, Post } = require("../models");
 
-const TARGET_TYPES = ["course", "teacher", "studio"];
+const TARGET_TYPES = ["course", "teacher", "studio", "post"];
 const DEFAULT_TARGET = "course";
 
 async function addFavorite(userId, payload) {
@@ -13,7 +13,11 @@ async function addFavorite(userId, payload) {
   if (!targetId) return { error: { status: 400, code: 40076, message: "target_id is required" } };
 
   // 校验目标存在（雪花 id 超 JS 安全整数，必须字符串查询）
-  const model = targetType === "course" ? Course : targetType === "teacher" ? TeacherProfile : StudioProfile;
+  const model =
+    targetType === "course" ? Course
+    : targetType === "teacher" ? TeacherProfile
+    : targetType === "studio" ? StudioProfile
+    : Post;
   const exists = await model.findByPk(targetId);
   if (!exists) return { error: { status: 404, code: 40476, message: "收藏对象不存在" } };
 
@@ -97,8 +101,24 @@ async function listFavorites(userId, query = {}) {
             rating: Number(t.rating || 0)
           };
         });
+    } else if (targetType === "post") {
+      const posts = await Post.findAll({ where: { post_id: { [Op.in]: ids } } });
+      const byId = {};
+      posts.forEach((p) => (byId[p.post_id] = p));
+      items = rows
+        .filter((r) => byId[r.target_id])
+        .map((r) => {
+          const p = byId[r.target_id];
+          const imgs = p.images || [];
+          return {
+            target_id: String(p.post_id),
+            title: (p.content || "作品").slice(0, 30),
+            cover: imgs[0] || null,
+            subtitle: `${p.like_count || 0} 赞 · ${p.comment_count || 0} 评论`
+          };
+        });
     } else {
-      const studios = await StudioProfile.findAll({ where: { studio_id: { [Op.in]: ids } } });
+
       const byId = {};
       studios.forEach((s) => (byId[s.studio_id] = s));
       items = rows

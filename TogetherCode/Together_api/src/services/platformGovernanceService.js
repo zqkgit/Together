@@ -112,8 +112,7 @@ async function reprocessSettlement(settlementId, admin) {
 }
 
 async function getPlatformConfig() {
-  const rows = await PlatformConfig.findAll({ order: [["config_key", "ASC"]] });
-  const map = {};
+  const rows = await PlatformConfig.findAll({ order: [["config_key", "ASC"]] });  const map = {};
   rows.forEach((r) => {
     try {
       map[r.config_key] = JSON.parse(r.config_value);
@@ -138,6 +137,18 @@ async function updatePlatformConfig(admin, payload = {}) {
     updates.push(key);
   }
   return { data: { updated: updates }, message: `已更新 ${updates.length} 项配置` };
+}
+
+/** 课程搜索热词：platform_configs.hot_keywords（JSON 数组），未配置返回空 */
+async function getHotKeywords() {
+  const row = await PlatformConfig.findOne({ where: { config_key: "hot_keywords" } });
+  if (!row || !row.config_value) return { list: [] };
+  try {
+    const parsed = JSON.parse(row.config_value);
+    return { list: Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string").slice(0, 10) : [] };
+  } catch {
+    return { list: [] };
+  }
 }
 
 async function listAnnouncements(query = {}) {
@@ -480,6 +491,7 @@ module.exports = {
   reprocessSettlement,
   getPlatformConfig,
   updatePlatformConfig,
+  getHotKeywords,
   listAnnouncements,
   createAnnouncement,
   createPlatformStaff,

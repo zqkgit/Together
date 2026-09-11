@@ -20,18 +20,18 @@ const reviewValidators = [
 ];
 
 const favoriteValidators = [
-  body("target_type").isIn(["course", "teacher", "studio"]).withMessage("target_type invalid"),
+  body("target_type").isIn(["course", "teacher", "studio", "post"]).withMessage("target_type invalid"),
   body("target_id").isInt({ gt: 0 }).withMessage("target_id is required")
 ];
 
 const favoriteQueryValidators = [
-  query("target_type").optional({ values: "falsy" }).isIn(["course", "teacher", "studio"]),
+  query("target_type").optional({ values: "falsy" }).isIn(["course", "teacher", "studio", "post"]),
   query("page").optional({ values: "falsy" }).isInt({ min: 1 }),
   query("page_size").optional({ values: "falsy" }).isInt({ min: 1, max: 100 })
 ];
 
 const deleteFavoriteValidators = [
-  query("target_type").isIn(["course", "teacher", "studio"]).withMessage("target_type invalid"),
+  query("target_type").isIn(["course", "teacher", "studio", "post"]).withMessage("target_type invalid"),
   query("target_id").isInt({ gt: 0 }).withMessage("target_id is required")
 ];
 

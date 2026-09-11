@@ -93,8 +93,9 @@ async function listCourses(params = {}) {
     where.status = 1;
   }
 
-  if (params.q) {
-    where.title = { [Op.like]: `%${params.q.trim()}%` };
+  const kw = (params.keyword || params.q || "").trim();
+  if (kw) {
+    where.title = { [Op.like]: `%${kw}%` };
   }
 
   if (params.category) {
@@ -155,8 +156,9 @@ async function listStudioCourses(params = {}) {
     where.status = Number(params.status);
   }
 
-  if (params.q) {
-    where.title = { [Op.like]: `%${params.q.trim()}%` };
+  const kw = (params.keyword || params.q || "").trim();
+  if (kw) {
+    where.title = { [Op.like]: `%${kw}%` };
   }
 
   const rows = await Course.findAll({

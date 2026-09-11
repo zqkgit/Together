@@ -22,10 +22,15 @@ export default function CoursesPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  // 搜索热词 / 历史
+  const [hotKeywords, setHotKeywords] = useState<string[]>([]);
+  const [history, setHistory] = useState<string[]>([]);
 
   useEffect(() => {
     loadTags();
     loadData();
+    loadHotKeywords();
+    loadHistory();
   }, []);
 
   const loadTags = async () => {
@@ -37,14 +42,16 @@ export default function CoursesPage() {
     }
   };
 
-  const loadData = async () => {
+  const loadData = async (opts?: { kw?: string; tg?: string }) => {
     setLoading(true);
     try {
       const params: any = { page, page_size: 10 };
-      if (keyword.trim()) params.keyword = keyword.trim();
-      if (tag) params.tag = tag;
+      const k = (opts?.kw !== undefined ? opts.kw : keyword).trim();
+      const t = opts?.tg !== undefined ? opts.tg : tag;
+      if (k) params.keyword = k;
+      if (t) params.tag = t;
       const query = Object.keys(params)
-        .map((k) => `${k}=${encodeURIComponent(params[k])}`)
+        .map((key) => `${key}=${encodeURIComponent(params[key])}`)
         .join("&");
       const data = await request<any>({ url: `/courses?${query}`, method: "GET" });
       const list = data?.list || [];
@@ -57,15 +64,62 @@ export default function CoursesPage() {
     }
   };
 
-  const onSearch = () => {
+  const loadHotKeywords = async () => {
+    try {
+      const data = await request<any>({ url: "/search/hot-keywords", method: "GET" });
+      setHotKeywords(data?.list || []);
+    } catch {
+      // 忽略
+    }
+  };
+
+  const loadHistory = () => {
+    try {
+      const saved = Taro.getStorageSync("course_search_history") || [];
+      setHistory(Array.isArray(saved) ? saved.slice(0, 10) : []);
+    } catch {
+      // 忽略
+    }
+  };
+
+  const saveHistory = (kw: string) => {
+    const clean = kw.trim();
+    if (!clean) return;
+    const next = [clean, ...history.filter((h) => h !== clean)].slice(0, 10);
+    setHistory(next);
+    try {
+      Taro.setStorageSync("course_search_history", next);
+    } catch {
+      // 忽略
+    }
+  };
+
+  const clearHistory = () => {
+    setHistory([]);
+    try {
+      Taro.removeStorageSync("course_search_history");
+    } catch {
+      // 忽略
+    }
+  };
+
+  const doSearch = (kw: string) => {
+    setKeyword(kw);
+    setTag("");
+    saveHistory(kw);
     setPage(1);
-    loadData();
+    setTimeout(() => loadData({ kw, tg: "" }), 0);
+  };
+
+  const onSearch = () => {
+    doSearch(keyword);
   };
 
   const onSelectTag = (name: string) => {
-    setTag(tag === name ? "" : name);
+    const next = tag === name ? "" : name;
+    setTag(next);
     setPage(1);
-    setTimeout(loadData, 0);
+    setTimeout(() => loadData({ tg: next }), 0);
   };
 
   const onReachBottom = () => {
@@ -81,6 +135,8 @@ export default function CoursesPage() {
   const goCourse = (id: string) => {
     Taro.navigateTo({ url: `/pages/course-detail/index?id=${id}` });
   };
+
+  const showPanel = !keyword.trim();
 
   return (
     <View className="courses">
@@ -109,6 +165,38 @@ export default function CoursesPage() {
           ))}
         </View>
       </ScrollView>
+
+      {showPanel && (hotKeywords.length > 0 || history.length > 0) && (
+        <View className="search-panel card">
+          {hotKeywords.length > 0 && (
+            <View className="panel-block">
+              <View className="panel-title">搜索热词</View>
+              <View className="kw-wrap">
+                {hotKeywords.map((kw) => (
+                  <Text key={kw} className="kw-pill kw-hot" onClick={() => doSearch(kw)}>
+                    🔥 {kw}
+                  </Text>
+                ))}
+              </View>
+            </View>
+          )}
+          {history.length > 0 && (
+            <View className="panel-block">
+              <View className="panel-title-row">
+                <Text className="panel-title">搜索历史</Text>
+                <Text className="clear-btn" onClick={clearHistory}>清空</Text>
+              </View>
+              <View className="kw-wrap">
+                {history.map((kw) => (
+                  <Text key={kw} className="kw-pill" onClick={() => doSearch(kw)}>
+                    {kw}
+                  </Text>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+      )}
 
       <View className="course-list">
         {courses.map((item) => (

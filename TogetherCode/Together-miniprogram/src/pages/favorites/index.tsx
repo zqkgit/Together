@@ -4,12 +4,13 @@ import { View, Text, Image } from "@tarojs/components";
 import { getFavorites, type FavoriteItem } from "../../services/interaction";
 import "./index.scss";
 
-type Tab = "course" | "teacher" | "studio";
+type Tab = "course" | "teacher" | "studio" | "post";
 
 const TABS: Array<{ key: Tab; label: string }> = [
   { key: "course", label: "课程" },
   { key: "teacher", label: "老师" },
-  { key: "studio", label: "工作室" }
+  { key: "studio", label: "工作室" },
+  { key: "post", label: "帖子" }
 ];
 
 export default function FavoritesPage() {
@@ -51,8 +52,10 @@ export default function FavoritesPage() {
       Taro.navigateTo({ url: `/pages/course-detail/index?id=${item.target_id}` });
     } else if (tab === "teacher") {
       Taro.navigateTo({ url: `/pages/teacher-homepage/index?id=${item.target_id}` });
-    } else {
+    } else if (tab === "studio") {
       Taro.navigateTo({ url: `/pages/studio-homepage/index?id=${item.target_id}` });
+    } else {
+      Taro.navigateTo({ url: `/pages/post-detail/index?id=${item.target_id}` });
     }
   };
 

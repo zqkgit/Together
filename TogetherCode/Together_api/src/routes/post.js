@@ -10,6 +10,7 @@ const {
   postPostShare,
   getFeed,
   getPlaza,
+  getMyPosts,
   postParentPost
 } = require("../controllers/postController");
 
@@ -19,6 +20,8 @@ const router = express.Router();
 router.get("/", getFeed);
 router.get("/feed", getFeed);
 router.get("/plaza", getPlaza);
+// 我的帖子（需登录；放在 /:id 之前避免被当作 postId）
+router.get("/mine", requireAuth, getMyPosts);
 router.get("/:id", requireAuthOptional, getPost);
 router.get("/:id/comments", requireAuthOptional, getPostComments);
 

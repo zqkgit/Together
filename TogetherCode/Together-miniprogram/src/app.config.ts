@@ -17,6 +17,7 @@ export default defineAppConfig({
     "pages/poster/index",
     "pages/studios/index",
     "pages/favorites/index",
+    "pages/my-posts/index",
     "pages/teacher-homepage/index",
     "pages/studio-homepage/index",
     "pages/post-detail/index",

@@ -45,6 +45,12 @@ export function getPlazaPosts(params: { page?: number; page_size?: number } = {}
   return request<any>({ url: `/posts/plaza?${q}`, method: "GET" }).then((d) => d?.list || d || []);
 }
 
+/** 我的帖子（需登录） */
+export function getMyPosts(params: { page?: number; page_size?: number } = {}): Promise<PostItem[]> {
+  const q = `page=${params.page || 1}&page_size=${params.page_size || 10}`;
+  return request<any>({ url: `/posts/mine?${q}`, method: "GET" }).then((d) => d?.list || d || []);
+}
+
 export function getPostDetail(id: string): Promise<PostItem> {
   return request({ url: `/posts/${id}`, method: "GET" });
 }
