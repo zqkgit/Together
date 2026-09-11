@@ -646,3 +646,18 @@ export async function toggleStudioStaffStatus(id: string, status: 0 | 1): Promis
   const response = await request.put(`/studio/staff/${id}`, { status });
   return response.data;
 }
+
+// ============ 经营报表 ============
+
+export interface StudioReportData {
+  revenue: { month_gmv: number; total_gmv: number; month_refund: number; total_refund: number; net_total: number };
+  lessons: { sold: number; consumed: number; remaining: number };
+  students: { total: number; active: number; month_new: number };
+  operations: { courses: number; classes: number; teachers: number };
+  recent_refunds: Array<{ refund_id: string; amount: number; status: number; reviewed_at: string | null }>;
+}
+
+export async function fetchStudioReport(): Promise<StudioReportData> {
+  const response = await request.get("/studio/reports");
+  return response.data;
+}

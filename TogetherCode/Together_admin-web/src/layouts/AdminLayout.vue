@@ -18,7 +18,9 @@ import {
   Bell,
   Monitor,
   DataLine,
-  Wallet
+  Wallet,
+  Money,
+  DataAnalysis
 } from "@element-plus/icons-vue";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -42,11 +44,13 @@ const platformMenus = [
   { path: "/admin-announcements", title: "公告管理", icon: Bell },
   { path: "/admin-config", title: "平台配置", icon: Setting },
   { path: "/admin-staff", title: "平台员工", icon: User },
+  { path: "/admin-withdrawals", title: "提现审核", icon: Money },
   { path: "/admin-audit", title: "审计日志", icon: Monitor }
 ];
 
 const studioMenus = [
   { path: "/studio-home", title: "经营概览", icon: House },
+  { path: "/studio-reports", title: "经营报表", icon: DataAnalysis },
   { path: "/studio-courses", title: "课程管理", icon: Tickets },
   { path: "/studio-classes", title: "班级管理", icon: OfficeBuilding },
   { path: "/studio-teachers", title: "教师管理", icon: User },

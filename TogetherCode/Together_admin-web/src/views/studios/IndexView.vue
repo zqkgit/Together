@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Refresh, Search } from "@element-plus/icons-vue";
 import {
@@ -11,6 +12,13 @@ import {
   type StudioDetail
 } from "../../services/admin";
 import ReviewPanel from "./ReviewPanel.vue";
+
+const router = useRouter();
+
+function goAudit() {
+  drawerOpen.value = false;
+  router.push("/admin-audit");
+}
 
 const activeTab = ref("list");
 
@@ -285,6 +293,7 @@ onMounted(loadData);
           </el-descriptions>
 
           <div class="detail-actions">
+            <el-button @click="goAudit">查看审计记录</el-button>
             <el-button v-if="detail.status === 1" type="danger" @click="handleBanFromDrawer">
               封禁该工作室
             </el-button>

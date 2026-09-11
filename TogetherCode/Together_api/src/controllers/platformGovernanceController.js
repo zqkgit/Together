@@ -13,7 +13,9 @@ const {
   listPosts,
   listPlatformStaff,
   updateAdminStaffStatus,
-  updateAnnouncementStatus
+  updateAnnouncementStatus,
+  listWithdrawals,
+  reviewWithdrawal
 } = require("../services/platformGovernanceService");
 const { recordAudit } = require("../utils/audit");
 
@@ -233,6 +235,37 @@ async function putAnnouncementStatus(req, res) {
   }
 }
 
+// 提现单列表（提现审核）
+async function getWithdrawalsList(req, res) {
+  try {
+    return ok(res, await listWithdrawals(req.query));
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+// 提现审核：通过 / 驳回
+async function putWithdrawalReview(req, res) {
+  try {
+    const result = await reviewWithdrawal(req.params.id, req.body);
+    if (result.error) {
+      return fail(res, result.error.status, result.error.code, result.error.message);
+    }
+    await recordAudit({
+      actor: req.admin,
+      role: req.admin.role,
+      action: result.data.status === 3 ? "withdrawal.approve" : "withdrawal.reject",
+      targetType: "withdrawal",
+      targetId: req.params.id,
+      detail: { amount: req.body.amount },
+      ip: req.ip
+    });
+    return ok(res, result.data, result.message);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   getReportsList,
   putReportHandle,
@@ -247,5 +280,7 @@ module.exports = {
   getPostsList,
   getStaffList,
   putStaffStatus,
-  putAnnouncementStatus
+  putAnnouncementStatus,
+  getWithdrawalsList,
+  putWithdrawalReview
 };

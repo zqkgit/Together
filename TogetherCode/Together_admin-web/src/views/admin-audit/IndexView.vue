@@ -9,6 +9,19 @@ const total = ref(0);
 const page = ref(1);
 const pageSize = ref(10);
 const filterAction = ref("");
+const filterTarget = ref("");
+
+const targetMeta: Record<string, string> = {
+  studio: "工作室",
+  teacher_application: "老师认证",
+  settlement: "结算单",
+  report: "举报",
+  post: "帖子",
+  announcement: "公告",
+  admin_account: "员工账号",
+  withdrawal: "提现",
+  refund: "退款"
+};
 
 const actionMeta: Record<string, { text: string; type: "primary" | "success" | "warning" | "danger" | "info" }> = {
   "studio.ban": { text: "封禁工作室", type: "danger" },
@@ -35,7 +48,8 @@ async function loadData() {
     const data = await fetchAdminAudit({
       page: page.value,
       page_size: pageSize.value,
-      action: filterAction.value || undefined
+      action: filterAction.value || undefined,
+      target_type: filterTarget.value || undefined
     });
     list.value = data.list;
     total.value = data.total;
@@ -48,6 +62,7 @@ async function loadData() {
 
 function onReset() {
   filterAction.value = "";
+  filterTarget.value = "";
   page.value = 1;
   loadData();
 }
@@ -61,8 +76,11 @@ onMounted(loadData);
       <template #header>
         <div class="panel-header">
           <div class="filter-row">
-            <el-select v-model="filterAction" placeholder="按操作类型筛选" clearable style="width: 200px" @change="loadData">
+            <el-select v-model="filterAction" placeholder="按操作类型筛选" clearable style="width: 190px" @change="loadData">
               <el-option v-for="(meta, key) in actionMeta" :key="key" :label="meta.text" :value="key" />
+            </el-select>
+            <el-select v-model="filterTarget" placeholder="按对象类型筛选" clearable style="width: 150px" @change="loadData">
+              <el-option v-for="(text, key) in targetMeta" :key="key" :label="text" :value="key" />
             </el-select>
           </div>
           <div>

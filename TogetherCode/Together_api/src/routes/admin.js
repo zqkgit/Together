@@ -44,7 +44,9 @@ const {
   getPostsList,
   getStaffList,
   putStaffStatus,
-  putAnnouncementStatus
+  putAnnouncementStatus,
+  getWithdrawalsList,
+  putWithdrawalReview
 } = require("../controllers/platformGovernanceController");
 const {
   handleReportValidators,
@@ -52,7 +54,8 @@ const {
   reprocessSettlementValidators,
   createAnnouncementValidators,
   createStaffValidators,
-  updateConfigValidators
+  updateConfigValidators,
+  withdrawalReviewValidators
 } = require("../validators/governanceValidator");
 
 const router = express.Router();
@@ -114,5 +117,9 @@ router.put("/staff/:id", moderatePostValidators, validateRequest, putStaffStatus
 
 // 全平台审计日志（P8）
 router.get("/audit", getAuditList);
+
+// 提现审核（分销闭环）：列表 / 通过·驳回
+router.get("/withdrawals", getWithdrawalsList);
+router.put("/withdrawals/:id", withdrawalReviewValidators, validateRequest, putWithdrawalReview);
 
 module.exports = router;

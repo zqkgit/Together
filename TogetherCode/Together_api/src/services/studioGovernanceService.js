@@ -150,6 +150,7 @@ async function listStudioAudit(studioId, query = {}) {
   const pageSize = Math.min(100, Math.max(1, Number(query.page_size) || 20));
   const where = { studio_id: studioId };
   if (query.action) where.action = query.action;
+  if (query.target_type) where.target_type = query.target_type;
 
   const { count, rows } = await AuditLog.findAndCountAll({
     where,

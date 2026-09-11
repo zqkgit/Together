@@ -1,6 +1,6 @@
 const { Op } = require("sequelize");
 const bcrypt = require("bcryptjs");
-const { sequelize, Report, AuditLog, PlatformConfig, Announcement, AdminAccount, Post, Settlement, User } = require("../models");
+const { sequelize, Report, AuditLog, PlatformConfig, Announcement, AdminAccount, Post, Settlement, User, Withdrawal, Wallet } = require("../models");
 const { generateId } = require("../utils/id");
 
 /**
@@ -235,6 +235,7 @@ async function listPlatformAudit(query = {}) {
   const where = { role: { [Op.in]: ["platform_super", "platform_ops"] } };
   if (query.action) where.action = query.action;
   if (query.actor_name) where.actor_name = { [Op.like]: `%${query.actor_name}%` };
+  if (query.target_type) where.target_type = query.target_type;
 
   const { count, rows } = await AuditLog.findAndCountAll({
     where,
@@ -366,6 +367,112 @@ async function updateAnnouncementStatus(id, payload = {}) {
   return { data: { announcement_id: String(row.announcement_id), status }, message: status === 1 ? "公告已上架" : "公告已下架" };
 }
 
+/**
+ * 提现单列表（平台审核用）：分页 / 状态筛选。
+ */
+async function listWithdrawals(query = {}) {
+  const page = Math.max(1, Number(query.page) || 1);
+  const pageSize = Math.min(100, Math.max(1, Number(query.page_size) || 20));
+  const where = {};
+  if (query.status !== undefined && query.status !== "") where.status = Number(query.status);
+
+  const { count, rows } = await Withdrawal.findAndCountAll({
+    where,
+    order: [["created_at", "DESC"]],
+    offset: (page - 1) * pageSize,
+    limit: pageSize,
+    include: [{ model: User, as: "user", attributes: ["user_id", "nickname", "phone"] }]
+  });
+  return {
+    total: count,
+    page,
+    page_size: pageSize,
+    list: rows.map((r) => ({
+      withdraw_id: String(r.withdraw_id),
+      user: r.user
+        ? { user_id: String(r.user.user_id), nickname: r.user.nickname, phone: r.user.phone }
+        : null,
+      amount: Number(r.amount),
+      method: r.method,
+      account: r.account,
+      status: Number(r.status),
+      status_text: WITHDRAW_STATUS_TEXT[Number(r.status)] || "未知",
+      created_at: r.created_at,
+      reviewed_at: r.reviewed_at
+    }))
+  };
+}
+
+const WITHDRAW_STATUS_TEXT = {
+  1: "待审核",
+  2: "处理中",
+  3: "已打款",
+  4: "已驳回"
+};
+
+/**
+ * 提现审核：通过 → 3 已打款（frozen 转 withdrawn）；驳回 → 4 已驳回（frozen 解冻回余额）。
+ */
+async function reviewWithdrawal(withdrawId, payload = {}) {
+  const action = payload.action;
+  if (!["approve", "reject"].includes(action)) {
+    return { error: { status: 400, code: 40095, message: "action 仅支持 approve / reject" } };
+  }
+  const row = await Withdrawal.findByPk(withdrawId);
+  if (!row) {
+    return { error: { status: 404, code: 40495, message: "提现单不存在" } };
+  }
+  if (Number(row.status) !== 1) {
+    return { error: { status: 400, code: 40095, message: "仅待审核的提现单可处理" } };
+  }
+
+  await sequelize.transaction(async (transaction) => {
+    const wallet = await Wallet.findByPk(row.user_id, { transaction, lock: transaction.LOCK.UPDATE });
+    const frozen = Number(wallet?.frozen || 0);
+    const amount = Number(row.amount);
+    const nextFrozen = Math.max(Number((frozen - amount).toFixed(2)), 0);
+
+    if (action === "approve") {
+      await Withdrawal.update(
+        { status: 3, reviewed_at: new Date() },
+        { where: { withdraw_id: row.withdraw_id }, transaction }
+      );
+      if (wallet) {
+        await wallet.update(
+          {
+            frozen: nextFrozen,
+            withdrawn: Number((Number(wallet.withdrawn || 0) + amount).toFixed(2))
+          },
+          { transaction }
+        );
+      }
+    } else {
+      await Withdrawal.update(
+        { status: 4, reviewed_at: new Date() },
+        { where: { withdraw_id: row.withdraw_id }, transaction }
+      );
+      if (wallet) {
+        await wallet.update(
+          {
+            frozen: nextFrozen,
+            balance: Number((Number(wallet.balance || 0) + amount).toFixed(2))
+          },
+          { transaction }
+        );
+      }
+    }
+  });
+
+  return {
+    data: {
+      withdraw_id: String(row.withdraw_id),
+      status: action === "approve" ? 3 : 4,
+      status_text: action === "approve" ? "已打款" : "已驳回"
+    },
+    message: action === "approve" ? "提现已通过并标记打款" : "提现已驳回，金额已退回余额"
+  };
+}
+
 module.exports = {
   listReports,
   handleReport,
@@ -380,5 +487,7 @@ module.exports = {
   listPosts,
   listPlatformStaff,
   updateAdminStaffStatus,
-  updateAnnouncementStatus
+  updateAnnouncementStatus,
+  listWithdrawals,
+  reviewWithdrawal
 };

@@ -48,6 +48,12 @@ const upsertStudioAccountValidators = [
   body("is_default").optional({ values: "falsy" }).isInt({ min: 0, max: 1 })
 ];
 
+// 提现审核
+const withdrawalReviewValidators = [
+  param("id").isString().notEmpty(),
+  body("action").isIn(["approve", "reject"])
+];
+
 module.exports = {
   handleReportValidators,
   moderatePostValidators,
@@ -55,5 +61,6 @@ module.exports = {
   createAnnouncementValidators,
   createStaffValidators,
   updateConfigValidators,
-  upsertStudioAccountValidators
+  upsertStudioAccountValidators,
+  withdrawalReviewValidators
 };

@@ -1,26 +1,73 @@
-const { Op } = require("sequelize");
+const { Op, fn, col, QueryTypes } = require("sequelize");
 const {
   StudioProfile,
   StudioApplication,
   Settlement,
-  User
+  User,
+  Order,
+  Course,
+  Child
 } = require("../models");
+const { sequelize } = require("../models");
 const { generateId } = require("../utils/id");
 const { formatFen } = require("../utils/amount");
 
 async function getDashboardOverview() {
-  const [studioPending, refundCount, settlementRows, studioCount] = await Promise.all([
-    StudioApplication.count({ where: { status: 0 } }),
-    Settlement.count({ where: { refund: { [Op.gt]: 0 } } }),
-    Settlement.findAll(),
-    StudioProfile.count()
-  ]);
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const dayStart30 = new Date();
+  dayStart30.setDate(dayStart30.getDate() - 29);
+  dayStart30.setHours(0, 0, 0, 0);
+
+  const [studioPending, refundCount, settlementRows, studioCount, studioNewMonth, courseTotal, childTotal, orderMonth, studentActive, gmvMonth] =
+    await Promise.all([
+      StudioApplication.count({ where: { status: 0 } }),
+      Settlement.count({ where: { refund: { [Op.gt]: 0 } } }),
+      Settlement.findAll(),
+      StudioProfile.count(),
+      StudioProfile.count({ where: { created_at: { [Op.gte]: monthStart } } }),
+      Course.count(),
+      Child.count(),
+      Order.count({ where: { status: { [Op.ne]: 0 }, created_at: { [Op.gte]: monthStart } } }),
+      Order.count({
+        where: { status: { [Op.ne]: 0 }, child_id: { [Op.ne]: null } },
+        distinct: true,
+        col: "child_id"
+      }),
+      Order.findOne({
+        where: { status: { [Op.ne]: 0 }, created_at: { [Op.gte]: monthStart } },
+        attributes: [[fn("COALESCE", fn("SUM", col("total_amount")), 0), "gmv"]],
+        raw: true
+      })
+    ]);
 
   const totalIncome = settlementRows.reduce((sum, item) => sum + Number(item.income || 0), 0);
   const totalPendingPayable = settlementRows
     .filter((item) => Number(item.status) !== 2)
     .reduce((sum, item) => sum + Number(item.payable_amount || 0), 0);
   const abnormalCount = settlementRows.filter((item) => Number(item.status) === 3).length;
+
+  // 近 30 天 GMV 趋势（有效订单按天聚合）
+  const trendRows = await sequelize.query(
+    `SELECT DATE_FORMAT(created_at, '%Y-%m-%d') AS date, COALESCE(SUM(total_amount), 0) AS gmv
+     FROM orders WHERE status <> 0 AND created_at >= :start
+     GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d') ORDER BY date`,
+    {
+      replacements: { start: dayStart30 },
+      type: QueryTypes.SELECT
+    }
+  );
+  const trendMap = new Map(trendRows.map((r) => [r.date, Number(r.gmv)]));
+  const trend30d = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(dayStart30);
+    d.setDate(dayStart30.getDate() + i);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    trend30d.push({ date: key, gmv: trendMap.get(key) || 0 });
+  }
+
+  const monthGmv = Number(gmvMonth?.gmv || 0);
 
   return {
     statCards: [
@@ -29,21 +76,38 @@ async function getDashboardOverview() {
       { label: "异常结算单", value: String(abnormalCount), trend: "需复核" },
       { label: "待结算金额", value: formatFen(totalPendingPayable), trend: `${refundCount} 笔含退款` }
     ],
+    summary: {
+      studio_total: studioCount,
+      studio_new_month: studioNewMonth,
+      student_total: childTotal,
+      student_active: studentActive,
+      course_total: courseTotal,
+      order_month: orderMonth,
+      gmv_month: monthGmv,
+      gmv_month_text: formatFen(monthGmv)
+    },
+    trend30d,
     timeline: [
       { timestamp: "今日", content: "认证申请、结算状态与工作室数据均来自数据库" },
       { timestamp: "本周", content: "完成后台接口模型化与 Docker 化运行" }
     ],
     todos: [
-      "继续落 courses / orders / refunds 真实表",
-      "补后台登录与 RBAC",
-      "接入工作室审核操作流",
-      "生成结算单批处理任务"
+      { label: "待审核工作室", count: studioPending },
+      { label: "异常结算单", count: abnormalCount }
     ]
   };
 }
 
-async function getStudios() {
-  const rows = await StudioProfile.findAll({
+async function getStudios(query = {}) {
+  const page = Math.max(1, Number(query.page) || 1);
+  const size = Math.min(100, Math.max(1, Number(query.size) || 10));
+  const where = {};
+  if (query.keyword) {
+    where[Op.or] = [{ name: { [Op.like]: `%${query.keyword}%` } }, { address: { [Op.like]: `%${query.keyword}%` } }];
+  }
+
+  const { count, rows } = await StudioProfile.findAndCountAll({
+    where,
     include: [
       {
         model: User,
@@ -51,18 +115,27 @@ async function getStudios() {
         attributes: ["user_id", "phone", "nickname"]
       }
     ],
-    order: [["created_at", "DESC"]]
+    order: [["created_at", "DESC"]],
+    offset: (page - 1) * size,
+    limit: size
   });
 
-  return rows.map((item) => ({
-    id: String(item.studio_id),
-    name: item.name,
-    city: item.address || "-",
-    status: Number(item.status) === 1 ? "营业中" : Number(item.status) === 0 ? "待审核" : "异常",
-    owner: item.owner?.nickname || "-",
-    owner_phone: item.owner?.phone || "-",
-    courses: 0
-  }));
+  return {
+    total: count,
+    page,
+    size,
+    list: rows.map((item) => ({
+      id: String(item.studio_id),
+      name: item.name,
+      city: item.address || "-",
+      status: Number(item.status) === 1 ? "营业中" : Number(item.status) === 0 ? "待审核" : "异常",
+      status_code: Number(item.status),
+      owner: item.owner?.nickname || "-",
+      owner_phone: item.owner?.phone || "-",
+      courses: 0,
+      created_at: item.created_at
+    }))
+  };
 }
 
 async function getReviews() {
@@ -107,6 +180,22 @@ async function getStudioDetail(studioId) {
     return null;
   }
 
+  // 经营统计：订单数 / 累计 GMV / 学员数（报名去重）/ 课程数
+  const [orderCount, gmvAgg, courseCount, studentAgg] = await Promise.all([
+    Order.count({ where: { studio_id: studioId } }),
+    Order.findOne({
+      where: { studio_id: studioId },
+      attributes: [[fn("COALESCE", fn("SUM", col("total_amount")), 0), "gmv"]],
+      raw: true
+    }),
+    Course.count({ where: { studio_id: studioId } }),
+    Order.count({
+      where: { studio_id: studioId, child_id: { [Op.ne]: null } },
+      distinct: true,
+      col: "child_id"
+    })
+  ]);
+
   const latestApplication = await StudioApplication.findOne({
     include: [
       {
@@ -142,6 +231,12 @@ async function getStudioDetail(studioId) {
     status: studio.status,
     banned_at: studio.banned_at,
     ban_reason: studio.ban_reason,
+    stats: {
+      orders: orderCount,
+      gmv: Number(gmvAgg?.gmv || 0),
+      students: studentAgg,
+      courses: courseCount
+    },
     owner: studio.owner
       ? {
           user_id: String(studio.owner.user_id),

@@ -522,3 +522,30 @@ export async function fetchAdminAudit(params: { page?: number; page_size?: numbe
   const response = await request.get("/admin/audit", { params });
   return response.data;
 }
+
+// ============ 提现审核 ============
+
+export interface WithdrawalItem {
+  withdraw_id: string;
+  user: { user_id: string; nickname: string; phone: string } | null;
+  amount: number;
+  method: string;
+  account: string | null;
+  status: number;
+  status_text: string;
+  created_at: string;
+  reviewed_at: string | null;
+}
+
+export async function fetchWithdrawals(params: { status?: number | ""; page?: number; page_size?: number } = {}): Promise<PagedList<WithdrawalItem>> {
+  const response = await request.get("/admin/withdrawals", { params });
+  return response.data;
+}
+
+export async function reviewWithdrawal(
+  id: string,
+  payload: { action: "approve" | "reject" }
+): Promise<{ withdraw_id: string; status: number; status_text: string }> {
+  const response = await request.put(`/admin/withdrawals/${id}`, payload);
+  return response.data;
+}

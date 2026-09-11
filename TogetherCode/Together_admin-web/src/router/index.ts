@@ -86,10 +86,22 @@ const router = createRouter({
           meta: { title: "审计日志", requiresAuth: true, scopes: ["platform"] }
         },
         {
+          path: "/admin-withdrawals",
+          name: "admin-withdrawals",
+          component: () => import("../views/admin-withdrawals/IndexView.vue"),
+          meta: { title: "提现审核", requiresAuth: true, scopes: ["platform"] }
+        },
+        {
           path: "/studio-home",
           name: "studio-home",
           component: () => import("../views/studio/HomeView.vue"),
           meta: { title: "经营概览", requiresAuth: true, scopes: ["studio"] }
+        },
+        {
+          path: "/studio-reports",
+          name: "studio-reports",
+          component: () => import("../views/studio-reports/IndexView.vue"),
+          meta: { title: "经营报表", requiresAuth: true, scopes: ["studio"] }
         },
         {
           path: "/studio-courses",
