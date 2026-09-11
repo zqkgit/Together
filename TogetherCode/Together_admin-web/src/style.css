@@ -76,14 +76,27 @@ a {
 .menu {
   border-right: none !important;
   background: transparent !important;
+  --el-menu-hover-bg-color: rgba(255, 255, 255, 0.12);
+  --el-menu-active-color: #ffffff;
 }
 
 .menu .el-menu-item {
   color: #f5f0e6;
 }
 
-.menu .el-menu-item.is-active {
-  background: rgba(255, 255, 255, 0.16);
+.menu .el-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.menu .el-menu-item.is-active,
+.menu .el-menu-item.is-active:hover {
+  background: rgba(255, 255, 255, 0.24);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.menu .el-menu-item.is-active .el-icon {
   color: #ffffff;
 }
 
