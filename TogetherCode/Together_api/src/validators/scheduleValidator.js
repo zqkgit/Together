@@ -49,9 +49,26 @@ const listStudioSchedulesValidators = [
   query("class_id").optional({ values: "falsy" }).isString()
 ];
 
+const createTeacherScheduleValidators = [
+  body("class_id").isString().notEmpty().withMessage("class_id is required"),
+  body("lesson_date").isISO8601().withMessage("lesson_date is invalid"),
+  body("start_time")
+    .matches(/^\d{2}:\d{2}$/)
+    .withMessage("start_time must be HH:mm"),
+  body("end_time")
+    .matches(/^\d{2}:\d{2}$/)
+    .withMessage("end_time must be HH:mm"),
+  body("location").optional({ values: "falsy" }).isString().isLength({ max: 120 }),
+  body("is_makeup").optional().isBoolean().withMessage("is_makeup must be boolean"),
+  body("makeup_from").optional({ values: "falsy" }).isString(),
+  body("status").optional({ values: "falsy" }).isInt({ min: 0, max: 2 }),
+  body("remark").optional({ values: "falsy" }).isString().isLength({ max: 255 })
+];
+
 module.exports = {
   createStudioClassValidators,
   listStudioClassesValidators,
   createStudioScheduleValidators,
-  listStudioSchedulesValidators
+  listStudioSchedulesValidators,
+  createTeacherScheduleValidators
 };

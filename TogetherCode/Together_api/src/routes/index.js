@@ -16,6 +16,10 @@ const messageRoutes = require("./message");
 const commissionRoutes = require("./commission");
 const payRoutes = require("./pay");
 const { getFeed, getPlaza } = require("../controllers/postController");
+const { postTeacherSchedule } = require("../controllers/scheduleController");
+const { createTeacherScheduleValidators } = require("../validators/scheduleValidator");
+const { validateRequest } = require("../middlewares/validate");
+const { requireAuth, requireRole } = require("../middlewares/auth");
 
 const router = express.Router();
 
@@ -33,6 +37,9 @@ router.use("/orders", orderRoutes);
 
 // 家长端接口：孩子管理。
 router.use("/children", childRoutes);
+
+// 老师 App 端新增排课（PR：POST /schedules）。
+router.post("/schedules", requireAuth, requireRole(2), createTeacherScheduleValidators, validateRequest, postTeacherSchedule);
 
 // 家长端接口：请假申请与请假记录。
 router.use("/leave", leaveRoutes);

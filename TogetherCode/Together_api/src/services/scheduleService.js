@@ -331,8 +331,7 @@ async function createStudioSchedule(payload) {
   });
 }
 
-async function listStudioSchedules(query = {}) {
-  const range = getWeekRange(query.week);
+async function listStudioSchedules(query = {}) {  const range = getWeekRange(query.week);
   const where = {
     studio_id: query.studio_id,
     lesson_date: {
@@ -418,9 +417,54 @@ async function listStudioSchedules(query = {}) {
   };
 }
 
+/**
+ * 老师 App 端新增排课（POST /v1/schedules）
+ * 身份从 token 推导：老师 → 班级所属工作室 → 校验合作绑定 + 班级归属，复用工作室排课核心（冲突检测等）。
+ */
+async function createTeacherSchedule(userId, payload) {
+  const teacher = await TeacherProfile.findOne({ where: { user_id: userId } });
+  if (!teacher) {
+    throw new Error("Teacher profile not found");
+  }
+
+  const classItem = await Class.findByPk(payload.class_id, {
+    include: [
+      {
+        model: Course,
+        as: "course",
+        attributes: ["course_id", "studio_id", "title", "duration_min"]
+      }
+    ]
+  });
+  if (!classItem || !classItem.course) {
+    throw new Error("Class not found");
+  }
+  const studioId = String(classItem.course.studio_id);
+
+  // 老师必须与该工作室存在有效合作绑定
+  const binding = await TeacherStudioBinding.findOne({
+    where: { teacher_id: teacher.teacher_id, studio_id: studioId, status: 1 }
+  });
+  if (!binding) {
+    throw new Error("Teacher does not belong to studio");
+  }
+
+  // 班级授课老师必须是当前老师（未指定授课老师的班级允许其合作老师排课）
+  if (classItem.teacher_id && String(classItem.teacher_id) !== String(teacher.teacher_id)) {
+    throw new Error("Class does not belong to teacher");
+  }
+
+  return createStudioSchedule({
+    ...payload,
+    studio_id: studioId,
+    teacher_id: teacher.teacher_id
+  });
+}
+
 module.exports = {
   listStudioClasses,
   createStudioClass,
   createStudioSchedule,
-  listStudioSchedules
+  listStudioSchedules,
+  createTeacherSchedule
 };
