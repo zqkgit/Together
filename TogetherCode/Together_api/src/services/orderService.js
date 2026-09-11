@@ -158,12 +158,20 @@ async function createOrder(userId, payload) {
   return sequelize.transaction(async (transaction) => {
     const child = await ensureChildBelongsToUser(payload.child_id, userId, transaction);
     const { course, coursePackage } = await ensureCoursePackage(payload.course_id, payload.package_id, transaction);
+    const courseId = String(course.course_id);
 
     // 分销来源：带分享码下单时记录来源链接
     let distributionLinkId = null;
     if (payload.distribution_code) {
       const link = await resolveDistributionCode(payload.distribution_code);
       if (link) {
+        // 分享码严格绑定课程：只能用码购买其对应的课程，防止串课返利
+        if (String(link.course_id) !== String(courseId)) {
+          const e = new Error("分享码与课程不匹配");
+          e.status = 400;
+          e.code = 40075;
+          throw e;
+        }
         distributionLinkId = link.link_id;
       }
     }

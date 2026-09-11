@@ -7,7 +7,8 @@ async function postOrder(req, res) {
     return ok(res, data, "order created");
   } catch (error) {
     const status = /not found|not available/i.test(error.message) ? 400 : 500;
-    return fail(res, status, status === 400 ? 40020 : 50000, error.message || "Internal server error");
+    const code = error.code || (status === 400 ? 40020 : 50000);
+    return fail(res, status, code, error.message || "Internal server error");
   }
 }
 

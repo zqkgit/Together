@@ -1,5 +1,5 @@
 const crypto = require("crypto");
-const { sequelize, DistributionLink, CommissionRecord, Wallet, Withdrawal, Order, Course, StudioProfile, User } = require("../models");
+const { sequelize, DistributionLink, CommissionRecord, Wallet, Withdrawal, Order, Course, Post, StudioProfile, User } = require("../models");
 const { generateId } = require("../utils/id");
 
 const DISTRIBUTE_MIN = 5;
@@ -29,12 +29,27 @@ async function createDistributionLink(userId, payload = {}) {
     return { error: { status: 404, code: 40471, message: "课程不存在" } };
   }
 
+  // 帖子分享返利：帖子必须存在、属于当前发帖人、且确实挂了该课程
+  let postId = payload.post_id ? String(payload.post_id) : null;
+  if (postId) {
+    const post = await Post.findByPk(postId);
+    if (!post || Number(post.status) !== 1) {
+      return { error: { status: 404, code: 40472, message: "帖子不存在或已下架" } };
+    }
+    if (String(post.author_id) !== String(userId)) {
+      return { error: { status: 403, code: 40371, message: "只能为本人发布的帖子生成分享码" } };
+    }
+    if (!post.course_id || String(post.course_id) !== courseId) {
+      return { error: { status: 400, code: 40072, message: "该帖子未挂载此课程" } };
+    }
+  }
+
   const code = generateShareCode(userId, courseId);
   const link = await DistributionLink.create({
     link_id: generateId(),
     parent_user_id: userId,
     course_id: courseId,
-    post_id: payload.post_id ? String(payload.post_id) : null,
+    post_id: postId,
     code,
     status: 1
   });
@@ -43,11 +58,14 @@ async function createDistributionLink(userId, payload = {}) {
     data: {
       link_id: String(link.link_id),
       code,
-      share_url: `/pages/course-detail?id=${courseId}&dist=${code}`,
+      share_url: postId
+        ? `/pages/post-detail?id=${postId}&dist=${code}`
+        : `/pages/course-detail?id=${courseId}&dist=${code}`,
       course: {
         course_id: String(course.course_id),
         title: course.title
-      }
+      },
+      post_id: postId || null
     }
   };
 }
