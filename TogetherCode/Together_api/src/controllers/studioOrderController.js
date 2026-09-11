@@ -5,6 +5,7 @@ const {
   listStudioRefunds,
   reviewStudioRefund
 } = require("../services/studioOrderService");
+const { recordAudit } = require("../utils/audit");
 
 async function getStudioOrders(req, res) {
   try {
@@ -43,7 +44,16 @@ async function putStudioRefund(req, res) {
     if (!data) {
       return fail(res, 404, 40491, "Refund not found");
     }
-
+    await recordAudit({
+      actor: req.admin,
+      role: req.admin.role,
+      studioId: req.admin.studioId,
+      action: "studio.refund.review",
+      targetType: "refund",
+      targetId: req.params.id,
+      detail: req.body,
+      ip: req.ip
+    });
     return ok(res, data, "refund handled");
   } catch (error) {
     const status = /already handled|exceed|not found/i.test(error.message) ? 400 : 500;

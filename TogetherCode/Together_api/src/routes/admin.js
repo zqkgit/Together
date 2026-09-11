@@ -30,6 +30,26 @@ const {
   handleStudioReviewValidators,
   banStudioValidators
 } = require("../validators/backofficeValidator");
+const {
+  getReportsList,
+  putReportHandle,
+  putPostModerate,
+  postSettlementReprocess,
+  getConfig,
+  putConfig,
+  getAnnouncementsList,
+  postAnnouncement,
+  postStaff,
+  getAuditList
+} = require("../controllers/platformGovernanceController");
+const {
+  handleReportValidators,
+  moderatePostValidators,
+  reprocessSettlementValidators,
+  createAnnouncementValidators,
+  createStaffValidators,
+  updateConfigValidators
+} = require("../validators/governanceValidator");
 
 const router = express.Router();
 
@@ -62,5 +82,29 @@ router.get("/tags", getTagsData);
 router.post("/tags", postTag);
 router.put("/tags/:id", putTag);
 router.delete("/tags/:id", deleteTagItem);
+
+// 举报处置（P3）
+router.get("/reports", getReportsList);
+router.put("/reports/:id", handleReportValidators, validateRequest, putReportHandle);
+
+// 内容下架 / 恢复（P3）
+router.put("/posts/:id/moderate", moderatePostValidators, validateRequest, putPostModerate);
+
+// 结算异常重打（P4）
+router.post("/settlements/:id/reprocess", reprocessSettlementValidators, validateRequest, postSettlementReprocess);
+
+// 平台配置（P7）
+router.get("/config", getConfig);
+router.put("/config", updateConfigValidators, validateRequest, putConfig);
+
+// 公告 / Banner（P6）
+router.get("/announcements", getAnnouncementsList);
+router.post("/announcements", createAnnouncementValidators, validateRequest, postAnnouncement);
+
+// 平台员工（P8）
+router.post("/staff", createStaffValidators, validateRequest, postStaff);
+
+// 全平台审计日志（P8）
+router.get("/audit", getAuditList);
 
 module.exports = router;

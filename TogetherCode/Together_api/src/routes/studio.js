@@ -12,6 +12,14 @@ const { validateRequest } = require("../middlewares/validate");
 const { saveStudioProfileValidators } = require("../validators/backofficeValidator");
 const studioOrderRoutes = require("./studioOrder");
 const studioRefundRoutes = require("./studioRefund");
+const {
+  getFinance,
+  getAccounts,
+  postAccount,
+  getAudit,
+  postStaff
+} = require("../controllers/studioGovernanceController");
+const { upsertStudioAccountValidators, createStaffValidators } = require("../validators/governanceValidator");
 
 const router = express.Router();
 
@@ -36,5 +44,18 @@ router.use("/classes", adminClassRoutes);
 router.use("/schedules", adminScheduleRoutes);
 router.use("/leaves", adminLeaveRoutes);
 router.use("/students", adminStudentRoutes);
+
+// 财务对账（营收 / 退款 / 分销）
+router.get("/finance", getFinance);
+
+// 结算账户（绑定收款信息）
+router.get("/accounts", getAccounts);
+router.post("/accounts", upsertStudioAccountValidators, validateRequest, postAccount);
+
+// 本店操作审计
+router.get("/audit", getAudit);
+
+// 员工账号（owner）
+router.post("/staff", createStaffValidators, validateRequest, postStaff);
 
 module.exports = router;
