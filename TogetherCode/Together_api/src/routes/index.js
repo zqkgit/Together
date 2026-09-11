@@ -10,6 +10,9 @@ const tagRoutes = require("./tags");
 const parentRoutes = require("./parent");
 const meRoutes = require("./me");
 const uploadRoutes = require("./upload");
+const postRoutes = require("./post");
+const profileRoutes = require("./profile");
+const { getFeed, getPlaza } = require("../controllers/postController");
 
 const router = express.Router();
 
@@ -31,8 +34,18 @@ router.use("/children", childRoutes);
 // 家长端接口：请假申请与请假记录。
 router.use("/leave", leaveRoutes);
 
+// 主页 / 公开档案（必须挂在 /teacher、/studio 等带全局鉴权路由之前，保证游客可访问）。
+router.use("/", profileRoutes);
+
 // 老师端接口：我的班级、课表、请假处理、发帖消课。
 router.use("/teacher", teacherRoutes);
+
+// 帖子社区：详情 / 点赞 / 评论 / 信息流 / 广场 / 家长发帖。
+router.use("/posts", postRoutes);
+
+// 顶层信息流与广场（App 按设计文档直接访问 /v1/feed、/v1/plaza）。
+router.get("/feed", getFeed);
+router.get("/plaza", getPlaza);
 
 // 公共兴趣标签库（App 申请表单读取）。
 router.use("/tags", tagRoutes);

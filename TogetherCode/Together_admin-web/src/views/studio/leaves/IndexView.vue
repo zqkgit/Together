@@ -19,10 +19,11 @@ const loading = ref(false);
 const status = ref<number | "">(0);
 const leaves = ref<LeaveItem[]>([]);
 
-const statusMeta: Record<number, { text: string; type: "warning" | "success" | "danger" }> = {
+const statusMeta: Record<number, { text: string; type: "warning" | "success" | "danger" | "info" }> = {
   0: { text: "待处理", type: "warning" },
   1: { text: "已同意", type: "success" },
-  2: { text: "已驳回", type: "danger" }
+  2: { text: "已驳回", type: "danger" },
+  3: { text: "已取消", type: "info" }
 };
 
 const makeupMeta: Record<number, string> = {

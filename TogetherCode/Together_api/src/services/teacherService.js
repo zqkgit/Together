@@ -315,6 +315,15 @@ async function buildLeaveMap({ classId, scheduleId, childIds }, transaction) {
 }
 
 async function resolvePostContext(teacher, payload, transaction) {
+  // 纯分享帖：无课程/班级/排课上下文，直接返回空上下文（不消课）。
+  if (!payload.course_id && !payload.class_id && !payload.schedule_id) {
+    return {
+      course: null,
+      classItem: null,
+      schedule: null
+    };
+  }
+
   let classItem = null;
   let schedule = null;
 
@@ -466,12 +475,19 @@ async function consumeStudentsForPost(post, teacher, payload, transaction) {
   return consumedList;
 }
 
-async function listTeacherClasses(userId) {
+async function listTeacherClasses(userId, query = {}) {
   const teacher = await ensureTeacherProfile(userId);
+  const where = {
+    teacher_id: teacher.teacher_id
+  };
+
+  // 按课程过滤班级（App 端"课程 → 班级 → 学员"联动）。
+  if (query.course_id) {
+    where.course_id = query.course_id;
+  }
+
   const rows = await Class.findAll({
-    where: {
-      teacher_id: teacher.teacher_id
-    },
+    where,
     include: [
       {
         model: Course,
@@ -733,14 +749,20 @@ async function reviewTeacherLeave(userId, leaveId, payload) {
 async function createTeacherPost(userId, payload) {
   return sequelize.transaction(async (transaction) => {
     const teacher = await ensureTeacherProfile(userId, transaction);
-    const { course } = await resolvePostContext(teacher, payload, transaction);
+    const context = await resolvePostContext(teacher, payload, transaction);
+
+    // 兜底：勾选了学员但缺少课程上下文时不允许（校验层已拦截，这里双保险）。
+    const hasStudents = Array.isArray(payload.students) && payload.students.length > 0;
+    if (hasStudents && !context.course) {
+      throw new Error("Course or schedule context is required when students are marked");
+    }
 
     const post = await Post.create(
       {
         author_id: userId,
         author_role: 2,
         type: Number(payload.type || 1),
-        course_id: course.course_id,
+        course_id: context.course ? context.course.course_id : null,
         images: payload.images || [],
         content: payload.content || null,
         visibility: payload.visibility !== undefined ? Number(payload.visibility) : 2,

@@ -2,7 +2,8 @@ const { ok, fail } = require("../utils/response");
 const {
   getMyBalances,
   getMyLessonLogs,
-  getChildTimetable
+  getChildTimetable,
+  getChildCalendar
 } = require("../services/parentService");
 
 async function getMyBalancesData(req, res) {
@@ -35,8 +36,21 @@ async function getChildTimetableData(req, res) {
   }
 }
 
+async function getChildCalendarData(req, res) {
+  try {
+    const result = await getChildCalendar(req.user.userId, req.query);
+    if (result.error) {
+      return fail(res, result.error.status, result.error.status === 404 ? 40440 : 40040, result.error.message);
+    }
+    return ok(res, result);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   getMyBalancesData,
   getMyLessonLogsData,
-  getChildTimetableData
+  getChildTimetableData,
+  getChildCalendarData
 };

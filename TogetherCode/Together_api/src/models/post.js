@@ -75,6 +75,8 @@ module.exports = (sequelize, DataTypes) => {
     Post.belongsTo(models.Course, { foreignKey: "course_id", as: "course" });
     Post.hasMany(models.PostStudent, { foreignKey: "post_id", as: "students" });
     Post.hasMany(models.LessonLog, { foreignKey: "post_id", as: "lessonLogs" });
+    Post.hasMany(models.PostLike, { foreignKey: "post_id", as: "likes" });
+    Post.hasMany(models.PostComment, { foreignKey: "post_id", as: "comments" });
   };
 
   Post.beforeValidate((instance) => {

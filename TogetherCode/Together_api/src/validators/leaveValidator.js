@@ -8,12 +8,12 @@ const createLeaveValidators = [
 ];
 
 const listMyLeaveValidators = [
-  query("status").optional({ values: "falsy" }).isInt({ min: 0, max: 2 })
+  query("status").optional({ values: "falsy" }).isInt({ min: 0, max: 3 })
 ];
 
 const listStudioLeaveValidators = [
   query("studio_id").isString().notEmpty().withMessage("studio_id is required"),
-  query("status").optional({ values: "falsy" }).isInt({ min: 0, max: 2 }),
+  query("status").optional({ values: "falsy" }).isInt({ min: 0, max: 3 }),
   query("class_id").optional({ values: "falsy" }).isString(),
   query("child_id").optional({ values: "falsy" }).isString()
 ];

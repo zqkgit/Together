@@ -551,10 +551,62 @@ async function bindMakeupSchedule(leaveId, payload) {
   });
 }
 
+/**
+ * 家长取消待审请假（status 0 → 3 已取消）
+ * 仅本人 + 待审核状态可取消
+ */
+async function cancelMyLeaveRequest(parentUserId, leaveId) {
+  return sequelize.transaction(async (transaction) => {
+    const leave = await LeaveRequest.findOne({
+      where: { leave_id: leaveId, parent_user_id: parentUserId },
+      transaction,
+      lock: transaction.LOCK.UPDATE
+    });
+
+    if (!leave) {
+      throw new Error("Leave request not found");
+    }
+
+    if (Number(leave.status) !== 0) {
+      throw new Error("Leave request already handled");
+    }
+
+    await leave.update(
+      {
+        status: 3,
+        handled_at: new Date()
+      },
+      { transaction }
+    );
+
+    const row = await LeaveRequest.findByPk(leave.leave_id, {
+      transaction,
+      include: [
+        { model: Child, as: "child", attributes: ["child_id", "nickname", "birthday"] },
+        { model: User, as: "parent", attributes: ["user_id", "phone", "nickname"] },
+        { model: Class, as: "classItem", attributes: ["class_id", "name"] },
+        {
+          model: Schedule,
+          as: "schedule",
+          attributes: ["schedule_id", "lesson_date", "start_time", "end_time", "location"]
+        },
+        {
+          model: Schedule,
+          as: "makeupSchedule",
+          attributes: ["schedule_id", "lesson_date", "start_time", "end_time", "location"]
+        }
+      ]
+    });
+
+    return normalizeLeaveItem(row);
+  });
+}
+
 module.exports = {
   submitLeaveRequest,
   listMyLeaveRequests,
   listStudioLeaveRequests,
   reviewLeaveRequest,
-  bindMakeupSchedule
+  bindMakeupSchedule,
+  cancelMyLeaveRequest
 };

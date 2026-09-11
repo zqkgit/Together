@@ -282,8 +282,106 @@ async function getChildTimetable(userId, query = {}) {
   };
 }
 
+/**
+ * 家长端：课程日历（按月聚合，多孩子叠加）
+ * month 格式 YYYY-MM；不传默认当月；child_id 可选（指定孩子）
+ */
+async function getChildCalendar(userId, query = {}) {
+  const monthStr = String(query.month || "").trim();
+  let year;
+  let month;
+
+  if (/^\d{4}-\d{2}$/.test(monthStr)) {
+    [year, month] = monthStr.split("-").map((value) => Number(value));
+  } else {
+    const now = new Date();
+    year = now.getFullYear();
+    month = now.getMonth() + 1;
+  }
+
+  const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+  const endDate = `${year}-${String(month).padStart(2, "0")}-${new Date(year, month, 0).getDate()}`;
+
+  const children = query.child_id
+    ? [await ensureChildOwnership(query.child_id, userId)]
+    : await Child.findAll({ where: { parent_user_id: userId } });
+
+  const validChildren = (children || []).filter(Boolean);
+  if (!validChildren.length) {
+    return { error: { status: 400, message: "请先添加孩子" } };
+  }
+
+  const childIds = validChildren.map((child) => child.child_id);
+  const balances = await ChildCourseBalance.findAll({
+    where: {
+      child_id: { [Op.in]: childIds },
+      status: { [Op.in]: [1, 2] }
+    },
+    attributes: ["child_id", "course_id"]
+  });
+
+  const courseIds = [...new Set(balances.map((item) => item.course_id))];
+  const schedules = courseIds.length
+    ? await Schedule.findAll({
+        where: {
+          course_id: { [Op.in]: courseIds },
+          lesson_date: { [Op.between]: [startDate, endDate] }
+        },
+        include: [
+          { model: ClassModel, as: "classItem", attributes: ["class_id", "name"] },
+          { model: Course, as: "course", attributes: ["course_id", "title", "duration_min"] },
+          { model: TeacherProfile, as: "teacher", attributes: ["teacher_id", "real_name"] },
+          { model: StudioProfile, as: "studio", attributes: ["studio_id", "name"] }
+        ],
+        order: [
+          ["lesson_date", "ASC"],
+          ["start_time", "ASC"]
+        ]
+      })
+    : [];
+
+  // 按日期聚合；每个孩子只保留其已购课程的排课
+  const balanceCourseMap = new Map();
+  balances.forEach((item) => {
+    const key = `${item.child_id}:${item.course_id}`;
+    balanceCourseMap.set(key, true);
+  });
+
+  const dateMap = new Map();
+  for (const schedule of schedules) {
+    const covered = validChildren.some((child) =>
+      balanceCourseMap.has(`${child.child_id}:${schedule.course_id}`)
+    );
+    if (!covered) continue;
+
+    const date = schedule.lesson_date;
+    if (!dateMap.has(date)) {
+      dateMap.set(date, []);
+    }
+    dateMap.get(date).push({
+      ...normalizeTimetableItem(schedule),
+      children: validChildren
+        .filter((child) => balanceCourseMap.has(`${child.child_id}:${schedule.course_id}`))
+        .map((child) => ({
+          child_id: String(child.child_id),
+          nickname: child.nickname
+        }))
+    });
+  }
+
+  return {
+    month: `${year}-${String(month).padStart(2, "0")}`,
+    date_count: dateMap.size,
+    list: Array.from(dateMap.entries()).map(([date, events]) => ({
+      date,
+      events
+    }))
+  };
+}
+
 module.exports = {
   getMyBalances,
   getMyLessonLogs,
-  getChildTimetable
+  getChildTimetable,
+  getChildCalendar
 };

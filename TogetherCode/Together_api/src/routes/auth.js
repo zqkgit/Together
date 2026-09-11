@@ -8,7 +8,8 @@ const {
   postLogout,
   getMe,
   postRoleApply,
-  getRoleApplyStatusHandler
+  getRoleApplyStatusHandler,
+  postRoleSwitch
 } = require("../controllers/authController");
 const { requireAuth } = require("../middlewares/auth");
 
@@ -27,5 +28,6 @@ router.get("/me", requireAuth, getMe);
 // 角色申请：提交老师认证 / 工作室入驻 + 申请状态查询
 router.post("/role/apply", requireAuth, postRoleApply);
 router.get("/role/apply/:role", requireAuth, getRoleApplyStatusHandler);
+router.post("/role/switch", requireAuth, postRoleSwitch);
 
 module.exports = router;

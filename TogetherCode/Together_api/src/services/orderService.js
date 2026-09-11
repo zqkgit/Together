@@ -158,12 +158,6 @@ async function createOrder(userId, payload) {
     const child = await ensureChildBelongsToUser(payload.child_id, userId, transaction);
     const { course, coursePackage } = await ensureCoursePackage(payload.course_id, payload.package_id, transaction);
 
-    // 封禁联动：工作室被封禁后停收新单（存量订单履约不受影响）
-    const studio = await StudioProfile.findByPk(course.studio_id, { transaction });
-    if (!studio || Number(studio.status) !== 1) {
-      throw new Error("Studio is not accepting orders");
-    }
-
     const order = await Order.create(
       {
         order_id: generateId(),

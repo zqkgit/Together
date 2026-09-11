@@ -4,7 +4,8 @@ const {
   listMyLeaveRequests,
   listStudioLeaveRequests,
   reviewLeaveRequest,
-  bindMakeupSchedule
+  bindMakeupSchedule,
+  cancelMyLeaveRequest
 } = require("../services/leaveService");
 
 async function getMyLeaves(req, res) {
@@ -23,6 +24,16 @@ async function postLeave(req, res) {
   } catch (error) {
     const status = /not found|does not belong|already exists|not enrolled/i.test(error.message) ? 400 : 500;
     return fail(res, status, status === 400 ? 40050 : 50000, error.message || "Internal server error");
+  }
+}
+
+async function putMyLeave(req, res) {
+  try {
+    const data = await cancelMyLeaveRequest(req.user.userId, req.params.id);
+    return ok(res, data, "请假已取消");
+  } catch (error) {
+    const status = /not found|already handled/i.test(error.message) ? 400 : 500;
+    return fail(res, status, status === 400 ? 40053 : 50000, error.message || "Internal server error");
   }
 }
 
@@ -64,6 +75,7 @@ async function putStudioLeaveMakeup(req, res) {
 module.exports = {
   getMyLeaves,
   postLeave,
+  putMyLeave,
   getStudioLeaves,
   putStudioLeave,
   putStudioLeaveMakeup

@@ -23,13 +23,20 @@ const handleTeacherLeaveValidators = [
 ];
 
 const createTeacherPostValidators = [
-  body("course_id").isString().notEmpty().withMessage("course_id is required"),
+  body("course_id").optional({ values: "falsy" }).isString(),
   body("class_id").optional({ values: "falsy" }).isString(),
   body("schedule_id")
     .if(body("students").exists())
     .isString()
     .notEmpty()
     .withMessage("schedule_id is required when students are marked"),
+  body().custom((_, { req }) => {
+    const hasStudents = Array.isArray(req.body.students) && req.body.students.length > 0;
+    if (hasStudents && !req.body.course_id && !req.body.schedule_id && !req.body.class_id) {
+      throw new Error("course_id or schedule_id is required when students are marked");
+    }
+    return true;
+  }),
   body("content").optional({ values: "falsy" }).isString().isLength({ max: 1000 }),
   body("images").optional().isArray({ max: 9 }).withMessage("images must be an array"),
   body("images.*").optional().isString(),

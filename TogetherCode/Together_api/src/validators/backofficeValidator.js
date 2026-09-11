@@ -17,25 +17,15 @@ const listReviewsValidators = [
   query("keyword").optional({ values: "falsy" }).isString().isLength({ max: 50 })
 ];
 
+const banStudioValidators = [
+  param("id").isString().notEmpty().withMessage("studio id is required"),
+  body("reason").optional({ values: "falsy" }).isString().isLength({ max: 255 })
+];
+
 const handleStudioReviewValidators = [
   param("id").isString().notEmpty().withMessage("review id is required"),
   body("action").isIn(["approve", "reject"]).withMessage("action is invalid"),
-  body("reason").custom((value, { req }) => {
-    if (req.body.action === "reject" && !String(value || "").trim()) {
-      throw new Error("reason is required when rejecting");
-    }
-    if (value !== undefined && value !== null && value !== "") {
-      if (typeof value !== "string" || value.length > 255) {
-        throw new Error("reason must be a string within 255 chars");
-      }
-    }
-    return true;
-  })
-];
-
-const banStudioValidators = [
-  param("id").isString().notEmpty().withMessage("studio id is required"),
-  body("reason").isString().trim().isLength({ min: 1, max: 255 }).withMessage("ban reason is required")
+  body("reason").optional({ values: "falsy" }).isString().isLength({ max: 255 })
 ];
 
 const saveStudioProfileValidators = [
@@ -61,7 +51,7 @@ module.exports = {
   reviewIdValidator,
   listStudiosValidators,
   listReviewsValidators,
-  handleStudioReviewValidators,
   banStudioValidators,
+  handleStudioReviewValidators,
   saveStudioProfileValidators
 };

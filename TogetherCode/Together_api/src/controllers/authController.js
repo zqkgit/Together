@@ -6,7 +6,8 @@ const {
   refreshAccessToken,
   logout,
   getProfile,
-  updateProfile
+  updateProfile,
+  switchRole
 } = require("../services/authStore");
 const {
   submitRoleApply,
@@ -169,6 +170,19 @@ async function getRoleApplyStatusHandler(req, res) {
   }
 }
 
+// POST /v1/auth/role/switch · 切换当前角色（重发 access token）
+async function postRoleSwitch(req, res) {
+  try {
+    const result = await switchRole(req.user.userId, req.body.role);
+    if (result.error) {
+      return fail(res, result.error.status, result.error.code, result.error.message);
+    }
+    return ok(res, result.data, "角色已切换");
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   postSendCode,
   postRegister,
@@ -179,5 +193,6 @@ module.exports = {
   getMe,
   putMeProfile,
   postRoleApply,
-  getRoleApplyStatusHandler
+  getRoleApplyStatusHandler,
+  postRoleSwitch
 };

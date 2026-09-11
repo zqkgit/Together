@@ -2,6 +2,34 @@ const jwt = require("jsonwebtoken");
 const env = require("../config/env");
 const { User, AdminAccount } = require("../models");
 
+async function requireAuthOptional(req, res, next) {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : null;
+
+  if (!token) {
+    return next();
+  }
+
+  try {
+    const decoded = jwt.verify(token, env.jwtSecret);
+    const user = await User.findByPk(decoded.userId);
+
+    if (user) {
+      req.user = {
+        userId: String(user.user_id),
+        role: user.current_role,
+        phone: user.phone
+      };
+    }
+  } catch (_error) {
+    // 无效 token 视为游客
+  }
+
+  return next();
+}
+
 async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization || "";
   const token = authHeader.startsWith("Bearer ")
@@ -119,6 +147,7 @@ function requireBackofficeAuth(scope) {
 
 module.exports = {
   requireAuth,
+  requireAuthOptional,
   requireRole,
   requireBackofficeAuth
 };

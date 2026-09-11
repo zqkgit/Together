@@ -309,6 +309,46 @@ async function getProfile(userId) {
   return buildUserPayload(user);
 }
 
+const ROLE_TEXT = {
+  1: "家长",
+  2: "老师",
+  3: "工作室"
+};
+
+/**
+ * 切换当前角色（家长 ↔ 老师 ↔ 工作室）
+ * 仅允许切换到已开通的角色（user_roles 存在），更新 current_role 并重发 access token
+ */
+async function switchRole(userId, role) {
+  const roleValue = Number(role);
+  if (![1, 2, 3].includes(roleValue)) {
+    return { error: { status: 400, code: 40000, message: "角色不合法" } };
+  }
+
+  const user = await getUserById(userId);
+  if (!user) {
+    return { error: { status: 404, code: 40402, message: "User not found" } };
+  }
+
+  const roleRecord = await UserRole.findOne({
+    where: { user_id: userId, role: roleValue }
+  });
+  if (!roleRecord) {
+    return { error: { status: 400, code: 40003, message: `该账号未开通「${ROLE_TEXT[roleValue] || "该"}」角色` } };
+  }
+
+  await user.update({ current_role: roleValue });
+
+  const payload = await buildUserPayload(user);
+  return {
+    data: {
+      ...payload,
+      access_token: createAccessToken(user),
+      token_type: "Bearer"
+    }
+  };
+}
+
 /**
  * 完善资料（注册引导 / 个人中心编辑）
  * 支持：nickname / avatar / city；terms_agreed: true 时留痕协议同意时间
@@ -367,5 +407,6 @@ module.exports = {
   refreshAccessToken,
   logout,
   getProfile,
-  updateProfile
+  updateProfile,
+  switchRole
 };
