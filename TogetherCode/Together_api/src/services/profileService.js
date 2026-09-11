@@ -82,7 +82,10 @@ async function getTeacherHomepage(userId, query = {}) {
   const size = Math.min(Number(query.size) || 10, 30);
 
   const teacher = await TeacherProfile.findOne({
-    where: { user_id: userId, cert_status: 1 },
+    where: {
+      [Op.or]: [{ user_id: userId }, { teacher_id: userId }],
+      cert_status: 1
+    },
     include: [{ model: User, as: "user", attributes: ["user_id", "nickname", "avatar", "city"] }]
   });
 
@@ -103,7 +106,7 @@ async function getTeacherHomepage(userId, query = {}) {
 
   const works = await Post.findAndCountAll({
     where: {
-      author_id: userId,
+      author_id: teacher.user?.user_id || userId,
       author_role: 2,
       status: 1,
       visibility: 2

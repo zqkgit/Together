@@ -13,6 +13,7 @@ const {
   StudioProfile
 } = require("../models");
 const { generateId } = require("../utils/id");
+const { resolveDistributionCode, settleCommissionForOrder } = require("./commissionService");
 
 function formatOrder(order) {
   return {
@@ -158,6 +159,15 @@ async function createOrder(userId, payload) {
     const child = await ensureChildBelongsToUser(payload.child_id, userId, transaction);
     const { course, coursePackage } = await ensureCoursePackage(payload.course_id, payload.package_id, transaction);
 
+    // 分销归因：带分享码下单时，记录分享来源，支付成功后按工作室返利比例结算
+    let distributionLinkId = null;
+    if (payload.distribution_code) {
+      const link = await resolveDistributionCode(payload.distribution_code, transaction);
+      if (link && String(link.parent_user_id) !== String(userId)) {
+        distributionLinkId = link.link_id;
+      }
+    }
+
     const order = await Order.create(
       {
         order_id: generateId(),
@@ -170,6 +180,7 @@ async function createOrder(userId, payload) {
         total_lessons: coursePackage.lessons,
         total_amount: coursePackage.price,
         remark: payload.remark || null,
+        distribution_link_id: distributionLinkId,
         status: 0
       },
       { transaction }
@@ -284,6 +295,9 @@ async function payOrder(userId, orderId, payload) {
       },
       { transaction }
     );
+
+    // 分销结算：带分享码下单的订单，支付成功后按工作室返利比例给分享人结算佣金
+    await settleCommissionForOrder(order, { transaction, settleImmediately: true });
 
     const detail = await getOrderWithDetails(order.order_id, { transaction });
     return formatOrder(detail);

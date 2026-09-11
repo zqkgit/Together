@@ -1,6 +1,75 @@
-.empty-tip {
-  text-align: center;
-  color: #8a8378;
-  font-size: 26rpx;
-  padding: 200rpx 0;
+@use "@/styles/theme.scss" as *;
+
+.messages {
+  padding: $page-padding;
+
+  .head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8rpx 4rpx 24rpx;
+
+    .title {
+      font-size: 34rpx;
+      font-weight: 700;
+      color: $color-text;
+    }
+
+    .read-all {
+      font-size: 24rpx;
+      color: $color-primary;
+    }
+  }
+
+  .item {
+    padding: 24rpx;
+    margin-bottom: 16rpx;
+    border-left: 6rpx solid transparent;
+
+    &.unread {
+      border-left-color: $color-gold;
+    }
+
+    .item-head {
+      display: flex;
+      align-items: center;
+      gap: 12rpx;
+
+      .item-type {
+        font-size: 22rpx;
+        color: $color-primary;
+        background: rgba(47, 93, 69, 0.08);
+        padding: 2rpx 14rpx;
+        border-radius: $radius-sm;
+      }
+
+      .dot {
+        width: 14rpx;
+        height: 14rpx;
+        background: #d9534f;
+        border-radius: 50%;
+      }
+    }
+
+    .item-title {
+      margin-top: 12rpx;
+      font-size: 30rpx;
+      font-weight: 600;
+      color: $color-text;
+    }
+
+    .item-content {
+      margin-top: 8rpx;
+      font-size: 26rpx;
+      line-height: 1.6;
+      color: $color-text-light;
+      word-break: break-word;
+    }
+
+    .item-time {
+      margin-top: 12rpx;
+      font-size: 22rpx;
+      color: #b0a99b;
+    }
+  }
 }

@@ -73,11 +73,11 @@ async function createDistributionLink(userId, payload = {}) {
 /**
  * 按分享码解析分销来源（下单时调用）
  */
-async function resolveDistributionCode(code) {
+async function resolveDistributionCode(code, transaction = null) {
   if (!code) {
     return null;
   }
-  const link = await DistributionLink.findOne({ where: { code: String(code).trim(), status: 1 } });
+  const link = await DistributionLink.findOne({ where: { code: String(code).trim(), status: 1 }, transaction });
   if (!link) {
     return null;
   }
@@ -115,7 +115,8 @@ async function settleCommissionForOrder(order, { transaction, settleImmediately 
 
   const studio = await StudioProfile.findByPk(order.studio_id, { transaction });
   const rate = Number(studio?.distribute_rate || 5);
-  const amount = Number((Number(order.total_amount || 0) * rate) / 100).toFixed(2);
+  // total_amount 单位分 → 换算成元（÷100）后再按返利比例（%）计算，结果单位元
+  const amount = Number((Number(order.total_amount || 0) / 100) * (rate / 100)).toFixed(2);
 
   if (Number(amount) <= 0) {
     return null;

@@ -22,6 +22,7 @@ export function createOrder(payload: {
   child_id: string;
   course_id: string;
   package_id: string;
+  distribution_code?: string;
   remark?: string;
 }): Promise<OrderItem> {
   return request({ url: "/orders", method: "POST", data: payload });

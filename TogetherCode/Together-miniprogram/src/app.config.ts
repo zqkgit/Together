@@ -12,6 +12,11 @@ export default defineAppConfig({
     "pages/orders/index",
     "pages/children/index",
     "pages/child-balance/index",
+    "pages/child-growth/index",
+    "pages/child-timetable/index",
+    "pages/poster/index",
+    "pages/teacher-homepage/index",
+    "pages/studio-homepage/index",
     "pages/post-detail/index",
     "pages/post-create/index",
     "pages/wallet/index",
@@ -30,11 +35,12 @@ export default defineAppConfig({
     selectedColor: "#2f5d45",
     backgroundColor: "#ffffff",
     borderStyle: "white",
+    // 图标资源：将 81x81px PNG 放入 src/assets/tabbar/ 后生效（iconPath/selectedIconPath）
     list: [
-      { pagePath: "pages/home/index", text: "首页" },
-      { pagePath: "pages/courses/index", text: "课程" },
-      { pagePath: "pages/plaza/index", text: "广场" },
-      { pagePath: "pages/mine/index", text: "我的" }
+      { pagePath: "pages/home/index", text: "首页", iconPath: "assets/tabbar/home.png", selectedIconPath: "assets/tabbar/home-active.png" },
+      { pagePath: "pages/courses/index", text: "课程", iconPath: "assets/tabbar/courses.png", selectedIconPath: "assets/tabbar/courses-active.png" },
+      { pagePath: "pages/plaza/index", text: "广场", iconPath: "assets/tabbar/plaza.png", selectedIconPath: "assets/tabbar/plaza-active.png" },
+      { pagePath: "pages/mine/index", text: "我的", iconPath: "assets/tabbar/mine.png", selectedIconPath: "assets/tabbar/mine-active.png" }
     ]
   }
 });

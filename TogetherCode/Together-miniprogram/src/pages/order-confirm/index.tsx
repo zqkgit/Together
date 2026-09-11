@@ -4,12 +4,15 @@ import { View, Text, Button, RadioGroup, Radio } from "@tarojs/components";
 import { getCourseDetail, fenToYuan } from "../../services/course";
 import { listChildren, type ChildItem } from "../../services/child";
 import { createOrder } from "../../services/order";
+import { getDistFromParams } from "../../utils/share";
 import "./index.scss";
 
 export default function OrderConfirmPage() {
   const router = useRouter();
   const courseId = router.params.course_id || "";
   const packageId = router.params.package_id || "";
+  // 分销归因码：由分享链接带过来，下单时提交 → 支付成功后返利给分享人
+  const distributionCode = getDistFromParams();
   const [course, setCourse] = useState<any>(null);
   const [pkg, setPkg] = useState<any>(null);
   const [children, setChildren] = useState<ChildItem[]>([]);
@@ -49,7 +52,8 @@ export default function OrderConfirmPage() {
       const order = await createOrder({
         child_id: selectedChild,
         course_id: courseId,
-        package_id: pkg.package_id
+        package_id: pkg.package_id,
+        distribution_code: distributionCode || undefined
       });
       Taro.redirectTo({ url: `/pages/order-pay/index?order_id=${order.order_id}` });
     } catch {

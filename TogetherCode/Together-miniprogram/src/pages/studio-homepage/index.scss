@@ -1,0 +1,147 @@
+@use "../../styles/theme.scss" as *;
+
+.studio-page {
+  min-height: 100vh;
+  padding-bottom: 40rpx;
+}
+
+.studio-cover-hero {
+  width: 100%;
+  height: 360rpx;
+}
+
+.studio-cover-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, #2f5d45, #3f7458);
+  color: #fff;
+  font-size: 120rpx;
+  font-weight: 700;
+}
+
+.studio-header {
+  margin-top: -40rpx;
+  position: relative;
+}
+
+.studio-name {
+  font-size: 40rpx;
+  font-weight: 700;
+}
+
+.studio-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 14rpx;
+}
+
+.studio-tag {
+  padding: 4rpx 18rpx;
+  border-radius: 999rpx;
+  background: #eaf2ec;
+  color: #2f5d45;
+  font-size: 22rpx;
+}
+
+.studio-line {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: $color-text;
+}
+
+.course-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 20rpx 0;
+  border-bottom: 2rpx solid #f0ebe0;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.course-cover {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: $radius-md;
+  background: #efe9db;
+}
+
+.course-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.course-title {
+  font-size: 30rpx;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.course-meta {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: $color-text-light;
+}
+
+.course-price {
+  margin-top: 8rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #c0392b;
+}
+
+.course-arrow {
+  color: #c9c2b4;
+  font-size: 36rpx;
+}
+
+.teacher-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 20rpx 0;
+  border-bottom: 2rpx solid #f0ebe0;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.teacher-avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: #efe9db;
+}
+
+.teacher-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.teacher-name {
+  font-size: 30rpx;
+  font-weight: 500;
+}
+
+.teacher-rating {
+  font-size: 24rpx;
+  color: #d9a441;
+}
+
+.teacher-subjects {
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: $color-text-light;
+}
+
+.teacher-arrow {
+  color: #c9c2b4;
+  font-size: 36rpx;
+}

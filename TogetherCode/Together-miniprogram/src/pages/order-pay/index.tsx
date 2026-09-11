@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Taro, { useRouter } from "@tarojs/taro";
 import { View, Text, Button } from "@tarojs/components";
 import { getOrderDetail, payOrder, fenToYuan } from "../../services/order";
+import { subscribeCommonReminders } from "../../services/push";
 import "./index.scss";
 
 export default function OrderPayPage() {
@@ -29,6 +30,8 @@ export default function OrderPayPage() {
       const paid = await payOrder(orderId, "wechat_mini");
       setOrder(paid);
       Taro.showToast({ title: "支付成功", icon: "success" });
+      // 支付成功后申请订阅提醒（课时消耗/退款结果）；用户拒绝不阻塞
+      subscribeCommonReminders();
       setTimeout(() => {
         Taro.redirectTo({ url: `/pages/order-detail/index?id=${orderId}` });
       }, 600);

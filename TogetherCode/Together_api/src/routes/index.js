@@ -8,6 +8,11 @@ const teacherRoutes = require("./teacher");
 const childRoutes = require("./child");
 const postRoutes = require("./post");
 const tagRoutes = require("./tags");
+const commissionRoutes = require("./commission");
+const messageRoutes = require("./message");
+const parentRoutes = require("./parent");
+const uploadRoutes = require("./upload");
+const profileRoutes = require("./profile");
 const { ok, fail } = require("../utils/response");
 const { listAnnouncements } = require("../services/platformGovernanceService");
 
@@ -49,6 +54,21 @@ router.get("/announcements", async (req, res) => {
     return fail(res, 500, 50000, error.message || "Internal server error");
   }
 });
+
+// 家长端收益：分销佣金汇总 / 明细 / 提现。
+router.use("/distribution", commissionRoutes);
+
+// 消息通知与站内信。
+router.use("/messages", messageRoutes);
+
+// 家长端课时：余额 / 消课记录 / 课表 / 日历。
+router.use("/parent", parentRoutes);
+
+// 图片上传：返回 urls 数组，可直接存图片数组字段（OSS / 本地回退）。
+router.use("/upload", uploadRoutes);
+
+// 公开档案 / 主页：用户资料、老师主页、工作室主页（游客可浏览）
+router.use("/profile", profileRoutes);
 
 // 工作室轻量 App 端接口当前还未独立拆分；
 // 现阶段已落地的工作室能力主要集中在 Web 侧 /studio/*。

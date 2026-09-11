@@ -5,8 +5,15 @@ $color-bg: #f7f4ec;
 $color-card: #ffffff;
 $color-text: #2b2621;
 $color-text-secondary: #8a8378;
+$color-text-light: #8a8378;
 $color-danger: #c4564a;
 $color-border: #e6dfd3;
+$page-padding: 32rpx;
+$radius-sm: 8rpx;
+$radius-md: 12rpx;
+$radius-lg: 16rpx;
+$radius-xl: 20rpx;
+$radius-button: 48rpx;
 
 page {
   background: $color-bg;

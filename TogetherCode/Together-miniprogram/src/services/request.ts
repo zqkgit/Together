@@ -1,6 +1,7 @@
 import Taro from "@tarojs/taro";
+import { APP_CONFIG } from "../config";
 
-const BASE_URL = "http://127.0.0.1:3001/v1";
+const BASE_URL = APP_CONFIG.BASE_URL;
 const TOKEN_KEY = "together_wx_access_token";
 const REFRESH_KEY = "together_wx_refresh_token";
 const ACCOUNT_KEY = "together_wx_account";

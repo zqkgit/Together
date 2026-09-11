@@ -1,6 +1,123 @@
-.empty-tip {
-  text-align: center;
-  color: #8a8378;
-  font-size: 26rpx;
-  padding: 200rpx 0;
+@use "@/styles/theme.scss" as *;
+
+.refund {
+  padding: $page-padding;
+  padding-bottom: 160rpx;
+
+  .order-card {
+    padding: 24rpx;
+
+    .course-name {
+      font-size: 32rpx;
+      font-weight: 600;
+      color: $color-text;
+    }
+
+    .order-sub {
+      margin-top: 10rpx;
+      font-size: 24rpx;
+      color: $color-text-light;
+    }
+  }
+
+  .form-card {
+    margin-top: 24rpx;
+    padding: 24rpx;
+
+    .form-label {
+      font-size: 28rpx;
+      font-weight: 600;
+      color: $color-text;
+      margin: 8rpx 0 20rpx;
+    }
+
+    .lessons-row {
+      display: flex;
+      align-items: center;
+      gap: 16rpx;
+      margin-bottom: 32rpx;
+
+      .lessons-input {
+        width: 200rpx;
+        height: 80rpx;
+        padding: 0 24rpx;
+        font-size: 32rpx;
+        font-weight: 600;
+        background: $color-bg;
+        border-radius: $radius-md;
+        text-align: center;
+      }
+
+      .lessons-unit {
+        font-size: 24rpx;
+        color: $color-text-light;
+      }
+    }
+
+    .reason-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16rpx;
+      margin-bottom: 20rpx;
+
+      .reason-item {
+        padding: 14rpx 28rpx;
+        font-size: 26rpx;
+        color: $color-text;
+        background: $color-bg;
+        border: 2rpx solid transparent;
+        border-radius: $radius-button;
+
+        &.active {
+          color: $color-primary;
+          border-color: $color-primary;
+          background: rgba(47, 93, 69, 0.06);
+        }
+      }
+    }
+
+    .reason-input {
+      height: 80rpx;
+      padding: 0 24rpx;
+      font-size: 28rpx;
+      background: $color-bg;
+      border-radius: $radius-md;
+    }
+  }
+
+  .tips {
+    margin-top: 24rpx;
+    padding: 24rpx;
+
+    .tip-title {
+      font-size: 26rpx;
+      font-weight: 600;
+      color: $color-text;
+    }
+
+    .tip-text {
+      margin-top: 10rpx;
+      font-size: 24rpx;
+      color: $color-text-light;
+      line-height: 1.6;
+    }
+  }
+
+  .submit-wrap {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 20rpx $page-padding calc(20rpx + env(safe-area-inset-bottom));
+    background: #fff;
+    box-shadow: 0 -2rpx 16rpx rgba(0, 0, 0, 0.06);
+
+    .submit-btn {
+      text-align: center;
+
+      &.disabled {
+        opacity: 0.5;
+      }
+    }
+  }
 }

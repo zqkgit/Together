@@ -17,8 +17,11 @@ const withdrawValidators = [
   body("account").optional({ values: "falsy" }).isString().isLength({ max: 128 })
 ];
 
+const wxacodeValidators = [body("code").isString().notEmpty().withMessage("code is required")];
+
 module.exports = {
   createDistributionLinkValidators,
   listCommissionRecordsValidators,
-  withdrawValidators
+  withdrawValidators,
+  wxacodeValidators
 };

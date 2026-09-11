@@ -6,6 +6,7 @@ const {
   requestWithdraw,
   setStudioDistributeRate
 } = require("../services/commissionService");
+const { createWxacodeForCode } = require("../services/wxCodeService");
 
 async function postDistributionLink(req, res) {
   try {
@@ -67,5 +68,19 @@ module.exports = {
   getCommissionSummaryHandler,
   getCommissionRecords,
   postCommissionWithdraw,
-  putStudioDistributeRate
+  putStudioDistributeRate,
+  postWxacode
 };
+
+/** 生成分享海报用的小程序码 */
+async function postWxacode(req, res) {
+  try {
+    const result = await createWxacodeForCode(req.body.code);
+    if (result.error) {
+      return fail(res, result.error.status, result.error.code, result.error.message);
+    }
+    return ok(res, result.data, "ok");
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
