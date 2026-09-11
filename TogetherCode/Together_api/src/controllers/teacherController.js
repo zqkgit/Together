@@ -11,7 +11,7 @@ const {
 
 async function getTeacherClasses(req, res) {
   try {
-    const data = await listTeacherClasses(req.user.userId, req.query);
+    const data = await listTeacherClasses(req.user.userId);
     return ok(res, data);
   } catch (error) {
     const status = /not found/i.test(error.message) ? 404 : 500;

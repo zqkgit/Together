@@ -1,0 +1,54 @@
+.pay-page {
+  padding-bottom: 140rpx;
+}
+
+.pay-amount {
+  padding: 80rpx 40rpx 60rpx;
+  text-align: center;
+}
+
+.pay-label {
+  font-size: 26rpx;
+  color: #8a8378;
+}
+
+.pay-value {
+  margin-top: 12rpx;
+  font-size: 72rpx;
+  font-weight: 700;
+  color: #c4564a;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 18rpx 0;
+  font-size: 28rpx;
+}
+
+.info-label {
+  color: #8a8378;
+}
+
+.info-value {
+  color: #2b2621;
+  max-width: 60%;
+  text-align: right;
+}
+
+.pay-btn-wrap {
+  margin: 48rpx 48rpx 0;
+}
+
+.pay-btn {
+  height: 92rpx;
+  line-height: 92rpx;
+}
+
+.pay-hint {
+  display: block;
+  text-align: center;
+  margin-top: 20rpx;
+  font-size: 22rpx;
+  color: #b5aea3;
+}

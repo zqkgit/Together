@@ -1,0 +1,70 @@
+.children {
+  padding: 20rpx 0 40rpx;
+}
+
+.child-card {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+}
+
+.child-avatar {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background: #a87a3e;
+  color: #fff;
+  font-size: 36rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.child-info {
+  flex: 1;
+}
+
+.child-name {
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.child-birth {
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: #8a8378;
+}
+
+.balance-link {
+  color: #2f5d45;
+  font-size: 26rpx;
+  border: 2rpx solid #2f5d45;
+  border-radius: 28rpx;
+  padding: 8rpx 28rpx;
+}
+
+.add-btn {
+  margin: 32rpx 48rpx 0;
+  height: 88rpx;
+  line-height: 88rpx;
+}
+
+.form-card {
+  margin-top: 24rpx;
+}
+
+.form-input {
+  background: #f7f4ec;
+  border-radius: 14rpx;
+  height: 84rpx;
+  padding: 0 24rpx;
+  margin-bottom: 20rpx;
+  font-size: 28rpx;
+}
+
+.form-submit {
+  height: 84rpx;
+  line-height: 84rpx;
+}

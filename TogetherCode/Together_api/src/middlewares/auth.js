@@ -2,34 +2,6 @@ const jwt = require("jsonwebtoken");
 const env = require("../config/env");
 const { User, AdminAccount } = require("../models");
 
-async function requireAuthOptional(req, res, next) {
-  const authHeader = req.headers.authorization || "";
-  const token = authHeader.startsWith("Bearer ")
-    ? authHeader.slice(7)
-    : null;
-
-  if (!token) {
-    return next();
-  }
-
-  try {
-    const decoded = jwt.verify(token, env.jwtSecret);
-    const user = await User.findByPk(decoded.userId);
-
-    if (user) {
-      req.user = {
-        userId: String(user.user_id),
-        role: user.current_role,
-        phone: user.phone
-      };
-    }
-  } catch (_error) {
-    // 无效 token 视为游客
-  }
-
-  return next();
-}
-
 async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization || "";
   const token = authHeader.startsWith("Bearer ")
@@ -68,8 +40,33 @@ async function requireAuth(req, res, next) {
   }
 }
 
-function requireRole(...roles) {
-  return (req, res, next) => {
+async function requireAuthOptional(req, res, next) {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : null;
+
+  if (!token) {
+    return next();
+  }
+
+  try {
+    const decoded = jwt.verify(token, env.jwtSecret);
+    const user = await User.findByPk(decoded.userId);
+    if (user) {
+      req.user = {
+        userId: String(user.user_id),
+        role: user.current_role,
+        phone: user.phone
+      };
+    }
+  } catch (_error) {
+    // 可选登录：token 无效时按游客处理
+  }
+  return next();
+}
+
+function requireRole(...roles) {  return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
         code: 40100,

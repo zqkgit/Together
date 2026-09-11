@@ -1,0 +1,125 @@
+.home {
+  padding-bottom: 40rpx;
+}
+
+.home-banner {
+  height: 260rpx;
+  background: linear-gradient(120deg, #2f5d45 0%, #4a7a5e 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 48rpx;
+}
+
+.banner-title {
+  color: #fff;
+  font-size: 44rpx;
+  font-weight: 700;
+}
+
+.banner-sub {
+  margin-top: 12rpx;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 26rpx;
+}
+
+.notice-card {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 8rpx;
+}
+
+.notice-label {
+  background: #a87a3e;
+  color: #fff;
+  font-size: 22rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 8rpx;
+  flex-shrink: 0;
+}
+
+.notice-text {
+  font-size: 26rpx;
+  color: #2b2621;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx 32rpx 8rpx;
+}
+
+.section-title {
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.section-more {
+  font-size: 26rpx;
+  color: #8a8378;
+}
+
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20rpx;
+  padding: 16rpx 24rpx;
+}
+
+.course-card {
+  background: #fff;
+  border-radius: 20rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 16rpx rgba(47, 93, 69, 0.08);
+}
+
+.course-cover {
+  width: 100%;
+  height: 200rpx;
+  background: #eae4d8;
+}
+
+.course-body {
+  padding: 16rpx 20rpx 20rpx;
+}
+
+.course-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.course-studio {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: #8a8378;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.course-price {
+  margin-top: 12rpx;
+  display: flex;
+  align-items: baseline;
+  gap: 10rpx;
+}
+
+.price-now {
+  color: #c4564a;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.price-original {
+  color: #b5aea3;
+  font-size: 22rpx;
+  text-decoration: line-through;
+}

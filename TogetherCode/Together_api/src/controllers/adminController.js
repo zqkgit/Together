@@ -1,4 +1,5 @@
 const { ok, fail } = require("../utils/response");
+const { recordAudit } = require("../utils/audit");
 const {
   getDashboardOverview,
   getStudios,
@@ -10,30 +11,18 @@ const {
   banStudio,
   unbanStudio
 } = require("../services/adminStore");
-const {
-  getSettlements: fetchSettlements,
-  generateSettlements,
-  payoutSettlement
-} = require("../services/settlementService");
-const {
-  getTeacherApplications,
-  reviewTeacherApplication
-} = require("../services/teacherApplicationService");
 const { listPlatformTeachers } = require("../services/adminTeacherService");
-const {
-  listTags,
-  createTag,
-  updateTag,
-  deleteTag
-} = require("../services/tagService");
-const { recordAudit } = require("../utils/audit");
+const { getTeacherApplications, reviewTeacherApplication } = require("../services/teacherApplicationService");
+const { listTags, createTag, updateTag, deleteTag } = require("../services/tagService");
+const { generateSettlements, payoutSettlement } = require("../services/settlementService");
+
 
 async function getOverview(_req, res) {
   return ok(res, await getDashboardOverview());
 }
 
-async function getStudiosList(req, res) {
-  return ok(res, await getStudios(req.query));
+async function getStudiosList(_req, res) {
+  return ok(res, await getStudios());
 }
 
 async function getStudioDetailById(req, res) {
@@ -45,49 +34,8 @@ async function getStudioDetailById(req, res) {
   return ok(res, data);
 }
 
-async function putStudioBan(req, res) {
-  try {
-    const data = await banStudio(req.params.id, req.body, req.admin);
-    if (!data) {
-      return fail(res, 404, 40470, "Studio not found");
-    }
-    await recordAudit({
-      actor: req.admin,
-      role: req.admin.role,
-      action: "studio.ban",
-      targetType: "studio",
-      targetId: req.params.id,
-      detail: req.body,
-      ip: req.ip
-    });
-    return ok(res, data, "工作室已封禁");
-  } catch (error) {
-    return fail(res, 500, 50000, error.message || "Internal server error");
-  }
-}
-
-async function putStudioUnban(req, res) {
-  try {
-    const data = await unbanStudio(req.params.id, req.admin);
-    if (!data) {
-      return fail(res, 404, 40470, "Studio not found");
-    }
-    await recordAudit({
-      actor: req.admin,
-      role: req.admin.role,
-      action: "studio.unban",
-      targetType: "studio",
-      targetId: req.params.id,
-      ip: req.ip
-    });
-    return ok(res, data, "工作室已解封");
-  } catch (error) {
-    return fail(res, 500, 50000, error.message || "Internal server error");
-  }
-}
-
-async function getReviewsList(req, res) {
-  return ok(res, await getReviews(req.query));
+async function getReviewsList(_req, res) {
+  return ok(res, await getReviews());
 }
 
 async function getReviewDetail(req, res) {
@@ -105,15 +53,7 @@ async function putReview(req, res) {
     if (!data) {
       return fail(res, 404, 40471, "Studio review not found");
     }
-    await recordAudit({
-      actor: req.admin,
-      role: req.admin.role,
-      action: "studio.application.review",
-      targetType: "studio_application",
-      targetId: req.params.id,
-      detail: req.body,
-      ip: req.ip
-    });
+
     return ok(res, data, "studio review handled");
   } catch (error) {
     const status = /already handled/i.test(error.message) ? 400 : 500;
@@ -121,21 +61,51 @@ async function putReview(req, res) {
   }
 }
 
-async function getSettlementsData(_req, res) {
-  return ok(res, await fetchSettlements());
-}
-
-async function postGenerateSettlements(req, res) {
+async function putStudioBan(req, res) {
   try {
-    const data = await generateSettlements(req.admin, req.body);
+    const data = await banStudio(req.params.id, req.body, req.admin);
+    if (!data) {
+      return fail(res, 404, 40470, "Studio not found");
+    }
     await recordAudit({
       actor: req.admin,
-      role: req.admin.role,
-      action: "settlement.generate",
-      detail: req.body,
-      ip: req.ip
+      action: "studio.ban",
+      target_type: "studio",
+      target_id: req.params.id,
+      detail: { reason: req.body.reason || "" }
     });
-    return ok(res, data, "结算单已生成");
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+async function putStudioUnban(req, res) {
+  try {
+    const data = await unbanStudio(req.params.id, req.admin);
+    if (!data) {
+      return fail(res, 404, 40470, "Studio not found");
+    }
+    await recordAudit({
+      actor: req.admin,
+      action: "studio.unban",
+      target_type: "studio",
+      target_id: req.params.id
+    });
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+async function getSettlementsData(_req, res) {
+  return ok(res, await getSettlements());
+}
+
+async function postGenerateSettlements(_req, res) {
+  try {
+    const result = await generateSettlements();
+    return ok(res, result);
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");
   }
@@ -143,16 +113,11 @@ async function postGenerateSettlements(req, res) {
 
 async function postPayoutSettlement(req, res) {
   try {
-    const data = await payoutSettlement(req.params.id, req.admin);
-    await recordAudit({
-      actor: req.admin,
-      role: req.admin.role,
-      action: "settlement.payout",
-      targetType: "settlement",
-      targetId: req.params.id,
-      ip: req.ip
-    });
-    return ok(res, data, "已发起打款");
+    const result = await payoutSettlement(req.params.id);
+    if (result && result.error) {
+      return fail(res, result.error.status || 400, result.error.code || 40070, result.error.message);
+    }
+    return ok(res, result);
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");
   }
@@ -164,23 +129,20 @@ async function getTeacherApplicationsData(req, res) {
 
 async function putTeacherApplicationReview(req, res) {
   try {
-    const data = await reviewTeacherApplication(req.params.id, req.body, req.admin);
-    if (!data) {
-      return fail(res, 404, 40472, "Teacher application not found");
+    const result = await reviewTeacherApplication(req.params.id, req.body, req.admin);
+    if (result && result.error) {
+      return fail(res, result.error.status || 400, result.error.code || 40070, result.error.message);
     }
     await recordAudit({
       actor: req.admin,
-      role: req.admin.role,
-      action: "teacher.application.review",
-      targetType: "teacher_application",
-      targetId: req.params.id,
-      detail: req.body,
-      ip: req.ip
+      action: `teacher_application.${req.body.action || "review"}`,
+      target_type: "teacher_application",
+      target_id: req.params.id,
+      detail: { reason: req.body.reason || "" }
     });
-    return ok(res, data, "老师认证已处理");
+    return ok(res, result);
   } catch (error) {
-    const status = /already handled/i.test(error.message) ? 400 : 500;
-    return fail(res, status, status === 400 ? 40071 : 50000, error.message || "Internal server error");
+    return fail(res, 500, 50000, error.message || "Internal server error");
   }
 }
 
@@ -194,21 +156,23 @@ async function getTagsData(req, res) {
 
 async function postTag(req, res) {
   try {
-    const data = await createTag(req.body);
-    return ok(res, data, "标签已创建");
+    const result = await createTag(req.body);
+    if (result && result.error) {
+      return fail(res, result.error.status || 400, result.error.code || 40000, result.error.message);
+    }
+    return ok(res, result);
   } catch (error) {
-    const status = /exists/i.test(error.message) ? 400 : 500;
-    return fail(res, status, status === 400 ? 40072 : 50000, error.message || "Internal server error");
+    return fail(res, 500, 50000, error.message || "Internal server error");
   }
 }
 
 async function putTag(req, res) {
   try {
-    const data = await updateTag(req.params.id, req.body);
-    if (!data) {
-      return fail(res, 404, 40473, "Tag not found");
+    const result = await updateTag(req.params.id, req.body);
+    if (result && result.error) {
+      return fail(res, result.error.status || 400, result.error.code || 40000, result.error.message);
     }
-    return ok(res, data, "标签已更新");
+    return ok(res, result);
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");
   }
@@ -216,11 +180,11 @@ async function putTag(req, res) {
 
 async function deleteTagItem(req, res) {
   try {
-    const data = await deleteTag(req.params.id);
-    if (!data) {
-      return fail(res, 404, 40473, "Tag not found");
+    const result = await deleteTag(req.params.id);
+    if (result && result.error) {
+      return fail(res, result.error.status || 400, result.error.code || 40000, result.error.message);
     }
-    return ok(res, data, "标签已删除");
+    return ok(res, result);
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");
   }

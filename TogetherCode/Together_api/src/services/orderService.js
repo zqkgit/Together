@@ -13,7 +13,6 @@ const {
   StudioProfile
 } = require("../models");
 const { generateId } = require("../utils/id");
-const { resolveDistributionCode, settleCommissionForOrder } = require("./commissionService");
 
 function formatOrder(order) {
   return {
@@ -158,23 +157,6 @@ async function createOrder(userId, payload) {
   return sequelize.transaction(async (transaction) => {
     const child = await ensureChildBelongsToUser(payload.child_id, userId, transaction);
     const { course, coursePackage } = await ensureCoursePackage(payload.course_id, payload.package_id, transaction);
-    const courseId = String(course.course_id);
-
-    // 分销来源：带分享码下单时记录来源链接
-    let distributionLinkId = null;
-    if (payload.distribution_code) {
-      const link = await resolveDistributionCode(payload.distribution_code);
-      if (link) {
-        // 分享码严格绑定课程：只能用码购买其对应的课程，防止串课返利
-        if (String(link.course_id) !== String(courseId)) {
-          const e = new Error("分享码与课程不匹配");
-          e.status = 400;
-          e.code = 40075;
-          throw e;
-        }
-        distributionLinkId = link.link_id;
-      }
-    }
 
     const order = await Order.create(
       {
@@ -187,7 +169,6 @@ async function createOrder(userId, payload) {
         package_id: coursePackage.package_id,
         total_lessons: coursePackage.lessons,
         total_amount: coursePackage.price,
-        distribution_link_id: distributionLinkId,
         remark: payload.remark || null,
         status: 0
       },
@@ -247,112 +228,66 @@ async function payOrder(userId, orderId, payload) {
       throw new Error("Order already paid or unavailable");
     }
 
-    return handlePaidOrder(order, {
-      channel: payload.channel || "wechat_mini",
-      tradeNo: payload.trade_no || null,
-      transaction,
-      settleImmediately: true
-    });
+    const paidAt = new Date();
+    await Payment.create(
+      {
+        payment_id: generateId(),
+        order_id: order.order_id,
+        payment_no: `PM${generateId()}`,
+        channel: payload.channel || "wechat_mini",
+        amount: order.total_amount,
+        paid_at: paidAt,
+        status: 1,
+        trade_no: `TRADE${generateId()}`
+      },
+      { transaction }
+    );
+
+    await order.update(
+      {
+        paid_amount: order.total_amount,
+        pay_channel: payload.channel || "wechat_mini",
+        paid_at: paidAt,
+        status: 1
+      },
+      { transaction }
+    );
+
+    await ChildCourseBalance.create(
+      {
+        balance_id: generateId(),
+        child_id: order.child_id,
+        course_id: order.course_id,
+        order_id: order.order_id,
+        total_lessons: order.total_lessons,
+        consumed_lessons: 0,
+        refunded_lessons: 0,
+        remaining_lessons: order.total_lessons,
+        valid_from: paidAt.toISOString().slice(0, 10),
+        valid_to: computeValidTo(order.course?.validity_days),
+        status: 1
+      },
+      { transaction }
+    );
+
+    await LessonLog.create(
+      {
+        log_id: generateId(),
+        child_id: order.child_id,
+        course_id: order.course_id,
+        order_id: order.order_id,
+        source: 0,
+        type: 1,
+        delta: order.total_lessons,
+        balance_after: order.total_lessons,
+        note: "订单支付成功，课时到账"
+      },
+      { transaction }
+    );
+
+    const detail = await getOrderWithDetails(order.order_id, { transaction });
+    return formatOrder(detail);
   });
-}
-
-/**
- * 支付成功核心处理（App 模拟支付 / 微信回调共用）：
- * 1. 写支付流水 → 订单置已支付 → 课时余额入账 → 消课日志
- * 2. 若订单带分销来源，按 distribute_rate 结算返利（settleImmediately=true 直接入钱包）
- */
-async function handlePaidOrder(order, { channel = "wechat_mini", tradeNo = null, transaction, settleImmediately = false } = {}) {
-  const paidAt = new Date();
-  await Payment.create(
-    {
-      payment_id: generateId(),
-      order_id: order.order_id,
-      payment_no: `PM${generateId()}`,
-      channel,
-      amount: order.total_amount,
-      paid_at: paidAt,
-      status: 1,
-      trade_no: tradeNo || `TRADE${generateId()}`
-    },
-    { transaction }
-  );
-
-  await order.update(
-    {
-      paid_amount: order.total_amount,
-      pay_channel: channel,
-      paid_at: paidAt,
-      status: 1
-    },
-    { transaction }
-  );
-
-  await ChildCourseBalance.create(
-    {
-      balance_id: generateId(),
-      child_id: order.child_id,
-      course_id: order.course_id,
-      order_id: order.order_id,
-      total_lessons: order.total_lessons,
-      consumed_lessons: 0,
-      refunded_lessons: 0,
-      remaining_lessons: order.total_lessons,
-      valid_from: paidAt.toISOString().slice(0, 10),
-      valid_to: computeValidTo(order.course?.validity_days),
-      status: 1
-    },
-    { transaction }
-  );
-
-  await LessonLog.create(
-    {
-      log_id: generateId(),
-      child_id: order.child_id,
-      course_id: order.course_id,
-      order_id: order.order_id,
-      source: 0,
-      type: 1,
-      delta: order.total_lessons,
-      balance_after: order.total_lessons,
-      note: "订单支付成功，课时到账"
-    },
-    { transaction }
-  );
-
-  // 分销返利结算（失败不阻断订单主流程）
-  try {
-    await settleCommissionForOrder(order, { transaction, settleImmediately });
-  } catch (error) {
-    console.warn("[commission] settle failed:", error.message);
-  }
-
-  const detail = await getOrderWithDetails(order.order_id, { transaction });
-  return formatOrder(detail);
-}
-
-/**
- * 微信支付回调入口：按商户订单号定位订单并完成支付（幂等：已支付直接返回）
- */
-async function handlePayCallbackByOrderNo(orderNo, { channel = "wechat", tradeNo = null, transaction } = {}) {
-  const order = await Order.findOne({
-    where: { order_no: orderNo },
-    include: [
-      { model: Course, as: "course", attributes: ["course_id", "validity_days"] }
-    ],
-    transaction,
-    lock: transaction.LOCK.UPDATE
-  });
-
-  if (!order) {
-    return { error: { status: 404, code: 40430, message: "Order not found" } };
-  }
-
-  if (Number(order.status) !== 0) {
-    // 幂等：已支付/已处理直接返回当前状态
-    return { data: formatOrder(await getOrderWithDetails(order.order_id, { transaction })) };
-  }
-
-  return { data: await handlePaidOrder(order, { channel, tradeNo, transaction, settleImmediately: true }) };
 }
 
 async function listOrders(userId, query = {}) {
@@ -476,7 +411,5 @@ module.exports = {
   getOrderDetail,
   createRefund,
   formatOrder,
-  getOrderWithDetails,
-  handlePaidOrder,
-  handlePayCallbackByOrderNo
+  getOrderWithDetails
 };

@@ -4,13 +4,9 @@ const {
   postRegister,
   postLogin,
   postPasswordLogin,
-  postWxLogin,
   postRefresh,
   postLogout,
-  getMe,
-  postRoleApply,
-  getRoleApplyStatusHandler,
-  postRoleSwitch
+  getMe
 } = require("../controllers/authController");
 const { requireAuth } = require("../middlewares/auth");
 
@@ -22,14 +18,8 @@ router.post("/send-code", postSendCode);
 router.post("/register", postRegister);
 router.post("/login", postLogin);
 router.post("/login-password", postPasswordLogin);
-router.post("/wx-login", postWxLogin);
 router.post("/refresh", postRefresh);
 router.post("/logout", postLogout);
 router.get("/me", requireAuth, getMe);
-
-// 角色申请：提交老师认证 / 工作室入驻 + 申请状态查询
-router.post("/role/apply", requireAuth, postRoleApply);
-router.get("/role/apply/:role", requireAuth, getRoleApplyStatusHandler);
-router.post("/role/switch", requireAuth, postRoleSwitch);
 
 module.exports = router;

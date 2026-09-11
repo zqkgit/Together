@@ -1,0 +1,95 @@
+.orders {
+  padding-bottom: 40rpx;
+}
+
+.order-tabs {
+  display: flex;
+  gap: 24rpx;
+  padding: 24rpx 32rpx 8rpx;
+  background: #fff;
+}
+
+.order-tab {
+  font-size: 28rpx;
+  color: #8a8378;
+  padding: 8rpx 4rpx;
+}
+
+.tab-active {
+  color: #2f5d45;
+  font-weight: 700;
+  border-bottom: 4rpx solid #2f5d45;
+}
+
+.order-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 16rpx;
+  border-bottom: 2rpx solid #f0ebe0;
+}
+
+.order-no {
+  font-size: 22rpx;
+  color: #b5aea3;
+}
+
+.order-status {
+  font-size: 26rpx;
+  color: #c4564a;
+  font-weight: 600;
+}
+
+.order-main {
+  display: flex;
+  gap: 20rpx;
+  padding-top: 16rpx;
+}
+
+.order-cover {
+  width: 140rpx;
+  height: 110rpx;
+  border-radius: 12rpx;
+  background: #eae4d8;
+  flex-shrink: 0;
+}
+
+.order-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.order-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-sub {
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: #8a8378;
+}
+
+.order-price {
+  margin-top: 10rpx;
+  color: #c4564a;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.order-actions {
+  padding-top: 12rpx;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pay-link {
+  color: #2f5d45;
+  font-size: 26rpx;
+  border: 2rpx solid #2f5d45;
+  border-radius: 30rpx;
+  padding: 8rpx 32rpx;
+}

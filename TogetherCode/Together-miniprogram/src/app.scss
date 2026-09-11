@@ -1,5 +1,6 @@
 @use '@/styles/compat.scss';
 @use '@/styles/variables.scss' as *;
+@use '@/styles/theme.scss';
 
 // 全局样式
 page {
@@ -7,6 +8,6 @@ page {
     sans-serif;
   font-size: $font-size-md;
   line-height: $line-height-normal;
-  color: $color-text-primary;
-  background-color: $color-bg-page;
+  color: $color-text;
+  background-color: $color-bg;
 }

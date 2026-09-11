@@ -12,8 +12,7 @@ const {
   LeaveRequest,
   Post,
   PostStudent,
-  LessonLog,
-  TeacherStudioBinding
+  LessonLog
 } = require("../models");
 const { applyLessonConsumption } = require("./studentService");
 const { reviewLeaveRequest } = require("./leaveService");
@@ -51,8 +50,6 @@ function normalizeTeacher(teacher) {
     user_id: String(teacher.user_id),
     real_name: teacher.real_name,
     studio_id: teacher.studio_id ? String(teacher.studio_id) : null,
-    studio_ids: (teacher.bindings || []).map((item) => String(item.studio_id)),
-    studio_names: (teacher.bindings || []).map((item) => (item.studio ? item.studio.name : null)),
     subjects: teacher.subjects,
     years: teacher.years,
     intro: teacher.intro,
@@ -163,19 +160,6 @@ async function ensureTeacherProfile(userId, transaction) {
         model: User,
         as: "user",
         attributes: ["user_id", "nickname", "avatar", "phone"]
-      },
-      {
-        model: TeacherStudioBinding,
-        as: "bindings",
-        where: { status: 1 },
-        required: false,
-        include: [
-          {
-            model: require("../models").StudioProfile,
-            as: "studio",
-            attributes: ["studio_id", "name"]
-          }
-        ]
       }
     ],
     transaction
@@ -315,15 +299,6 @@ async function buildLeaveMap({ classId, scheduleId, childIds }, transaction) {
 }
 
 async function resolvePostContext(teacher, payload, transaction) {
-  // 纯分享帖：无课程/班级/排课上下文，直接返回空上下文（不消课）。
-  if (!payload.course_id && !payload.class_id && !payload.schedule_id) {
-    return {
-      course: null,
-      classItem: null,
-      schedule: null
-    };
-  }
-
   let classItem = null;
   let schedule = null;
 
@@ -345,11 +320,7 @@ async function resolvePostContext(teacher, payload, transaction) {
     throw new Error("Course not found");
   }
 
-  const binding = await TeacherStudioBinding.findOne({
-    where: { teacher_id: teacher.teacher_id, studio_id: course.studio_id, status: 1 },
-    transaction
-  });
-  if (!binding) {
+  if (teacher.studio_id && String(course.studio_id) !== String(teacher.studio_id)) {
     throw new Error("Course does not belong to teacher studio");
   }
 
@@ -475,19 +446,12 @@ async function consumeStudentsForPost(post, teacher, payload, transaction) {
   return consumedList;
 }
 
-async function listTeacherClasses(userId, query = {}) {
+async function listTeacherClasses(userId) {
   const teacher = await ensureTeacherProfile(userId);
-  const where = {
-    teacher_id: teacher.teacher_id
-  };
-
-  // 按课程过滤班级（App 端"课程 → 班级 → 学员"联动）。
-  if (query.course_id) {
-    where.course_id = query.course_id;
-  }
-
   const rows = await Class.findAll({
-    where,
+    where: {
+      teacher_id: teacher.teacher_id
+    },
     include: [
       {
         model: Course,
@@ -749,20 +713,14 @@ async function reviewTeacherLeave(userId, leaveId, payload) {
 async function createTeacherPost(userId, payload) {
   return sequelize.transaction(async (transaction) => {
     const teacher = await ensureTeacherProfile(userId, transaction);
-    const context = await resolvePostContext(teacher, payload, transaction);
-
-    // 兜底：勾选了学员但缺少课程上下文时不允许（校验层已拦截，这里双保险）。
-    const hasStudents = Array.isArray(payload.students) && payload.students.length > 0;
-    if (hasStudents && !context.course) {
-      throw new Error("Course or schedule context is required when students are marked");
-    }
+    const { course } = await resolvePostContext(teacher, payload, transaction);
 
     const post = await Post.create(
       {
         author_id: userId,
         author_role: 2,
         type: Number(payload.type || 1),
-        course_id: context.course ? context.course.course_id : null,
+        course_id: course.course_id,
         images: payload.images || [],
         content: payload.content || null,
         visibility: payload.visibility !== undefined ? Number(payload.visibility) : 2,

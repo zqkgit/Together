@@ -1,17 +1,14 @@
-import React, { useEffect } from 'react';
-import { useDidShow, useDidHide } from '@tarojs/taro';
-// 全局样式
-import './app.scss';
+import React, { useEffect } from "react";
+import Taro from "@tarojs/taro";
+import "./app.scss";
+import { useAuthStore } from "./store/auth";
 
 function App(props) {
-  // 可以使用所有的 React Hooks
-  useEffect(() => {});
+  const hydrate = useAuthStore((s) => s.hydrate);
 
-  // 对应 onShow
-  useDidShow(() => {});
-
-  // 对应 onHide
-  useDidHide(() => {});
+  useEffect(() => {
+    hydrate();
+  }, []);
 
   return props.children;
 }
