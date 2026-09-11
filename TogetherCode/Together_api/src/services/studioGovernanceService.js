@@ -213,10 +213,60 @@ async function createStudioStaff(studioId, payload) {
   return { data: { admin_id: String(created.admin_id), username }, message: `员工账号 ${name || username} 已创建` };
 }
 
+/**
+ * 本店员工列表（studio_owner / studio_ops）。
+ */
+async function listStudioStaff(studioId, query = {}) {
+  const page = Math.max(1, Number(query.page) || 1);
+  const pageSize = Math.min(100, Math.max(1, Number(query.page_size) || 20));
+  const where = { studio_id: studioId, role: { [Op.in]: ["studio_owner", "studio_ops"] } };
+  if (query.q) where.username = { [Op.like]: `%${query.q}%` };
+
+  const { count, rows } = await AdminAccount.findAndCountAll({
+    where,
+    order: [["created_at", "ASC"]],
+    offset: (page - 1) * pageSize,
+    limit: pageSize
+  });
+  return {
+    total: count,
+    page,
+    page_size: pageSize,
+    list: rows.map((r) => ({
+      admin_id: String(r.admin_id),
+      username: r.username,
+      role: r.role,
+      status: Number(r.status),
+      created_at: r.created_at
+    }))
+  };
+}
+
+/**
+ * 本店员工启用 / 停用（owner 专属；不能停用 owner 自己）。
+ */
+async function updateStudioStaffStatus(staffId, studioId, admin, payload = {}) {
+  const account = await AdminAccount.findOne({ where: { admin_id: staffId, studio_id: studioId } });
+  if (!account || !["studio_owner", "studio_ops"].includes(account.role)) {
+    return { error: { status: 404, code: 40483, message: "员工账号不存在" } };
+  }
+  if (String(account.admin_id) === String(admin.admin_id)) {
+    return { error: { status: 400, code: 40084, message: "不能停用自己的账号" } };
+  }
+  const status = Number(payload.status);
+  if (![0, 1].includes(status)) {
+    return { error: { status: 400, code: 40084, message: "status 仅支持 0(停用) / 1(启用)" } };
+  }
+  await account.update({ status });
+  return { data: { admin_id: String(account.admin_id), status }, message: status === 1 ? "账号已启用" : "账号已停用" };
+}
+
 module.exports = {
   getStudioFinance,
   listStudioAccounts,
   upsertStudioAccount,
   listStudioAudit,
-  createStudioStaff
+  createStudioStaff,
+  listStudioStaff,
+  updateStudioStaffStatus
 };

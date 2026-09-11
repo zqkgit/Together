@@ -260,6 +260,112 @@ async function listPlatformAudit(query = {}) {
   };
 }
 
+/**
+ * 平台帖子列表（内容管理页使用：分页 / 状态 / 关键词过滤）。
+ */
+async function listPosts(query = {}) {
+  const page = Math.max(1, Number(query.page) || 1);
+  const pageSize = Math.min(100, Math.max(1, Number(query.page_size) || 20));
+  const where = {};
+  if (query.status !== undefined && query.status !== "") where.status = Number(query.status);
+  if (query.q) where.content = { [Op.like]: `%${query.q}%` };
+
+  const { count, rows } = await Post.findAndCountAll({
+    where,
+    order: [["created_at", "DESC"]],
+    offset: (page - 1) * pageSize,
+    limit: pageSize,
+    include: [
+      { model: require("../models").User, as: "author", attributes: ["user_id", "nickname", "phone"] },
+      { model: require("../models").Course, as: "course", attributes: ["course_id", "title"] }
+    ]
+  });
+  return {
+    total: count,
+    page,
+    page_size: pageSize,
+    list: rows.map((r) => ({
+      post_id: String(r.post_id),
+      author: r.author
+        ? { user_id: String(r.author.user_id), nickname: r.author.nickname, phone: r.author.phone }
+        : null,
+      course: r.course ? { course_id: String(r.course.course_id), title: r.course.title } : null,
+      content: r.content,
+      images: r.images || [],
+      like_count: Number(r.like_count),
+      comment_count: Number(r.comment_count),
+      share_count: Number(r.share_count),
+      status: Number(r.status),
+      visibility: Number(r.visibility),
+      created_at: r.created_at
+    }))
+  };
+}
+
+/**
+ * 平台员工列表（admin_accounts 中 platform 角色）。
+ */
+async function listPlatformStaff(query = {}) {
+  const page = Math.max(1, Number(query.page) || 1);
+  const pageSize = Math.min(100, Math.max(1, Number(query.page_size) || 20));
+  const where = { role: { [Op.in]: ["platform_super", "platform_ops"] } };
+  if (query.q) where.username = { [Op.like]: `%${query.q}%` };
+
+  const { count, rows } = await AdminAccount.findAndCountAll({
+    where,
+    order: [["created_at", "ASC"]],
+    offset: (page - 1) * pageSize,
+    limit: pageSize
+  });
+  return {
+    total: count,
+    page,
+    page_size: pageSize,
+    list: rows.map((r) => ({
+      admin_id: String(r.admin_id),
+      username: r.username,
+      role: r.role,
+      status: Number(r.status),
+      created_at: r.created_at
+    }))
+  };
+}
+
+/**
+ * 员工账号启用 / 停用（平台侧管理平台员工）。
+ */
+async function updateAdminStaffStatus(staffId, admin, payload = {}) {
+  const account = await AdminAccount.findByPk(staffId);
+  if (!account || !["platform_ops", "platform_super"].includes(account.role)) {
+    return { error: { status: 404, code: 40498, message: "员工账号不存在" } };
+  }
+  if (String(account.admin_id) === String(admin.admin_id)) {
+    return { error: { status: 400, code: 40099, message: "不能停用自己的账号" } };
+  }
+  const status = Number(payload.status);
+  if (![0, 1].includes(status)) {
+    return { error: { status: 400, code: 40099, message: "status 仅支持 0(停用) / 1(启用)" } };
+  }
+  await account.update({ status });
+  return { data: { admin_id: String(account.admin_id), status }, message: status === 1 ? "账号已启用" : "账号已停用" };
+}
+
+/**
+ * 公告 / Banner 上下架。
+ */
+async function updateAnnouncementStatus(id, payload = {}) {
+  const row = await Announcement.findByPk(id);
+  if (!row) {
+    return { error: { status: 404, code: 40499, message: "公告不存在" } };
+  }
+  const status = Number(payload.status);
+  if (![0, 1].includes(status)) {
+    return { error: { status: 400, code: 40099, message: "status 仅支持 0(下架) / 1(上架)" } };
+  }
+  await row.update({ status });
+  return { data: { announcement_id: String(row.announcement_id), status }, message: status === 1 ? "公告已上架" : "公告已下架" };
+}
+
 module.exports = {
   listReports,
   handleReport,
@@ -270,5 +376,9 @@ module.exports = {
   listAnnouncements,
   createAnnouncement,
   createPlatformStaff,
-  listPlatformAudit
+  listPlatformAudit,
+  listPosts,
+  listPlatformStaff,
+  updateAdminStaffStatus,
+  updateAnnouncementStatus
 };

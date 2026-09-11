@@ -9,7 +9,11 @@ const {
   listAnnouncements,
   createAnnouncement,
   createPlatformStaff,
-  listPlatformAudit
+  listPlatformAudit,
+  listPosts,
+  listPlatformStaff,
+  updateAdminStaffStatus,
+  updateAnnouncementStatus
 } = require("../services/platformGovernanceService");
 const { recordAudit } = require("../utils/audit");
 
@@ -169,6 +173,66 @@ async function getAuditList(req, res) {
   }
 }
 
+// 平台帖子列表（内容管理）
+async function getPostsList(req, res) {
+  try {
+    return ok(res, await listPosts(req.query));
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+// 平台员工列表
+async function getStaffList(req, res) {
+  try {
+    return ok(res, await listPlatformStaff(req.query));
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+// 员工启用 / 停用
+async function putStaffStatus(req, res) {
+  try {
+    const result = await updateAdminStaffStatus(req.params.id, req.admin, req.body);
+    if (result.error) {
+      return fail(res, result.error.status, result.error.code, result.error.message);
+    }
+    await recordAudit({
+      actor: req.admin,
+      role: req.admin.role,
+      action: result.data.status === 1 ? "staff.enable" : "staff.disable",
+      targetType: "admin_account",
+      targetId: req.params.id,
+      ip: req.ip
+    });
+    return ok(res, result.data, result.message);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+// 公告 / Banner 上下架
+async function putAnnouncementStatus(req, res) {
+  try {
+    const result = await updateAnnouncementStatus(req.params.id, req.body);
+    if (result.error) {
+      return fail(res, result.error.status, result.error.code, result.error.message);
+    }
+    await recordAudit({
+      actor: req.admin,
+      role: req.admin.role,
+      action: result.data.status === 1 ? "announcement.publish" : "announcement.off",
+      targetType: "announcement",
+      targetId: req.params.id,
+      ip: req.ip
+    });
+    return ok(res, result.data, result.message);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   getReportsList,
   putReportHandle,
@@ -179,5 +243,9 @@ module.exports = {
   getAnnouncementsList,
   postAnnouncement,
   postStaff,
-  getAuditList
+  getAuditList,
+  getPostsList,
+  getStaffList,
+  putStaffStatus,
+  putAnnouncementStatus
 };

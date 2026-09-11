@@ -1,4 +1,5 @@
 import request from "../utils/request";
+import type { PagedList, AuditItem, StaffItem } from "./admin";
 
 // ============ 通用 ============
 
@@ -569,5 +570,79 @@ export async function handleLeaveMakeup(
   payload: { action: "assign" | "abandon"; makeup_schedule_id?: string }
 ): Promise<LeaveItem> {
   const response = await request.put(`/studio/leaves/${id}/makeup`, payload);
+  return response.data;
+}
+
+// ============ 工作室治理（财务对账 / 结算账户 / 操作审计 / 员工账号） ============
+
+export interface StudioFinanceData {
+  period: { start_date: string; end_date: string };
+  summary: {
+    gmv_total: number;
+    gmv_period: number;
+    refund_total: number;
+    refund_period: number;
+    distribution_total: number;
+    net_total: number;
+    net_period: number;
+  };
+  orders: Array<{
+    order_id: string;
+    order_no: string;
+    total_amount: number;
+    status: number;
+    paid_at: string | null;
+  }>;
+}
+
+export async function fetchStudioFinance(params: { start_date?: string; end_date?: string } = {}): Promise<StudioFinanceData> {
+  const response = await request.get("/studio/finance", { params });
+  return response.data;
+}
+
+export interface StudioAccountItem {
+  account_id: string;
+  account_type: "bank" | "wechat" | "alipay";
+  account_name: string;
+  account_no: string;
+  bank_name: string | null;
+  is_default: number;
+  status: number;
+}
+
+export async function fetchStudioAccounts(): Promise<PagedList<StudioAccountItem>> {
+  const response = await request.get("/studio/accounts");
+  return response.data;
+}
+
+export async function upsertStudioAccount(payload: {
+  account_id?: string;
+  account_type: "bank" | "wechat" | "alipay";
+  account_name: string;
+  account_no: string;
+  bank_name?: string;
+  is_default?: number;
+}): Promise<StudioAccountItem> {
+  const response = await request.post("/studio/accounts", payload);
+  return response.data;
+}
+
+export async function fetchStudioAudit(params: { page?: number; page_size?: number; action?: string } = {}): Promise<PagedList<AuditItem>> {
+  const response = await request.get("/studio/audit", { params });
+  return response.data;
+}
+
+export async function fetchStudioStaff(params: { q?: string } = {}): Promise<PagedList<StaffItem>> {
+  const response = await request.get("/studio/staff", { params });
+  return response.data;
+}
+
+export async function createStudioStaff(payload: { username: string; password: string; name?: string }): Promise<StaffItem> {
+  const response = await request.post("/studio/staff", payload);
+  return response.data;
+}
+
+export async function toggleStudioStaffStatus(id: string, status: 0 | 1): Promise<{ admin_id: string; status: number }> {
+  const response = await request.put(`/studio/staff/${id}`, { status });
   return response.data;
 }

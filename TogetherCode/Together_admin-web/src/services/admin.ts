@@ -372,3 +372,153 @@ export async function deleteTag(id: string): Promise<{ tag_id: string; status?: 
   const response = await request.delete(`/admin/tags/${id}`);
   return response.data;
 }
+
+// ============ 平台治理（举报处置 / 内容管理 / 配置 / 公告 / 员工 / 审计） ============
+
+export interface PagedList<T> {
+  total: number;
+  page: number;
+  page_size: number;
+  list: T[];
+}
+
+export interface ReportItem {
+  report_id: string;
+  reporter: { user_id: string; nickname: string; phone: string } | null;
+  target_type: string;
+  target_id: string;
+  reason: string;
+  detail: string | null;
+  images: string[];
+  status: number;
+  status_text: string;
+  handle_note: string | null;
+  handled_at: string | null;
+  created_at: string;
+}
+
+export async function fetchReports(params: { status?: number | ""; target_type?: string } = {}): Promise<PagedList<ReportItem>> {
+  const response = await request.get("/admin/reports", { params });
+  return response.data;
+}
+
+export async function handleReport(id: string, payload: { status: 1 | 2; handle_note?: string }): Promise<ReportItem> {
+  const response = await request.put(`/admin/reports/${id}`, payload);
+  return response.data;
+}
+
+export interface AdminPostItem {
+  post_id: string;
+  author: { user_id: string; nickname: string; phone: string } | null;
+  course: { course_id: string; title: string } | null;
+  content: string;
+  images: string[];
+  like_count: number;
+  comment_count: number;
+  share_count: number;
+  status: number;
+  visibility: number;
+  created_at: string;
+}
+
+export async function fetchAdminPosts(params: { status?: number | ""; q?: string } = {}): Promise<PagedList<AdminPostItem>> {
+  const response = await request.get("/admin/posts", { params });
+  return response.data;
+}
+
+export async function moderatePost(id: string, status: 0 | 1): Promise<{ post_id: string; status: number }> {
+  const response = await request.put(`/admin/posts/${id}/moderate`, { status });
+  return response.data;
+}
+
+export interface PlatformConfigData {
+  configs: Record<string, string | number>;
+  list: Array<{ config_key: string; description: string }>;
+}
+
+export async function fetchPlatformConfig(): Promise<PlatformConfigData> {
+  const response = await request.get("/admin/config");
+  return response.data;
+}
+
+export async function updatePlatformConfig(configs: Record<string, string | number>): Promise<{ updated: string[] }> {
+  const response = await request.put("/admin/config", configs);
+  return response.data;
+}
+
+export interface AnnouncementItem {
+  announcement_id: string;
+  title: string;
+  content: string | null;
+  type: number;
+  image: string[];
+  link: string | null;
+  status: number;
+  publish_at: string | null;
+  expire_at: string | null;
+  created_at: string;
+}
+
+export async function fetchAnnouncements(params: { status?: number | ""; type?: number | "" } = {}): Promise<PagedList<AnnouncementItem>> {
+  const response = await request.get("/admin/announcements", { params });
+  return response.data;
+}
+
+export async function createAnnouncement(payload: {
+  title: string;
+  content?: string;
+  type: 1 | 2;
+  image?: string[];
+  link?: string;
+  status?: number;
+  publish_at?: string;
+  expire_at?: string;
+}): Promise<AnnouncementItem> {
+  const response = await request.post("/admin/announcements", payload);
+  return response.data;
+}
+
+export async function toggleAnnouncement(id: string, status: 0 | 1): Promise<{ announcement_id: string; status: number }> {
+  const response = await request.put(`/admin/announcements/${id}`, { status });
+  return response.data;
+}
+
+export interface StaffItem {
+  admin_id: string;
+  username: string;
+  role: string;
+  status: number;
+  created_at: string;
+}
+
+export async function fetchAdminStaff(params: { q?: string } = {}): Promise<PagedList<StaffItem>> {
+  const response = await request.get("/admin/staff", { params });
+  return response.data;
+}
+
+export async function createAdminStaff(payload: { username: string; password: string; name?: string }): Promise<StaffItem> {
+  const response = await request.post("/admin/staff", payload);
+  return response.data;
+}
+
+export async function toggleStaffStatus(id: string, status: 0 | 1): Promise<{ admin_id: string; status: number }> {
+  const response = await request.put(`/admin/staff/${id}`, { status });
+  return response.data;
+}
+
+export interface AuditItem {
+  log_id: string;
+  actor_name: string;
+  role: string;
+  action: string;
+  target_type: string | null;
+  target_id: string | null;
+  detail: string | null;
+  ip: string | null;
+  created_at: string;
+}
+
+export async function fetchAdminAudit(params: { page?: number; page_size?: number; action?: string; actor_name?: string } = {}): Promise<PagedList<AuditItem>> {
+  const response = await request.get("/admin/audit", { params });
+  return response.data;
+}

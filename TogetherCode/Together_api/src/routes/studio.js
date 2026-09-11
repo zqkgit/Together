@@ -17,9 +17,11 @@ const {
   getAccounts,
   postAccount,
   getAudit,
-  postStaff
+  postStaff,
+  getStaffList,
+  putStaffStatus
 } = require("../controllers/studioGovernanceController");
-const { upsertStudioAccountValidators, createStaffValidators } = require("../validators/governanceValidator");
+const { upsertStudioAccountValidators, createStaffValidators, moderatePostValidators } = require("../validators/governanceValidator");
 
 const router = express.Router();
 
@@ -55,7 +57,9 @@ router.post("/accounts", upsertStudioAccountValidators, validateRequest, postAcc
 // 本店操作审计
 router.get("/audit", getAudit);
 
-// 员工账号（owner）
+// 员工账号（owner）：列表 / 新增 / 启用停用
+router.get("/staff", getStaffList);
 router.post("/staff", createStaffValidators, validateRequest, postStaff);
+router.put("/staff/:id", moderatePostValidators, validateRequest, putStaffStatus);
 
 module.exports = router;

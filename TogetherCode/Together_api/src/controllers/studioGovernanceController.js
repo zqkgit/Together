@@ -4,7 +4,9 @@ const {
   listStudioAccounts,
   upsertStudioAccount,
   listStudioAudit,
-  createStudioStaff
+  createStudioStaff,
+  listStudioStaff,
+  updateStudioStaffStatus
 } = require("../services/studioGovernanceService");
 const { recordAudit } = require("../utils/audit");
 
@@ -79,10 +81,43 @@ async function postStaff(req, res) {
   }
 }
 
+// GET /studio/staff · 本店员工列表
+async function getStaffList(req, res) {
+  try {
+    return ok(res, await listStudioStaff(req.admin.studioId, req.query));
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+// PUT /studio/staff/:id · 员工启用 / 停用（owner）
+async function putStaffStatus(req, res) {
+  try {
+    const result = await updateStudioStaffStatus(req.params.id, req.admin.studioId, req.admin, req.body);
+    if (result.error) {
+      return fail(res, result.error.status, result.error.code, result.error.message);
+    }
+    await recordAudit({
+      actor: req.admin,
+      role: req.admin.role,
+      studioId: req.admin.studioId,
+      action: result.data.status === 1 ? "studio.staff.enable" : "studio.staff.disable",
+      targetType: "admin_account",
+      targetId: req.params.id,
+      ip: req.ip
+    });
+    return ok(res, result.data, result.message);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   getFinance,
   getAccounts,
   postAccount,
   getAudit,
-  postStaff
+  postStaff,
+  getStaffList,
+  putStaffStatus
 };

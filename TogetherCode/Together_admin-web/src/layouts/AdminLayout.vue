@@ -12,7 +12,13 @@ import {
   SwitchButton,
   Avatar,
   Tickets,
-  User
+  User,
+  Warning,
+  Document,
+  Bell,
+  Monitor,
+  DataLine,
+  Wallet
 } from "@element-plus/icons-vue";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -30,7 +36,13 @@ const platformMenus = [
   { path: "/studios", title: "工作室管理", icon: OfficeBuilding },
   { path: "/admin-teachers", title: "老师管理", icon: Avatar },
   { path: "/tags", title: "标签管理", icon: Collection },
-  { path: "/settlements", title: "结算分账", icon: CreditCard }
+  { path: "/settlements", title: "结算分账", icon: CreditCard },
+  { path: "/admin-reports", title: "举报处置", icon: Warning },
+  { path: "/admin-posts", title: "内容管理", icon: Document },
+  { path: "/admin-announcements", title: "公告管理", icon: Bell },
+  { path: "/admin-config", title: "平台配置", icon: Setting },
+  { path: "/admin-staff", title: "平台员工", icon: User },
+  { path: "/admin-audit", title: "审计日志", icon: Monitor }
 ];
 
 const studioMenus = [
@@ -43,6 +55,10 @@ const studioMenus = [
   { path: "/studio-orders", title: "订单管理", icon: Coin },
   { path: "/studio-refunds", title: "退款管理", icon: CreditCard },
   { path: "/studio-leaves", title: "请假审批", icon: Finished },
+  { path: "/studio-finance", title: "财务对账", icon: DataLine },
+  { path: "/studio-accounts", title: "结算账户", icon: Wallet },
+  { path: "/studio-audit", title: "操作审计", icon: Monitor },
+  { path: "/studio-staff", title: "员工账号", icon: User },
   { path: "/studio-settings", title: "工作室设置", icon: Setting }
 ];
 

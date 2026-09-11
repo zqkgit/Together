@@ -1,0 +1,11 @@
+SELECT 'users.nickname' t, COUNT(*) n FROM users WHERE nickname REGEXP '[Ã¦å¥çä¸ŠéèŠ°…Â\u00a0]' AND nickname IS NOT NULL
+UNION ALL SELECT 'studio_profiles.name', COUNT(*) FROM studio_profiles WHERE name REGEXP '[Ã¦å¥çä¸ŠéèŠ°…Â]' AND name IS NOT NULL
+UNION ALL SELECT 'courses.title', COUNT(*) FROM courses WHERE title REGEXP '[Ã¦å¥çä¸ŠéèŠ°…Â]' AND title IS NOT NULL
+UNION ALL SELECT 'classes.name', COUNT(*) FROM classes WHERE name REGEXP '[Ã¦å¥çä¸ŠéèŠ°…Â]' AND name IS NOT NULL
+UNION ALL SELECT 'tags.name', COUNT(*) FROM tags WHERE name REGEXP '[Ã¦å¥çä¸ŠéèŠ°…Â]' AND name IS NOT NULL
+UNION ALL SELECT 'teacher_profiles.real_name', COUNT(*) FROM teacher_profiles WHERE real_name REGEXP '[Ã¦å¥çä¸ŠéèŠ°…Â]' AND real_name IS NOT NULL
+UNION ALL SELECT 'posts.content', COUNT(*) FROM posts WHERE content REGEXP '[Ã¦å¥çä¸ŠéèŠ°…Â]' AND content IS NOT NULL
+UNION ALL SELECT 'announcements.title', COUNT(*) FROM announcements WHERE title REGEXP '[Ã¦å¥çä¸ŠéèŠ°…Â]' AND title IS NOT NULL
+UNION ALL SELECT 'studio_accounts.account_name', COUNT(*) FROM studio_accounts WHERE account_name REGEXP '[Ã¦å¥çä¸ŠéèŠ°…Â]' AND account_name IS NOT NULL
+UNION ALL SELECT 'children.nickname', COUNT(*) FROM children WHERE nickname REGEXP '[Ã¦å¥çä¸ŠéèŠ°…Â]' AND nickname IS NOT NULL
+UNION ALL SELECT 'reports.reason', COUNT(*) FROM reports WHERE reason REGEXP '[Ã¦å¥çä¸ŠéèŠ°…Â]' AND reason IS NOT NULL;

@@ -50,6 +50,42 @@ const router = createRouter({
           meta: { title: "结算分账", requiresAuth: true, scopes: ["platform"] }
         },
         {
+          path: "/admin-reports",
+          name: "admin-reports",
+          component: () => import("../views/admin-reports/IndexView.vue"),
+          meta: { title: "举报处置", requiresAuth: true, scopes: ["platform"] }
+        },
+        {
+          path: "/admin-posts",
+          name: "admin-posts",
+          component: () => import("../views/admin-posts/IndexView.vue"),
+          meta: { title: "内容管理", requiresAuth: true, scopes: ["platform"] }
+        },
+        {
+          path: "/admin-config",
+          name: "admin-config",
+          component: () => import("../views/admin-config/IndexView.vue"),
+          meta: { title: "平台配置", requiresAuth: true, scopes: ["platform"] }
+        },
+        {
+          path: "/admin-announcements",
+          name: "admin-announcements",
+          component: () => import("../views/admin-announcements/IndexView.vue"),
+          meta: { title: "公告管理", requiresAuth: true, scopes: ["platform"] }
+        },
+        {
+          path: "/admin-staff",
+          name: "admin-staff",
+          component: () => import("../views/admin-staff/IndexView.vue"),
+          meta: { title: "平台员工", requiresAuth: true, scopes: ["platform"] }
+        },
+        {
+          path: "/admin-audit",
+          name: "admin-audit",
+          component: () => import("../views/admin-audit/IndexView.vue"),
+          meta: { title: "审计日志", requiresAuth: true, scopes: ["platform"] }
+        },
+        {
           path: "/studio-home",
           name: "studio-home",
           component: () => import("../views/studio/HomeView.vue"),
@@ -108,6 +144,30 @@ const router = createRouter({
           name: "studio-settings",
           component: () => import("../views/studio/settings/IndexView.vue"),
           meta: { title: "工作室设置", requiresAuth: true, scopes: ["studio"] }
+        },
+        {
+          path: "/studio-finance",
+          name: "studio-finance",
+          component: () => import("../views/studio-finance/IndexView.vue"),
+          meta: { title: "财务对账", requiresAuth: true, scopes: ["studio"] }
+        },
+        {
+          path: "/studio-accounts",
+          name: "studio-accounts",
+          component: () => import("../views/studio-accounts/IndexView.vue"),
+          meta: { title: "结算账户", requiresAuth: true, scopes: ["studio"] }
+        },
+        {
+          path: "/studio-audit",
+          name: "studio-audit",
+          component: () => import("../views/studio-audit/IndexView.vue"),
+          meta: { title: "操作审计", requiresAuth: true, scopes: ["studio"] }
+        },
+        {
+          path: "/studio-staff",
+          name: "studio-staff",
+          component: () => import("../views/studio-staff/IndexView.vue"),
+          meta: { title: "员工账号", requiresAuth: true, scopes: ["studio"] }
         }
       ]
     },

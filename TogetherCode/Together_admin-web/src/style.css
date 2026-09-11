@@ -158,6 +158,13 @@ a {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .panel-header {
   display: flex;
   align-items: center;
