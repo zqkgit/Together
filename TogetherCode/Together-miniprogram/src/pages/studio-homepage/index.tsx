@@ -3,13 +3,47 @@ import Taro, { useRouter } from "@tarojs/taro";
 import { View, Text, Image } from "@tarojs/components";
 import { getStudioHomepage, type StudioHomepage } from "../../services/profile";
 import { fenToYuan } from "../../services/course";
+import { getFavoriteIds, addFavorite, removeFavorite } from "../../services/interaction";
+import { useAuthStore } from "../../store/auth";
 import "./index.scss";
 
 export default function StudioHomepagePage() {
   const router = useRouter();
   const id = router.params.id || "";
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const [data, setData] = useState<StudioHomepage | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isFollowed, setIsFollowed] = useState(false);
+
+  const loadFollow = async (studioId: string) => {
+    if (!isLoggedIn) return;
+    try {
+      const ids = await getFavoriteIds("studio");
+      setIsFollowed(ids.includes(studioId));
+    } catch {
+      // 忽略
+    }
+  };
+
+  const toggleFollow = async (studioId: string) => {
+    if (!isLoggedIn) {
+      Taro.showToast({ title: "请先登录", icon: "none" });
+      return;
+    }
+    try {
+      if (isFollowed) {
+        await removeFavorite("studio", studioId);
+        setIsFollowed(false);
+        Taro.showToast({ title: "已取消关注", icon: "none" });
+      } else {
+        await addFavorite("studio", studioId);
+        setIsFollowed(true);
+        Taro.showToast({ title: "已关注", icon: "success" });
+      }
+    } catch {
+      // 拦截器已提示
+    }
+  };
 
   useEffect(() => {
     if (id) load();
@@ -18,7 +52,9 @@ export default function StudioHomepagePage() {
   const load = async () => {
     setLoading(true);
     try {
-      setData(await getStudioHomepage(id));
+      const data = await getStudioHomepage(id);
+      setData(data);
+      loadFollow(data.studio?.studio_id || id);
     } catch {
       // 拦截器已提示
     } finally {
@@ -52,7 +88,15 @@ export default function StudioHomepagePage() {
       )}
 
       <View className="studio-header card">
-        <View className="studio-name">{studio.name}</View>
+        <View className="studio-head-row">
+          <View className="studio-name">{studio.name}</View>
+          <View
+            className={`follow-btn ${isFollowed ? "followed" : ""}`}
+            onClick={() => toggleFollow(studio.studio_id)}
+          >
+            {isFollowed ? "✓ 已关注" : "+ 关注"}
+          </View>
+        </View>
         {studio.type_tags && studio.type_tags.length > 0 && (
           <View className="studio-tags">
             {studio.type_tags.map((t) => (

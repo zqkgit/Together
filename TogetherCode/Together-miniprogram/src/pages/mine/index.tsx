@@ -57,6 +57,7 @@ export default function MinePage() {
   const entries = [
     { label: "我的订单", icon: "📦", url: "/pages/orders/index" },
     { label: "我的孩子", icon: "👶", url: "/pages/children/index" },
+    { label: "我的收藏", icon: "⭐", url: "/pages/favorites/index" },
     { label: "课程表", icon: "🗓️", url: "/pages/child-timetable/index" },
     { label: "收益中心", icon: "💰", url: "/pages/wallet/index" },
     { label: "消息通知", icon: "🔔", url: "/pages/messages/index", badge: unreadCount },

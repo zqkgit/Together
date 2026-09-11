@@ -147,3 +147,28 @@
   color: $color-text-light;
   text-align: center;
 }
+
+.hero-name {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.follow-btn {
+  padding: 8rpx 28rpx;
+  border-radius: 999rpx;
+  background: #2f5d45;
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+.follow-btn.followed {
+  background: #eef3ef;
+  color: #2f5d45;
+  border: 2rpx solid #2f5d45;
+}
+
+.follow-btn:active {
+  opacity: 0.8;
+}

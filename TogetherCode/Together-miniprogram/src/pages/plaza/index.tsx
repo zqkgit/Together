@@ -22,22 +22,25 @@ export default function PlazaPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [sort, setSort] = useState<"latest" | "hot">("latest");
 
   useEffect(() => {
     if (!isLoggedIn) {
       Taro.switchTab({ url: "/pages/mine/index" });
       return;
     }
-    loadData();
+    setPage(1);
+    setPosts([]);
+    loadData(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoggedIn]);
+  }, [isLoggedIn, sort]);
 
-  const loadData = async () => {
+  const loadData = async (p: number) => {
     setLoading(true);
     try {
-      const data = await request<any>({ url: `/posts/plaza?page=${page}&page_size=10`, method: "GET" });
+      const data = await request<any>({ url: `/posts/plaza?page=${p}&page_size=10&sort=${sort}`, method: "GET" });
       const list = data?.list || [];
-      setPosts((prev) => (page === 1 ? list : [...prev, ...list]));
+      setPosts((prev) => (p === 1 ? list : [...prev, ...list]));
       setTotal(data?.total || list.length);
     } catch {
       // 拦截器已提示
@@ -46,12 +49,8 @@ export default function PlazaPage() {
     }
   };
 
-  useEffect(() => {
-    if (page > 1) loadData();
-  }, [page]);
-
   const onReachBottom = () => {
-    if (posts.length < total) setPage(page + 1);
+    if (posts.length < total) loadData(page + 1);
   };
 
   const goDetail = (id: string) => {
@@ -67,6 +66,21 @@ export default function PlazaPage() {
       <View className="plaza-head">
         <Text className="plaza-title">广场</Text>
         <View className="create-btn" onClick={goCreate}>发帖</View>
+      </View>
+
+      <View className="sort-tabs">
+        <View
+          className={`sort-tab ${sort === "latest" ? "active" : ""}`}
+          onClick={() => setSort("latest")}
+        >
+          最新
+        </View>
+        <View
+          className={`sort-tab ${sort === "hot" ? "active" : ""}`}
+          onClick={() => setSort("hot")}
+        >
+          热门
+        </View>
       </View>
 
       <View className="post-list">

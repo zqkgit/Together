@@ -3,13 +3,47 @@ import Taro, { useRouter } from "@tarojs/taro";
 import { View, Text, Image } from "@tarojs/components";
 import { getTeacherHomepage, type TeacherHomepage } from "../../services/profile";
 import { fenToYuan } from "../../services/course";
+import { getFavoriteIds, addFavorite, removeFavorite } from "../../services/interaction";
+import { useAuthStore } from "../../store/auth";
 import "./index.scss";
 
 export default function TeacherHomepagePage() {
   const router = useRouter();
   const id = router.params.id || "";
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const [data, setData] = useState<TeacherHomepage | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isFollowed, setIsFollowed] = useState(false);
+
+  const loadFollow = async (teacherId: string) => {
+    if (!isLoggedIn) return;
+    try {
+      const ids = await getFavoriteIds("teacher");
+      setIsFollowed(ids.includes(teacherId));
+    } catch {
+      // 忽略
+    }
+  };
+
+  const toggleFollow = async (teacherId: string) => {
+    if (!isLoggedIn) {
+      Taro.showToast({ title: "请先登录", icon: "none" });
+      return;
+    }
+    try {
+      if (isFollowed) {
+        await removeFavorite("teacher", teacherId);
+        setIsFollowed(false);
+        Taro.showToast({ title: "已取消关注", icon: "none" });
+      } else {
+        await addFavorite("teacher", teacherId);
+        setIsFollowed(true);
+        Taro.showToast({ title: "已关注", icon: "success" });
+      }
+    } catch {
+      // 拦截器已提示
+    }
+  };
 
   useEffect(() => {
     if (id) load();
@@ -18,7 +52,9 @@ export default function TeacherHomepagePage() {
   const load = async () => {
     setLoading(true);
     try {
-      setData(await getTeacherHomepage(id));
+      const data = await getTeacherHomepage(id);
+      setData(data);
+      loadFollow(data.profile?.teacher_id || id);
     } catch {
       // 拦截器已提示
     } finally {
@@ -48,6 +84,12 @@ export default function TeacherHomepagePage() {
       <View className="hero">
         <Image className="hero-avatar" src={user?.avatar || ""} mode="aspectFill" />
         <View className="hero-name">{profile.real_name || user?.nickname || "艺启老师"}</View>
+        <View
+          className={`follow-btn ${isFollowed ? "followed" : ""}`}
+          onClick={() => toggleFollow(profile.teacher_id || id)}
+        >
+          {isFollowed ? "✓ 已关注" : "+ 关注"}
+        </View>
         <View className="hero-tags">
           {(profile.subjects || []).map((s) => (
             <Text key={s} className="hero-tag">{s}</Text>

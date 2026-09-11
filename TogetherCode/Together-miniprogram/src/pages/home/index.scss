@@ -123,3 +123,46 @@
   font-size: 22rpx;
   text-decoration: line-through;
 }
+
+.home-section {
+  margin-top: 40rpx;
+}
+
+.entity-scroll {
+  white-space: nowrap;
+  margin-top: 16rpx;
+}
+
+.entity-card {
+  display: inline-block;
+  width: 220rpx;
+  margin-right: 20rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.entity-cover {
+  width: 220rpx;
+  height: 160rpx;
+  background: #efe9db;
+}
+
+.entity-name {
+  padding: 12rpx 16rpx 4rpx;
+  font-size: 26rpx;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entity-meta {
+  padding: 0 16rpx 16rpx;
+  font-size: 22rpx;
+  color: #9a938a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

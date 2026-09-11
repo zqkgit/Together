@@ -1,20 +1,32 @@
 import React, { useEffect, useState } from "react";
 import Taro, { useRouter, useShareAppMessage } from "@tarojs/taro";
-import { View, Text, Image, Button } from "@tarojs/components";
+import { View, Text, Image, Button, Input, Textarea } from "@tarojs/components";
 import { getCourseDetail, fenToYuan, type CoursePackage } from "../../services/course";
 import { createDistributionLink } from "../../services/distribution";
 import { getDistFromParams, buildCourseSharePath, getShareUid } from "../../utils/share";
+import { getCourseReviews, postCourseReview, getFavoriteIds, addFavorite, removeFavorite, type CourseReviews } from "../../services/interaction";
+import { useAuthStore } from "../../store/auth";
 import "./index.scss";
 
 export default function CourseDetailPage() {
   const router = useRouter();
   const id = router.params.id || "";
   const distCode = getDistFromParams();
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const [course, setCourse] = useState<any>(null);
   const [pkg, setPkg] = useState<CoursePackage | null>(null);
   const [loading, setLoading] = useState(true);
   // 分享码：登录用户分享本课程时生成，用于分享卡片归因
   const [shareLink, setShareLink] = useState<{ code: string; share_url: string } | null>(null);
+  // 收藏
+  const [isFavorite, setIsFavorite] = useState(false);
+  // 评价
+  const [reviews, setReviews] = useState<CourseReviews | null>(null);
+  const [reviewPage, setReviewPage] = useState(1);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewContent, setReviewContent] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (id) loadData();
@@ -28,10 +40,75 @@ export default function CourseDetailPage() {
       const available = (data.packages || []).filter((p: CoursePackage) => Number(p.status) === 1);
       if (available.length > 0) setPkg(available[0]);
       prefetchShareCode(data);
+      loadReviews(1);
+      if (isLoggedIn) loadFavoriteState();
     } catch {
       // 拦截器已提示
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadFavoriteState = async () => {
+    try {
+      const ids = await getFavoriteIds("course");
+      setIsFavorite(ids.includes(id));
+    } catch {
+      // 忽略
+    }
+  };
+
+  const toggleFavorite = async () => {
+    if (!isLoggedIn) {
+      Taro.showToast({ title: "请先登录", icon: "none" });
+      return;
+    }
+    try {
+      if (isFavorite) {
+        await removeFavorite("course", id);
+        setIsFavorite(false);
+        Taro.showToast({ title: "已取消收藏", icon: "none" });
+      } else {
+        await addFavorite("course", id);
+        setIsFavorite(true);
+        Taro.showToast({ title: "已收藏", icon: "success" });
+      }
+    } catch {
+      // 拦截器已提示
+    }
+  };
+
+  const loadReviews = async (p: number) => {
+    try {
+      const data = await getCourseReviews(id, p);
+      setReviews(data);
+      setReviewPage(p);
+    } catch {
+      // 忽略
+    }
+  };
+
+  const submitReview = async () => {
+    if (!isLoggedIn) {
+      Taro.showToast({ title: "请先登录", icon: "none" });
+      return;
+    }
+    if (!reviewContent.trim()) {
+      Taro.showToast({ title: "写点评价内容吧", icon: "none" });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await postCourseReview(id, { rating: reviewRating, content: reviewContent.trim() });
+      Taro.showToast({ title: "评价成功", icon: "success" });
+      setShowReviewForm(false);
+      setReviewContent("");
+      setReviewRating(5);
+      loadReviews(1);
+    } catch {
+      // 拦截器已提示
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -89,7 +166,15 @@ export default function CourseDetailPage() {
                 <Text className="price-original">¥{fenToYuan(pkg.original_price)}</Text>
               )}
             </View>
-            <View className="detail-title">{course.title}</View>
+            <View className="detail-title-row">
+              <View className="detail-title">{course.title}</View>
+              <View
+                className={`fav-btn ${isFavorite ? "fav-active" : ""}`}
+                onClick={toggleFavorite}
+              >
+                {isFavorite ? "♥ 已收藏" : "♡ 收藏"}
+              </View>
+            </View>
             <View className="detail-meta">
               <Text>{course.age_min && course.age_max ? `${course.age_min}-${course.age_max} 岁` : "全龄段"}</Text>
               <Text>·</Text>
@@ -138,6 +223,91 @@ export default function CourseDetailPage() {
               {course.teacher.intro && <View className="teacher-intro">{course.teacher.intro}</View>}
             </View>
           )}
+
+          <View className="card">
+            <View className="section-label">课程评价</View>
+            {reviews && reviews.rating_count > 0 && (
+              <View className="review-summary">
+                <View className="review-avg">
+                  <Text className="review-avg-num">{reviews.average}</Text>
+                  <Text className="review-avg-sub">{reviews.rating_count} 条评价</Text>
+                </View>
+                <View className="review-bars">
+                  {[5, 4, 3, 2, 1].map((star) => (
+                    <View key={star} className="review-bar-row">
+                      <Text className="review-bar-label">{star}★</Text>
+                      <View className="review-bar-track">
+                        <View
+                          className="review-bar-fill"
+                          style={{
+                            width: `${reviews.rating_count ? Math.round(((reviews.rating_distribution[String(star)] || 0) / reviews.rating_count) * 100) : 0}%`
+                          }}
+                        />
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+            {reviews?.list?.length > 0 ? (
+              <View className="review-list">
+                {reviews.list.map((r) => (
+                  <View key={r.review_id} className="review-item">
+                    <View className="review-head">
+                      <Text className="review-nick">{r.nickname}</Text>
+                      <Text className="review-stars">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</Text>
+                      <Text className="review-time">{String(r.created_at || "").slice(0, 10)}</Text>
+                    </View>
+                    {r.content && <View className="review-content">{r.content}</View>}
+                  </View>
+                ))}
+                {reviews.total > reviews.list.length && (
+                  <View className="review-more" onClick={() => loadReviews(reviewPage + 1)}>
+                    加载更多评价
+                  </View>
+                )}
+              </View>
+            ) : (
+              <View className="empty-tip">暂无评价，购买后来说两句吧</View>
+            )}
+            <View
+              className="review-write-btn"
+              onClick={() => {
+                if (!isLoggedIn) {
+                  Taro.showToast({ title: "请先登录", icon: "none" });
+                  return;
+                }
+                setShowReviewForm(!showReviewForm);
+              }}
+            >
+              {showReviewForm ? "收起" : "写评价"}
+            </View>
+            {showReviewForm && (
+              <View className="review-form">
+                <View className="star-pick">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Text
+                      key={star}
+                      className={`star-pick-item ${star <= reviewRating ? "on" : ""}`}
+                      onClick={() => setReviewRating(star)}
+                    >
+                      ★
+                    </Text>
+                  ))}
+                </View>
+                <Textarea
+                  className="review-input"
+                  placeholder="说说课程感受（购买后评价）"
+                  value={reviewContent}
+                  onInput={(e) => setReviewContent(e.detail.value)}
+                  maxlength={500}
+                />
+                <Button className="btn-primary review-submit" disabled={submitting} onClick={submitReview}>
+                  提交评价
+                </Button>
+              </View>
+            )}
+          </View>
 
           <View className="buy-bar">
             <View className="buy-price">

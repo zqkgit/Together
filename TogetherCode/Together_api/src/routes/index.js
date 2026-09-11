@@ -13,10 +13,29 @@ const messageRoutes = require("./message");
 const parentRoutes = require("./parent");
 const uploadRoutes = require("./upload");
 const profileRoutes = require("./profile");
+const interactionRoutes = require("./interaction");
 const { ok, fail } = require("../utils/response");
 const { listAnnouncements } = require("../services/platformGovernanceService");
+const { listPublicStudios, listPublicTeachers } = require("../services/publicListingService");
 
 const router = express.Router();
+
+// 公开列表：找画室 / 找老师（只含审核通过实体）
+router.get("/studios", async (req, res) => {
+  try {
+    return ok(res, await listPublicStudios(req.query));
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+});
+
+router.get("/teachers", async (req, res) => {
+  try {
+    return ok(res, await listPublicTeachers(req.query));
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+});
 
 // 通用健康检查，供所有端共用。
 router.get("/health", getHealth);
@@ -69,6 +88,9 @@ router.use("/upload", uploadRoutes);
 
 // 公开档案 / 主页：用户资料、老师主页、工作室主页（游客可浏览）
 router.use("/profile", profileRoutes);
+
+// 互动：课程评价（公开读/登录写）+ 收藏（登录）
+router.use("/", interactionRoutes);
 
 // 工作室轻量 App 端接口当前还未独立拆分；
 // 现阶段已落地的工作室能力主要集中在 Web 侧 /studio/*。

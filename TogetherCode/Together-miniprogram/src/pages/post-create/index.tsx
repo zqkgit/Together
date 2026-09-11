@@ -17,6 +17,7 @@ export default function PostCreatePage() {
   const [courses, setCourses] = useState<CourseItem[]>([]);
   const [children, setChildren] = useState<ChildItem[]>([]);
   const [coursePicker, setCoursePicker] = useState(false);
+  const [childPicker, setChildPicker] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<CourseItem | null>(null);
   const [selectedChild, setSelectedChild] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -161,7 +162,7 @@ export default function PostCreatePage() {
             <Text className="picker-arrow">›</Text>
           </View>
           {selectedCourse && (
-            <View className="picker-row" onClick={() => setCoursePicker(true)}>
+            <View className="picker-row" onClick={() => setChildPicker(true)}>
               <Text className="picker-label">关联孩子</Text>
               <Text className={`picker-value ${selectedChild ? "" : "placeholder"}`}>
                 {selectedChild ? children.find((c) => c.child_id === selectedChild)?.nickname || "已选孩子" : "选填，指定孩子后展示报名"}
@@ -206,8 +207,8 @@ export default function PostCreatePage() {
         </View>
       )}
 
-      {selectedCourse && (
-        <View className="mask" onClick={() => setSelectedChild("")}>
+      {childPicker && selectedCourse && (
+        <View className="mask" onClick={() => setChildPicker(false)}>
           <View className="picker-panel" onClick={(e) => e.stopPropagation()}>
             <View className="panel-title">选择孩子</View>
             <View className="panel-list">
@@ -217,7 +218,7 @@ export default function PostCreatePage() {
                   className={`panel-item ${selectedChild === c.child_id ? "active" : ""}`}
                   onClick={() => {
                     setSelectedChild(c.child_id);
-                    setCoursePicker(false);
+                    setChildPicker(false);
                   }}
                 >
                   <View className="panel-body">

@@ -15,6 +15,8 @@ export default defineAppConfig({
     "pages/child-growth/index",
     "pages/child-timetable/index",
     "pages/poster/index",
+    "pages/studios/index",
+    "pages/favorites/index",
     "pages/teacher-homepage/index",
     "pages/studio-homepage/index",
     "pages/post-detail/index",

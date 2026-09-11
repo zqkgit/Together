@@ -118,3 +118,23 @@
   color: #8a8378;
   font-size: 24rpx;
 }
+
+.sort-tabs {
+  display: flex;
+  gap: 16rpx;
+  margin: 20rpx 0;
+}
+
+.sort-tab {
+  padding: 10rpx 32rpx;
+  border-radius: 999rpx;
+  background: #fff;
+  font-size: 26rpx;
+  color: #9a938a;
+}
+
+.sort-tab.active {
+  background: #2f5d45;
+  color: #fff;
+  font-weight: 500;
+}
