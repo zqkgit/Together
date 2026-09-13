@@ -10,8 +10,8 @@ const refunds = ref<RefundItem[]>([]);
 
 const statusMeta: Record<number, { text: string; type: "warning" | "success" | "danger" }> = {
   0: { text: "待审核", type: "warning" },
-  1: { text: "已通过", type: "success" },
-  2: { text: "已驳回", type: "danger" }
+  2: { text: "已驳回", type: "danger" },
+  3: { text: "已通过", type: "success" }
 };
 
 function formatFen(value: number): string {
@@ -76,7 +76,7 @@ onMounted(loadData);
           <div class="toolbar-right">
             <el-select v-model="status" placeholder="退款状态" clearable style="width: 130px" @change="loadData">
               <el-option label="待审核" :value="0" />
-              <el-option label="已通过" :value="1" />
+              <el-option label="已通过" :value="3" />
               <el-option label="已驳回" :value="2" />
             </el-select>
             <el-button :icon="Refresh" @click="loadData">刷新</el-button>

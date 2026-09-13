@@ -183,6 +183,22 @@ async function listAnnouncements(query = {}) {
   };
 }
 
+/** 公告详情（仅已发布） */
+async function getAnnouncementDetail(announcementId) {
+  const row = await Announcement.findOne({ where: { announcement_id: announcementId, status: 1 } });
+  if (!row) return null;
+  return {
+    announcement_id: String(row.announcement_id),
+    title: row.title,
+    content: row.content,
+    type: Number(row.type),
+    image: row.image || [],
+    link: row.link,
+    publish_at: row.publish_at,
+    created_at: row.created_at
+  };
+}
+
 async function createAnnouncement(admin, payload = {}) {
   const title = String(payload.title || "").trim();
   if (!title) {
@@ -493,6 +509,7 @@ module.exports = {
   updatePlatformConfig,
   getHotKeywords,
   listAnnouncements,
+  getAnnouncementDetail,
   createAnnouncement,
   createPlatformStaff,
   listPlatformAudit,

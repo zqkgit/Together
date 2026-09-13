@@ -46,3 +46,45 @@ export function getOrderDetail(id: string): Promise<OrderItem> {
 export function payOrder(id: string, channel = "wechat_mini"): Promise<OrderItem> {
   return request({ url: `/orders/${id}/pay`, method: "POST", data: { channel } });
 }
+
+export interface RefundItem {
+  refund_id: string;
+  order_id: string;
+  course_title: string;
+  course_cover: string | null;
+  studio_name: string | null;
+  child_name: string;
+  requested_lessons: number;
+  amount: number;
+  amount_text: string;
+  status: number;
+  status_text: string;
+  reason: string | null;
+  created_at: string;
+}
+
+export interface RefundDetail extends RefundItem {
+  order_no: string | null;
+  total_lessons: number;
+  consumed_lessons: number;
+  refunded_lessons: number;
+  balance_remaining: number;
+  valid_to: string | null;
+  refundable_lessons: number;
+  unit_price: number;
+  unit_price_text: string;
+  reviewed_at: string | null;
+  refunded_at: string | null;
+  steps: Array<{ key: string; title: string; time: string | null; done: boolean; current: boolean }>;
+}
+
+/** 我的退款列表（status 可选：0 申请中 / 2 已驳回 / 3 已通过） */
+export function getRefunds(status?: number): Promise<{ total: number; list: RefundItem[] }> {
+  const q = status !== undefined ? `?status=${status}` : "";
+  return request({ url: `/orders/refunds${q}`, method: "GET" });
+}
+
+/** 退款详情 */
+export function getRefundDetail(id: string): Promise<RefundDetail> {
+  return request({ url: `/orders/refunds/${id}`, method: "GET" });
+}

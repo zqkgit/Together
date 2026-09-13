@@ -101,3 +101,36 @@ export function getChildCalendar(params: { month?: string; child_id?: string } =
     .join("&");
   return request<any>({ url: `/parent/calendar?${q}`, method: "GET" });
 }
+
+export interface AttendanceItem {
+  attendance_id: string;
+  child_id: string;
+  child_name: string;
+  schedule_id: string | null;
+  lesson_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  is_makeup: boolean;
+  location: string | null;
+  course_title: string;
+  course_cover: string | null;
+  class_name: string;
+  studio_name: string | null;
+  status: number;
+  status_text: string;
+  consumed: boolean;
+  note: string | null;
+  created_at: string;
+}
+
+/** 孩子签到记录（status 1 出勤消课 / 2 请假保留课时） */
+export function listAttendance(params: { child_id?: string; page?: number; page_size?: number } = {}): Promise<{
+  total: number;
+  list: AttendanceItem[];
+}> {
+  const q = Object.keys(params)
+    .filter((k) => params[k] !== undefined && params[k] !== "")
+    .map((k) => `${k}=${encodeURIComponent(String(params[k]))}`)
+    .join("&");
+  return request({ url: `/parent/attendance?${q}`, method: "GET" });
+}

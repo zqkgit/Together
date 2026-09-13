@@ -340,6 +340,113 @@ async function getOrderDetail(userId, orderId) {
   return formatOrder(row);
 }
 
+
+const REFUND_STATUS_TEXT = { 0: "申请中", 2: "已驳回", 3: "已通过并退款" };
+
+function refundStatusText(status) {
+  return REFUND_STATUS_TEXT[Number(status)] || "未知";
+}
+
+/** 家长端：我的退款列表 */
+async function listMyRefunds(userId, query = {}) {
+  const where = { user_id: userId };
+  if (query.status !== undefined && query.status !== "") {
+    where.status = Number(query.status);
+  }
+
+  const rows = await Refund.findAll({
+    where,
+    include: [
+      {
+        model: Order,
+        as: "order",
+        required: true,
+        include: [
+          { model: Child, as: "child", attributes: ["child_id", "nickname"] },
+          { model: StudioProfile, as: "studio", attributes: ["studio_id", "name"] },
+          { model: Course, as: "course", attributes: ["course_id", "title", "cover"] },
+          { model: ChildCourseBalance, as: "balance", attributes: ["balance_id", "total_lessons", "consumed_lessons", "refunded_lessons", "remaining_lessons"] }
+        ]
+      }
+    ],
+    order: [["created_at", "DESC"]]
+  });
+
+  return {
+    total: rows.length,
+    list: rows.map((r) => ({
+      refund_id: String(r.refund_id),
+      order_id: String(r.order_id),
+      course_title: r.order?.course ? r.order.course.title : "-",
+      course_cover: r.order?.course ? r.order.course.cover : null,
+      studio_name: r.order?.studio ? r.order.studio.name : null,
+      child_name: r.order?.child ? r.order.child.nickname : "-",
+      requested_lessons: Number(r.requested_lessons),
+      amount: Number(r.amount),
+      amount_text: `¥${(Number(r.amount) / 100).toFixed(2)}`,
+      status: Number(r.status),
+      status_text: refundStatusText(r.status),
+      reason: r.reason,
+      created_at: r.created_at
+    }))
+  };
+}
+
+/** 家长端：退款详情（状态流转） */
+async function getRefundDetail(userId, refundId) {
+  const row = await Refund.findOne({
+    where: { refund_id: refundId, user_id: userId },
+    include: [
+      {
+        model: Order,
+        as: "order",
+        required: true,
+        include: [
+          { model: Child, as: "child", attributes: ["child_id", "nickname"] },
+          { model: StudioProfile, as: "studio", attributes: ["studio_id", "name"] },
+          { model: Course, as: "course", attributes: ["course_id", "title", "cover"] },
+          { model: ChildCourseBalance, as: "balance", attributes: ["balance_id", "total_lessons", "consumed_lessons", "refunded_lessons", "remaining_lessons", "valid_to"] }
+        ]
+      }
+    ]
+  });
+  if (!row) return null;
+
+  const status = Number(row.status);
+  const order = row.order;
+  return {
+    refund_id: String(row.refund_id),
+    order_id: String(row.order_id),
+    order_no: order ? order.order_no : null,
+    course_title: order?.course ? order.course.title : "-",
+    course_cover: order?.course ? order.course.cover : null,
+    studio_name: order?.studio ? order.studio.name : null,
+    child_name: order?.child ? order.child.nickname : "-",
+    total_lessons: order ? Number(order.total_lessons) : 0,
+    consumed_lessons: order ? Number(order.consumed_lessons) : 0,
+    refunded_lessons: order ? Number(order.refunded_lessons) : 0,
+    balance_remaining: order?.balance ? Number(order.balance.remaining_lessons) : 0,
+    valid_to: order?.balance ? order.balance.valid_to : null,
+    requested_lessons: Number(row.requested_lessons),
+    refundable_lessons: Number(row.refundable_lessons),
+    unit_price: Number(row.unit_price),
+    unit_price_text: `¥${(Number(row.unit_price) / 100).toFixed(2)}/课时`,
+    amount: Number(row.amount),
+    amount_text: `¥${(Number(row.amount) / 100).toFixed(2)}`,
+    reason: row.reason,
+    status: status,
+    status_text: refundStatusText(status),
+    created_at: row.created_at,
+    reviewed_at: row.reviewed_at,
+    refunded_at: row.refunded_at,
+    steps: [
+      { key: "submit", title: "提交申请", time: row.created_at, done: true },
+      { key: "review", title: "工作室审核", time: row.reviewed_at, done: row.reviewed_at != null, current: status === 0 },
+      { key: "result", title: status === 2 ? "已驳回" : "已通过并退款", time: status === 2 ? row.reviewed_at : row.refunded_at, done: status === 2 || status === 3, current: status === 2 || status === 3 }
+    ]
+  };
+}
+
 async function createRefund(userId, orderId, payload) {
   return sequelize.transaction(async (transaction) => {
     const order = await Order.findOne({
@@ -424,6 +531,8 @@ module.exports = {
   listOrders,
   getOrderDetail,
   createRefund,
+  listMyRefunds,
+  getRefundDetail,
   formatOrder,
   getOrderWithDetails
 };

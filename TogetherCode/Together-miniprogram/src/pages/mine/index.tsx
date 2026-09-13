@@ -62,7 +62,7 @@ export default function MinePage() {
     { label: "课程表", icon: "🗓️", url: "/pages/child-timetable/index" },
     { label: "收益中心", icon: "💰", url: "/pages/wallet/index" },
     { label: "消息通知", icon: "🔔", url: "/pages/messages/index", badge: unreadCount },
-    { label: "退款申请", icon: "↩️", url: "/pages/orders/index?status=1" }
+    { label: "退款申请", icon: "↩️", url: "/pages/refunds/index" }
   ];
 
   return (

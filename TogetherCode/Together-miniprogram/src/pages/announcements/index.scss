@@ -1,0 +1,29 @@
+.announcements {
+  min-height: 100vh;
+  padding: 24rpx;
+  background: #f7f4ec;
+}
+
+.item {
+  margin-bottom: 20rpx;
+  padding: 28rpx;
+}
+
+.item-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #2f2b26;
+}
+
+.item-time {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #b3ac9e;
+}
+
+.load-more {
+  padding: 20rpx 0;
+  text-align: center;
+  color: #2f5d45;
+  font-size: 26rpx;
+}

@@ -5,6 +5,7 @@ const { parentViewValidators } = require("../validators/parentValidator");
 const {
   getMyBalancesData,
   getMyLessonLogsData,
+  getChildAttendanceData,
   getChildTimetableData,
   getChildCalendarData
 } = require("../controllers/parentController");
@@ -16,6 +17,7 @@ router.use(requireAuth);
 
 router.get("/balances", parentViewValidators, validateRequest, getMyBalancesData);
 router.get("/lesson-logs", parentViewValidators, validateRequest, getMyLessonLogsData);
+router.get("/attendance", parentViewValidators, validateRequest, getChildAttendanceData);
 router.get("/schedules", parentViewValidators, validateRequest, getChildTimetableData);
 router.get("/calendar", parentViewValidators, validateRequest, getChildCalendarData);
 

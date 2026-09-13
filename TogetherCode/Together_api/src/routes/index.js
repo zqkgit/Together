@@ -15,7 +15,7 @@ const uploadRoutes = require("./upload");
 const profileRoutes = require("./profile");
 const interactionRoutes = require("./interaction");
 const { ok, fail } = require("../utils/response");
-const { listAnnouncements, getHotKeywords } = require("../services/platformGovernanceService");
+const { listAnnouncements, getAnnouncementDetail, getHotKeywords } = require("../services/platformGovernanceService");
 const { listPublicStudios, listPublicTeachers } = require("../services/publicListingService");
 
 const router = express.Router();
@@ -77,6 +77,17 @@ router.use("/tags", tagRoutes);
 router.get("/announcements", async (req, res) => {
   try {
     const data = await listAnnouncements({ ...req.query, status: 1 });
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+});
+
+// 公告详情（仅已发布）。
+router.get("/announcements/:id", async (req, res) => {
+  try {
+    const data = await getAnnouncementDetail(req.params.id);
+    if (!data) return fail(res, 404, 40400, "公告不存在");
     return ok(res, data);
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");

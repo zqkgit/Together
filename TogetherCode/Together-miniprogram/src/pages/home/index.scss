@@ -166,3 +166,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.notice-card {
+  display: flex;
+  align-items: center;
+}
+
+.notice-arrow {
+  margin-left: auto;
+  color: #c9c2b4;
+  font-size: 30rpx;
+}

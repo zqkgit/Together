@@ -78,9 +78,13 @@ export default function HomePage() {
       </View>
 
       {announcements.length > 0 && (
-        <View className="card notice-card">
+        <View
+          className="card notice-card"
+          onClick={() => Taro.navigateTo({ url: "/pages/announcements/index" })}
+        >
           <Text className="notice-label">公告</Text>
           <Text className="notice-text">{announcements[0].title}</Text>
+          <Text className="notice-arrow">›</Text>
         </View>
       )}
 

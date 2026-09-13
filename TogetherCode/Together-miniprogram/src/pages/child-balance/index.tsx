@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Taro from "@tarojs/taro";
 import { View, Text, Image } from "@tarojs/components";
-import { listBalances, listLessonLogs, type BalanceChild, type LessonLogItem } from "../../services/balance";
+import { listBalances, listLessonLogs, listAttendance, type BalanceChild, type LessonLogItem, type AttendanceItem } from "../../services/balance";
 import { useAuthStore } from "../../store/auth";
 import "./index.scss";
 
@@ -10,8 +10,9 @@ export default function ChildBalancePage() {
   const [children, setChildren] = useState<BalanceChild[]>([]);
   const [activeChild, setActiveChild] = useState("");
   const [logs, setLogs] = useState<LessonLogItem[]>([]);
+  const [attendance, setAttendance] = useState<AttendanceItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"balance" | "logs">("balance");
+  const [tab, setTab] = useState<"balance" | "logs" | "attendance">("balance");
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -39,6 +40,11 @@ export default function ChildBalancePage() {
         .then((r) => setLogs(r.list))
         .catch(() => undefined);
     }
+    if (tab === "attendance" && activeChild) {
+      listAttendance({ child_id: activeChild, page: 1, page_size: 50 })
+        .then((r) => setAttendance(r.list))
+        .catch(() => undefined);
+    }
   }, [tab, activeChild]);
 
   const logText = (l: LessonLogItem) => {
@@ -51,6 +57,7 @@ export default function ChildBalancePage() {
       <View className="tab-switch">
         <View className={`tab-item ${tab === "balance" ? "active" : ""}`} onClick={() => setTab("balance")}>课时余额</View>
         <View className={`tab-item ${tab === "logs" ? "active" : ""}`} onClick={() => setTab("logs")}>消课记录</View>
+        <View className={`tab-item ${tab === "attendance" ? "active" : ""}`} onClick={() => setTab("attendance")}>签到记录</View>
       </View>
 
       {tab === "balance" ? (
@@ -109,6 +116,32 @@ export default function ChildBalancePage() {
             </View>
           ))
         )
+      ) : tab === "attendance" ? (
+        <View className="logs">
+          {attendance.length === 0 ? (
+            <View className="empty-tip">暂无签到记录</View>
+          ) : (
+            attendance.map((a) => (
+              <View key={a.attendance_id} className="card log-item">
+                <View className="log-body">
+                  <View className="log-title">
+                    {a.course_title}
+                    <Text className={`att-badge ${a.consumed ? "att-in" : "att-leave"}`}>{a.status_text}</Text>
+                    {a.is_makeup ? <Text className="att-badge att-makeup">补课</Text> : null}
+                  </View>
+                  <View className="log-sub">
+                    {a.class_name} · {a.studio_name || ""}
+                    {a.lesson_date ? ` · ${a.lesson_date} ${a.start_time || ""}` : ""}
+                  </View>
+                  {a.note && <View className="log-note">{a.note}</View>}
+                </View>
+                <View className={`log-delta ${a.consumed ? "minus" : "plus"}`}>
+                  {a.consumed ? "消课 1" : "保留课时"}
+                </View>
+              </View>
+            ))
+          )}
+        </View>
       ) : (
         <View className="logs">
           {logs.length === 0 ? (

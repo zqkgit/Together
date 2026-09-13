@@ -8,7 +8,8 @@ const {
   LessonLog,
   Schedule,
   Class: ClassModel,
-  TeacherProfile
+  TeacherProfile,
+  Attendance
 } = require("../models");
 
 // 订单状态：1 支付成功（与 orderService 一致）
@@ -207,6 +208,77 @@ async function getMyLessonLogs(userId, query = {}) {
   };
 }
 
+
+/**
+ * 家长端：孩子每节课的签到记录
+ * status: 1 出勤（消课） / 2 请假（保留课时）
+ */
+async function getChildAttendance(userId, query = {}) {
+  const childWhere = { parent_user_id: userId };
+  if (query.child_id) childWhere.child_id = query.child_id;
+
+  const children = await Child.findAll({
+    where: childWhere,
+    attributes: ["child_id", "nickname"]
+  });
+  if (children.length === 0) {
+    return { total: 0, list: [] };
+  }
+
+  const rows = await Attendance.findAll({
+    where: {
+      child_id: { [Op.in]: children.map((c) => c.child_id) }
+    },
+    include: [
+      {
+        model: Schedule,
+        as: "schedule",
+        attributes: ["schedule_id", "lesson_date", "start_time", "end_time", "location", "is_makeup"],
+        include: [
+          { model: Course, as: "course", attributes: ["course_id", "title", "cover"] },
+          { model: ClassModel, as: "classItem", attributes: ["class_id", "name"] },
+          { model: StudioProfile, as: "studio", attributes: ["studio_id", "name"] }
+        ]
+      }
+    ],
+    order: [["created_at", "DESC"]],
+    limit: Math.min(Number(query.limit) || 100, 200),
+    offset: Number(query.offset) || 0
+  });
+
+  const childMap = {};
+  children.forEach((c) => (childMap[c.child_id] = c));
+
+  return {
+    total: rows.length,
+    list: rows.map((a) => {
+      const st = Number(a.status);
+      const schedule = a.schedule;
+      return {
+        attendance_id: String(a.attendance_id),
+        child_id: String(a.child_id),
+        child_name: childMap[a.child_id] ? childMap[a.child_id].nickname : "-",
+        schedule_id: schedule ? String(schedule.schedule_id) : null,
+        lesson_date: schedule ? schedule.lesson_date : null,
+        start_time: schedule ? schedule.start_time : null,
+        end_time: schedule ? schedule.end_time : null,
+        is_makeup: schedule ? Boolean(schedule.is_makeup) : false,
+        location: schedule ? schedule.location : null,
+        course_title: schedule?.course ? schedule.course.title : "-",
+        course_cover: schedule?.course ? schedule.course.cover : null,
+        class_name: schedule?.classItem ? schedule.classItem.name : "-",
+        studio_name: schedule?.studio ? schedule.studio.name : null,
+        status: st,
+        status_text: st === 1 ? "出勤" : st === 2 ? "请假" : "未知",
+        consumed: st === 1,
+        note: a.note,
+        created_at: a.created_at
+      };
+    })
+  };
+}
+
+
 function normalizeTimetableItem(item) {
   return {
     schedule_id: String(item.schedule_id),
@@ -382,6 +454,7 @@ async function getChildCalendar(userId, query = {}) {
 module.exports = {
   getMyBalances,
   getMyLessonLogs,
+  getChildAttendance,
   getChildTimetable,
   getChildCalendar
 };
