@@ -56,7 +56,7 @@ export async function fetchStudioTeachers(params: {
 
 export async function reviewTeacherApplication(
   id: string,
-  payload: { action: "approve" | "reject"; reason?: string }
+  payload: { action: "approve" | "reject" | "confirm"; reason?: string }
 ): Promise<{ id: string; status: number; action: string; teacher_id?: string }> {
   const response = await request.put(`/studio/teachers/${id}`, payload);
   return response.data;
@@ -523,7 +523,7 @@ export async function fetchStudioRefunds(params: { status?: number | "" } = {}):
 
 export async function reviewStudioRefund(
   id: string,
-  payload: { action: "approve" | "reject"; reason?: string }
+  payload: { action: "approve" | "reject" | "confirm"; reason?: string }
 ): Promise<RefundItem> {
   const response = await request.put(`/studio/refunds/${id}`, payload);
   return response.data;

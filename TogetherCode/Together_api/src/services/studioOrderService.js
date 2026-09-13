@@ -150,6 +150,7 @@ async function listStudioRefunds(studioId, query = {}) {
 }
 
 async function reviewStudioRefund(studioId, refundId, payload, operator = {}) {
+  const action = payload.action;
   return sequelize.transaction(async (transaction) => {
     const refund = await Refund.findByPk(refundId, {
       include: [
@@ -176,11 +177,13 @@ async function reviewStudioRefund(studioId, refundId, payload, operator = {}) {
       return null;
     }
 
-    if (Number(refund.status) !== 0) {
-      throw new Error("Refund already handled");
-    }
+    const currentStatus = Number(refund.status);
 
-    if (payload.action === "reject") {
+    // 驳回：申请中（0）或待打款（1）均可驳回；已驳回/已打款不可再操作
+    if (action === "reject") {
+      if (currentStatus !== 0 && currentStatus !== 1) {
+        throw new Error("Refund already handled");
+      }
       await refund.update(
         {
           status: 2,
@@ -209,7 +212,7 @@ async function reviewStudioRefund(studioId, refundId, payload, operator = {}) {
         transaction
       });
 
-      // 通知家长：退款已驳回
+      // 通知家长：退款已驳回（待打款阶段驳回时课时未扣，无需回补）
       const parent = refund.order?.user;
       if (parent?.user_id) {
         createNotification({
@@ -224,6 +227,11 @@ async function reviewStudioRefund(studioId, refundId, payload, operator = {}) {
       }
 
       return formatStudioRefund(latest);
+    }
+
+    // 审核通过：仅申请中（0）可进入待打款（1），此时只锁定审核结论，不扣课时、不打款
+    if (currentStatus !== 0) {
+      throw new Error("Refund already handled");
     }
 
     const order = await Order.findByPk(refund.order_id, {
@@ -246,6 +254,103 @@ async function reviewStudioRefund(studioId, refundId, payload, operator = {}) {
       throw new Error("Refund lessons exceed current remaining lessons");
     }
 
+    await refund.update(
+      {
+        status: 1,
+        reviewed_by: operator.adminId || null,
+        reviewed_at: new Date(),
+        reason: payload.reason || refund.reason
+      },
+      { transaction }
+    );
+
+    const latest = await Refund.findByPk(refund.refund_id, {
+      include: [
+        {
+          model: Order,
+          as: "order",
+          required: true,
+          where: { studio_id: studioId },
+          include: [
+            { model: Child, as: "child", attributes: ["child_id", "nickname", "birthday"] },
+            { model: Course, as: "course", attributes: ["course_id", "title", "cover"] },
+            { model: User, as: "user", attributes: ["user_id", "nickname", "phone"] },
+            { model: ChildCourseBalance, as: "balance", attributes: ["balance_id", "total_lessons", "consumed_lessons", "refunded_lessons", "remaining_lessons", "valid_from", "valid_to", "status"] }
+          ]
+        }
+      ],
+      transaction
+    });
+
+    // 通知家长：审核通过，进入打款
+    const parent = refund.order?.user;
+    if (parent?.user_id) {
+      createNotification({
+        userId: parent.user_id,
+        type: "refund",
+        title: "退款审核已通过",
+        content: `「${refund.order.course?.title || "课程"}」退款 ¥${(Number(refund.amount) / 100).toFixed(2)} 已通过审核，正在打款处理中。`
+          .slice(0, 120),
+        refType: "refund",
+        refId: refund.refund_id
+      }).catch(() => {});
+    }
+
+    return formatStudioRefund(latest);
+  });
+}
+
+/**
+ * 确认退款已打款：待打款（1）→ 已打款（3）。
+ * 此时才扣减课时、累计订单退款、写入消课流水，并通知家长到账。
+ */
+async function confirmRefundPaid(studioId, refundId, operator = {}) {
+  return sequelize.transaction(async (transaction) => {
+    const refund = await Refund.findByPk(refundId, {
+      include: [
+        {
+          model: Order,
+          as: "order",
+          required: true,
+          where: {
+            studio_id: studioId
+          },
+          include: [
+            { model: Child, as: "child", attributes: ["child_id", "nickname", "birthday"] },
+            { model: Course, as: "course", attributes: ["course_id", "title", "cover"] },
+            { model: User, as: "user", attributes: ["user_id", "nickname", "phone"] },
+            { model: ChildCourseBalance, as: "balance", attributes: ["balance_id", "total_lessons", "consumed_lessons", "refunded_lessons", "remaining_lessons", "valid_from", "valid_to", "status"] }
+          ]
+        }
+      ],
+      transaction,
+      lock: transaction.LOCK.UPDATE
+    });
+
+    if (!refund) {
+      return null;
+    }
+
+    if (Number(refund.status) !== 1) {
+      throw new Error("Refund not awaiting payout");
+    }
+
+    const order = await Order.findByPk(refund.order_id, {
+      transaction,
+      lock: transaction.LOCK.UPDATE
+    });
+    const balance = await ChildCourseBalance.findOne({
+      where: { order_id: refund.order_id },
+      transaction,
+      lock: transaction.LOCK.UPDATE
+    });
+
+    if (!order || !balance) {
+      throw new Error("Refund order balance not found");
+    }
+
+    const remainingLessons = Number(balance.remaining_lessons || 0);
+    const requestedLessons = Number(refund.requested_lessons || 0);
     const remainingAfter = remainingLessons - requestedLessons;
 
     await refund.update(
@@ -254,7 +359,7 @@ async function reviewStudioRefund(studioId, refundId, payload, operator = {}) {
         reviewed_by: operator.adminId || null,
         reviewed_at: new Date(),
         refunded_at: new Date(),
-        reason: payload.reason || refund.reason
+        reason: refund.reason
       },
       { transaction }
     );
@@ -287,7 +392,7 @@ async function reviewStudioRefund(studioId, refundId, payload, operator = {}) {
         type: 3,
         delta: -requestedLessons,
         balance_after: remainingAfter,
-        note: "工作室审核通过退款，扣减剩余课时"
+        note: "工作室确认退款打款，扣减剩余课时"
       },
       { transaction }
     );
@@ -310,14 +415,14 @@ async function reviewStudioRefund(studioId, refundId, payload, operator = {}) {
       transaction
     });
 
-    // 通知家长：退款已通过并退款
+    // 通知家长：退款已到账
     const parent = refund.order?.user;
     if (parent?.user_id) {
       createNotification({
         userId: parent.user_id,
         type: "refund",
         title: "退款已到账",
-        content: `「${refund.order.course?.title || "课程"}」退款 ¥${(Number(refund.amount) / 100).toFixed(2)} 已通过审核并退回余额。`
+        content: `「${refund.order.course?.title || "课程"}」退款 ¥${(Number(refund.amount) / 100).toFixed(2)} 已打款到账。`
           .slice(0, 120),
         refType: "refund",
         refId: refund.refund_id
@@ -332,5 +437,6 @@ module.exports = {
   listStudioOrders,
   getStudioOrderDetail,
   listStudioRefunds,
-  reviewStudioRefund
+  reviewStudioRefund,
+  confirmRefundPaid
 };

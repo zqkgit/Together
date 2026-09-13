@@ -35,7 +35,7 @@ const studioListRefundValidators = [
 
 const studioReviewRefundValidators = [
   param("id").isString().notEmpty().withMessage("refund id is required"),
-  body("action").isIn(["approve", "reject"]).withMessage("action is invalid"),
+  body("action").isIn(["approve", "reject", "confirm"]).withMessage("action is invalid"),
   body("reason").optional({ values: "falsy" }).isString().isLength({ max: 255 })
 ];
 

@@ -9,7 +9,8 @@ type Tab = "all" | "0" | "3" | "2";
 const TABS: Array<{ key: Tab; label: string }> = [
   { key: "all", label: "全部" },
   { key: "0", label: "申请中" },
-  { key: "3", label: "已通过" },
+  { key: "1", label: "打款中" },
+  { key: "3", label: "已退款" },
   { key: "2", label: "已驳回" }
 ];
 

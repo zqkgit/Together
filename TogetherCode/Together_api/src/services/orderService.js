@@ -341,7 +341,7 @@ async function getOrderDetail(userId, orderId) {
 }
 
 
-const REFUND_STATUS_TEXT = { 0: "申请中", 2: "已驳回", 3: "已通过并退款" };
+const REFUND_STATUS_TEXT = { 0: "申请中", 1: "打款中", 2: "已驳回", 3: "已退款到账" };
 
 function refundStatusText(status) {
   return REFUND_STATUS_TEXT[Number(status)] || "未知";

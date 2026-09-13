@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { Refresh, Download } from "@element-plus/icons-vue";
 import { fmtTime } from "../../../utils/format";
 import { exportCsv } from "../../../utils/exportCsv";
@@ -12,8 +12,9 @@ const refunds = ref<RefundItem[]>([]);
 
 const statusMeta: Record<number, { text: string; type: "warning" | "success" | "danger" }> = {
   0: { text: "待审核", type: "warning" },
+  1: { text: "待打款", type: "warning" },
   2: { text: "已驳回", type: "danger" },
-  3: { text: "已通过", type: "success" }
+  3: { text: "已打款", type: "success" }
 };
 
 function formatFen(value: number): string {
@@ -37,6 +38,30 @@ const reviewType = ref<"approve" | "reject">("approve");
 const reviewId = ref("");
 const reviewReason = ref("");
 const reviewing = ref(false);
+
+// 确认打款：待打款（1）→ 已打款（3），此时才扣减课时并通知家长到账
+const confirming = ref(false);
+async function confirmPaid(row: RefundItem) {
+  try {
+    await ElMessageBox.confirm(
+      `确认该笔 ¥ ${(row.amount / 100).toFixed(2)} 退款已打款？确认后扣减课时并通知家长到账。`,
+      "确认打款",
+      { type: "warning", confirmButtonText: "确认打款", cancelButtonText: "取消" }
+    );
+  } catch {
+    return; // 取消
+  }
+  confirming.value = true;
+  try {
+    await reviewStudioRefund(row.refund_id, { action: "confirm" });
+    ElMessage.success("已确认打款，退款到账");
+    loadData();
+  } catch {
+    // 拦截器已提示
+  } finally {
+    confirming.value = false;
+  }
+}
 
 function openReview(row: RefundItem, type: "approve" | "reject") {
   reviewType.value = type;
@@ -114,7 +139,8 @@ async function exportRefunds() {
           <div class="toolbar-right">
             <el-select v-model="status" placeholder="退款状态" clearable style="width: 130px" @change="loadData">
               <el-option label="待审核" :value="0" />
-              <el-option label="已通过" :value="3" />
+              <el-option label="待打款" :value="1" />
+              <el-option label="已打款" :value="3" />
               <el-option label="已驳回" :value="2" />
             </el-select>
             <el-button :icon="Refresh" @click="loadData">刷新</el-button>
@@ -158,6 +184,10 @@ async function exportRefunds() {
               <el-button text type="success" @click="openReview(row, 'approve')">通过</el-button>
               <el-button text type="danger" @click="openReview(row, 'reject')">驳回</el-button>
             </template>
+            <template v-else-if="row.status === 1">
+              <el-button text type="success" :loading="confirming" @click="confirmPaid(row)">确认打款</el-button>
+              <el-button text type="danger" @click="openReview(row, 'reject')">驳回</el-button>
+            </template>
             <span v-else class="cell-sub">已处理</span>
           </template>
         </el-table-column>
@@ -177,7 +207,7 @@ async function exportRefunds() {
         show-icon
         :title="
           reviewType === 'approve'
-            ? '通过后按已消耗课时折算退款，余额扣减对应课时。'
+            ? '通过后进入待打款，确认打款时才扣减课时并通知家长到账。'
             : '驳回后家长可重新发起退款申请。'
         "
         class="review-alert"
