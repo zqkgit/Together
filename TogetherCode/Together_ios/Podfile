@@ -1,0 +1,23 @@
+# 艺启 iOS 依赖管理（清华 TUNA CocoaPods 镜像源）
+source 'https://mirrors.tuna.tsinghua.edu.cn/git/CocoaPods/Specs.git'
+
+platform :ios, '15.0'
+
+target 'Together_ios' do
+  use_frameworks!
+
+  # 网络
+  pod 'Alamofire', '~> 5.9'
+  # JSON
+  pod 'SwiftyJSON', '~> 5.0'
+  # 图片
+  pod 'Kingfisher', '~> 7.12'
+  # 布局
+  pod 'SnapKit', '~> 5.7'
+  # 刷新
+  pod 'MJRefresh', '~> 3.7'
+  # HUD
+  pod 'MBProgressHUD', '~> 1.2'
+  # 键盘
+  pod 'IQKeyboardManagerSwift', '~> 7.0'
+end

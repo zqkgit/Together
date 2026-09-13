@@ -125,7 +125,7 @@ async function sendCode(phone) {
   }
 
   const user = await getUserByPhone(phone);
-  const code = "123456";
+  const code = "1234";
 
   await AuthVerificationCode.create({
     id: generateId(),
