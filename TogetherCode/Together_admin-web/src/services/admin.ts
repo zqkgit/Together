@@ -542,6 +542,12 @@ export async function fetchWithdrawals(params: { status?: number | ""; page?: nu
   return response.data;
 }
 
+// 提现单导出（全量）
+export async function fetchWithdrawalsExport(params: { status?: number | "" } = {}): Promise<PagedList<WithdrawalItem>> {
+  const response = await request.get("/admin/withdrawals/export", { params });
+  return response.data;
+}
+
 export async function reviewWithdrawal(
   id: string,
   payload: { action: "approve" | "reject" }

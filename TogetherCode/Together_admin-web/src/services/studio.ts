@@ -601,6 +601,12 @@ export async function fetchStudioFinance(params: { start_date?: string; end_date
   return response.data;
 }
 
+// 财务流水导出（全量，不受页面 LIMIT 限制）
+export async function fetchStudioFinanceExport(params: { start_date?: string; end_date?: string } = {}): Promise<{ list: any[]; period?: any }> {
+  const response = await request.get("/studio/finance/export", { params });
+  return response.data;
+}
+
 export interface StudioAccountItem {
   account_id: string;
   account_type: "bank" | "wechat" | "alipay";

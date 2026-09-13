@@ -13,6 +13,7 @@ const messageRoutes = require("./message");
 const parentRoutes = require("./parent");
 const uploadRoutes = require("./upload");
 const profileRoutes = require("./profile");
+const meRoutes = require("./me");
 const interactionRoutes = require("./interaction");
 const { ok, fail } = require("../utils/response");
 const { listAnnouncements, getAnnouncementDetail, getHotKeywords } = require("../services/platformGovernanceService");
@@ -108,6 +109,9 @@ router.use("/upload", uploadRoutes);
 
 // 公开档案 / 主页：用户资料、老师主页、工作室主页（游客可浏览）
 router.use("/profile", profileRoutes);
+
+// 当前用户自身资源：个人资料、认证申请提交/查询
+router.use("/me", meRoutes);
 
 // 互动：课程评价（公开读/登录写）+ 收藏（登录）
 router.use("/", interactionRoutes);

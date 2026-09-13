@@ -136,6 +136,15 @@ async function reviewTeacherApplication(studioId, applicationId, payload, operat
         },
         { transaction }
       );
+      const studio = await StudioProfile.findByPk(studioId);
+      await createNotification({
+        userId: application.user_id,
+        type: "invite",
+        title: "合作申请未通过",
+        content: `你向「${studio?.name || "工作室"}」提交的合作申请未通过：${payload.reason.trim()}`,
+        refType: "studio",
+        refId: studioId
+      });
 
       return {
         data: { id: String(application.id), status: 2, action: "reject" },
@@ -208,6 +217,15 @@ async function reviewTeacherApplication(studioId, applicationId, payload, operat
       },
       { transaction }
     );
+    const studioName = (await StudioProfile.findByPk(studioId))?.name || "工作室";
+    await createNotification({
+      userId: application.user_id,
+      type: "invite",
+      title: "合作申请已通过",
+      content: `你已成功加入「${studioName}」，可以开始排课与教学了。`,
+      refType: "studio",
+      refId: studioId
+    });
 
     return {
       data: {

@@ -23,6 +23,7 @@ async function getStudioFinance(studioId, query = {}) {
   const end = query.end_date ? new Date(`${query.end_date}T23:59:59`) : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
   const where = { studio_id: studioId, status: { [Op.ne]: 0 } };
+  const orderLimit = Number(query.limit) > 0 ? Math.min(Number(query.limit), 20000) : 50;
   const rangeWhere = { ...where, created_at: { [Op.between]: [start, end] } };
 
   const [totalGmv, rangeGmv, totalRefund, rangeRefund, distRows, orderRows] = await Promise.all([
@@ -46,9 +47,9 @@ async function getStudioFinance(studioId, query = {}) {
       `SELECT COALESCE(SUM(r.amount),0) AS total FROM refunds r JOIN orders o ON o.order_id = r.order_id WHERE o.studio_id = ? AND r.status IN (2,3) AND r.reviewed_at BETWEEN ? AND ?`,
       { replacements: [studioId, start, end], type: sequelize.QueryTypes.SELECT }
     ),
-    // 分销支出：返利记录 → 分享链接 → 课程 → 工作室
+    // 分销支出（单位分）：commission_records.amount 为元，*100 转分与 GMV 同口径
     sequelize.query(
-      `SELECT COALESCE(SUM(c.amount),0) AS total FROM commission_records c
+      `SELECT COALESCE(SUM(c.amount),0)*100 AS total FROM commission_records c
          JOIN distribution_links l ON l.link_id = c.link_id
          JOIN courses cu ON cu.course_id = l.course_id
          WHERE cu.studio_id = ? AND c.status = 2`,
@@ -57,7 +58,7 @@ async function getStudioFinance(studioId, query = {}) {
     // 订单明细（区间）
     sequelize.query(
       `SELECT order_id, order_no, total_amount, status, paid_at FROM orders
-         WHERE studio_id = ? AND status <> 0 AND created_at BETWEEN ? AND ? ORDER BY created_at DESC LIMIT 50`,
+         WHERE studio_id = ? AND status <> 0 AND created_at BETWEEN ? AND ? ORDER BY created_at DESC LIMIT ${orderLimit}`,
       { replacements: [studioId, start, end], type: sequelize.QueryTypes.SELECT }
     )
   ]);

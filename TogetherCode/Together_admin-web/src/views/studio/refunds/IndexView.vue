@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
-import { Refresh } from "@element-plus/icons-vue";
+import { Refresh, Download } from "@element-plus/icons-vue";
+import { fmtTime } from "../../../utils/format";
+import { exportCsv } from "../../../utils/exportCsv";
 import { fetchStudioRefunds, reviewStudioRefund, type RefundItem } from "../../../services/studio";
 
 const loading = ref(false);
@@ -65,6 +67,42 @@ async function submitReview() {
 }
 
 onMounted(loadData);
+
+// 导出 CSV（全量，按当前状态筛选）
+const exporting = ref(false);
+async function exportRefunds() {
+  exporting.value = true;
+  try {
+    const res: any = await fetchStudioRefunds({ status: status.value });
+    const list: any[] = Array.isArray(res.list) ? res.list : [];
+    exportCsv("退款单", [
+      { key: "refund_id", label: "退款单号" },
+      { key: "status", label: "状态" },
+      { key: "order", label: "订单号" },
+      { key: "course", label: "课程" },
+      { key: "child", label: "学员" },
+      { key: "parent", label: "家长" },
+      { key: "requested_lessons", label: "申请课时" },
+      { key: "amount", label: "退款金额(分)" },
+      { key: "reason", label: "申请原因" },
+      { key: "created_at", label: "申请时间" },
+      { key: "reviewed_at", label: "审核时间" }
+    ], list.map((r: any) => ({
+      ...r,
+      status: statusMeta[r.status]?.text ?? r.status,
+      order: r.order?.order_no ?? "-",
+      course: r.order?.course?.title ?? "-",
+      child: r.order?.child?.nickname ?? "-",
+      parent: r.order?.user?.nickname ?? "-",
+      created_at: r.created_at ? fmtTime(r.created_at) : "-",
+      reviewed_at: r.reviewed_at ? fmtTime(r.reviewed_at) : "-"
+    })));
+  } catch {
+    // 拦截器已提示
+  } finally {
+    exporting.value = false;
+  }
+}
 </script>
 
 <template>
@@ -80,6 +118,7 @@ onMounted(loadData);
               <el-option label="已驳回" :value="2" />
             </el-select>
             <el-button :icon="Refresh" @click="loadData">刷新</el-button>
+            <el-button type="primary" plain :icon="Download" :loading="exporting" @click="exportRefunds">导出 CSV</el-button>
           </div>
         </div>
       </template>

@@ -13,6 +13,7 @@ const {
   LessonLog
 } = require("../models");
 const { formatOrder, getOrderWithDetails } = require("./orderService");
+const { createNotification } = require("./messageService");
 const { generateId } = require("../utils/id");
 
 function formatStudioRefund(refund) {
@@ -208,6 +209,20 @@ async function reviewStudioRefund(studioId, refundId, payload, operator = {}) {
         transaction
       });
 
+      // 通知家长：退款已驳回
+      const parent = refund.order?.user;
+      if (parent?.user_id) {
+        createNotification({
+          userId: parent.user_id,
+          type: "refund",
+          title: "退款申请已驳回",
+          content: `「${refund.order.course?.title || "课程"}」退款 ¥${(Number(refund.amount) / 100).toFixed(2)} 未通过：${payload.reason || "剩余课时与申请不符"}`
+            .slice(0, 120),
+          refType: "refund",
+          refId: refund.refund_id
+        }).catch(() => {});
+      }
+
       return formatStudioRefund(latest);
     }
 
@@ -294,6 +309,20 @@ async function reviewStudioRefund(studioId, refundId, payload, operator = {}) {
       ],
       transaction
     });
+
+    // 通知家长：退款已通过并退款
+    const parent = refund.order?.user;
+    if (parent?.user_id) {
+      createNotification({
+        userId: parent.user_id,
+        type: "refund",
+        title: "退款已到账",
+        content: `「${refund.order.course?.title || "课程"}」退款 ¥${(Number(refund.amount) / 100).toFixed(2)} 已通过审核并退回余额。`
+          .slice(0, 120),
+        refType: "refund",
+        refId: refund.refund_id
+      }).catch(() => {});
+    }
 
     return formatStudioRefund(latest);
   });

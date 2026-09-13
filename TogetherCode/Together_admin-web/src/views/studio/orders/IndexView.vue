@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { fmtTime } from "../../../utils/format";
+import { exportCsv } from "../../../utils/exportCsv";
 import { onMounted, ref } from "vue";
-import { Refresh } from "@element-plus/icons-vue";
+import { Refresh, Download } from "@element-plus/icons-vue";
 import { fetchStudioOrders, type OrderItem } from "../../../services/studio";
 
 const loading = ref(false);
@@ -39,6 +40,44 @@ function openDetail(row: OrderItem) {
   detailVisible.value = true;
 }
 
+// 导出 CSV（全量，按当前状态筛选）
+const exporting = ref(false);
+async function exportOrders() {
+  exporting.value = true;
+  try {
+    const res: any = await fetchStudioOrders({ status: status.value });
+    const list: any[] = Array.isArray(res.list) ? res.list : [];
+    exportCsv("工作室订单", [
+      { key: "order_no", label: "订单号" },
+      { key: "status", label: "状态" },
+      { key: "child", label: "学员" },
+      { key: "course", label: "课程" },
+      { key: "package", label: "课时包" },
+      { key: "total_lessons", label: "课时数" },
+      { key: "consumed_lessons", label: "已消课" },
+      { key: "remaining_lessons", label: "剩余课时" },
+      { key: "total_amount", label: "订单金额(分)" },
+      { key: "paid_amount", label: "实付金额(分)" },
+      { key: "refund_amount", label: "退款金额(分)" },
+      { key: "pay_channel", label: "支付渠道" },
+      { key: "paid_at", label: "支付时间" },
+      { key: "created_at", label: "下单时间" }
+    ], list.map((o: any) => ({
+      ...o,
+      status: statusMeta[o.status]?.text ?? o.status,
+      child: o.child?.nickname ?? "-",
+      course: o.course?.title ?? "-",
+      package: o.package?.name ?? "-",
+      paid_at: o.paid_at ? fmtTime(o.paid_at) : "-",
+      created_at: o.created_at ? fmtTime(o.created_at) : "-"
+    })));
+  } catch {
+    // 拦截器已提示
+  } finally {
+    exporting.value = false;
+  }
+}
+
 onMounted(loadData);
 </script>
 
@@ -55,6 +94,7 @@ onMounted(loadData);
               <el-option label="已退款" :value="3" />
             </el-select>
             <el-button :icon="Refresh" @click="loadData">刷新</el-button>
+            <el-button type="primary" plain :icon="Download" :loading="exporting" @click="exportOrders">导出 CSV</el-button>
           </div>
         </div>
       </template>

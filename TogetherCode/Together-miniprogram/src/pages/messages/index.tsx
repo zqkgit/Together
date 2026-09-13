@@ -1,23 +1,26 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Taro from "@tarojs/taro";
 import { View, Text } from "@tarojs/components";
 import { getNotifications, markNotificationRead, markAllNotificationsRead, type NotificationItem } from "../../services/message";
+import { connectMessageSocket } from "../../services/push";
 import { useAuthStore } from "../../store/auth";
 import "./index.scss";
+
+function fmtTime(value: string | null | undefined): string {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value).slice(0, 16).replace("T", " ");
+  const bj = new Date(d.getTime() + 8 * 3600 * 1000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${bj.getUTCFullYear()}-${pad(bj.getUTCMonth() + 1)}-${pad(bj.getUTCDate())} ${pad(bj.getUTCHours())}:${pad(bj.getUTCMinutes())}`;
+}
 
 export default function MessagesPage() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!isLoggedIn) {
-      Taro.reLaunch({ url: "/pages/login/index" });
-      return;
-    }
-    load();
-  }, [isLoggedIn]);
+  const stopWsRef = useRef<(() => void) | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -32,24 +35,51 @@ export default function MessagesPage() {
     }
   };
 
+  useEffect(() => {
+    if (!isLoggedIn) {
+      Taro.reLaunch({ url: "/pages/login/index" });
+      return;
+    }
+    load();
+    // WS 实时：收到新通知立即刷新列表与未读数
+    const stop = connectMessageSocket((msg: any) => {
+      if (msg?.event === "notification" || msg?.type === "new_notification" || msg?.data?.notification_id) {
+        load();
+      }
+    });
+    stopWsRef.current = stop || null;
+    return () => {
+      stopWsRef.current?.();
+      stopWsRef.current = null;
+    };
+  }, [isLoggedIn]);
+
   const onItemClick = async (item: NotificationItem) => {
-    if (!item.read) {
+    if (!item.is_read) {
       setUnread((u) => Math.max(0, u - 1));
-      setNotifications((prev) => prev.map((n) => (n.notification_id === item.notification_id ? { ...n, read: true } : n)));
+      setNotifications((prev) => prev.map((n) => (n.notification_id === item.notification_id ? { ...n, is_read: true } : n)));
       markNotificationRead(item.notification_id).catch(() => undefined);
     }
-    // 通知类型跳转：订单/课时/佣金等
-    if (item.type === "order" && item.link) {
-      Taro.navigateTo({ url: `/pages/order-detail/index?id=${item.link}` });
-    } else if (item.type === "post" && item.link) {
-      Taro.navigateTo({ url: `/pages/post-detail/index?id=${item.link}` });
+    // 按引用类型跳转
+    const id = item.ref_id;
+    const map: Record<string, string> = {
+      post: "/pages/post-detail/index?id=",
+      order: "/pages/order-detail/index?id=",
+      refund: "/pages/refund-detail/index?id=",
+      course: "/pages/course-detail/index?id=",
+      announcement: "/pages/announcement-detail/index?id=",
+      withdraw: "/pages/wallet/index"
+    };
+    const prefix = item.ref_type ? map[item.ref_type] : "";
+    if (prefix && id) {
+      Taro.navigateTo({ url: `${prefix}${id}` });
     }
   };
 
   const readAll = async () => {
     if (unread === 0) return;
     setUnread(0);
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     try {
       await markAllNotificationsRead();
     } catch {
@@ -58,7 +88,7 @@ export default function MessagesPage() {
   };
 
   const typeText = (t: string) => {
-    const map: Record<string, string> = { order: "订单", course: "课程", commission: "收益", post: "动态", system: "系统" };
+    const map: Record<string, string> = { order: "订单", course: "课程", commission: "收益", post: "动态", system: "系统", like: "点赞", comment: "评论", refund: "退款", leave: "请假", invite: "合作", withdraw: "提现", cert: "认证" };
     return map[t] || "通知";
   };
 
@@ -76,14 +106,14 @@ export default function MessagesPage() {
       ) : (
         <View className="list">
           {notifications.map((n) => (
-            <View key={n.notification_id} className={`card item ${n.read ? "" : "unread"}`} onClick={() => onItemClick(n)}>
+            <View key={n.notification_id} className={`card item ${n.is_read ? "" : "unread"}`} onClick={() => onItemClick(n)}>
               <View className="item-head">
                 <Text className="item-type">{typeText(n.type)}</Text>
-                {!n.read && <View className="dot" />}
+                {!n.is_read && <View className="dot" />}
               </View>
               <View className="item-title">{n.title}</View>
               <View className="item-content">{n.content}</View>
-              <View className="item-time">{String(n.created_at || "").slice(0, 16)}</View>
+              <View className="item-time">{fmtTime(n.created_at)}</View>
             </View>
           ))}
         </View>

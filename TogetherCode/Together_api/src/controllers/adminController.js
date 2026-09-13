@@ -102,6 +102,16 @@ async function getSettlementsData(_req, res) {
   return ok(res, await getSettlements());
 }
 
+// 结算单导出（全量）
+async function exportSettlementsData(_req, res) {
+  try {
+    const data = await getSettlements();
+    return ok(res, { list: data.list });
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 async function postGenerateSettlements(_req, res) {
   try {
     const result = await generateSettlements();
@@ -200,6 +210,7 @@ module.exports = {
   getReviewDetail,
   putReview,
   getSettlementsData,
+  exportSettlementsData,
   postGenerateSettlements,
   postPayoutSettlement,
   getTeacherApplicationsData,

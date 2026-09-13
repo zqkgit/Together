@@ -62,6 +62,16 @@ async function getFinance(req, res) {
   }
 }
 
+// 导出：区间订单明细（财务流水）
+async function exportFinance(req, res) {
+  try {
+    const data = await getStudioFinance(getStudioId(req), { ...req.query, limit: 20000 });
+    return ok(res, { list: data.orders || [], period: data.period });
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 async function getAccounts(req, res) {
   try {
     const data = await listStudioAccounts(getStudioId(req));
@@ -126,6 +136,7 @@ async function putStaffStatus(req, res) {
 }
 
 module.exports = {
+  exportFinance,
   getTeachers,
   putTeacherReview,
   deleteTeacherBinding,

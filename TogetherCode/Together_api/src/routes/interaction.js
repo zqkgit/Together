@@ -16,7 +16,10 @@ const router = express.Router();
 const reviewValidators = [
   body("rating").isInt({ min: 1, max: 5 }).withMessage("rating must be 1-5"),
   body("content").optional({ values: "falsy" }).isString().isLength({ max: 500 }),
-  body("images").optional({ values: "falsy" }).isArray().isLength({ max: 9 })
+  body("images")
+    .optional({ values: "falsy" })
+    .custom((v) => Array.isArray(v) && v.length <= 9 && v.every((u) => typeof u === "string"))
+    .withMessage("images must be an array of up to 9 image urls")
 ];
 
 const favoriteValidators = [

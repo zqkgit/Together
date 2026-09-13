@@ -12,23 +12,41 @@ export default function MinePage() {
   const [unreadCount, setUnreadCount] = useState(0);
   const cleanupRef = useRef<(() => void) | null>(null);
 
-  // 消息推送：登录后建立站内信 WS（未配置 WS_URL 时退回轮询），更新未读角标
+  // 消息推送：WS 实时优先 + 轮询兜底（WS connected 后停轮询），更新未读角标
   useEffect(() => {
     if (!isLoggedIn) return;
+    let pollStop: (() => void) | null = null;
+    const stopPoll = () => {
+      pollStop?.();
+      pollStop = null;
+    };
+    const startPoll = () => {
+      if (pollStop) return;
+      pollStop = startNotificationPolling((list) => {
+        const unread = list.filter((n: any) => !n.is_read).length;
+        setUnreadCount(unread);
+      });
+    };
+
+    // 先轮询兜底，WS connected 后停掉
+    startPoll();
     const stop = connectMessageSocket((msg) => {
+      if (msg?.event === "connected") {
+        stopPoll();
+        return;
+      }
+      if (msg?.event === "ws_unavailable") {
+        startPoll();
+        return;
+      }
       if (msg?.unread_total !== undefined) setUnreadCount(Number(msg.unread_total));
       if (msg?.type === "new_notification") setUnreadCount((c) => c + 1);
     });
-    if (!stop) {
-      const pollStop = startNotificationPolling((list) => {
-        const unread = list.filter((n: any) => !n.read).length;
-        setUnreadCount(unread);
-      });
-      cleanupRef.current = pollStop;
-    } else {
-      cleanupRef.current = stop;
-    }
-    return () => cleanupRef.current?.();
+
+    return () => {
+      stop();
+      stopPoll();
+    };
   }, [isLoggedIn]);
 
   const handleLogout = () => {

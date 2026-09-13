@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Refresh } from "@element-plus/icons-vue";
+import { Refresh, Download } from "@element-plus/icons-vue";
+import { exportCsv } from "../../utils/exportCsv";
 import {
   fetchSettlements,
   generateSettlements,
@@ -127,6 +128,32 @@ async function handlePayout(row: SettlementItem) {
   }
 }
 
+// 导出 CSV（结算单全量）
+const exporting = ref(false);
+async function exportSettlements() {
+  exporting.value = true;
+  try {
+    const rows: any[] = settlements.value.list || [];
+    exportCsv("月结算单", [
+      { key: "id", label: "结算单号" },
+      { key: "studio", label: "工作室" },
+      { key: "period", label: "结算周期" },
+      { key: "income", label: "营收" },
+      { key: "refund", label: "退款" },
+      { key: "distribution", label: "分销支出" },
+      { key: "payable", label: "应结金额" },
+      { key: "status", label: "状态" }
+    ], rows.map((r: any) => ({
+      ...r,
+      status: statusMeta[r.status]?.text ?? r.status
+    })));
+  } catch {
+    // 拦截器统一提示
+  } finally {
+    exporting.value = false;
+  }
+}
+
 onMounted(loadData);
 </script>
 
@@ -148,6 +175,9 @@ onMounted(loadData);
             <el-button :icon="Refresh" @click="loadData">刷新</el-button>
             <el-button type="primary" plain :loading="generating" @click="handleGenerate">
               生成结算单
+            </el-button>
+            <el-button type="primary" plain :icon="Download" :loading="exporting" @click="exportSettlements">
+              导出 CSV
             </el-button>
           </div>
         </div>

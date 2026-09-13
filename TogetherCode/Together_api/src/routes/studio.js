@@ -17,6 +17,7 @@ const {
   putTeacherReview,
   deleteTeacherBinding,
   getFinance,
+  exportFinance,
   getAccounts,
   postAccount,
   getAudit,
@@ -35,6 +36,7 @@ router.use(requireBackofficeAuth("studio"));
 router.get("/overview", getStudioOverviewData);
 router.get("/reports", getStudioReportsData);
 router.get("/finance", getFinance);
+router.get("/finance/export", exportFinance);
 router.get("/accounts", getAccounts);
 router.post("/accounts", postAccount);
 router.get("/audit", getAudit);

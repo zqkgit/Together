@@ -10,6 +10,9 @@ const {
   markTeacherPostStudentsValidators
 } = require("../validators/teacherValidator");
 const {
+  postStudioCooperation
+} = require("../controllers/applicationController");
+const {
   getTeacherClasses,
   getTeacherStudents,
   getTeacherTimetable,
@@ -37,5 +40,6 @@ router.get("/leaves", listTeacherLeavesValidators, validateRequest, getTeacherLe
 router.put("/leaves/:id", handleTeacherLeaveValidators, validateRequest, putTeacherLeave);
 router.post("/posts", createTeacherPostValidators, validateRequest, postTeacherPost);
 router.post("/posts/:id/students", markTeacherPostStudentsValidators, validateRequest, postTeacherPostStudents);
+router.post("/apply-studio", postStudioCooperation);
 
 module.exports = router;

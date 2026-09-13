@@ -10,6 +10,7 @@ const {
 } = require("../models");
 const { sequelize } = require("../models");
 const { generateId } = require("../utils/id");
+const { createNotification } = require("./messageService");
 const { formatFen } = require("../utils/amount");
 
 async function getDashboardOverview() {
@@ -360,6 +361,14 @@ async function reviewStudioApplication(reviewId, payload, operator = {}) {
         },
         { transaction }
       );
+      await createNotification({
+        userId: application.user_id,
+        type: "cert",
+        title: "工作室认证已通过",
+        content: `恭喜，「${application.name || "你的工作室"}」认证已通过，现在可以开展课程与招生了。`,
+        refType: "cert",
+        refId: application.id
+      });
     } else {
       await application.update(
         {
@@ -369,6 +378,14 @@ async function reviewStudioApplication(reviewId, payload, operator = {}) {
         },
         { transaction }
       );
+      await createNotification({
+        userId: application.user_id,
+        type: "cert",
+        title: "工作室认证未通过",
+        content: `「${application.name || "你的工作室"}」认证申请未通过：${payload.reason || "资料不完整"}`,
+        refType: "cert",
+        refId: application.id
+      });
     }
 
     const detail = await getStudioReviewDetail(application.id);
@@ -417,7 +434,9 @@ async function getSettlements() {
       period: `${item.period_start} ~ ${item.period_end}`,
       income: formatFen(item.income),
       refund: formatFen(item.refund),
-      payable: formatFen(item.payable_amount)
+      distribution: formatFen(item.distribution),
+      payable: formatFen(item.payable_amount),
+      status: Number(item.status)
     }))
   };
 }

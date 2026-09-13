@@ -244,6 +244,15 @@ async function getWithdrawalsList(req, res) {
   }
 }
 
+// 提现单导出（全量，按筛选）
+async function exportWithdrawals(req, res) {
+  try {
+    return ok(res, await listWithdrawals({ ...req.query, page: 1, page_size: 0 }));
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 // 提现审核：通过 / 驳回
 async function putWithdrawalReview(req, res) {
   try {
@@ -267,6 +276,7 @@ async function putWithdrawalReview(req, res) {
 }
 
 module.exports = {
+  exportWithdrawals,
   getReportsList,
   putReportHandle,
   putPostModerate,

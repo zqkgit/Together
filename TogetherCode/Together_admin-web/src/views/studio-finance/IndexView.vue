@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { timeFormatter } from "../../utils/format";
+import { exportCsv } from "../../utils/exportCsv";
 import { onMounted, ref } from "vue";
-import { Refresh } from "@element-plus/icons-vue";
-import { fetchStudioFinance, type StudioFinanceData } from "../../services/studio";
+import { Refresh, Download } from "@element-plus/icons-vue";
+import { fetchStudioFinance, fetchStudioFinanceExport, type StudioFinanceData } from "../../services/studio";
 
 const loading = ref(false);
 const data = ref<StudioFinanceData | null>(null);
@@ -41,6 +42,34 @@ function onReset() {
 }
 
 onMounted(loadData);
+
+// 导出 CSV：区间订单明细（财务流水）
+const exporting = ref(false);
+async function exportFinance() {
+  exporting.value = true;
+  try {
+    const res: any = await fetchStudioFinanceExport({
+      start_date: startDate.value || undefined,
+      end_date: endDate.value || undefined
+    });
+    const list: any[] = Array.isArray(res.list) ? res.list : [];
+    exportCsv("财务流水", [
+      { key: "order_id", label: "订单ID" },
+      { key: "order_no", label: "订单号" },
+      { key: "total_amount", label: "订单金额(分)" },
+      { key: "status", label: "状态" },
+      { key: "paid_at", label: "支付时间" }
+    ], list.map((o: any) => ({
+      ...o,
+      status: statusMeta[o.status]?.text ?? o.status,
+      paid_at: o.paid_at ? timeFormatter(null, null, o.paid_at) : "-"
+    })));
+  } catch {
+    // 拦截器统一提示
+  } finally {
+    exporting.value = false;
+  }
+}
 </script>
 
 <template>
@@ -67,6 +96,7 @@ onMounted(loadData);
             <el-button type="primary" @click="loadData">查询</el-button>
           </div>
           <el-button :icon="Refresh" circle @click="onReset" />
+          <el-button type="primary" plain :icon="Download" :loading="exporting" @click="exportFinance">导出流水</el-button>
         </div>
       </template>
 

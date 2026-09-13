@@ -4,13 +4,14 @@ const {
   studioListRefundValidators,
   studioReviewRefundValidators
 } = require("../validators/orderValidator");
-const { getStudioRefunds, putStudioRefund } = require("../controllers/studioOrderController");
+const { getStudioRefunds, putStudioRefund, exportStudioRefunds } = require("../controllers/studioOrderController");
 
 const router = express.Router();
 
 // 角色归属：工作室后台（Web）。
 // 已实现接口：退款列表、退款审核。
 router.get("/", studioListRefundValidators, validateRequest, getStudioRefunds);
+router.get("/export", studioListRefundValidators, validateRequest, exportStudioRefunds);
 router.put("/:id", studioReviewRefundValidators, validateRequest, putStudioRefund);
 
 module.exports = router;

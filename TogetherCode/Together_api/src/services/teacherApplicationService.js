@@ -1,5 +1,6 @@
 const { sequelize, TeacherApplication, TeacherProfile, UserRole, User } = require("../models");
 const { generateId } = require("../utils/id");
+const { createNotification } = require("./messageService");
 
 const TEACHER_ROLE = 2;
 
@@ -82,6 +83,14 @@ async function reviewTeacherApplication(applicationId, payload, operator = {}) {
         },
         { transaction }
       );
+      await createNotification({
+        userId: application.user_id,
+        type: "cert",
+        title: "老师认证未通过",
+        content: `你的老师认证申请未通过：${payload.reason.trim()}`,
+        refType: "cert",
+        refId: application.id
+      });
 
       return {
         data: { id: String(application.id), status: 2, action: "reject" },
@@ -151,6 +160,14 @@ async function reviewTeacherApplication(applicationId, payload, operator = {}) {
       },
       { transaction }
     );
+    await createNotification({
+      userId: application.user_id,
+      type: "cert",
+      title: "老师认证已通过",
+      content: `恭喜，你的老师认证已通过${application.real_name ? `（${application.real_name}）` : ""}，现在可以向工作室申请合作了。`,
+      refType: "cert",
+      refId: application.id
+    });
 
     return {
       data: {

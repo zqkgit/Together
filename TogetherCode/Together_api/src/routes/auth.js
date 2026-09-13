@@ -6,7 +6,10 @@ const {
   postPasswordLogin,
   postRefresh,
   postLogout,
-  getMe
+  getMe,
+  postRoleApply,
+  getRoleApplyStatusHandler,
+  postRoleSwitch
 } = require("../controllers/authController");
 const { requireAuth } = require("../middlewares/auth");
 
@@ -21,5 +24,10 @@ router.post("/login-password", postPasswordLogin);
 router.post("/refresh", postRefresh);
 router.post("/logout", postLogout);
 router.get("/me", requireAuth, getMe);
+
+// 角色认证申请：提交（teacher / studio 平台认证）、查询状态、切换角色（重发 token）
+router.post("/role/apply", requireAuth, postRoleApply);
+router.get("/role/apply/:role", requireAuth, getRoleApplyStatusHandler);
+router.post("/role/switch", requireAuth, postRoleSwitch);
 
 module.exports = router;

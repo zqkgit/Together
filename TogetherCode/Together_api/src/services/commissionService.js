@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const { sequelize, DistributionLink, CommissionRecord, Wallet, Withdrawal, Order, Course, Post, StudioProfile, User } = require("../models");
 const { generateId } = require("../utils/id");
+const { createNotification } = require("./messageService");
 
 const DISTRIBUTE_MIN = 5;
 const DISTRIBUTE_MAX = 15;
@@ -156,6 +157,18 @@ async function settleCommissionForOrder(order, { transaction, settleImmediately 
         { transaction }
       );
     }
+
+    // 通知分享人：返利到账
+    const course = await Course.findByPk(order.course_id, { transaction });
+    createNotification({
+      userId: link.parent_user_id,
+      type: "commission",
+      title: "分享返利到账",
+      content: `你分享的「${course?.title || "课程"}」有好友完成报名，返利 ¥${Number(amount).toFixed(2)} 已到账钱包。`
+        .slice(0, 120),
+      refType: "course",
+      refId: order.course_id
+    }).catch(() => {});
   }
 
   return commission;
@@ -191,7 +204,8 @@ async function getCommissionSummary(userId) {
         pending_commission: Number(pending || 0),
         total_withdrawn: Number(totalWithdrawn || 0)
       },
-      withdrawable: Number((Number(wallet?.balance || 0) - Number(wallet?.frozen || 0)).toFixed(2))
+      // frozen 已从 balance 分离，可提现即 balance
+      withdrawable: Number(wallet?.balance || 0)
     }
   };
 }
@@ -251,14 +265,15 @@ async function requestWithdraw(userId, payload = {}) {
   }
 
   const wallet = await getOrCreateWallet(userId);
-  const available = Number(wallet.balance || 0) - Number(wallet.frozen || 0);
+  // frozen 独立于 balance，可提现即 balance
+  const available = Number(wallet.balance || 0);
   if (amount > available) {
     return { error: { status: 400, code: 40073, message: "可提现余额不足" } };
   }
 
   return sequelize.transaction(async (transaction) => {
     const locked = await Wallet.findByPk(userId, { transaction, lock: transaction.LOCK.UPDATE });
-    const lockedAvailable = Number(locked?.balance || 0) - Number(locked?.frozen || 0);
+    const lockedAvailable = Number(locked?.balance || 0);
     if (amount > lockedAvailable) {
       return { error: { status: 400, code: 40073, message: "可提现余额不足" } };
     }

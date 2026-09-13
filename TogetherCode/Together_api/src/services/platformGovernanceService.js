@@ -2,6 +2,7 @@ const { Op } = require("sequelize");
 const bcrypt = require("bcryptjs");
 const { sequelize, Report, AuditLog, PlatformConfig, Announcement, AdminAccount, Post, Settlement, User, Withdrawal, Wallet } = require("../models");
 const { generateId } = require("../utils/id");
+const { createNotification } = require("./messageService");
 
 /**
  * 平台侧治理补缺：
@@ -21,7 +22,7 @@ const REPORT_STATUS = { 0: "待处理", 1: "已处理", 2: "已驳回" };
 
 async function listReports(query = {}) {
   const page = Math.max(1, Number(query.page) || 1);
-  const pageSize = Math.min(100, Math.max(1, Number(query.page_size) || 20));
+  const pageSize = Number(query.page_size) === 0 ? 100000 : Math.min(100, Math.max(1, Number(query.page_size) || 20));
   const where = {};
   if (query.status !== undefined && query.status !== "") where.status = Number(query.status);
   if (query.target_type) where.target_type = query.target_type;
@@ -153,7 +154,7 @@ async function getHotKeywords() {
 
 async function listAnnouncements(query = {}) {
   const page = Math.max(1, Number(query.page) || 1);
-  const pageSize = Math.min(100, Math.max(1, Number(query.page_size) || 20));
+  const pageSize = Number(query.page_size) === 0 ? 100000 : Math.min(100, Math.max(1, Number(query.page_size) || 20));
   const where = {};
   if (query.status !== undefined && query.status !== "") where.status = Number(query.status);
   if (query.type) where.type = Number(query.type);
@@ -258,7 +259,7 @@ async function createPlatformStaff(admin, payload = {}) {
 
 async function listPlatformAudit(query = {}) {
   const page = Math.max(1, Number(query.page) || 1);
-  const pageSize = Math.min(100, Math.max(1, Number(query.page_size) || 20));
+  const pageSize = Number(query.page_size) === 0 ? 100000 : Math.min(100, Math.max(1, Number(query.page_size) || 20));
   const where = { role: { [Op.in]: ["platform_super", "platform_ops"] } };
   if (query.action) where.action = query.action;
   if (query.actor_name) where.actor_name = { [Op.like]: `%${query.actor_name}%` };
@@ -293,7 +294,7 @@ async function listPlatformAudit(query = {}) {
  */
 async function listPosts(query = {}) {
   const page = Math.max(1, Number(query.page) || 1);
-  const pageSize = Math.min(100, Math.max(1, Number(query.page_size) || 20));
+  const pageSize = Number(query.page_size) === 0 ? 100000 : Math.min(100, Math.max(1, Number(query.page_size) || 20));
   const where = {};
   if (query.status !== undefined && query.status !== "") where.status = Number(query.status);
   if (query.q) where.content = { [Op.like]: `%${query.q}%` };
@@ -335,7 +336,7 @@ async function listPosts(query = {}) {
  */
 async function listPlatformStaff(query = {}) {
   const page = Math.max(1, Number(query.page) || 1);
-  const pageSize = Math.min(100, Math.max(1, Number(query.page_size) || 20));
+  const pageSize = Number(query.page_size) === 0 ? 100000 : Math.min(100, Math.max(1, Number(query.page_size) || 20));
   const where = { role: { [Op.in]: ["platform_super", "platform_ops"] } };
   if (query.q) where.username = { [Op.like]: `%${query.q}%` };
 
@@ -399,7 +400,7 @@ async function updateAnnouncementStatus(id, payload = {}) {
  */
 async function listWithdrawals(query = {}) {
   const page = Math.max(1, Number(query.page) || 1);
-  const pageSize = Math.min(100, Math.max(1, Number(query.page_size) || 20));
+  const pageSize = Number(query.page_size) === 0 ? 100000 : Math.min(100, Math.max(1, Number(query.page_size) || 20));
   const where = {};
   if (query.status !== undefined && query.status !== "") where.status = Number(query.status);
 
@@ -473,6 +474,14 @@ async function reviewWithdrawal(withdrawId, payload = {}) {
           { transaction }
         );
       }
+      await createNotification({
+        userId: row.user_id,
+        type: "withdraw",
+        title: "提现已到账",
+        content: `你申请的 ¥${Number(amount).toFixed(2)} 提现已打款到账。`,
+        refType: "withdraw",
+        refId: row.withdraw_id
+      });
     } else {
       await Withdrawal.update(
         { status: 4, reviewed_at: new Date() },
@@ -487,6 +496,14 @@ async function reviewWithdrawal(withdrawId, payload = {}) {
           { transaction }
         );
       }
+      await createNotification({
+        userId: row.user_id,
+        type: "withdraw",
+        title: "提现申请已驳回",
+        content: `你申请的 ¥${Number(amount).toFixed(2)} 提现未通过，金额已退回钱包。`,
+        refType: "withdraw",
+        refId: row.withdraw_id
+      });
     }
   });
 

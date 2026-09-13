@@ -3,6 +3,7 @@ import Taro, { useRouter, useShareAppMessage } from "@tarojs/taro";
 import { View, Text, Image, Button, Input, Textarea } from "@tarojs/components";
 import { getCourseDetail, fenToYuan, type CoursePackage } from "../../services/course";
 import { createDistributionLink } from "../../services/distribution";
+import { uploadImages } from "../../services/upload";
 import { getDistFromParams, buildCourseSharePath, getShareUid } from "../../utils/share";
 import { getCourseReviews, postCourseReview, getFavoriteIds, addFavorite, removeFavorite, type CourseReviews } from "../../services/interaction";
 import { useAuthStore } from "../../store/auth";
@@ -26,6 +27,8 @@ export default function CourseDetailPage() {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewContent, setReviewContent] = useState("");
+  const [reviewImages, setReviewImages] = useState<string[]>([]);
+  const [reviewUploading, setReviewUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -99,16 +102,50 @@ export default function CourseDetailPage() {
     }
     setSubmitting(true);
     try {
-      await postCourseReview(id, { rating: reviewRating, content: reviewContent.trim() });
+      await postCourseReview(id, {
+        rating: reviewRating,
+        content: reviewContent.trim(),
+        images: reviewImages.length ? reviewImages : undefined
+      });
       Taro.showToast({ title: "评价成功", icon: "success" });
       setShowReviewForm(false);
       setReviewContent("");
       setReviewRating(5);
+      setReviewImages([]);
       loadReviews(1);
     } catch {
       // 拦截器已提示
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // 选择并上传评价图片（最多 3 张）
+  const chooseReviewImages = async () => {
+    if (reviewUploading) return;
+    const remain = 3 - reviewImages.length;
+    if (remain <= 0) {
+      Taro.showToast({ title: "最多 3 张图片", icon: "none" });
+      return;
+    }
+    try {
+      const res = await Taro.chooseImage({
+        count: remain,
+        sizeType: ["compressed"],
+        sourceType: ["album", "camera"]
+      });
+      const paths = res.tempFilePaths || [];
+      if (!paths.length) return;
+      setReviewUploading(true);
+      Taro.showLoading({ title: "上传中..." });
+      const urls = await uploadImages(paths, "work");
+      setReviewImages((prev) => [...prev, ...urls].slice(0, 3));
+    } catch (e) {
+      const message = (e as Error).message || "";
+      if (message) Taro.showToast({ title: message, icon: "none" });
+    } finally {
+      Taro.hideLoading();
+      setReviewUploading(false);
     }
   };
 
@@ -259,6 +296,19 @@ export default function CourseDetailPage() {
                       <Text className="review-time">{String(r.created_at || "").slice(0, 10)}</Text>
                     </View>
                     {r.content && <View className="review-content">{r.content}</View>}
+                    {Array.isArray(r.images) && r.images.length > 0 && (
+                      <View className="review-images">
+                        {r.images.map((img, i) => (
+                          <Image
+                            key={img + i}
+                            className="review-img"
+                            src={img}
+                            mode="aspectFill"
+                            onClick={() => Taro.previewImage({ urls: r.images, current: img })}
+                          />
+                        ))}
+                      </View>
+                    )}
                   </View>
                 ))}
                 {reviews.total > reviews.list.length && (
@@ -302,7 +352,25 @@ export default function CourseDetailPage() {
                   onInput={(e) => setReviewContent(e.detail.value)}
                   maxlength={500}
                 />
-                <Button className="btn-primary review-submit" disabled={submitting} onClick={submitReview}>
+                <View className="review-img-picker">
+                  {reviewImages.map((img, i) => (
+                    <View key={img + i} className="review-picked">
+                      <Image className="review-picked-img" src={img} mode="aspectFill" />
+                      <Text
+                        className="review-picked-del"
+                        onClick={() => setReviewImages((prev) => prev.filter((_, idx) => idx !== i))}
+                      >
+                        ×
+                      </Text>
+                    </View>
+                  ))}
+                  {reviewImages.length < 3 && (
+                    <View className="review-add" onClick={chooseReviewImages}>
+                      {reviewUploading ? "上传中..." : "+"}
+                    </View>
+                  )}
+                </View>
+                <Button className="btn-primary review-submit" disabled={submitting || reviewUploading} onClick={submitReview}>
                   提交评价
                 </Button>
               </View>

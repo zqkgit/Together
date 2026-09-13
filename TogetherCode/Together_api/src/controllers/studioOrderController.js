@@ -52,8 +52,30 @@ async function putStudioRefund(req, res) {
 }
 
 module.exports = {
+  exportStudioOrders,
+  exportStudioRefunds,
   getStudioOrders,
   getStudioOrder,
   getStudioRefunds,
   putStudioRefund
 };
+
+// 导出：订单全量（复用列表查询，去分页包装）
+async function exportStudioOrders(req, res) {
+  try {
+    const data = await listStudioOrders(req.admin.studioId, req.query);
+    return ok(res, { list: data.list });
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+// 导出：退款单全量
+async function exportStudioRefunds(req, res) {
+  try {
+    const data = await listStudioRefunds(req.admin.studioId, req.query);
+    return ok(res, { list: data.list });
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}

@@ -2,8 +2,9 @@
 import { timeFormatter, fmtTime } from "../../utils/format";
 import { onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Refresh } from "@element-plus/icons-vue";
-import { fetchWithdrawals, reviewWithdrawal, type WithdrawalItem } from "../../services/admin";
+import { Refresh, Download } from "@element-plus/icons-vue";
+import { exportCsv } from "../../utils/exportCsv";
+import { fetchWithdrawals, fetchWithdrawalsExport, reviewWithdrawal, type WithdrawalItem } from "../../services/admin";
 
 const loading = ref(false);
 const list = ref<WithdrawalItem[]>([]);
@@ -72,6 +73,38 @@ async function onReview(row: WithdrawalItem, action: "approve" | "reject") {
   }
 }
 
+// 导出 CSV（全量，按当前筛选）
+const exporting = ref(false);
+async function exportWithdrawals() {
+  exporting.value = true;
+  try {
+    const res: any = await fetchWithdrawalsExport({ status: filterStatus.value || undefined });
+    const rows: any[] = Array.isArray(res.list) ? res.list : [];
+    exportCsv("提现单", [
+      { key: "withdraw_id", label: "提现单号" },
+      { key: "user", label: "申请人" },
+      { key: "phone", label: "手机号" },
+      { key: "amount", label: "提现金额(元)" },
+      { key: "method", label: "方式" },
+      { key: "account", label: "收款账号" },
+      { key: "status_text", label: "状态" },
+      { key: "created_at", label: "申请时间" },
+      { key: "reviewed_at", label: "审核时间" }
+    ], rows.map((r: any) => ({
+      ...r,
+      user: r.user?.nickname ?? "-",
+      phone: r.user?.phone ?? "-",
+      method: methodMeta[r.method]?.text ?? r.method,
+      created_at: r.created_at ? timeFormatter(null, null, r.created_at) : "-",
+      reviewed_at: r.reviewed_at ? timeFormatter(null, null, r.reviewed_at) : "-"
+    })));
+  } catch {
+    // 拦截器统一提示
+  } finally {
+    exporting.value = false;
+  }
+}
+
 onMounted(loadData);
 </script>
 
@@ -91,6 +124,7 @@ onMounted(loadData);
           </div>
           <div>
             <el-button :icon="Refresh" circle @click="onReset" />
+            <el-button type="primary" plain :icon="Download" :loading="exporting" @click="exportWithdrawals">导出 CSV</el-button>
           </div>
         </div>
       </template>

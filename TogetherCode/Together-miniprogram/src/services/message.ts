@@ -5,14 +5,21 @@ export interface NotificationItem {
   type: string;
   title: string;
   content: string;
-  read: boolean;
+  is_read: boolean;
+  ref_type?: string | null;
+  ref_id?: string | null;
   created_at: string;
 }
 
-export function getNotifications(params: { page?: number; page_size?: number } = {}): Promise<{
+export interface NotificationPage {
   total: number;
+  page: number;
+  size: number;
+  unread_total: number;
   list: NotificationItem[];
-}> {
+}
+
+export function getNotifications(params: { page?: number; page_size?: number } = {}): Promise<NotificationPage> {
   const q = `page=${params.page || 1}&page_size=${params.page_size || 20}`;
   return request({ url: `/messages/notifications?${q}`, method: "GET" });
 }
