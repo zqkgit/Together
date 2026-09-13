@@ -14,6 +14,7 @@ const {
   PostStudent,
   LessonLog
 } = require("../models");
+const { createNotification } = require("./messageService");
 const { applyLessonConsumption } = require("./studentService");
 const { reviewLeaveRequest } = require("./leaveService");
 
@@ -730,6 +731,29 @@ async function createTeacherPost(userId, payload) {
     );
 
     const students = await consumeStudentsForPost(post, teacher, payload, transaction);
+
+    // 闭环：老师发帖标记并消课 → 通知被标记学生的家长（成长记录）
+    if (students.length) {
+      const children = await Child.findAll({
+        where: { child_id: { [Op.in]: students.map((s) => s.child_id) } },
+        attributes: ["child_id", "nickname", "parent_user_id"],
+        transaction
+      });
+      const parentSeen = new Set();
+      for (const c of children) {
+        if (!c.parent_user_id || parentSeen.has(String(c.parent_user_id))) continue;
+        parentSeen.add(String(c.parent_user_id));
+        createNotification({
+          userId: c.parent_user_id,
+          type: "growth",
+          title: "孩子的课堂动态",
+          content: `老师分享了${c.nickname || "孩子"}的课堂动态，点击查看`,
+          refType: "post",
+          refId: post.post_id
+        }).catch(() => {});
+      }
+    }
+
     return normalizePost(post, students);
   });
 }
@@ -751,6 +775,29 @@ async function markTeacherPostStudents(userId, postId, payload) {
     }
 
     const students = await consumeStudentsForPost(post, teacher, payload, transaction);
+
+    // 闭环：老师发帖标记并消课 → 通知被标记学生的家长（成长记录）
+    if (students.length) {
+      const children = await Child.findAll({
+        where: { child_id: { [Op.in]: students.map((s) => s.child_id) } },
+        attributes: ["child_id", "nickname", "parent_user_id"],
+        transaction
+      });
+      const parentSeen = new Set();
+      for (const c of children) {
+        if (!c.parent_user_id || parentSeen.has(String(c.parent_user_id))) continue;
+        parentSeen.add(String(c.parent_user_id));
+        createNotification({
+          userId: c.parent_user_id,
+          type: "growth",
+          title: "孩子的课堂动态",
+          content: `老师分享了${c.nickname || "孩子"}的课堂动态，点击查看`,
+          refType: "post",
+          refId: post.post_id
+        }).catch(() => {});
+      }
+    }
+
     return normalizePost(post, students);
   });
 }

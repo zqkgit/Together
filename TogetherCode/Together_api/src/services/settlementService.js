@@ -8,6 +8,7 @@ const {
   Refund,
   Course
 } = require("../models");
+const { createNotification } = require("./messageService");
 const { generateId } = require("../utils/id");
 const { formatFen } = require("../utils/amount");
 
@@ -207,6 +208,21 @@ async function payoutSettlement(id, operator = {}) {
       },
       { transaction }
     );
+
+    // 闭环：结算打款 → 通知工作室主
+    if (row.studio_id) {
+      const studio = await StudioProfile.findByPk(row.studio_id, { transaction });
+      if (studio?.user_id) {
+        createNotification({
+          userId: studio.user_id,
+          type: "system",
+          title: "结算款已到账",
+          content: `你的工作室结算单（${row.period_start ? row.period_start.slice(0, 7) : ""}）¥${(Number(row.income || 0) / 100).toFixed(2)} 已打款到账。`,
+          refType: null,
+          refId: null
+        }).catch(() => {});
+      }
+    }
 
     const latest = await Settlement.findByPk(id, {
       include: [{ model: StudioProfile, as: "studio", attributes: ["name"] }],

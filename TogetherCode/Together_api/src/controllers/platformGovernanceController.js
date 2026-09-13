@@ -1,5 +1,6 @@
 const { ok, fail } = require("../utils/response");
 const {
+  createReport,
   listReports,
   handleReport,
   moderatePost,
@@ -18,6 +19,19 @@ const {
   reviewWithdrawal
 } = require("../services/platformGovernanceService");
 const { recordAudit } = require("../utils/audit");
+
+// 举报提交（App 端）
+async function postReport(req, res) {
+  try {
+    const result = await createReport(req.user.userId, req.body);
+    if (result?.error) {
+      return fail(res, result.error.status || 400, result.error.code || 40000, result.error.message);
+    }
+    return ok(res, result.data, result.message);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
 
 // 举报处置
 async function getReportsList(req, res) {
@@ -277,6 +291,7 @@ async function putWithdrawalReview(req, res) {
 
 module.exports = {
   exportWithdrawals,
+  postReport,
   getReportsList,
   putReportHandle,
   putPostModerate,

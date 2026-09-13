@@ -20,6 +20,45 @@ const { createNotification } = require("./messageService");
 
 const REPORT_STATUS = { 0: "待处理", 1: "已处理", 2: "已驳回" };
 
+
+/**
+ * 家长/老师端提交举报（App 端入口）。
+ * target_type: post / comment / teacher / studio；reason 使用固定枚举。
+ */
+const REPORT_REASONS = ["广告", "辱骂攻击", "色情低俗", "诈骗引流", "违法违规", "其他"];
+
+async function createReport(userId, payload = {}) {
+  const targetType = String(payload.target_type || "");
+  const reason = String(payload.reason || "");
+  const targetId = String(payload.target_id || "");
+
+  if (!["post", "comment", "teacher", "studio"].includes(targetType)) {
+    return { error: { status: 400, code: 40001, message: "举报对象类型不合法" } };
+  }
+  if (!REPORT_REASONS.includes(reason)) {
+    return { error: { status: 400, code: 40001, message: "请选择举报原因" } };
+  }
+  if (!targetId) {
+    return { error: { status: 400, code: 40001, message: "缺少举报对象" } };
+  }
+
+  const report = await Report.create({
+    reporter_id: userId,
+    target_type: targetType,
+    target_id: targetId,
+    reason,
+    detail: String(payload.detail || "").slice(0, 500) || null,
+    images: Array.isArray(payload.images) ? payload.images.filter((u) => typeof u === "string").slice(0, 9) : null,
+    status: 0
+  });
+
+  return {
+    data: { report_id: String(report.report_id), status: 0 },
+    message: "举报已提交，平台将在 1-3 个工作日内处理"
+  };
+}
+
+
 async function listReports(query = {}) {
   const page = Math.max(1, Number(query.page) || 1);
   const pageSize = Number(query.page_size) === 0 ? 100000 : Math.min(100, Math.max(1, Number(query.page_size) || 20));
@@ -75,6 +114,22 @@ async function handleReport(reportId, admin, payload = {}) {
     handle_note: payload.handle_note ? String(payload.handle_note).slice(0, 255) : null,
     handled_at: new Date()
   });
+
+  // 闭环：处置结果 → 通知举报人
+  if (report.reporter_id) {
+    createNotification({
+      userId: report.reporter_id,
+      type: "system",
+      title: status === 1 ? "举报处理结果" : "举报已驳回",
+      content:
+        status === 1
+          ? `你举报的内容（${report.target_type === "post" ? "动态" : report.target_type}）经核实违规，已处理。`
+          : `你举报的内容（${report.target_type === "post" ? "动态" : report.target_type}）经核实不违规，本次举报未成立。`,
+      refType: null,
+      refId: null
+    }).catch(() => {});
+  }
+
   return { data: { report_id: String(report.report_id), status }, message: status === 1 ? "举报已处理" : "举报已驳回" };
 }
 
@@ -518,6 +573,7 @@ async function reviewWithdrawal(withdrawId, payload = {}) {
 }
 
 module.exports = {
+  createReport,
   listReports,
   handleReport,
   moderatePost,

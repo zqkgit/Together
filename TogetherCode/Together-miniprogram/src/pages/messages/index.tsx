@@ -88,7 +88,7 @@ export default function MessagesPage() {
   };
 
   const typeText = (t: string) => {
-    const map: Record<string, string> = { order: "订单", course: "课程", commission: "收益", post: "动态", system: "系统", like: "点赞", comment: "评论", refund: "退款", leave: "请假", invite: "合作", withdraw: "提现", cert: "认证" };
+    const map: Record<string, string> = { order: "订单", course: "课程", commission: "收益", post: "动态", system: "系统", like: "点赞", comment: "评论", refund: "退款", leave: "请假", invite: "合作", withdraw: "提现", cert: "认证", growth: "成长", attendance: "上课" };
     return map[t] || "通知";
   };
 

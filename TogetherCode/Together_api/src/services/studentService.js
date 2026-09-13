@@ -13,6 +13,7 @@ const {
   TeacherProfile
 } = require("../models");
 const { generateId } = require("../utils/id");
+const { createNotification } = require("./messageService");
 
 function computeOrderStatus(order, remainingAfter) {
   const refundedLessons = Number(order.refunded_lessons || 0);
@@ -124,7 +125,7 @@ async function loadOrderContext(childId, orderId, transaction) {
       {
         model: Child,
         as: "child",
-        attributes: ["child_id", "nickname", "birthday"]
+        attributes: ["child_id", "nickname", "birthday", "parent_user_id"]
       }
     ],
     transaction,
@@ -227,6 +228,18 @@ async function applyLessonConsumptionWithTransaction(childId, payload, options =
       },
       { transaction }
     );
+
+    // 闭环：出勤签到 → 通知家长（老师发帖场景已有 growth 通知，此处跳过避免重复）
+    if (Number(options.attendanceStatus) === 1 && !options.postId && order.child?.parent_user_id) {
+      createNotification({
+        userId: order.child.parent_user_id,
+        type: "attendance",
+        title: "上课签到",
+        content: `${order.child.nickname || "孩子"}已完成《${order.course?.title || "课程"}》${count} 课时，剩余 ${remainingAfter} 课时。`,
+        refType: null,
+        refId: null
+      }).catch(() => {});
+    }
   }
 
   return {

@@ -14,6 +14,7 @@ const {
 } = require("../models");
 const { generateId } = require("../utils/id");
 const { resolveDistributionCode, settleCommissionForOrder } = require("./commissionService");
+const { createNotification } = require("./messageService");
 
 function formatOrder(order) {
   return {
@@ -225,7 +226,7 @@ async function payOrder(userId, orderId, payload) {
         user_id: userId
       },
       include: [
-        { model: Course, as: "course", attributes: ["course_id", "validity_days"] }
+        { model: Course, as: "course", attributes: ["course_id", "title", "validity_days"] }
       ],
       transaction,
       lock: transaction.LOCK.UPDATE
@@ -298,6 +299,16 @@ async function payOrder(userId, orderId, payload) {
 
     // 分销结算：带分享码下单的订单，支付成功后按工作室返利比例给分享人结算佣金
     await settleCommissionForOrder(order, { transaction, settleImmediately: true });
+
+    // 闭环：支付成功 → 通知家长（课时到账）
+    createNotification({
+      userId,
+      type: "order",
+      title: "支付成功",
+      content: `《${order.course?.title || "课程"}》${order.total_lessons} 课时已到账，可在「我的订单」查看。`,
+      refType: "order",
+      refId: order.order_id
+    }).catch(() => {});
 
     const detail = await getOrderWithDetails(order.order_id, { transaction });
     return formatOrder(detail);
