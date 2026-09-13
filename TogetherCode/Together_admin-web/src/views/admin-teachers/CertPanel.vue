@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { fmtDate } from "../../utils/format";
 import { onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { Refresh } from "@element-plus/icons-vue";
@@ -127,7 +128,7 @@ onMounted(loadData);
           <template #default="{ row }">{{ row.cert_no || "-" }}</template>
         </el-table-column>
         <el-table-column label="申请时间" width="110">
-          <template #default="{ row }">{{ row.submitted_at.slice(0, 10) }}</template>
+          <template #default="{ row }">{{ fmtDate(row.submitted_at) }}</template>
         </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">

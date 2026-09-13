@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { timeFormatter } from "../../utils/format";
 import { onMounted, ref } from "vue";
 import { Refresh } from "@element-plus/icons-vue";
 import { fetchStudioFinance, type StudioFinanceData } from "../../services/studio";
@@ -109,7 +110,7 @@ onMounted(loadData);
             <el-tag :type="statusMeta[row.status]?.type" size="small">{{ statusMeta[row.status]?.text }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="paid_at" label="支付时间" width="170" />
+        <el-table-column prop="paid_at" :formatter="timeFormatter" label="支付时间" width="170" />
       </el-table>
     </el-card>
   </div>

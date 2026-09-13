@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { fmtDate } from "../../utils/format";
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { fetchStudioOverview, type StudioOverview } from "../../services/studio";
@@ -137,7 +138,7 @@ function goLeaves() {
             <span class="todo-dot refund-dot"></span>
             <div class="todo-main">
               <div class="todo-label">{{ item.child_nickname }} · {{ item.course_title }}</div>
-              <div class="todo-sub">申请退款 {{ formatFen(item.amount) }} · {{ item.created_at.slice(0, 10) }}</div>
+              <div class="todo-sub">申请退款 {{ formatFen(item.amount) }} · {{ fmtDate(item.created_at) }}</div>
             </div>
             <el-tag type="warning" effect="light" size="small">待审核</el-tag>
           </div>
@@ -152,7 +153,7 @@ function goLeaves() {
             <span class="todo-dot leave-dot"></span>
             <div class="todo-main">
               <div class="todo-label">{{ item.child_nickname }} · {{ item.class_name }}</div>
-              <div class="todo-sub">申请于 {{ item.created_at.slice(0, 10) }}</div>
+              <div class="todo-sub">申请于 {{ fmtDate(item.created_at) }}</div>
             </div>
             <el-tag type="warning" effect="light" size="small">待审批</el-tag>
           </div>

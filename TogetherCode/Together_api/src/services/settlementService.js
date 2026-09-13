@@ -76,8 +76,7 @@ async function getSettlements() {
       pendingCount
     },
     list: rows.map(normalizeSettlement)
-  };
-}
+  };}
 
 /**
  * 为所有认证工作室生成指定周期（默认本月）的结算单。

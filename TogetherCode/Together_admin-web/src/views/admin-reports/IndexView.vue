@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { timeFormatter } from "../../utils/format";
 import { onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Refresh } from "@element-plus/icons-vue";
@@ -120,7 +121,7 @@ onMounted(loadData);
             <el-tag :type="statusMeta[row.status]?.type" size="small">{{ statusMeta[row.status]?.text }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="举报时间" width="170" />
+        <el-table-column prop="created_at" :formatter="timeFormatter" label="举报时间" width="170" />
         <el-table-column label="操作" width="170" fixed="right">
           <template #default="{ row }">
             <template v-if="row.status === 0">

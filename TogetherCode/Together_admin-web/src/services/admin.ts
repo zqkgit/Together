@@ -397,7 +397,7 @@ export interface ReportItem {
   created_at: string;
 }
 
-export async function fetchReports(params: { status?: number | ""; target_type?: string } = {}): Promise<PagedList<ReportItem>> {
+export async function fetchReports(params: { status?: number | ""; target_type?: string; page?: number; page_size?: number } = {}): Promise<PagedList<ReportItem>> {
   const response = await request.get("/admin/reports", { params });
   return response.data;
 }
@@ -421,7 +421,7 @@ export interface AdminPostItem {
   created_at: string;
 }
 
-export async function fetchAdminPosts(params: { status?: number | ""; q?: string } = {}): Promise<PagedList<AdminPostItem>> {
+export async function fetchAdminPosts(params: { status?: number | ""; q?: string; page?: number; page_size?: number } = {}): Promise<PagedList<AdminPostItem>> {
   const response = await request.get("/admin/posts", { params });
   return response.data;
 }
@@ -459,7 +459,7 @@ export interface AnnouncementItem {
   created_at: string;
 }
 
-export async function fetchAnnouncements(params: { status?: number | ""; type?: number | "" } = {}): Promise<PagedList<AnnouncementItem>> {
+export async function fetchAnnouncements(params: { status?: number | ""; type?: number | ""; page?: number; page_size?: number } = {}): Promise<PagedList<AnnouncementItem>> {
   const response = await request.get("/admin/announcements", { params });
   return response.data;
 }
@@ -491,7 +491,7 @@ export interface StaffItem {
   created_at: string;
 }
 
-export async function fetchAdminStaff(params: { q?: string } = {}): Promise<PagedList<StaffItem>> {
+export async function fetchAdminStaff(params: { q?: string; page?: number; page_size?: number } = {}): Promise<PagedList<StaffItem>> {
   const response = await request.get("/admin/staff", { params });
   return response.data;
 }
@@ -518,7 +518,7 @@ export interface AuditItem {
   created_at: string;
 }
 
-export async function fetchAdminAudit(params: { page?: number; page_size?: number; action?: string; actor_name?: string } = {}): Promise<PagedList<AuditItem>> {
+export async function fetchAdminAudit(params: { page?: number; page_size?: number; action?: string; actor_name?: string; target_type?: string } = {}): Promise<PagedList<AuditItem>> {
   const response = await request.get("/admin/audit", { params });
   return response.data;
 }

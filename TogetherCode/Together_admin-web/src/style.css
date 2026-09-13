@@ -108,6 +108,8 @@ a {
   padding: 0 24px;
   background: rgba(255, 255, 255, 0.88);
   border-bottom: 1px solid #e6dfd3;
+  min-width: 1200px;
+  box-sizing: border-box;
 }
 
 .header-left,
@@ -149,6 +151,8 @@ a {
 .admin-main {
   background: #faf7f1;
   padding: 24px;
+  min-width: 1200px; /* 大窗口自适应铺满；窄窗口保持最小宽度横向滚动，避免内容挤压竖排 */
+  box-sizing: border-box;
 }
 
 .page-stack {
@@ -226,35 +230,4 @@ a {
 .el-card {
   border-radius: 16px !important;
   border-color: #e6dfd3 !important;
-}
-
-@media (max-width: 1200px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .panel-grid-2 {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .admin-header {
-    height: auto;
-    padding: 16px;
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .header-right {
-    flex-wrap: wrap;
-  }
-
-  .admin-main {
-    padding: 16px;
-  }
-
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
 }

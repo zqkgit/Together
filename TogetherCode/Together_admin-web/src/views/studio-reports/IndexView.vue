@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { timeFormatter } from "../../utils/format";
 import { onMounted, ref } from "vue";
 import { Refresh } from "@element-plus/icons-vue";
 import { fetchStudioReport, type StudioReportData } from "../../services/studio";
@@ -113,7 +114,7 @@ onMounted(loadData);
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="reviewed_at" label="处理时间" width="170" />
+          <el-table-column prop="reviewed_at" :formatter="timeFormatter" label="处理时间" width="170" />
         </el-table>
         <el-empty v-if="!data.recent_refunds.length" description="暂无退款流水" :image-size="64" />
       </el-card>

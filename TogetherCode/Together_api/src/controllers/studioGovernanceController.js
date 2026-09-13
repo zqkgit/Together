@@ -8,116 +8,132 @@ const {
   listStudioStaff,
   updateStudioStaffStatus
 } = require("../services/studioGovernanceService");
-const { recordAudit } = require("../utils/audit");
+const {
+  getStudioTeachers,
+  reviewTeacherApplication,
+  releaseTeacher
+} = require("../services/studioTeacherService");
 
-// GET /studio/finance · 财务对账
+function getStudioId(req) {
+  return req.admin.studioId;
+}
+
+async function getTeachers(req, res) {
+  try {
+    const data = await getStudioTeachers(getStudioId(req), req.query);
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+async function putTeacherReview(req, res) {
+  try {
+    const data = await reviewTeacherApplication(getStudioId(req), req.params.id, req.body, {
+      adminId: req.admin.adminId
+    });
+    if (data?.error) {
+      return fail(res, data.error.status || 400, 40000, data.error.message);
+    }
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+async function deleteTeacherBinding(req, res) {
+  try {
+    const data = await releaseTeacher(getStudioId(req), req.params.teacherId, req.body);
+    if (data?.error) {
+      return fail(res, data.error.status || 400, 40000, data.error.message);
+    }
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 async function getFinance(req, res) {
   try {
-    return ok(res, await getStudioFinance(req.admin.studioId, req.query));
+    const data = await getStudioFinance(getStudioId(req), req.query);
+    return ok(res, data);
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");
   }
 }
 
-// GET /studio/accounts · 结算账户列表
 async function getAccounts(req, res) {
   try {
-    return ok(res, await listStudioAccounts(req.admin.studioId));
+    const data = await listStudioAccounts(getStudioId(req));
+    return ok(res, data);
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");
   }
 }
 
-// POST /studio/accounts · 绑定 / 更新结算账户
 async function postAccount(req, res) {
   try {
-    const result = await upsertStudioAccount(req.admin.studioId, req.body);
-    if (result.error) {
-      return fail(res, result.error.status, result.error.code, result.error.message);
+    const data = await upsertStudioAccount(getStudioId(req), req.body);
+    if (data?.error) {
+      return fail(res, data.error.status || 400, 40000, data.error.message);
     }
-    await recordAudit({
-      actor: req.admin,
-      role: req.admin.role,
-      studioId: req.admin.studioId,
-      action: "studio.account.upsert",
-      targetType: "studio_account",
-      targetId: result.data.account_id,
-      ip: req.ip
-    });
-    return ok(res, result.data, result.message);
+    return ok(res, data);
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");
   }
 }
 
-// GET /studio/audit · 本店操作审计
 async function getAudit(req, res) {
   try {
-    return ok(res, await listStudioAudit(req.admin.studioId, req.query));
+    const data = await listStudioAudit(getStudioId(req), req.query);
+    return ok(res, data);
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");
   }
 }
 
-// POST /studio/staff · 新增员工账号（owner）
+async function getStaff(req, res) {
+  try {
+    const data = await listStudioStaff(getStudioId(req), req.query);
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 async function postStaff(req, res) {
   try {
-    const result = await createStudioStaff(req.admin.studioId, req.body);
-    if (result.error) {
-      return fail(res, result.error.status, result.error.code, result.error.message);
+    const data = await createStudioStaff(getStudioId(req), req.body);
+    if (data?.error) {
+      return fail(res, data.error.status || 400, 40000, data.error.message);
     }
-    await recordAudit({
-      actor: req.admin,
-      role: req.admin.role,
-      studioId: req.admin.studioId,
-      action: "studio.staff.create",
-      targetType: "admin_account",
-      targetId: result.data.admin_id,
-      ip: req.ip
-    });
-    return ok(res, result.data, result.message);
+    return ok(res, data);
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");
   }
 }
 
-// GET /studio/staff · 本店员工列表
-async function getStaffList(req, res) {
-  try {
-    return ok(res, await listStudioStaff(req.admin.studioId, req.query));
-  } catch (error) {
-    return fail(res, 500, 50000, error.message || "Internal server error");
-  }
-}
-
-// PUT /studio/staff/:id · 员工启用 / 停用（owner）
 async function putStaffStatus(req, res) {
   try {
-    const result = await updateStudioStaffStatus(req.params.id, req.admin.studioId, req.admin, req.body);
-    if (result.error) {
-      return fail(res, result.error.status, result.error.code, result.error.message);
+    const data = await updateStudioStaffStatus(req.params.id, getStudioId(req), { adminId: req.admin.adminId }, req.body);
+    if (data?.error) {
+      return fail(res, data.error.status || 400, 40000, data.error.message);
     }
-    await recordAudit({
-      actor: req.admin,
-      role: req.admin.role,
-      studioId: req.admin.studioId,
-      action: result.data.status === 1 ? "studio.staff.enable" : "studio.staff.disable",
-      targetType: "admin_account",
-      targetId: req.params.id,
-      ip: req.ip
-    });
-    return ok(res, result.data, result.message);
+    return ok(res, data);
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");
   }
 }
 
 module.exports = {
+  getTeachers,
+  putTeacherReview,
+  deleteTeacherBinding,
   getFinance,
   getAccounts,
   postAccount,
   getAudit,
+  getStaff,
   postStaff,
-  getStaffList,
   putStaffStatus
 };

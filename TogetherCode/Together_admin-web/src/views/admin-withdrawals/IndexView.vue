@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { timeFormatter, fmtTime } from "../../utils/format";
 import { onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Refresh } from "@element-plus/icons-vue";
@@ -123,14 +124,14 @@ onMounted(loadData);
             <el-tag :type="statusMeta[row.status]?.type" size="small">{{ row.status_text }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="申请时间" width="170" />
+        <el-table-column prop="created_at" :formatter="timeFormatter" label="申请时间" width="170" />
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <template v-if="row.status === 1">
               <el-button link type="success" @click="onReview(row, 'approve')">通过</el-button>
               <el-button link type="danger" @click="onReview(row, 'reject')">驳回</el-button>
             </template>
-            <span v-else class="muted">{{ row.reviewed_at || "-" }}</span>
+            <span v-else class="muted">{{ fmtTime(row.reviewed_at) || "-" }}</span>
           </template>
         </el-table-column>
       </el-table>

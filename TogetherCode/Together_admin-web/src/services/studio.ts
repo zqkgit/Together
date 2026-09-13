@@ -1,5 +1,6 @@
 import request from "../utils/request";
 import type { PagedList, AuditItem, StaffItem } from "./admin";
+export type { AuditItem, StaffItem };
 
 // ============ 通用 ============
 
@@ -632,7 +633,7 @@ export async function fetchStudioAudit(params: { page?: number; page_size?: numb
   return response.data;
 }
 
-export async function fetchStudioStaff(params: { q?: string } = {}): Promise<PagedList<StaffItem>> {
+export async function fetchStudioStaff(params: { q?: string; page?: number; page_size?: number } = {}): Promise<PagedList<StaffItem>> {
   const response = await request.get("/studio/staff", { params });
   return response.data;
 }

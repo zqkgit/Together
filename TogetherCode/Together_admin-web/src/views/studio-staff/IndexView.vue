@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { timeFormatter } from "../../utils/format";
 import { onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Plus, Refresh, Search } from "@element-plus/icons-vue";
@@ -90,7 +91,7 @@ async function onToggle(row: StaffItem) {
   }
 }
 
-const roleMeta: Record<string, { text: string; type: "primary" | "success" | "info" }> = {
+const roleMeta: Record<string, { text: string; type: "primary" | "success" | "info" | "danger" }> = {
   studio_owner: { text: "店主", type: "danger" },
   studio_ops: { text: "员工", type: "primary" }
 };
@@ -137,7 +138,7 @@ onMounted(loadData);
             <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">{{ row.status === 1 ? "正常" : "已停用" }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="170" />
+        <el-table-column prop="created_at" :formatter="timeFormatter" label="创建时间" width="170" />
         <el-table-column label="操作" width="130" fixed="right">
           <template #default="{ row }">
             <template v-if="isOwner && row.username !== auth.account?.username">

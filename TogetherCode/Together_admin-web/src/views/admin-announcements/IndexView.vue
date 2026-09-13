@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { timeFormatter } from "../../utils/format";
 import { onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Plus, Refresh } from "@element-plus/icons-vue";
@@ -135,7 +136,7 @@ onMounted(loadData);
             <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">{{ row.status === 1 ? "展示中" : "已下架" }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="170" />
+        <el-table-column prop="created_at" :formatter="timeFormatter" label="创建时间" width="170" />
         <el-table-column label="操作" width="100" fixed="right">
           <template #default="{ row }">
             <el-button :type="row.status === 1 ? 'danger' : 'success'" link @click="onToggle(row)">

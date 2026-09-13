@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { fmtTime } from "../../../utils/format";
 import { onMounted, ref } from "vue";
 import { Refresh } from "@element-plus/icons-vue";
 import { fetchStudioOrders, type OrderItem } from "../../../services/studio";
@@ -111,8 +112,8 @@ onMounted(loadData);
           </el-descriptions-item>
           <el-descriptions-item label="已退款">{{ formatFen(detail.refund_amount) }}</el-descriptions-item>
           <el-descriptions-item label="支付渠道">{{ detail.pay_channel || "模拟支付" }}</el-descriptions-item>
-          <el-descriptions-item label="支付时间">{{ detail.paid_at || "-" }}</el-descriptions-item>
-          <el-descriptions-item label="下单时间">{{ detail.created_at }}</el-descriptions-item>
+          <el-descriptions-item label="支付时间">{{ fmtTime(detail.paid_at) || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="下单时间">{{ fmtTime(detail.created_at) }}</el-descriptions-item>
         </el-descriptions>
 
         <div class="block-title">课时账本</div>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { fmtTime } from "../../utils/format";
 import { onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Search, Refresh } from "@element-plus/icons-vue";
@@ -266,8 +267,8 @@ onMounted(loadData);
               <span v-if="detail.permit" class="link-text">{{ detail.permit }}</span>
               <span v-else>-</span>
             </el-descriptions-item>
-            <el-descriptions-item label="提交时间">{{ detail.submitted_at }}</el-descriptions-item>
-            <el-descriptions-item label="审核时间">{{ detail.reviewed_at || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="提交时间">{{ fmtTime(detail.submitted_at) }}</el-descriptions-item>
+            <el-descriptions-item label="审核时间">{{ fmtTime(detail.reviewed_at) || "-" }}</el-descriptions-item>
             <el-descriptions-item v-if="detail.review_reason" label="审核备注">
               {{ detail.review_reason }}
             </el-descriptions-item>

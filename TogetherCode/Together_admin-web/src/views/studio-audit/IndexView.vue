@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { timeFormatter } from "../../utils/format";
 import { onMounted, ref } from "vue";
 import { Refresh } from "@element-plus/icons-vue";
 import { fetchStudioAudit, type AuditItem } from "../../services/studio";
@@ -83,7 +84,7 @@ onMounted(loadData);
         <el-table-column prop="target_id" label="对象 ID" width="170" show-overflow-tooltip />
         <el-table-column prop="detail" label="操作详情" min-width="180" show-overflow-tooltip />
         <el-table-column prop="ip" label="IP" width="130" />
-        <el-table-column prop="created_at" label="时间" width="170" />
+        <el-table-column prop="created_at" :formatter="timeFormatter" label="时间" width="170" />
       </el-table>
 
       <el-pagination

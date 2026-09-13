@@ -401,13 +401,15 @@ async function getSettlements() {
     .filter((item) => Number(item.status) !== 2)
     .reduce((sum, item) => sum + Number(item.payable_amount || 0), 0);
   const retryCount = rows.filter((item) => Number(item.status) === 3).length;
+  const pendingCount = rows.filter((item) => Number(item.status) === 0).length;
 
   return {
     summary: {
       pendingNetAmount: formatFen(pendingNetAmount),
       pendingNetTrend: `${rows.length} 张结算单`,
       retryCount,
-      retryHint: retryCount > 0 ? "需平台复核" : "当前无异常"
+      retryHint: retryCount > 0 ? "需平台复核" : "当前无异常",
+      pendingCount
     },
     list: rows.map((item) => ({
       id: String(item.settlement_id),

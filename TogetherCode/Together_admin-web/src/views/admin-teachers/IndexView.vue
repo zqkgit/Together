@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { fmtDate } from "../../utils/format";
 import { onMounted, ref } from "vue";
 import { Refresh, Search } from "@element-plus/icons-vue";
 import { fetchTeacherProfiles, type TeacherProfileItem } from "../../services/admin";
@@ -126,7 +127,7 @@ onMounted(loadData);
           <template #default="{ row }">{{ row.intro || "-" }}</template>
         </el-table-column>
         <el-table-column label="认证时间" width="110">
-          <template #default="{ row }">{{ row.created_at.slice(0, 10) }}</template>
+          <template #default="{ row }">{{ fmtDate(row.created_at) }}</template>
         </el-table-column>
       </el-table>
       <div v-if="!loading && list.length === 0" class="empty-tip">暂无老师档案</div>
