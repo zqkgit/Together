@@ -146,7 +146,7 @@ async function loginBackoffice(scope, { username, password }) {
 
   const matched = bcrypt.compareSync(password, account.password_hash || "");
   if (!matched) {
-    return { error: { status: 401, code: 40120, message: "Username or password incorrect" } };
+    return { error: { status: 401, code: 40120, message: "账号或密码错误" } };
   }
 
   return sequelize.transaction(async (transaction) => {

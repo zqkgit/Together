@@ -258,36 +258,34 @@ async function getStudioReports(studioId) {
   const refundTotalAmount = Number(refundTotal?.[0]?.total || 0);
 
   return {
-    data: {
-      revenue: {
-        month_gmv: Number(monthGmv || 0),
-        total_gmv: Number(gmvTotal || 0),
-        month_refund: monthRefundTotal,
-        total_refund: refundTotalAmount,
-        net_total: Number((Number(gmvTotal || 0) - refundTotalAmount).toFixed(2))
-      },
-      lessons: {
-        sold: Number(lessonSold || 0),
-        consumed: consumedTotal,
-        remaining: Math.max(Number(lessonSold || 0) - consumedTotal, 0)
-      },
-      students: {
-        total: studentTotal,
-        active: activeStudents,
-        month_new: monthNewStudents
-      },
-      operations: {
-        courses: courseTotal,
-        classes: classTotal,
-        teachers: teacherTotal
-      },
-      recent_refunds: refundRows.map((item) => ({
-        refund_id: String(item.refund_id),
-        amount: Number(item.amount),
-        status: item.status,
-        reviewed_at: item.reviewed_at
-      }))
-    }
+    revenue: {
+      month_gmv: Number(monthGmv || 0),
+      total_gmv: Number(gmvTotal || 0),
+      month_refund: monthRefundTotal,
+      total_refund: refundTotalAmount,
+      net_total: Number((Number(gmvTotal || 0) - refundTotalAmount).toFixed(2))
+    },
+    lessons: {
+      sold: Number(lessonSold || 0),
+      consumed: consumedTotal,
+      remaining: Math.max(Number(lessonSold || 0) - consumedTotal, 0)
+    },
+    students: {
+      total: studentTotal,
+      active: activeStudents,
+      month_new: monthNewStudents
+    },
+    operations: {
+      courses: courseTotal,
+      classes: classTotal,
+      teachers: teacherTotal
+    },
+    recent_refunds: refundRows.map((item) => ({
+      refund_id: String(item.refund_id),
+      amount: Number(item.amount),
+      status: item.status,
+      reviewed_at: item.reviewed_at
+    }))
   };
 }
 

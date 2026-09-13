@@ -33,6 +33,11 @@ request.interceptors.response.use(
     const message = body.message || error.message || "Request failed";
 
     if (status === 401) {
+      // 登录接口本身 401：密码错误，展示后端文案，不触发"登录过期"跳转
+      if (error.config?.url?.includes("/auth/login")) {
+        ElMessage.error(body.message || "账号或密码错误");
+        return Promise.reject(error);
+      }
       ElMessage.error("登录已过期，请重新登录");
       redirectToLogin();
       return Promise.reject(error);
