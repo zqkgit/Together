@@ -330,7 +330,42 @@ extension PostDetailViewController: UITableViewDataSource, UITableViewDelegate {
             guard let self else { return }
             self.startReply(to: self.commentRows[indexPath.row])
         }
+        cell.onDelete = { [weak self] in
+            guard let self else { return }
+            self.confirmDeleteComment(at: indexPath.row)
+        }
         return cell
+    }
+
+    /// 删除自己的评论：确认弹窗 → 调接口 → 移除本地数据
+    private func confirmDeleteComment(at index: Int) {
+        guard index < commentRows.count else { return }
+        let row = commentRows[index]
+        let alert = UIAlertController(title: "删除评论", message: "确定删除这条评论吗？", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+        alert.addAction(UIAlertAction(title: "删除", style: .destructive) { [weak self] _ in
+            guard let self else { return }
+            self.deleteComment(commentId: row.comment.comment_id)
+        })
+        present(alert, animated: true)
+    }
+
+    private func deleteComment(commentId: String) {
+        PostService.deleteComment(commentId: commentId) { [weak self] ok, error in
+            guard let self else { return }
+            if let error {
+                self.showToast(error)
+                return
+            }
+            self.comments.removeAll { $0.comment_id == commentId }
+            self.rebuildCommentRows()
+            self.tableView.reloadData()
+            if var post = self.post {
+                post.comment_count = max(0, (post.comment_count ?? 0) - 1)
+                self.post = post
+                self.tableView.reloadData()
+            }
+        }
     }
 
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
@@ -619,6 +654,7 @@ final class CommentCell: UITableViewCell {
 
     var onLike: (() -> Void)?
     var onReply: (() -> Void)?
+    var onDelete: (() -> Void)?
 
     private let avatarView = AvatarPlaceholderView(name: "?", size: 36)
     private let nameLabel = UILabel()
@@ -626,6 +662,7 @@ final class CommentCell: UITableViewCell {
     private let contentLabel = UILabel()
     private let likeButton = UIButton(type: .system)
     private let replyButton = UIButton(type: .system)
+    private let deleteButton = UIButton(type: .system)
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -689,6 +726,18 @@ final class CommentCell: UITableViewCell {
             $0.height.equalTo(24)
         }
 
+        deleteButton.setTitle("删除", for: .normal)
+        deleteButton.setTitleColor(Theme.Color.danger, for: .normal)
+        deleteButton.titleLabel?.font = .appLabel(11)
+        deleteButton.addTarget(self, action: #selector(didTapDelete), for: .touchUpInside)
+        contentView.addSubview(deleteButton)
+        deleteButton.snp.makeConstraints {
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.m)
+            $0.centerY.equalTo(likeButton)
+            $0.height.equalTo(24)
+        }
+        deleteButton.isHidden = true
+
         // 点赞按钮让位给"回复"（在回复按钮左侧）
         likeButton.snp.remakeConstraints {
             $0.top.equalTo(contentLabel.snp.bottom).offset(4)
@@ -712,8 +761,9 @@ final class CommentCell: UITableViewCell {
         avatarView.snp.updateConstraints {
             $0.leading.equalToSuperview().inset(Theme.Spacing.m + indent)
         }
-        // 自己的评论不允许回复自己（后端同样拦截）
+        // 自己的评论：不显示回复（不能回复自己，后端同样拦截），显示删除
         replyButton.isHidden = isOwn
+        deleteButton.isHidden = !isOwn
         refreshLike(comment: comment)
     }
 
@@ -729,6 +779,8 @@ final class CommentCell: UITableViewCell {
 
     @objc private func didTapLike() { onLike?() }
     @objc private func didTapReply() { onReply?() }
+
+    @objc private func didTapDelete() { onDelete?() }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 }
 

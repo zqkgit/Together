@@ -209,7 +209,7 @@ struct PostItem: Codable {
     let images: [String]?
     let topic: String?
     var like_count: Int?
-    let comment_count: Int?
+    var comment_count: Int?
     let share_count: Int?
     var is_liked: Bool?
     var is_favorite: Bool?

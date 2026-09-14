@@ -437,6 +437,12 @@ async function deletePostComment(userId, commentId) {
 
     await comment.update({ status: 0 }, { transaction });
 
+    // 删除后：子回复提升一级（挂到被删评论的父级），避免孤儿评论
+    await PostComment.update(
+      { parent_id: comment.parent_id },
+      { where: { parent_id: commentId, status: 1 }, transaction }
+    );
+
     const post = await Post.findByPk(comment.post_id, {
       transaction,
       lock: transaction.LOCK.UPDATE

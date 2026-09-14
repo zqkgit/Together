@@ -97,6 +97,22 @@ enum PostService {
     }
 
     /// 发表评论
+    /// 删除自己的评论
+    static func deleteComment(commentId: String,
+                              completion: @escaping (Bool, String?) -> Void) {
+        APIClient.shared.request(
+            "/posts/comments/\(commentId)",
+            method: .delete
+        ) { result in
+            switch result {
+            case .success:
+                completion(true, nil)
+            case .failure(let error):
+                completion(false, error.message)
+            }
+        }
+    }
+
     static func addComment(postId: String, content: String, parentId: String? = nil,
                            completion: @escaping (CommentItem?, String?) -> Void) {
         var parameters: [String: Any] = ["content": content]
