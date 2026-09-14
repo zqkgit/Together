@@ -21,6 +21,7 @@ struct ChildItem: Codable {
     let avatar: String?
     let birthday: String?
     let gender: Int?
+    let interests: [String]?
     let total_remaining_lessons: Int?
     let balances: [ChildBalance]?
 
@@ -45,6 +46,8 @@ struct ChildBalance: Codable {
     let balance_id: String
     let course_id: String?
     let course_title: String?
+    let studio_id: String?
+    let studio_name: String?
     let total_lessons: Int
     let consumed_lessons: Int
     let remaining_lessons: Int

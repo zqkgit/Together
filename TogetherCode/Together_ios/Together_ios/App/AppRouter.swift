@@ -39,7 +39,7 @@ final class AppRouter {
     }
 
     private func makeLoginNavigation() -> UINavigationController {
-        UINavigationController(rootViewController: LoginViewController())
+        BaseNavigationController(rootViewController: LoginViewController())
     }
 
     private func window() -> UIWindow? {

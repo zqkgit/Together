@@ -1,7 +1,8 @@
 import UIKit
+import SnapKit
 import MBProgressHUD
 
-/// 基类控制器：统一背景、加载、提示、空态
+/// 基类控制器：统一背景、加载、提示、空态、沉浸式导航
 class BaseViewController: UIViewController {
 
     override func viewDidLoad() {
@@ -12,6 +13,64 @@ class BaseViewController: UIViewController {
 
     private func setupNavigationBar() {
         navigationController?.navigationBar.prefersLargeTitles = false
+    }
+
+    // MARK: - 统一沉浸式导航（透明系统导航栏方案）
+
+    /// 沉浸式导航：透明导航栏 + 自定义圆底返回按钮 + 系统标题（标题居中、转场动画、侧滑返回手势均由系统管理）
+    /// 子类在 viewWillAppear 调用；viewWillDisappear 调用 restoreSystemNav() 恢复默认导航栏
+    func configureImmersiveNav(
+        title: String? = nil,
+        titleColor: UIColor = Theme.Color.ink,
+        backBackground: UIColor = UIColor.black.withAlphaComponent(0.28),
+        backTint: UIColor = .white
+    ) {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithTransparentBackground()
+        appearance.shadowColor = .clear
+        appearance.backgroundColor = .clear
+        appearance.titleTextAttributes = [
+            .foregroundColor: titleColor,
+            .font: UIFont.appSection(17)
+        ]
+        guard let nav = navigationController else { return }
+        nav.navigationBar.standardAppearance = appearance
+        nav.navigationBar.scrollEdgeAppearance = appearance
+        nav.navigationBar.compactAppearance = appearance
+        nav.navigationBar.isTranslucent = true
+
+        // 自定义圆底返回按钮（帖子详情样式：白 chevron + 黑半透明圆底 38pt）
+        let button = UIButton(type: .system)
+        button.backgroundColor = backBackground
+        button.layer.cornerRadius = 19
+        button.clipsToBounds = true
+        button.setImage(UIImage(systemName: "chevron.left"), for: .normal)
+        button.tintColor = backTint
+        button.addTarget(self, action: #selector(didTapImmersiveBack), for: .touchUpInside)
+        button.snp.makeConstraints { $0.width.height.equalTo(38) }
+
+        navigationItem.leftBarButtonItem = UIBarButtonItem(customView: button)
+        navigationItem.hidesBackButton = true
+        navigationItem.title = title
+    }
+
+    /// 恢复默认不透明导航栏（沉浸式页在 viewWillDisappear 调用，保证上一级普通页正常显示）
+    func restoreSystemNav() {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithDefaultBackground()
+        guard let nav = navigationController else { return }
+        nav.navigationBar.standardAppearance = appearance
+        nav.navigationBar.scrollEdgeAppearance = appearance
+        nav.navigationBar.compactAppearance = appearance
+        nav.navigationBar.isTranslucent = false
+    }
+
+    @objc private func didTapImmersiveBack() {
+        if let nav = navigationController, nav.viewControllers.count > 1 {
+            nav.popViewController(animated: true)
+        } else {
+            dismiss(animated: true)
+        }
     }
 
     // MARK: - 加载

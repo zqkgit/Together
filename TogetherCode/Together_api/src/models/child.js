@@ -24,6 +24,11 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.DATEONLY,
         allowNull: false
       },
+      interests: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        comment: "兴趣标签,逗号分隔"
+      },
       gender: {
         type: DataTypes.SMALLINT,
         allowNull: false,

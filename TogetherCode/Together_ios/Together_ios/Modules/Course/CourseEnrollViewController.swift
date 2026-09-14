@@ -28,11 +28,20 @@ final class CourseEnrollViewController: BaseViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "报名课程"
         view.backgroundColor = Theme.Color.bg
         setupBottomBar()
         setupTableView()
         loadData()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        configureImmersiveNav(title: "报名课程")
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        restoreSystemNav()
     }
 
     private func setupTableView() {

@@ -38,18 +38,18 @@ final class PostDetailViewController: BaseViewController {
         setupTableView()
         loadDetail()
         loadComments()
-    }
+            }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        navigationController?.setNavigationBarHidden(true, animated: false)
+        configureImmersiveNav(titleColor: .white)
     }
 
     override var preferredStatusBarStyle: UIStatusBarStyle { .lightContent }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        navigationController?.setNavigationBarHidden(false, animated: false)
+        restoreSystemNav()
     }
 
     private func setupTableView() {
@@ -62,16 +62,6 @@ final class PostDetailViewController: BaseViewController {
         tableView.dataSource = self
         tableView.delegate = self
 
-        headerView.onBack = { [weak self] in
-            guard let self else { return }
-            if let nav = self.navigationController, nav.viewControllers.count > 1 {
-                nav.popViewController(animated: true)
-            } else if let nav = self.navigationController {
-                nav.popToRootViewController(animated: true)
-            } else {
-                self.dismiss(animated: true)
-            }
-        }
         headerView.onFollow = { [weak self] in self?.toggleFollow() }
         headerView.onEnroll = { [weak self] in
             guard let self, let courseId = self.post?.course?.course_id else { return }
@@ -390,14 +380,12 @@ extension PostDetailViewController: UITableViewDataSource, UITableViewDelegate {
 
 final class PostHeaderView: UIView {
 
-    var onBack: (() -> Void)?
     var onFollow: (() -> Void)?
     var onEnroll: (() -> Void)?
     var onTapImage: ((Int) -> Void)?
 
     // 顶部图片轮播（可横滑 + 点击全屏预览）
     private let carouselView = ImageCarouselView()
-    private let backButton = UIButton(type: .system)
     // 发帖人信息（白底）
     private let avatarView = AvatarPlaceholderView(name: "?", size: 44)
     private let nameLabel = UILabel()
@@ -430,19 +418,6 @@ final class PostHeaderView: UIView {
         carouselView.snp.makeConstraints {
             $0.top.leading.trailing.equalToSuperview()
             $0.height.equalTo(400)
-        }
-
-        backButton.setImage(UIImage(systemName: "chevron.left"), for: .normal)
-        backButton.tintColor = .white
-        backButton.backgroundColor = UIColor.black.withAlphaComponent(0.28)
-        backButton.layer.cornerRadius = 19
-        backButton.clipsToBounds = true
-        backButton.addTarget(self, action: #selector(didTapBack), for: .touchUpInside)
-        addSubview(backButton)
-        backButton.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(64)
-            $0.leading.equalToSuperview().inset(8)
-            $0.width.height.equalTo(38)
         }
     }
 
@@ -642,7 +617,6 @@ final class PostHeaderView: UIView {
         }
     }
 
-    @objc private func didTapBack() { onBack?() }
     @objc private func didTapFollow() { onFollow?() }
     @objc private func didTapEnroll() { onEnroll?() }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }

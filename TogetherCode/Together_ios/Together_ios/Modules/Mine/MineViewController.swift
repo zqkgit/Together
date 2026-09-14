@@ -60,6 +60,10 @@ final class MineViewController: BaseViewController, UITableViewDataSource, UITab
         headerView.onStatTapped = { [weak self] index in
             guard let self else { return }
             let titles = ["我的孩子", "在学课程", "收藏作品"]
+            if index == 0 {
+                self.navigationController?.pushViewController(MyChildrenViewController(), animated: true)
+                return
+            }
             self.showToast("「\(titles[index])」功能开发中")
         }
         view.addSubview(headerView)
@@ -199,6 +203,10 @@ final class MineViewController: BaseViewController, UITableViewDataSource, UITab
         let item = menuItems[indexPath.row]
         if item.title == "设置" {
             openSettings()
+            return
+        }
+        if item.title == "我的孩子" {
+            navigationController?.pushViewController(MyChildrenViewController(), animated: true)
             return
         }
         showToast("「\(item.title)」功能开发中")
