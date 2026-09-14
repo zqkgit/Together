@@ -44,6 +44,7 @@ function normalizePostItem(post, viewerUserId = null) {
       : null,
     content: post.content,
     images: post.images || [],
+    topic: post.topic || null,
     visibility: post.visibility,
     status: post.status,
     like_count: Number(post.like_count || 0),
@@ -381,6 +382,7 @@ async function listPlaza(query = {}) {
   const page = Math.max(1, Number(query.page) || 1);
   const size = Math.min(Number(query.size) || 20, 50);
   const sort = query.sort === "hot" ? "hot" : "latest";
+  const topic = String(query.topic || "").trim();
 
   const order =
     sort === "hot"
@@ -391,8 +393,11 @@ async function listPlaza(query = {}) {
         ]
       : [["created_at", "DESC"]];
 
+  const where = { ...PUBLIC_WHERE };
+  if (topic) where.topic = topic;
+
   const { rows, count } = await Post.findAndCountAll({
-    where: PUBLIC_WHERE,
+    where,
     include: postInclude(),
     order,
     offset: (page - 1) * size,
@@ -440,11 +445,13 @@ async function createParentPost(userId, payload) {
   const content = String(payload.content || "").trim();
   const images = Array.isArray(payload.images) ? payload.images.slice(0, 9) : [];
 
-  if (!content && !images.length) {
-    return { error: { status: 400, code: 40060, message: "内容或图片至少填一项" } };
+  // 作品帖必须至少一张图（平台内容规范）
+  if (!images.length) {
+    return { error: { status: 400, code: 40060, message: "请至少上传一张作品图片" } };
   }
 
   const type = [1, 2].includes(Number(payload.type)) ? Number(payload.type) : 1;
+  const topic = String(payload.topic || "").trim().slice(0, 32) || null;
 
   const created = await Post.create({
     post_id: generateId(),
@@ -454,6 +461,7 @@ async function createParentPost(userId, payload) {
     child_id: payload.child_id || null,
     course_id: payload.course_id || null,
     images,
+    topic,
     content: content || null,
     visibility: payload.visibility !== undefined ? Number(payload.visibility) : 2,
     status: 1

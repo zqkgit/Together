@@ -207,6 +207,7 @@ struct PostItem: Codable {
     let author_role_text: String?
     let content: String?
     let images: [String]?
+    let topic: String?
     let like_count: Int?
     let comment_count: Int?
     let share_count: Int?

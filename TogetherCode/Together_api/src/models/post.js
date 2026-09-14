@@ -32,6 +32,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.JSON,
         allowNull: true
       },
+      topic: {
+        type: DataTypes.STRING(32),
+        allowNull: true
+      },
       content: {
         type: DataTypes.STRING(1000),
         allowNull: true
