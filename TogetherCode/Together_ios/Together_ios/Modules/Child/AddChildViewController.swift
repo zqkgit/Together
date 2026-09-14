@@ -19,12 +19,12 @@ final class AddChildViewController: BaseViewController {
 
     // 出生年份（2010-2024）
     private let birthLabel = UILabel()
-    private let birthPicker = UIPickerView()
     private let years: [Int] = Array((2010...2024).reversed())
     private var selectedYear = 2019
 
     // 性别
     private let interests = ["水彩", "黏土", "书法", "国画", "儿童画", "素描"]
+    private let interestView = TagSelectView(options: ["水彩", "黏土", "书法", "国画", "儿童画", "素描"])
     private var selectedInterests: Set<String> = []
     private var genderButtons: [UIButton] = []
     private var selectedGender = 2
@@ -195,11 +195,6 @@ final class AddChildViewController: BaseViewController {
             $0.height.equalTo(46)
         }
 
-        birthPicker.delegate = self
-        birthPicker.dataSource = self
-        if let index = years.firstIndex(of: selectedYear) {
-            birthPicker.selectRow(index, inComponent: 0, animated: false)
-        }
         return birthLabel
     }
 
@@ -230,41 +225,16 @@ final class AddChildViewController: BaseViewController {
     }
 
     private func buildInterestRow(below: UIView?) -> UIView {
-        let row = UIView()
-        contentView.addSubview(row)
-        row.snp.makeConstraints {
+        interestView.onSelectionChanged = { [weak self] selected in
+            self?.selectedInterests = selected
+        }
+        contentView.addSubview(interestView)
+        interestView.snp.makeConstraints {
             $0.top.equalTo(below!.snp.bottom).offset(Theme.Spacing.m)
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.bottom.equalToSuperview().offset(-Theme.Spacing.m)
         }
-
-        let columns = 3
-        let chipHeight: CGFloat = 34
-        let chipGap: CGFloat = Theme.Spacing.m
-        for (index, interest) in interests.enumerated() {
-            let chip = UIButton(type: .system)
-            chip.setTitle(interest, for: .normal)
-            chip.titleLabel?.font = .appLabel(12)
-            chip.setTitleColor(Theme.Color.sub, for: .normal)
-            chip.backgroundColor = Theme.Color.surfaceAlt
-            chip.layer.cornerRadius = 17
-            chip.tag = index
-            chip.addTarget(self, action: #selector(didTapInterest(_:)), for: .touchUpInside)
-            row.addSubview(chip)
-
-            let column = index % columns
-            let line = index / columns
-            let chipWidth = CGFloat(interest.count * 13) + 32
-            chip.snp.makeConstraints { make in
-                make.width.equalTo(chipWidth)
-                make.height.equalTo(chipHeight)
-                make.leading.equalToSuperview().offset(CGFloat(column) * (chipWidth + chipGap))
-                make.top.equalToSuperview().offset(CGFloat(line) * (chipHeight + chipGap))
-                if index == interests.count - 1 {
-                    make.bottom.equalToSuperview()
-                }
-            }
-        }
-        return row
+        return interestView
     }
 
     private func buildStudioRow(below: UIView?) -> UIView {
@@ -330,45 +300,21 @@ final class AddChildViewController: BaseViewController {
 
     @objc private func didTapBirth() {
         view.endEditing(true)
-        let alert = UIAlertController(title: "选择出生年份", message: nil, preferredStyle: .actionSheet)
-        let picker = UIPickerView(frame: CGRect(x: 8, y: 8, width: 260, height: 160))
-        picker.delegate = self
-        picker.dataSource = self
-        if let index = years.firstIndex(of: selectedYear) {
-            picker.selectRow(index, inComponent: 0, animated: false)
-        }
-        let container = UIView(frame: CGRect(x: 0, y: 0, width: 276, height: 176))
-        container.addSubview(picker)
-        alert.view.addSubview(container)
-        alert.addAction(UIAlertAction(title: "确定", style: .default) { [weak self] _ in
+        let rows = years.map { "\($0)年（\(age(for: $0))）" }
+        let initialIndex = years.firstIndex(of: selectedYear) ?? 0
+        let sheet = PickerSheetViewController(title: "选择出生年份", rows: rows, initialIndex: initialIndex)
+        sheet.onConfirm = { [weak self] index in
             guard let self else { return }
+            self.selectedYear = self.years[index]
             self.birthLabel.text = "\(self.selectedYear)年（\(self.age(for: self.selectedYear))）"
-        })
-        alert.addAction(UIAlertAction(title: "取消", style: .cancel))
-        if let popover = alert.popoverPresentationController {
-            popover.sourceView = birthLabel
-            popover.sourceRect = birthLabel.bounds
         }
-        present(alert, animated: true)
+        present(sheet, animated: false)
     }
 
     @objc private func didTapGender(_ sender: UIButton) {
         selectedGender = sender.tag
         for button in genderButtons {
             updateGenderButton(button, selected: button.tag == selectedGender)
-        }
-    }
-
-    @objc private func didTapInterest(_ sender: UIButton) {
-        let interest = interests[sender.tag]
-        if selectedInterests.contains(interest) {
-            selectedInterests.remove(interest)
-            sender.backgroundColor = Theme.Color.surfaceAlt
-            sender.setTitleColor(Theme.Color.sub, for: .normal)
-        } else {
-            selectedInterests.insert(interest)
-            sender.backgroundColor = Theme.Color.brandSoft
-            sender.setTitleColor(Theme.Color.brand, for: .normal)
         }
     }
 
@@ -436,18 +382,3 @@ extension AddChildViewController: UITextFieldDelegate {
     }
 }
 
-extension AddChildViewController: UIPickerViewDataSource, UIPickerViewDelegate {
-    func numberOfComponents(in pickerView: UIPickerView) -> Int { 1 }
-
-    func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
-        years.count
-    }
-
-    func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
-        "\(years[row])年（\(age(for: years[row]))）"
-    }
-
-    func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
-        selectedYear = years[row]
-    }
-}
