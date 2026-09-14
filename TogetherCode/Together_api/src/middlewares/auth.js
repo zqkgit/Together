@@ -40,6 +40,7 @@ async function requireAuth(req, res, next) {
   }
 }
 
+/// 可选登录：带有效 token 则解析并挂载 req.user，无/无效 token 也放行（用于公开内容附带互动状态）
 async function requireAuthOptional(req, res, next) {
   const authHeader = req.headers.authorization || "";
   const token = authHeader.startsWith("Bearer ")
@@ -61,12 +62,13 @@ async function requireAuthOptional(req, res, next) {
       };
     }
   } catch (_error) {
-    // 可选登录：token 无效时按游客处理
+    // 无效 token 视作游客
   }
   return next();
 }
 
-function requireRole(...roles) {  return (req, res, next) => {
+function requireRole(...roles) {
+  return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
         code: 40100,

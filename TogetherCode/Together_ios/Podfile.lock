@@ -1,5 +1,6 @@
 PODS:
   - Alamofire (5.11.2)
+  - ESPullToRefresh (2.9.3)
   - IQKeyboardCore (1.0.5)
   - IQKeyboardManagerSwift (7.2.0):
     - IQKeyboardManagerSwift/Appearance (= 7.2.0)
@@ -42,44 +43,43 @@ PODS:
     - IQKeyboardCore (= 1.0.5)
   - Kingfisher (7.12.0)
   - MBProgressHUD (1.2.0)
-  - MJRefresh (3.7.9)
   - SnapKit (5.7.1)
   - SwiftyJSON (5.0.2)
 
 DEPENDENCIES:
   - Alamofire (~> 5.9)
+  - ESPullToRefresh (~> 2.9)
   - IQKeyboardManagerSwift (~> 7.0)
   - Kingfisher (~> 7.12)
   - MBProgressHUD (~> 1.2)
-  - MJRefresh (~> 3.7)
   - SnapKit (~> 5.7)
   - SwiftyJSON (~> 5.0)
 
 SPEC REPOS:
   https://mirrors.tuna.tsinghua.edu.cn/git/CocoaPods/Specs.git:
     - Alamofire
+    - ESPullToRefresh
     - IQKeyboardCore
     - IQKeyboardManagerSwift
     - IQKeyboardNotification
     - IQTextInputViewNotification
     - Kingfisher
     - MBProgressHUD
-    - MJRefresh
     - SnapKit
     - SwiftyJSON
 
 SPEC CHECKSUMS:
   Alamofire: 400275dd1c6d87d95a041861d2a59da4b520a203
+  ESPullToRefresh: 0d68daa602b343c81753a1b95e09fd0bfcddfd40
   IQKeyboardCore: 28c8bf3bcd8ba5aa1570b318cbc4da94b861711e
   IQKeyboardManagerSwift: 12d6ae3632ef744ccd033c048b566af13cc10d49
   IQKeyboardNotification: d7382c4466c5a5adef92c7452ebf861b36050088
   IQTextInputViewNotification: 4381fb828881983205fbee38f17da8a9fe2e835c
   Kingfisher: 53a10ea35051a436b5fb626ca2dd8f3144d755e9
   MBProgressHUD: 3ee5efcc380f6a79a7cc9b363dd669c5e1ae7406
-  MJRefresh: ff9e531227924c84ce459338414550a05d2aea78
   SnapKit: d612e99e678a2d3b95bf60b0705ed0a35c03484a
   SwiftyJSON: f5b1bf1cd8dd53cd25887ac0eabcfd92301c6a5a
 
-PODFILE CHECKSUM: 8c2ba48dd8c41bff69a71caa250a32531b53b917
+PODFILE CHECKSUM: 285f57927fa103354bdd4f231c54a7c434c2b022
 
 COCOAPODS: 1.16.2

@@ -14,8 +14,8 @@ target 'Together_ios' do
   pod 'Kingfisher', '~> 7.12'
   # 布局
   pod 'SnapKit', '~> 5.7'
-  # 刷新
-  pod 'MJRefresh', '~> 3.7'
+  # 刷新（下拉刷新 + 上拉加载，纯 Swift 可定制）
+  pod 'ESPullToRefresh', '~> 2.9'
   # HUD
   pod 'MBProgressHUD', '~> 1.2'
   # 键盘
