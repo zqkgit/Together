@@ -42,7 +42,7 @@ final class PostDetailViewController: BaseViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        configureImmersiveNav(titleColor: .white)
+        configureImmersiveNav(titleColor: .white, backBackground: UIColor.black.withAlphaComponent(0.28), backTint: .white)
     }
 
     override var preferredStatusBarStyle: UIStatusBarStyle { .lightContent }

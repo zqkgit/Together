@@ -7,7 +7,9 @@ const {
   getMyLessonLogsData,
   getChildAttendanceData,
   getChildTimetableData,
-  getChildCalendarData
+  getChildCalendarData,
+  getMyCoursesData,
+  getCourseSchedulesData
 } = require("../controllers/parentController");
 
 const router = express.Router();
@@ -20,5 +22,7 @@ router.get("/lesson-logs", parentViewValidators, validateRequest, getMyLessonLog
 router.get("/attendance", parentViewValidators, validateRequest, getChildAttendanceData);
 router.get("/schedules", parentViewValidators, validateRequest, getChildTimetableData);
 router.get("/calendar", parentViewValidators, validateRequest, getChildCalendarData);
+router.get("/my-courses", parentViewValidators, validateRequest, getMyCoursesData);
+router.get("/course-schedules", parentViewValidators, validateRequest, getCourseSchedulesData);
 
 module.exports = router;

@@ -4,7 +4,9 @@ const {
   getMyLessonLogs,
   getChildAttendance,
   getChildTimetable,
-  getChildCalendar
+  getChildCalendar,
+  getMyCourses,
+  getCourseSchedules
 } = require("../services/parentService");
 
 async function getMyBalancesData(req, res) {
@@ -46,6 +48,30 @@ async function getChildTimetableData(req, res) {
   }
 }
 
+async function getMyCoursesData(req, res) {
+  try {
+    const result = await getMyCourses(req.user.userId, req.query);
+    if (result.error) {
+      return fail(res, result.error.status, result.error.status === 404 ? 40440 : 40040, result.error.message);
+    }
+    return ok(res, result);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+async function getCourseSchedulesData(req, res) {
+  try {
+    const result = await getCourseSchedules(req.user.userId, req.query);
+    if (result.error) {
+      return fail(res, result.error.status, result.error.status === 404 ? 40440 : 40040, result.error.message);
+    }
+    return ok(res, result);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 async function getChildCalendarData(req, res) {
   try {
     const result = await getChildCalendar(req.user.userId, req.query);
@@ -63,5 +89,7 @@ module.exports = {
   getMyLessonLogsData,
   getChildAttendanceData,
   getChildTimetableData,
-  getChildCalendarData
+  getChildCalendarData,
+  getMyCoursesData,
+  getCourseSchedulesData
 };

@@ -22,8 +22,8 @@ class BaseViewController: UIViewController {
     func configureImmersiveNav(
         title: String? = nil,
         titleColor: UIColor = Theme.Color.ink,
-        backBackground: UIColor = UIColor.black.withAlphaComponent(0.28),
-        backTint: UIColor = .white
+        backBackground: UIColor = Theme.Color.ink.withAlphaComponent(0.06),
+        backTint: UIColor = Theme.Color.ink
     ) {
         let appearance = UINavigationBarAppearance()
         appearance.configureWithTransparentBackground()

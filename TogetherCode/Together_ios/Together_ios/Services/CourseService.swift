@@ -55,4 +55,47 @@ enum CourseService {
             }
         }
     }
+
+// MARK: - 我的课程（列表 + 课时进度）
+
+    /// 我的课程（孩子已购课程 + 进度 + 下一节课）
+    static func fetchMyCourses(
+        childId: String,
+        completion: @escaping (Result<[MyCourseItem], APIError>) -> Void
+    ) {
+        APIClient.shared.request(
+            "/parent/my-courses",
+            method: .get,
+            parameters: ["child_id": childId],
+            encoding: URLEncoding.default
+        ) { result in
+            switch result {
+            case .success(let json):
+                completion(.success(JSONKit.decodeList([MyCourseItem].self, from: json["list"])))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 课时进度（课程详情下的排课 + 出勤状态）
+    static func fetchCourseSchedules(
+        childId: String,
+        courseId: String,
+        completion: @escaping (Result<CourseScheduleSummary, APIError>) -> Void
+    ) {
+        APIClient.shared.request(
+            "/parent/course-schedules",
+            method: .get,
+            parameters: ["child_id": childId, "course_id": courseId],
+            encoding: URLEncoding.default
+        ) { result in
+            switch result {
+            case .success(let json):
+                completion(.success(JSONKit.decode(CourseScheduleSummary.self, from: json) ?? CourseScheduleSummary()))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
 }

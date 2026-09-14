@@ -456,5 +456,185 @@ module.exports = {
   getMyLessonLogs,
   getChildAttendance,
   getChildTimetable,
-  getChildCalendar
+  getChildCalendar,
+  getMyCourses,
+  getCourseSchedules
 };
+
+/**
+ * 家长端：我的课程（孩子已购课程聚合，含进度 + 下一节课）
+ * 需 child_id
+ */
+async function getMyCourses(userId, query = {}) {
+  const child = await ensureChildOwnership(query.child_id, userId);
+  if (!child) {
+    return { error: { status: 404, message: "孩子不存在" } };
+  }
+
+  const balances = await ChildCourseBalance.findAll({
+    where: {
+      child_id: child.child_id,
+      status: { [Op.in]: [1, 2] }
+    },
+    include: [
+      { model: Course, as: "course", attributes: ["course_id", "title", "cover"] },
+      {
+        model: Order,
+        as: "order",
+        attributes: ["order_id", "studio_id"],
+        include: [{ model: StudioProfile, as: "studio", attributes: ["studio_id", "name"] }]
+      }
+    ],
+    order: [["created_at", "ASC"]]
+  });
+
+  const courseIds = balances.map((item) => item.course_id);
+  let schedules = [];
+  if (courseIds.length) {
+    schedules = await Schedule.findAll({
+      where: { course_id: { [Op.in]: courseIds } },
+      include: [
+        { model: TeacherProfile, as: "teacher", attributes: ["teacher_id", "real_name"] },
+        { model: StudioProfile, as: "studio", attributes: ["studio_id", "name"] }
+      ],
+      order: [
+        ["lesson_date", "ASC"],
+        ["start_time", "ASC"]
+      ]
+    });
+  }
+
+  const scheduleByCourse = {};
+  schedules.forEach((item) => {
+    const key = String(item.course_id);
+    if (!scheduleByCourse[key]) scheduleByCourse[key] = [];
+    scheduleByCourse[key].push(item);
+  });
+
+  const now = new Date();
+  const local = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+  const todayStr = local.toISOString().slice(0, 10);
+
+  const list = balances.map((item) => {
+    const sc = scheduleByCourse[String(item.course_id)] || [];
+    const teacherItem = sc.find((s) => s.teacher) || sc[0];
+    const future = sc.find((s) => String(s.lesson_date) >= todayStr);
+    const total = Number(item.total_lessons);
+    const consumed = Number(item.consumed_lessons);
+    return {
+      course_id: String(item.course_id),
+      course_title: item.course ? item.course.title : "-",
+      course_cover: item.course ? item.course.cover : null,
+      studio_name: item.order?.studio ? item.order.studio.name : null,
+      teacher_name: teacherItem?.teacher ? teacherItem.teacher.real_name : null,
+      total_lessons: total,
+      consumed_lessons: consumed,
+      remaining_lessons: Number(item.remaining_lessons),
+      percent: total > 0 ? Math.round((consumed / total) * 100) : 0,
+      status: Number(item.status),
+      status_text: BALANCE_STATUS_TEXT[Number(item.status)] || "未知",
+      next_lesson: future
+        ? {
+            schedule_id: String(future.schedule_id),
+            lesson_date: future.lesson_date,
+            start_time: future.start_time,
+            end_time: future.end_time
+          }
+        : null
+    };
+  });
+
+  return {
+    child_id: String(child.child_id),
+    child_name: child.nickname,
+    list
+  };
+}
+
+/**
+ * 家长端：课时进度（课程详情下的排课 + 出勤状态）
+ * 需 child_id + course_id
+ */
+async function getCourseSchedules(userId, query = {}) {
+  const child = await ensureChildOwnership(query.child_id, userId);
+  if (!child) {
+    return { error: { status: 404, message: "孩子不存在" } };
+  }
+  const courseId = String(query.course_id || "").trim();
+  if (!courseId) {
+    return { error: { status: 400, message: "缺少 course_id" } };
+  }
+
+  const balance = await ChildCourseBalance.findOne({
+    where: {
+      child_id: child.child_id,
+      course_id: courseId,
+      status: { [Op.in]: [1, 2] }
+    },
+    include: [{ model: Course, as: "course", attributes: ["course_id", "title", "cover"] }]
+  });
+  if (!balance) {
+    return { error: { status: 404, message: "未找到该课程课包" } };
+  }
+
+  const schedules = await Schedule.findAll({
+    where: { course_id: courseId },
+    include: [
+      { model: TeacherProfile, as: "teacher", attributes: ["teacher_id", "real_name"] },
+      { model: StudioProfile, as: "studio", attributes: ["studio_id", "name"] },
+      {
+        model: Attendance,
+        as: "attendanceRecords",
+        attributes: ["attendance_id", "child_id", "status"]
+      }
+    ],
+    order: [
+      ["lesson_date", "ASC"],
+      ["start_time", "ASC"]
+    ]
+  });
+
+  const now = new Date();
+  const local = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+  const todayStr = local.toISOString().slice(0, 10);
+
+  const teacherItem = schedules.find((s) => s.teacher) || null;
+  const studioItem = schedules.find((s) => s.studio) || null;
+
+  const list = schedules.map((schedule, index) => {
+    const attendance = (schedule.attendanceRecords || []).find(
+      (a) => String(a.child_id) === String(child.child_id)
+    );
+    const attended = attendance && Number(attendance.status) === 1;
+    const isToday = String(schedule.lesson_date) === todayStr;
+    // 0 待上 / 1 已上 / 2 今天（未出勤）
+    const status = attended ? 1 : isToday ? 2 : 0;
+    const lessonNo = index + 1;
+    return {
+      schedule_id: String(schedule.schedule_id),
+      lesson_no: lessonNo,
+      lesson_title:
+        schedule.remark && String(schedule.remark).trim()
+          ? String(schedule.remark).trim()
+          : `第${lessonNo}课`,
+      lesson_date: schedule.lesson_date,
+      start_time: schedule.start_time,
+      end_time: schedule.end_time,
+      status
+    };
+  });
+
+  return {
+    child_id: String(child.child_id),
+    child_name: child.nickname,
+    course_id: courseId,
+    course_title: balance.course ? balance.course.title : "-",
+    course_cover: balance.course ? balance.course.cover : null,
+    studio_name: studioItem?.studio ? studioItem.studio.name : null,
+    teacher_name: teacherItem?.teacher ? teacherItem.teacher.real_name : null,
+    total_lessons: Number(balance.total_lessons),
+    consumed_lessons: Number(balance.consumed_lessons),
+    remaining_lessons: Number(balance.remaining_lessons),
+    list
+  };
+}
