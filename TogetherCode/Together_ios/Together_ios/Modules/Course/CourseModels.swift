@@ -28,6 +28,8 @@ struct PackageItem: Codable {
 // MARK: - 我的课程（列表）
 
 struct MyCourseItem: Codable {
+    let child_id: String?
+    let child_name: String?
     let course_id: String
     let course_title: String?
     let course_cover: String?
@@ -125,4 +127,14 @@ struct CourseScheduleSummary: Codable {
         }
         return studio_name ?? "未知机构"
     }
+}
+
+// MARK: - 孩子简要（我的课程筛选）
+
+struct ChildBrief: Codable {
+    let child_id: String?
+    let child_name: String?
+
+    var id: String { child_id ?? "" }
+    var name: String { child_name ?? "孩子" }
 }

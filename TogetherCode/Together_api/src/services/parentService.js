@@ -463,90 +463,111 @@ module.exports = {
 
 /**
  * 家长端：我的课程（孩子已购课程聚合，含进度 + 下一节课）
- * 需 child_id
+ * 支持传 child_id（单孩子）或不传（全部孩子 + children 筛选数组）
  */
 async function getMyCourses(userId, query = {}) {
-  const child = await ensureChildOwnership(query.child_id, userId);
-  if (!child) {
-    return { error: { status: 404, message: "孩子不存在" } };
-  }
-
-  const balances = await ChildCourseBalance.findAll({
-    where: {
-      child_id: child.child_id,
-      status: { [Op.in]: [1, 2] }
-    },
-    include: [
-      { model: Course, as: "course", attributes: ["course_id", "title", "cover"] },
-      {
-        model: Order,
-        as: "order",
-        attributes: ["order_id", "studio_id"],
-        include: [{ model: StudioProfile, as: "studio", attributes: ["studio_id", "name"] }]
-      }
-    ],
-    order: [["created_at", "ASC"]]
-  });
-
-  const courseIds = balances.map((item) => item.course_id);
-  let schedules = [];
-  if (courseIds.length) {
-    schedules = await Schedule.findAll({
-      where: { course_id: { [Op.in]: courseIds } },
-      include: [
-        { model: TeacherProfile, as: "teacher", attributes: ["teacher_id", "real_name"] },
-        { model: StudioProfile, as: "studio", attributes: ["studio_id", "name"] }
-      ],
-      order: [
-        ["lesson_date", "ASC"],
-        ["start_time", "ASC"]
-      ]
+  const rawChildId = String(query.child_id || "").trim();
+  let children;
+  if (rawChildId) {
+    const child = await ensureChildOwnership(rawChildId, userId);
+    if (!child) {
+      return { error: { status: 404, message: "孩子不存在" } };
+    }
+    children = [child];
+  } else {
+    children = await Child.findAll({
+      where: { parent_user_id: userId },
+      order: [["created_at", "ASC"]]
     });
+    if (!children.length) {
+      return { children: [], list: [] };
+    }
   }
-
-  const scheduleByCourse = {};
-  schedules.forEach((item) => {
-    const key = String(item.course_id);
-    if (!scheduleByCourse[key]) scheduleByCourse[key] = [];
-    scheduleByCourse[key].push(item);
-  });
 
   const now = new Date();
   const local = new Date(now.getTime() + 8 * 60 * 60 * 1000);
   const todayStr = local.toISOString().slice(0, 10);
 
-  const list = balances.map((item) => {
-    const sc = scheduleByCourse[String(item.course_id)] || [];
-    const teacherItem = sc.find((s) => s.teacher) || sc[0];
-    const future = sc.find((s) => String(s.lesson_date) >= todayStr);
-    const total = Number(item.total_lessons);
-    const consumed = Number(item.consumed_lessons);
-    return {
-      course_id: String(item.course_id),
-      course_title: item.course ? item.course.title : "-",
-      course_cover: item.course ? item.course.cover : null,
-      studio_name: item.order?.studio ? item.order.studio.name : null,
-      teacher_name: teacherItem?.teacher ? teacherItem.teacher.real_name : null,
-      total_lessons: total,
-      consumed_lessons: consumed,
-      remaining_lessons: Number(item.remaining_lessons),
-      percent: total > 0 ? Math.round((consumed / total) * 100) : 0,
-      status: Number(item.status),
-      status_text: BALANCE_STATUS_TEXT[Number(item.status)] || "未知",
-      next_lesson: future
-        ? {
-            schedule_id: String(future.schedule_id),
-            lesson_date: future.lesson_date,
-            start_time: future.start_time,
-            end_time: future.end_time
-          }
-        : null
-    };
-  });
+  const list = [];
+  for (const child of children) {
+    const balances = await ChildCourseBalance.findAll({
+      where: {
+        child_id: child.child_id,
+        status: { [Op.in]: [1, 2] }
+      },
+      include: [
+        { model: Course, as: "course", attributes: ["course_id", "title", "cover"] },
+        {
+          model: Order,
+          as: "order",
+          attributes: ["order_id", "studio_id"],
+          include: [{ model: StudioProfile, as: "studio", attributes: ["studio_id", "name"] }]
+        }
+      ],
+      order: [["created_at", "ASC"]]
+    });
+
+    const courseIds = balances.map((item) => item.course_id);
+    let schedules = [];
+    if (courseIds.length) {
+      schedules = await Schedule.findAll({
+        where: { course_id: { [Op.in]: courseIds } },
+        include: [
+          { model: TeacherProfile, as: "teacher", attributes: ["teacher_id", "real_name"] },
+          { model: StudioProfile, as: "studio", attributes: ["studio_id", "name"] }
+        ],
+        order: [
+          ["lesson_date", "ASC"],
+          ["start_time", "ASC"]
+        ]
+      });
+    }
+
+    const scheduleByCourse = {};
+    schedules.forEach((item) => {
+      const key = String(item.course_id);
+      if (!scheduleByCourse[key]) scheduleByCourse[key] = [];
+      scheduleByCourse[key].push(item);
+    });
+
+    const childList = balances.map((item) => {
+      const sc = scheduleByCourse[String(item.course_id)] || [];
+      const teacherItem = sc.find((s) => s.teacher) || sc[0];
+      const future = sc.find((s) => String(s.lesson_date) >= todayStr);
+      const total = Number(item.total_lessons);
+      const consumed = Number(item.consumed_lessons);
+      return {
+        child_id: String(child.child_id),
+        child_name: child.nickname,
+        course_id: String(item.course_id),
+        course_title: item.course ? item.course.title : "-",
+        course_cover: item.course ? item.course.cover : null,
+        studio_name: item.order?.studio ? item.order.studio.name : null,
+        teacher_name: teacherItem?.teacher ? teacherItem.teacher.real_name : null,
+        total_lessons: total,
+        consumed_lessons: consumed,
+        remaining_lessons: Number(item.remaining_lessons),
+        percent: total > 0 ? Math.round((consumed / total) * 100) : 0,
+        status: Number(item.status),
+        status_text: BALANCE_STATUS_TEXT[Number(item.status)] || "未知",
+        next_lesson: future
+          ? {
+              schedule_id: String(future.schedule_id),
+              lesson_date: future.lesson_date,
+              start_time: future.start_time,
+              end_time: future.end_time
+            }
+          : null
+      };
+    });
+    list.push(...childList);
+  }
 
   return {
-    child_id: String(child.child_id),
-    child_name: child.nickname,
+    children: children.map((c) => ({
+      child_id: String(c.child_id),
+      child_name: c.nickname
+    })),
     list
   };
 }

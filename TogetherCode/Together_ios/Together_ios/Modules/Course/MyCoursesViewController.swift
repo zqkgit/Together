@@ -1,21 +1,31 @@
 import UIKit
 import SnapKit
+import ESPullToRefresh
 
 /// 我的课程（家长端：孩子已购课程 + 进度 + 下一节课）
 /// PR 设计：课程卡片列表（名称/机构·老师/下次课/进度条/节数占比）
+/// childId 为空时展示所有孩子的课程，顶部可按孩子筛选
 final class MyCoursesViewController: BaseViewController {
 
-    private let childId: String
-    private let childName: String
+    private let childId: String?
+    private let childName: String?
 
     private let tableView = UITableView(frame: .zero, style: .plain)
-    private var items: [MyCourseItem] = []
+    private var allItems: [MyCourseItem] = []
+    private var filteredItems: [MyCourseItem] = []
+    private var childBriefs: [ChildBrief] = []
+    private var selectedChildId: String?   // nil = 全部
+
+    private var chipRow: TagChipRow?
     private let emptyView = EmptyStateView()
 
-    init(childId: String, childName: String) {
+    init(childId: String?, childName: String?) {
         self.childId = childId
         self.childName = childName
         super.init(nibName: nil, bundle: nil)
+    }
+    convenience init() {
+        self.init(childId: nil, childName: nil)
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
@@ -35,8 +45,39 @@ final class MyCoursesViewController: BaseViewController {
         tableView.register(MyCourseCell.self, forCellReuseIdentifier: "MyCourseCell")
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 140
-        view.addSubview(tableView)
-        tableView.snp.makeConstraints { $0.edges.equalTo(view.safeAreaLayoutGuide) }
+        // 参考广场：下拉刷新
+        tableView.es.addPullToRefresh(animator: BrandRefreshHeader()) { [weak self] in
+            self?.reload()
+        }
+
+        let isMulti = childId == nil || childId?.isEmpty == true
+        if isMulti {
+            // 筛选条固定在导航栏下方，不随内容滚动（对齐广场 chipRow）
+            let chipRow = TagChipRow(chips: [])
+            chipRow.onSelect = { [weak self] index in
+                guard let self else { return }
+                self.selectedChildId = index == 0 ? nil : self.childBriefs[safe: index - 1]?.id
+                self.applyFilter()
+                self.tableView.reloadData()
+                self.updateEmptyState()
+            }
+            view.addSubview(chipRow)
+            chipRow.snp.makeConstraints {
+                $0.top.equalTo(view.safeAreaLayoutGuide).offset(Theme.Spacing.m)
+                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
+                $0.height.equalTo(34)
+            }
+            self.chipRow = chipRow
+
+            view.addSubview(tableView)
+            tableView.snp.makeConstraints {
+                $0.top.equalTo(chipRow.snp.bottom).offset(Theme.Spacing.s)
+                $0.leading.trailing.bottom.equalTo(view.safeAreaLayoutGuide)
+            }
+        } else {
+            view.addSubview(tableView)
+            tableView.snp.makeConstraints { $0.edges.equalTo(view.safeAreaLayoutGuide) }
+        }
 
         emptyView.isHidden = true
         view.addSubview(emptyView)
@@ -48,39 +89,87 @@ final class MyCoursesViewController: BaseViewController {
         CourseService.fetchMyCourses(childId: childId) { [weak self] result in
             guard let self else { return }
             switch result {
-            case .success(let items):
-                self.items = items
+            case .success(let (children, items)):
+                self.childBriefs = children
+                self.allItems = items
+                self.fillChipRow()
+                self.applyFilter()
                 self.tableView.reloadData()
-                self.emptyView.isHidden = !items.isEmpty
-                if items.isEmpty {
-                    self.emptyView.show(style: .empty("\(self.childName)还没有报名课程"))
-                }
+                self.tableView.es.stopPullToRefresh()
+                self.updateEmptyState()
             case .failure(let error):
+                self.tableView.es.stopPullToRefresh()
                 self.emptyView.show(style: .error(error.message) { [weak self] in
                     self?.loadData()
                 })
             }
         }
     }
+
+    /// 下拉刷新：重新拉取全部数据（对齐广场 reload）
+    private func reload() {
+        loadData()
+    }
+
+    private func updateEmptyState() {
+        let isEmpty = filteredItems.isEmpty
+        emptyView.isHidden = !isEmpty
+        if isEmpty {
+            let name = childName ?? "孩子"
+            emptyView.show(style: .empty("\(name)还没有报名课程"))
+        }
+    }
+
+    // MARK: - 孩子筛选
+
+    private func applyFilter() {
+        if let childId, !childId.isEmpty {
+            filteredItems = allItems.filter { $0.child_id == childId }
+            return
+        }
+        if let selectedChildId {
+            filteredItems = allItems.filter { $0.child_id == selectedChildId }
+        } else {
+            filteredItems = allItems
+        }
+    }
+
+    /// 全部孩子的 id 列表（来自后端 children，含无课孩子）
+    private var distinctChildIds: [String] {
+        childBriefs.map { $0.id }.filter { !$0.isEmpty }
+    }
+
+    /// 数据回来后填充筛选 chips（仅多孩子模式）
+    private func fillChipRow() {
+        guard let chipRow, childId == nil || childId?.isEmpty == true else { return }
+        let chips = ["全部"] + childBriefs.filter { !$0.id.isEmpty }.map(\.name)
+        chipRow.update(chips: chips, selectedIndex: 0)
+    }
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        indices.contains(index) ? self[index] : nil
+    }
 }
 
 extension MyCoursesViewController: UITableViewDataSource, UITableViewDelegate {
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        items.count
+        filteredItems.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "MyCourseCell", for: indexPath) as! MyCourseCell
-        cell.configure(items[indexPath.row])
+        cell.configure(filteredItems[indexPath.row])
         return cell
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        let item = items[indexPath.row]
+        let item = filteredItems[indexPath.row]
         let vc = CourseStudyViewController(
-            childId: childId,
+            childId: item.child_id ?? "",
             courseId: item.course_id,
             courseTitle: item.course_title ?? "课程学习"
         )

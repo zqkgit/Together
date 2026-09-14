@@ -11,7 +11,7 @@ final class TagChipRow: UIView {
     private let stack = UIStackView()
     private var buttons: [UIButton] = []
     private(set) var selectedIndex: Int = 0
-    private let chips: [String]
+    private var chips: [String]
 
     /// - Parameters:
     ///   - chips: 标签文案数组
@@ -35,6 +35,12 @@ final class TagChipRow: UIView {
         }
 
         rebuild()
+    }
+
+    /// 更新全部 chips（数据回来后再填充）
+    func update(chips: [String], selectedIndex: Int = 0) {
+        self.chips = chips
+        rebuild(selectedIndex: selectedIndex)
     }
 
     /// 重建全部 chips（含选中态）

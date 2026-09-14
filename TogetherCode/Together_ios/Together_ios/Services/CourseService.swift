@@ -58,20 +58,26 @@ enum CourseService {
 
 // MARK: - 我的课程（列表 + 课时进度）
 
-    /// 我的课程（孩子已购课程 + 进度 + 下一节课）
+    /// 我的课程（childId 为 nil 时返回所有孩子的课程 + 筛选用 children 数组）
     static func fetchMyCourses(
-        childId: String,
-        completion: @escaping (Result<[MyCourseItem], APIError>) -> Void
+        childId: String? = nil,
+        completion: @escaping (Result<([ChildBrief], [MyCourseItem]), APIError>) -> Void
     ) {
+        var parameters: [String: Any] = [:]
+        if let childId, !childId.isEmpty {
+            parameters["child_id"] = childId
+        }
         APIClient.shared.request(
             "/parent/my-courses",
             method: .get,
-            parameters: ["child_id": childId],
+            parameters: parameters,
             encoding: URLEncoding.default
         ) { result in
             switch result {
             case .success(let json):
-                completion(.success(JSONKit.decodeList([MyCourseItem].self, from: json["list"])))
+                let children = JSONKit.decodeList([ChildBrief].self, from: json["children"])
+                let list = JSONKit.decodeList([MyCourseItem].self, from: json["list"])
+                completion(.success((children, list)))
             case .failure(let error):
                 completion(.failure(error))
             }

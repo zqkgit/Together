@@ -209,7 +209,19 @@ final class MineViewController: BaseViewController, UITableViewDataSource, UITab
             navigationController?.pushViewController(MyChildrenViewController(), animated: true)
             return
         }
+        if item.title == "我的课程" {
+            openMyCourses()
+            return
+        }
         showToast("「\(item.title)」功能开发中")
+    }
+
+    // MARK: - 我的课程
+
+    /// 我的课程：直接进入，展示所有孩子的课程（页面内按孩子筛选）
+    private func openMyCourses() {
+        let vc = MyCoursesViewController()
+        navigationController?.pushViewController(vc, animated: true)
     }
 }
 
