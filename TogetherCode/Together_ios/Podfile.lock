@@ -2,6 +2,28 @@ PODS:
   - Alamofire (5.11.2)
   - ESPullToRefresh (2.9.3)
   - FSPagerView (0.8.3)
+  - HXPhotoPicker (5.0.5):
+    - HXPhotoPicker/Default (= 5.0.5)
+  - HXPhotoPicker/Camera (5.0.5):
+    - HXPhotoPicker/Camera/Lite (= 5.0.5)
+    - HXPhotoPicker/Camera/Location (= 5.0.5)
+  - HXPhotoPicker/Camera/Lite (5.0.5):
+    - HXPhotoPicker/Core
+  - HXPhotoPicker/Camera/Location (5.0.5):
+    - HXPhotoPicker/Camera/Lite
+  - HXPhotoPicker/Core (5.0.5):
+    - HXPhotoPicker/Resources
+  - HXPhotoPicker/Default (5.0.5):
+    - HXPhotoPicker/Camera
+    - HXPhotoPicker/Editor
+    - HXPhotoPicker/Picker
+  - HXPhotoPicker/Editor (5.0.5):
+    - HXPhotoPicker/EditorView
+  - HXPhotoPicker/EditorView (5.0.5):
+    - HXPhotoPicker/Core
+  - HXPhotoPicker/Picker (5.0.5):
+    - HXPhotoPicker/Core
+  - HXPhotoPicker/Resources (5.0.5)
   - IQKeyboardCore (1.0.5)
   - IQKeyboardManagerSwift (7.2.0):
     - IQKeyboardManagerSwift/Appearance (= 7.2.0)
@@ -51,6 +73,7 @@ DEPENDENCIES:
   - Alamofire (~> 5.9)
   - ESPullToRefresh (~> 2.9)
   - FSPagerView (~> 0.8.3)
+  - HXPhotoPicker (= 5.0.5)
   - IQKeyboardManagerSwift (~> 7.0)
   - Kingfisher (~> 7.12)
   - MBProgressHUD (~> 1.2)
@@ -62,6 +85,7 @@ SPEC REPOS:
     - Alamofire
     - ESPullToRefresh
     - FSPagerView
+    - HXPhotoPicker
     - IQKeyboardCore
     - IQKeyboardManagerSwift
     - IQKeyboardNotification
@@ -75,6 +99,7 @@ SPEC CHECKSUMS:
   Alamofire: 400275dd1c6d87d95a041861d2a59da4b520a203
   ESPullToRefresh: 0d68daa602b343c81753a1b95e09fd0bfcddfd40
   FSPagerView: 670405b2f18e2a87fa37f20b00de783e562c25a8
+  HXPhotoPicker: 73952d15fa0ea68a4757b786a506bdf1e44895c4
   IQKeyboardCore: 28c8bf3bcd8ba5aa1570b318cbc4da94b861711e
   IQKeyboardManagerSwift: 12d6ae3632ef744ccd033c048b566af13cc10d49
   IQKeyboardNotification: d7382c4466c5a5adef92c7452ebf861b36050088
@@ -84,6 +109,6 @@ SPEC CHECKSUMS:
   SnapKit: d612e99e678a2d3b95bf60b0705ed0a35c03484a
   SwiftyJSON: f5b1bf1cd8dd53cd25887ac0eabcfd92301c6a5a
 
-PODFILE CHECKSUM: 9445238a383a0f521b43184f39788ea09d8992bd
+PODFILE CHECKSUM: 0ebe863764d9c9123a465af8936ea8c470989e9a
 
 COCOAPODS: 1.16.2

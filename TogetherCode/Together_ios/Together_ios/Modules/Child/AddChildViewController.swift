@@ -1,5 +1,6 @@
 import UIKit
 import SnapKit
+import HXPhotoPicker
 
 /// 添加孩子表单（PR 图5）：头像选择 / 昵称 / 出生年份 / 性别 / 兴趣多选 / 绑定学籍 / 保存
 final class AddChildViewController: BaseViewController {
@@ -9,10 +10,13 @@ final class AddChildViewController: BaseViewController {
     private let scrollView = UIScrollView()
     private let contentView = UIView()
 
-    // 头像
+    // 头像（5 个 emoji + 相册自定义）
     private let avatarOptions = ["🌻", "🦊", "🐟", "🍀", "🎀"]
-    private var avatarViews: [UIView] = []
+    private var avatarViews: [CircleView] = []
     private var selectedAvatar = "🌻"
+    private var customAvatarImage: UIImage?
+    private var customAvatarView: UIView?
+    private var customPhotoImageView: UIImageView?
 
     // 昵称
     private let nicknameField = UITextField()
@@ -40,7 +44,10 @@ final class AddChildViewController: BaseViewController {
         navigationItem.title = "添加孩子"
         let close = UIBarButtonItem(image: UIImage(systemName: "xmark"), style: .plain, target: self, action: #selector(didTapClose))
         close.tintColor = Theme.Color.ink
-        navigationItem.rightBarButtonItem = close
+        navigationItem.leftBarButtonItem = close
+        let save = UIBarButtonItem(title: "保存", style: .plain, target: self, action: #selector(didTapSave))
+        save.tintColor = Theme.Color.brand
+        navigationItem.rightBarButtonItem = save
     }
 
     private func setupUI() {
@@ -82,21 +89,6 @@ final class AddChildViewController: BaseViewController {
         // 绑定学籍
         lastView = buildStudioRow(below: lastView)
 
-        // 保存
-        let saveButton = UIButton(type: .system)
-        saveButton.setTitle("保存孩子档案", for: .normal)
-        saveButton.setTitleColor(.white, for: .normal)
-        saveButton.titleLabel?.font = .appSection(16)
-        saveButton.backgroundColor = Theme.Color.brand
-        saveButton.layer.cornerRadius = Theme.Radius.button
-        saveButton.addTarget(self, action: #selector(didTapSave), for: .touchUpInside)
-        contentView.addSubview(saveButton)
-        saveButton.snp.makeConstraints {
-            $0.top.equalTo(lastView!.snp.bottom).offset(Theme.Spacing.xxl)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
-            $0.height.equalTo(50)
-            $0.bottom.equalToSuperview().inset(Theme.Spacing.xxl)
-        }
     }
 
     // MARK: - 区块构建
@@ -119,20 +111,61 @@ final class AddChildViewController: BaseViewController {
     }
 
     private func buildAvatarRow(below: UIView?) -> UIView {
-        let row = UIStackView()
-        row.axis = .horizontal
-        row.spacing = Theme.Spacing.l
-        row.distribution = .fillEqually
-        contentView.addSubview(row)
-        row.snp.makeConstraints {
+        // 白底圆角卡片容器（高度由内容决定）
+        let card = UIView()
+        card.backgroundColor = Theme.Color.surface
+        card.layer.cornerRadius = Theme.Radius.card
+        contentView.addSubview(card)
+        card.snp.makeConstraints {
             $0.top.equalTo(below!.snp.bottom).offset(Theme.Spacing.m)
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
-            $0.height.equalTo(60)
         }
 
+        // 6 项均分一行，每项宽=高=正圆
+        let row = UIStackView()
+        row.axis = .horizontal
+        row.spacing = Theme.Spacing.m
+        row.distribution = .fillEqually
+        card.addSubview(row)
+        row.snp.makeConstraints {
+            $0.top.bottom.equalToSuperview().inset(Theme.Spacing.m)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
+        }
+
+        // 相册入口放第一个
+        let album = CircleView()
+        album.layer.borderWidth = 2
+        album.layer.borderColor = UIColor.clear.cgColor
+        album.backgroundColor = Theme.Color.surfaceAlt
+        album.isUserInteractionEnabled = true
+        album.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(didTapAlbum)))
+        let camera = UIImageView(image: UIImage(systemName: "camera.fill"))
+        camera.tintColor = Theme.Color.sub
+        camera.contentMode = .scaleAspectFit
+        album.addSubview(camera)
+        camera.snp.makeConstraints {
+            $0.centerX.equalToSuperview()
+            $0.top.equalToSuperview().offset(7)
+            $0.width.height.equalTo(18)
+        }
+        let tip = UILabel()
+        tip.text = "相册"
+        tip.font = .appLabel(8)
+        tip.textColor = Theme.Color.sub
+        tip.textAlignment = .center
+        album.addSubview(tip)
+        tip.snp.makeConstraints {
+            $0.centerX.equalToSuperview()
+            $0.top.equalTo(camera.snp.bottom).offset(1)
+        }
+        row.addArrangedSubview(album)
+        album.snp.makeConstraints { $0.width.equalTo(album.snp.height) }
+        avatarViews.append(album)
+        customAvatarView = album
+
+        // 5 个 emoji 圆形选项
         for (index, emoji) in avatarOptions.enumerated() {
-            let container = UIView()
-            container.layer.cornerRadius = 24
+            let container = CircleView()
             container.layer.borderWidth = 2
             container.layer.borderColor = (index == 0 ? Theme.Color.brand : UIColor.clear).cgColor
             container.backgroundColor = (index == 0 ? Theme.Color.brandSoft : Theme.Color.surfaceAlt)
@@ -142,16 +175,18 @@ final class AddChildViewController: BaseViewController {
 
             let label = UILabel()
             label.text = emoji
-            label.font = .systemFont(ofSize: 26)
+            label.font = .systemFont(ofSize: 24)
             label.textAlignment = .center
             container.addSubview(label)
             label.snp.makeConstraints { $0.edges.equalToSuperview() }
             container.tag = index
 
             row.addArrangedSubview(container)
+            container.snp.makeConstraints { $0.width.equalTo(container.snp.height) }
             avatarViews.append(container)
         }
-        return row
+
+        return card
     }
 
     private func buildTextFieldRow(below: UIView?) -> UIView {
@@ -257,15 +292,6 @@ final class AddChildViewController: BaseViewController {
             $0.leading.equalToSuperview().offset(Theme.Spacing.l)
         }
 
-        let status = UILabel()
-        status.text = "暂不绑定"
-        status.font = .appLabel(12)
-        status.textColor = Theme.Color.brand
-        card.addSubview(status)
-        status.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
-            $0.centerY.equalTo(title)
-        }
 
         let desc = UILabel()
         desc.text = "绑定学籍后，老师发布的课堂作品会自动归入孩子的成长档案。"
@@ -291,11 +317,66 @@ final class AddChildViewController: BaseViewController {
     @objc private func didTapAvatar(_ gesture: UITapGestureRecognizer) {
         guard let view = gesture.view else { return }
         let index = view.tag
+        guard index >= 0, index < avatarOptions.count else { return }
+        // 选 emoji 时清掉自定义照片（相册项恢复默认样式）
+        customAvatarImage = nil
+        customPhotoImageView?.removeFromSuperview()
+        customPhotoImageView = nil
+        if let custom = customAvatarView {
+            custom.layer.borderColor = UIColor.clear.cgColor
+            custom.backgroundColor = Theme.Color.surfaceAlt
+            custom.subviews.forEach { sub in
+                if sub is UIImageView || (sub is UILabel) { sub.isHidden = false }
+            }
+        }
         selectedAvatar = avatarOptions[index]
         for (i, v) in avatarViews.enumerated() {
-            v.layer.borderColor = (i == index ? Theme.Color.brand : UIColor.clear).cgColor
-            v.backgroundColor = (i == index ? Theme.Color.brandSoft : Theme.Color.surfaceAlt)
+            let isEmoji = i > 0 && (i - 1) == index
+            v.layer.borderColor = (isEmoji ? Theme.Color.brand : UIColor.clear).cgColor
+            v.backgroundColor = (isEmoji ? Theme.Color.brandSoft : Theme.Color.surfaceAlt)
         }
+    }
+
+    // MARK: - 相册自定义头像
+
+    @objc private func didTapAlbum() {
+        view.endEditing(true)
+        var config = PickerConfiguration()
+        config.selectOptions = [.photo]
+        config.maximumSelectedCount = 1
+        let picker = PhotoPickerController(config: config)
+        picker.finishHandler = { [weak self] result, _ in
+            guard let self, let image = result.photoAssets.first else { return }
+            result.getImage(targetSize: CGSize(width: 200, height: 200)) { images in
+                guard let thumb = images.first else { return }
+                self.applyCustomAvatar(thumb)
+            }
+        }
+        present(picker, animated: true)
+    }
+
+    private func applyCustomAvatar(_ image: UIImage) {
+        customAvatarImage = image
+        selectedAvatar = ""
+        guard let custom = customAvatarView else { return }
+        // 清空所有 emoji 选中态
+        for v in avatarViews {
+            v.layer.borderColor = UIColor.clear.cgColor
+            v.backgroundColor = Theme.Color.surfaceAlt
+        }
+        // 相册项高亮
+        custom.layer.borderColor = Theme.Color.brand.cgColor
+        custom.backgroundColor = Theme.Color.brandSoft
+        // 隐藏图标/文字，显示照片
+        custom.subviews.forEach { sub in
+            if sub is UIImageView || (sub is UILabel) { sub.isHidden = true }
+        }
+        customPhotoImageView?.removeFromSuperview()
+        let photo = CircleImageView(image: image)
+        photo.contentMode = .scaleAspectFill
+        custom.addSubview(photo)
+        photo.snp.makeConstraints { $0.edges.equalToSuperview().inset(2) }
+        customPhotoImageView = photo
     }
 
     @objc private func didTapBirth() {
@@ -350,9 +431,17 @@ final class AddChildViewController: BaseViewController {
         }
 
         showLoading("保存中...")
+        // TODO: OSS 配置后，customAvatarImage 上传 OSS 并替换 avatar 为 URL
+        let avatar: String
+        if let image = customAvatarImage {
+            avatar = "custom:avatar"
+            _ = image // 预留：待 OSS 上传
+        } else {
+            avatar = selectedAvatar
+        }
         ChildService.createChild(
             nickname: nickname,
-            avatar: selectedAvatar,
+            avatar: avatar,
             birthday: "\(selectedYear)-01-01",
             gender: selectedGender,
             interests: Array(selectedInterests)

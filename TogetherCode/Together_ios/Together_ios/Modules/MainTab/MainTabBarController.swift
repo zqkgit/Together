@@ -13,5 +13,12 @@ final class MainTabBarController: BaseTabBarViewController {
             makeTab(MineViewController(), title: "我的", icon: "person")
         ]
 
+        // TEMP: 验证顶部保存 + 无暂不绑定
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+            guard let self else { return }
+            let nav = BaseNavigationController(rootViewController: AddChildViewController())
+            nav.modalPresentationStyle = .fullScreen
+            self.present(nav, animated: true)
+        }
     }
 }

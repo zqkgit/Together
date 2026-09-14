@@ -40,5 +40,9 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>用于拍摄并设置孩子的头像照片</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>用于从相册选择孩子的头像照片</string>
 </dict>
 </plist>

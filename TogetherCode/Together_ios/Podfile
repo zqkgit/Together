@@ -22,6 +22,8 @@ target 'Together_ios' do
   pod 'MBProgressHUD', '~> 1.2'
   # 键盘
   pod 'IQKeyboardManagerSwift', '~> 7.0'
+  # 相册选择（添加孩子自定义头像等场景）
+  pod 'HXPhotoPicker', '5.0.5'
 end
 
 # 统一所有 pod 的 iOS 最低版本，避免三方库 availability 过低报错
