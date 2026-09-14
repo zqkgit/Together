@@ -6,6 +6,8 @@ const {
   listPostComments,
   addPostComment,
   deletePostComment,
+  likeComment,
+  unlikeComment,
   sharePost,
   listFeed,
   listPlaza,
@@ -51,8 +53,35 @@ async function deletePostLike(req, res) {
 
 async function getPostComments(req, res) {
   try {
-    const data = await listPostComments(req.params.id, req.query);
+    const query = { ...req.query, viewerUserId: req.user?.userId || null };
+    const data = await listPostComments(req.params.id, query);
     return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+/** 评论点赞（登录，幂等） */
+async function putCommentLike(req, res) {
+  try {
+    const data = await likeComment(req.user.userId, req.params.commentId);
+    if (!data) {
+      return fail(res, 404, 40460, "评论不存在或已删除");
+    }
+    return ok(res, data, "已点赞");
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+/** 取消评论点赞（登录，幂等） */
+async function deleteCommentLike(req, res) {
+  try {
+    const data = await unlikeComment(req.user.userId, req.params.commentId);
+    if (!data) {
+      return fail(res, 404, 40460, "评论不存在");
+    }
+    return ok(res, data, "已取消点赞");
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");
   }
@@ -67,12 +96,17 @@ async function postPostComment(req, res) {
     if (content.length > 500) {
       return fail(res, 400, 40061, "评论不能超过 500 字");
     }
-    const data = await addPostComment(req.user.userId, req.params.id, content);
+    // parent_id 保持字符串（BIGINT 超过 JS 安全整数，数字会丢精度）
+    const parentId = req.body.parent_id || 0;
+    const data = await addPostComment(req.user.userId, req.params.id, content, parentId);
     if (!data) {
       return fail(res, 404, 40460, "帖子不存在或不可见");
     }
     return ok(res, data, "评论成功");
   } catch (error) {
+    if (error.code === 40063) {
+      return fail(res, 400, 40063, error.message);
+    }
     return fail(res, 500, 50000, error.message || "Internal server error");
   }
 }
@@ -147,6 +181,8 @@ module.exports = {
   deletePostLike,
   getPostComments,
   postPostComment,
+  putCommentLike,
+  deleteCommentLike,
   deleteComment,
   postPostShare,
   getFeed,

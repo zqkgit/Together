@@ -15,6 +15,7 @@ const uploadRoutes = require("./upload");
 const profileRoutes = require("./profile");
 const meRoutes = require("./me");
 const interactionRoutes = require("./interaction");
+const followRoutes = require("./follow");
 const { ok, fail } = require("../utils/response");
 const { listAnnouncements, getAnnouncementDetail, getHotKeywords } = require("../services/platformGovernanceService");
 const { listPublicStudios, listPublicTeachers } = require("../services/publicListingService");
@@ -115,6 +116,9 @@ router.use("/me", meRoutes);
 
 // 互动：课程评价（公开读/登录写）+ 收藏（登录）
 router.use("/", interactionRoutes);
+
+// 关注关系：关注/取消关注/关注列表/粉丝列表（登录）
+router.use("/", followRoutes);
 
 // 工作室轻量 App 端接口当前还未独立拆分；
 // 现阶段已落地的工作室能力主要集中在 Web 侧 /studio/*。

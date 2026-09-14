@@ -39,6 +39,20 @@ final class AvatarPlaceholderView: UIView {
         clipsToBounds = true
     }
 
+    /// 数据到达后刷新占位（昵称/头像）
+    func update(name: String) {
+        label.text = String(name.prefix(1))
+        if let grad = layer.sublayers?.first as? CAGradientLayer {
+            let colors: [CGColor]
+            if name.unicodeScalars.first?.value.isMultiple(of: 2) == false {
+                colors = [UIColor(hex: 0x9CC07B).cgColor, UIColor(hex: 0x3D7A5E).cgColor]
+            } else {
+                colors = [UIColor(hex: 0xD8B97A).cgColor, UIColor(hex: 0xB9913F).cgColor]
+            }
+            grad.colors = colors
+        }
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
         layer.sublayers?.first?.frame = bounds

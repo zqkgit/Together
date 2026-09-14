@@ -192,7 +192,11 @@ extension PlazaViewController: UICollectionViewDataSource, UICollectionViewDeleg
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "WorkCell", for: indexPath) as! WorkCell
         cell.configure(item: items[indexPath.item])
-        cell.onTap = { [weak self] in self?.showToast("帖子详情开发中") }
+        let item = items[indexPath.item]
+        cell.onTap = { [weak self] in
+            let detail = PostDetailViewController(postId: item.post_id)
+            self?.navigationController?.pushViewController(detail, animated: true)
+        }
         return cell
     }
 

@@ -1,5 +1,5 @@
 const { Op } = require("sequelize");
-const { sequelize, Post, PostLike, PostComment, User, Child, Course } = require("../models");
+const { sequelize, Post, PostLike, PostComment, PostCommentLike, User, Child, Course, Favorite } = require("../models");
 const { generateId } = require("../utils/id");
 const { createNotification } = require("./messageService");
 
@@ -19,7 +19,7 @@ function normalizeAuthor(author) {
   };
 }
 
-function normalizePostItem(post, viewerUserId = null) {
+function normalizePostItem(post, viewerUserId = null, favoritePostIds = null) {
   const item = {
     post_id: String(post.post_id),
     author: normalizeAuthor(post.author),
@@ -39,7 +39,8 @@ function normalizePostItem(post, viewerUserId = null) {
       ? {
           course_id: String(post.course.course_id),
           title: post.course.title,
-          studio_id: post.course.studio_id ? String(post.course.studio_id) : null
+          studio_id: post.course.studio_id ? String(post.course.studio_id) : null,
+          price: post.course.price !== undefined && post.course.price !== null ? Number(post.course.price) : null
         }
       : null,
     content: post.content,
@@ -57,6 +58,10 @@ function normalizePostItem(post, viewerUserId = null) {
     item.is_liked = !!post.liked_by_viewer;
   } else if (viewerUserId && post.likes) {
     item.is_liked = post.likes.some((like) => String(like.user_id) === String(viewerUserId));
+  }
+
+  if (viewerUserId) {
+    item.is_favorite = favoritePostIds ? favoritePostIds.has(String(post.post_id)) : false;
   }
 
   return item;
@@ -77,7 +82,7 @@ function postInclude(viewerUserId = null) {
     {
       model: Course,
       as: "course",
-      attributes: ["course_id", "title", "studio_id"]
+      attributes: ["course_id", "title", "studio_id", "price"]
     },
     ...(viewerUserId
       ? [
@@ -112,7 +117,25 @@ async function getPostDetail(postId, viewerUserId = null) {
     return null;
   }
 
-  return normalizePostItem(post, viewerUserId);
+  // 收藏状态：当前用户是否已收藏该帖
+  let favoritePostIds = null;
+  if (viewerUserId) {
+    const favs = await Favorite.findAll({
+      where: { user_id: viewerUserId, target_type: "post" },
+      attributes: ["target_id"]
+    });
+    favoritePostIds = new Set(favs.map((f) => String(f.target_id)));
+  }
+
+  const item = normalizePostItem(post, viewerUserId, favoritePostIds);
+
+  // 关注状态：当前用户是否已关注作者
+  if (viewerUserId && post.author_id) {
+    const { isFollowing } = require("./followService");
+    item.is_following = await isFollowing(viewerUserId, post.author_id);
+  }
+
+  return item;
 }
 
 /**
@@ -198,7 +221,7 @@ async function unlikePost(userId, postId) {
   });
 }
 
-function normalizeComment(row) {
+function normalizeComment(row, likedCommentIds = null) {
   return {
     comment_id: String(row.comment_id),
     post_id: String(row.post_id),
@@ -210,6 +233,9 @@ function normalizeComment(row) {
         }
       : null,
     content: row.content,
+    parent_id: row.parent_id ? String(row.parent_id) : "0",
+    like_count: Number(row.like_count || 0),
+    is_liked: likedCommentIds ? likedCommentIds.has(String(row.comment_id)) : false,
     created_at: row.created_at
   };
 }
@@ -235,18 +261,32 @@ async function listPostComments(postId, query = {}) {
     limit: size
   });
 
+  // 当前用户点赞过的评论集合
+  let likedCommentIds = null;
+  const viewerUserId = query.viewerUserId;
+  if (viewerUserId && rows.length) {
+    const likes = await PostCommentLike.findAll({
+      where: {
+        user_id: viewerUserId,
+        comment_id: { [Op.in]: rows.map((r) => r.comment_id) }
+      },
+      attributes: ["comment_id"]
+    });
+    likedCommentIds = new Set(likes.map((l) => String(l.comment_id)));
+  }
+
   return {
     total: count,
     page,
     size,
-    list: rows.map(normalizeComment)
+    list: rows.map((r) => normalizeComment(r, likedCommentIds))
   };
 }
 
 /**
  * 发布评论
  */
-async function addPostComment(userId, postId, content) {
+async function addPostComment(userId, postId, content, parentId = 0) {
   return sequelize.transaction(async (transaction) => {
     const post = await Post.findByPk(postId, {
       transaction,
@@ -257,12 +297,30 @@ async function addPostComment(userId, postId, content) {
       return null;
     }
 
+    // 回复场景：被回复的评论必须存在且属于同一帖子
+    if (parentId) {
+      const parent = await PostComment.findOne({
+        where: { comment_id: parentId, post_id: postId, status: 1 },
+        transaction
+      });
+      if (!parent) {
+        return null;
+      }
+      // 不能回复自己的评论
+      if (String(parent.user_id) === String(userId)) {
+        const err = new Error("不能回复自己的评论");
+        err.code = 40063;
+        throw err;
+      }
+    }
+
     const comment = await PostComment.create(
       {
         comment_id: generateId(),
         post_id: postId,
         user_id: userId,
         content,
+        parent_id: parentId,
         status: 1
       },
       { transaction }
@@ -294,6 +352,48 @@ async function addPostComment(userId, postId, content) {
     });
 
     return normalizeComment(row);
+  });
+}
+
+/**
+ * 评论点赞（幂等）：已赞直接返回，未赞新增并计数 +1
+ */
+async function likeComment(userId, commentId) {
+  return sequelize.transaction(async (transaction) => {
+    const comment = await PostComment.findByPk(commentId, { transaction, lock: transaction.LOCK.UPDATE });
+    if (!comment || Number(comment.status) !== 1) {
+      return null;
+    }
+    const existed = await PostCommentLike.findOne({
+      where: { comment_id: commentId, user_id: userId },
+      transaction
+    });
+    if (existed) {
+      return { liked: true };
+    }
+    await PostCommentLike.create({ comment_id: commentId, user_id: userId }, { transaction });
+    await comment.update({ like_count: Number(comment.like_count || 0) + 1 }, { transaction });
+    return { liked: true, like_count: Number(comment.like_count || 0) + 1 };
+  });
+}
+
+/**
+ * 取消评论点赞（幂等）
+ */
+async function unlikeComment(userId, commentId) {
+  return sequelize.transaction(async (transaction) => {
+    const comment = await PostComment.findByPk(commentId, { transaction, lock: transaction.LOCK.UPDATE });
+    if (!comment) {
+      return null;
+    }
+    const removed = await PostCommentLike.destroy({
+      where: { comment_id: commentId, user_id: userId },
+      transaction
+    });
+    if (removed > 0) {
+      await comment.update({ like_count: Math.max(0, Number(comment.like_count || 0) - 1) }, { transaction });
+    }
+    return { liked: false, like_count: Math.max(0, Number(comment.like_count || 0)) };
   });
 }
 
@@ -496,5 +596,7 @@ module.exports = {
   listFeed,
   listPlaza,
   listMyPosts,
-  createParentPost
+  createParentPost,
+  likeComment,
+  unlikeComment
 };

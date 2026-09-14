@@ -208,9 +208,12 @@ struct PostItem: Codable {
     let content: String?
     let images: [String]?
     let topic: String?
-    let like_count: Int?
+    var like_count: Int?
     let comment_count: Int?
     let share_count: Int?
+    var is_liked: Bool?
+    var is_favorite: Bool?
+    var is_following: Bool?
     let child: PostChild?
     let course: PostCourse?
     let created_at: String?
@@ -230,6 +233,7 @@ struct PostItem: Codable {
     struct PostCourse: Codable {
         let course_id: String
         let title: String?
+        let price: Int?
     }
 
     var authorName: String { author?.nickname ?? "匿名" }
@@ -252,14 +256,20 @@ struct PostItem: Codable {
     }
 
     /// 相对时间「刚刚 / N分钟前 / 今天 09:28 / N天前 / 日期」
-    var timeText: String {
-        guard let raw = created_at else { return "" }
+    var timeText: String { created_at?.shortRelativeTime ?? "" }
+}
+
+// MARK: - 相对时间（共享）
+
+extension String {
+    /// ISO8601 → 相对时间「刚刚 / N分钟前 / 今天 09:28 / N天前 / MM-dd」
+    var shortRelativeTime: String {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        var date = formatter.date(from: raw)
+        var date = formatter.date(from: self)
         if date == nil {
             formatter.formatOptions = [.withInternetDateTime]
-            date = formatter.date(from: raw)
+            date = formatter.date(from: self)
         }
         guard let date else { return "" }
 
@@ -278,4 +288,26 @@ struct PostItem: Codable {
         f.dateFormat = "MM-dd"
         return f.string(from: date)
     }
+}
+
+// MARK: - 帖子评论
+
+struct CommentItem: Codable {
+    let comment_id: String
+    let content: String
+    let parent_id: String?
+    var like_count: Int?
+    var is_liked: Bool?
+    let created_at: String?
+    let user: CommentUser?
+
+    struct CommentUser: Codable {
+        let user_id: String
+        let nickname: String
+        let avatar: String?
+    }
+
+    var authorName: String { user?.nickname ?? "艺启用户" }
+    var authorAvatar: String? { user?.avatar }
+    var timeText: String { created_at?.shortRelativeTime ?? "" }
 }

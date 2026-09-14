@@ -3,6 +3,8 @@ const { requireAuth, requireAuthOptional } = require("../middlewares/auth");
 const {
   getPost,
   putPostLike,
+  putCommentLike,
+  deleteCommentLike,
   deletePostLike,
   getPostComments,
   postPostComment,
@@ -30,6 +32,8 @@ router.post("/", requireAuth, postParentPost);
 router.post("/:id/like", requireAuth, putPostLike);
 router.delete("/:id/like", requireAuth, deletePostLike);
 router.post("/:id/comments", requireAuth, postPostComment);
+router.post("/:id/comments/:commentId/like", requireAuth, putCommentLike);
+router.delete("/:id/comments/:commentId/like", requireAuth, deleteCommentLike);
 router.post("/:id/share", requireAuth, postPostShare);
 router.delete("/comments/:id", requireAuth, deleteComment);
 

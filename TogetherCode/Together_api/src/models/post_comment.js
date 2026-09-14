@@ -20,6 +20,17 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING(500),
         allowNull: false
       },
+      parent_id: {
+        type: DataTypes.BIGINT,
+        allowNull: false,
+        defaultValue: 0,
+        comment: "0 顶级评论，否则为被回复的评论 id"
+      },
+      like_count: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0
+      },
       status: {
         type: DataTypes.SMALLINT,
         allowNull: false,
