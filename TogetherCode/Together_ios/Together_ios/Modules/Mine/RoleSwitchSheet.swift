@@ -2,13 +2,16 @@ import UIKit
 import SnapKit
 
 /// 「切换身份」底部弹窗（PR 图3）
-/// 家长（当前）/ 老师（去认证）/ 工作室（去认证），各行带功能说明
+/// 家长（当前/切换）/ 老师（去认证/审核中/已驳回）/ 工作室（同上），各行带功能说明
+/// 未开通身份的认证状态由调用方异步拉取后通过 updateStatuses 刷新
 final class RoleSwitchSheet: UIView {
 
     private static let shared = RoleSwitchSheet()
 
     private let panel = UIView()
     private var roles: [Int] = []
+    private var currentRole: Int = 1
+    private var authStatuses: [Int: String] = [:]   // role → unauth/pending/rejected
     private var onSelect: ((Int) -> Void)?
     private var onNeedAuth: ((Int) -> Void)?
 
@@ -28,6 +31,8 @@ final class RoleSwitchSheet: UIView {
 
     static func show(
         roles: [Int],
+        currentRole: Int = 1,
+        authStatuses: [Int: String] = [:],
         onSelect: ((Int) -> Void)? = nil,
         onNeedAuth: ((Int) -> Void)? = nil
     ) {
@@ -35,12 +40,21 @@ final class RoleSwitchSheet: UIView {
             return
         }
         shared.roles = roles
+        shared.currentRole = currentRole
+        shared.authStatuses = authStatuses
         shared.onSelect = onSelect
         shared.onNeedAuth = onNeedAuth
         shared.buildRows()
         shared.frame = window.bounds
         window.addSubview(shared)
         shared.present()
+    }
+
+    /// 弹窗打开后异步返回认证状态时刷新行（弹窗已关闭则忽略）
+    static func updateStatuses(_ statuses: [Int: String]) {
+        guard shared.superview != nil else { return }
+        shared.authStatuses = statuses
+        shared.buildRows()
     }
 
     // MARK: - 初始化
@@ -85,13 +99,13 @@ final class RoleSwitchSheet: UIView {
     /// 在 roles 已就绪后构建身份行（重复 show 先清空旧行）
     private func buildRows() {
         panel.subviews
-            .filter { $0.tag == 999 }
+            .filter { $0.tag >= 1000 }
             .forEach { $0.removeFromSuperview() }
 
         var lastRow: UIView?
         for (index, row) in RoleRow.all.enumerated() {
             let rowView = makeRow(row, index: index)
-            rowView.tag = 999
+            rowView.tag = 1000 + index
             panel.addSubview(rowView)
             rowView.snp.makeConstraints { make in
                 make.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
@@ -151,8 +165,25 @@ final class RoleSwitchSheet: UIView {
 
         let status = UILabel()
         status.font = .appLabel(12)
-        status.text = roles.contains(row.role) ? "当前" : "去认证"
-        status.textColor = roles.contains(row.role) ? Theme.Color.brand : Theme.Color.muted
+        let owned = roles.contains(row.role)
+        if owned {
+            // 已开通：当前角色显示「当前」，其他已开通角色显示「切换」
+            status.text = row.role == currentRole ? "当前" : "切换"
+            status.textColor = Theme.Color.brand
+        } else {
+            // 未开通：按认证申请状态展示
+            switch authStatuses[row.role] {
+            case "pending":
+                status.text = "审核中"
+                status.textColor = UIColor.systemOrange
+            case "rejected":
+                status.text = "已驳回"
+                status.textColor = UIColor.systemRed
+            default:
+                status.text = "去认证"
+                status.textColor = Theme.Color.muted
+            }
+        }
         container.addSubview(status)
         status.snp.makeConstraints {
             $0.trailing.equalToSuperview().inset(Theme.Spacing.m)
@@ -170,7 +201,9 @@ final class RoleSwitchSheet: UIView {
 
     @objc private func didTapRow(_ gesture: UITapGestureRecognizer) {
         guard let view = gesture.view else { return }
-        let row = RoleRow.all[view.tag]
+        let index = view.tag - 1000
+        guard index >= 0, index < RoleRow.all.count else { return }
+        let row = RoleRow.all[index]
         dismiss()
         if roles.contains(row.role) {
             onSelect?(row.role)

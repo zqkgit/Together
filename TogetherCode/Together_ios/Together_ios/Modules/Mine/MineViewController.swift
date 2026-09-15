@@ -147,16 +147,72 @@ final class MineViewController: BaseViewController, UITableViewDataSource, UITab
     // MARK: - 身份弹窗
 
     private func showRoleSheet() {
+        let owned = profile?.roles ?? (TokenManager.shared.userRole > 1 ? [1, TokenManager.shared.userRole] : [1])
+        var statuses: [Int: String] = [:]
         RoleSwitchSheet.show(
-            roles: profile?.roles ?? (TokenManager.shared.userRole > 1 ? [1, TokenManager.shared.userRole] : [1]),
+            roles: owned,
+            currentRole: profile?.current_role ?? TokenManager.shared.userRole,
+            authStatuses: statuses,
             onSelect: { [weak self] role in
                 self?.switchRole(role)
             },
             onNeedAuth: { [weak self] role in
-                let name = role == 2 ? "老师" : "工作室"
-                self?.showToast("「\(name)」认证功能开发中")
+                self?.handleNeedAuth(role)
             }
         )
+        // 并行查询未开通身份的认证申请状态，返回后刷新弹窗行
+        let unownedRoles = [2, 3].filter { !owned.contains($0) }
+        guard !unownedRoles.isEmpty else { return }
+        let group = DispatchGroup()
+        for role in unownedRoles {
+            group.enter()
+            AuthService.getRoleApplyStatus(role == 2 ? "teacher" : "studio") { result in
+                defer { group.leave() }
+                if case .success(let json) = result {
+                    statuses[role] = json["status"].stringValue
+                }
+            }
+        }
+        group.notify(queue: .main) {
+            RoleSwitchSheet.updateStatuses(statuses)
+        }
+    }
+
+    /// 未开通身份：查认证申请状态 → pending 显示审核中 / rejected 可重提 / unauth 进认证页
+    private func handleNeedAuth(_ role: Int) {
+        let roleKey = role == 2 ? "teacher" : "studio"
+        showLoading()
+        AuthService.getRoleApplyStatus(roleKey) { [weak self] result in
+            guard let self else { return }
+            self.hideLoading()
+            switch result {
+            case .success(let json):
+                let status = json["status"].stringValue
+                let reason = json["reason"].string
+                let apply = json["apply"]
+                if role == 2 {
+                    let vc: TeacherAuthViewController
+                    switch status {
+                    case "pending":
+                        vc = TeacherAuthViewController(status: "pending")
+                    case "rejected":
+                        vc = TeacherAuthViewController(status: "rejected", reason: reason, apply: apply)
+                    default:
+                        vc = TeacherAuthViewController(apply: apply)
+                    }
+                    self.navigationController?.pushViewController(vc, animated: true)
+                } else {
+                    // 工作室认证占位（后续接入 StudioAuthViewController）
+                    if status == "pending" {
+                        self.showToast("工作室认证审核中，请等待平台审核")
+                    } else {
+                        self.showToast("「工作室」认证功能开发中")
+                    }
+                }
+            case .failure(let error):
+                self.showToast(error.message ?? "查询认证状态失败")
+            }
+        }
     }
 
     private func switchRole(_ role: Int) {

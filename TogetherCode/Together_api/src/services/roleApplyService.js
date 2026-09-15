@@ -105,6 +105,18 @@ async function getRoleApplyStatus(userId, role) {
     order: [["version", "DESC"]]
   });
 
+  // 申请数据回显（被驳回后可回填表单）
+  const buildApply = () => {
+    if (!latest) return null;
+    const apply = {};
+    for (const field of meta.fields) {
+      if (latest[field] !== null && latest[field] !== undefined) {
+        apply[field] = latest[field];
+      }
+    }
+    return apply;
+  };
+
   // 已生效档案优先
   if (profile) {
     return {
@@ -114,7 +126,8 @@ async function getRoleApplyStatus(userId, role) {
         version: latest ? Number(latest.version) : 0,
         reason: null,
         submitted_at: latest ? latest.submitted_at : null,
-        reviewed_at: latest ? latest.reviewed_at : null
+        reviewed_at: latest ? latest.reviewed_at : null,
+        apply: buildApply()
       }
     };
   }
@@ -127,7 +140,8 @@ async function getRoleApplyStatus(userId, role) {
         version: 0,
         reason: null,
         submitted_at: null,
-        reviewed_at: null
+        reviewed_at: null,
+        apply: null
       }
     };
   }
@@ -140,7 +154,8 @@ async function getRoleApplyStatus(userId, role) {
       version: Number(latest.version),
       reason: latest.review_reason || null,
       submitted_at: latest.submitted_at,
-      reviewed_at: latest.reviewed_at
+      reviewed_at: latest.reviewed_at,
+      apply: buildApply()
     }
   };
 }

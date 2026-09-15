@@ -145,4 +145,38 @@ final class AuthService {
             }
         }
     }
+
+    // MARK: - 角色认证申请
+
+    /// 查询认证申请状态（teacher / studio）
+    /// 返回 data.status：unauth（从未申请）/ pending / approved / rejected（rejected 带 reason，可重提）
+    static func getRoleApplyStatus(
+        _ role: String,
+        completion: @escaping (Result<JSON, APIError>) -> Void
+    ) {
+        APIClient.shared.request(
+            "/auth/role/apply/\(role)",
+            method: .get
+        ) { result in
+            completion(result)
+        }
+    }
+
+    /// 提交老师认证 / 工作室入驻申请
+    /// - Parameters:
+    ///   - role: "teacher" / "studio"
+    ///   - payload: teacher: real_name(必填)/subjects/years/intro/cert_no/portfolio；studio: name(必填)/cover/intro/address/phone/license/permit/photos
+    static func submitRoleApply(
+        role: String,
+        payload: [String: Any],
+        completion: @escaping (Result<JSON, APIError>) -> Void
+    ) {
+        APIClient.shared.request(
+            "/auth/role/apply",
+            method: .post,
+            parameters: ["role": role, "payload": payload]
+        ) { result in
+            completion(result)
+        }
+    }
 }
