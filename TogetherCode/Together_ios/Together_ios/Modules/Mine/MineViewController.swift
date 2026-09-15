@@ -277,6 +277,10 @@ final class MineViewController: BaseViewController, UITableViewDataSource, UITab
             navigationController?.pushViewController(WorkManagementViewController(), animated: true)
             return
         }
+        if item.title == "收藏与动态" {
+            navigationController?.pushViewController(FavoritesAndDynamicsViewController(), animated: true)
+            return
+        }
         if item.title == "收益中心" {
             navigationController?.pushViewController(WalletViewController(), animated: true)
             return

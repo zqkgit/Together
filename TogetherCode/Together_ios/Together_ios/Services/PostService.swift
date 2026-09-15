@@ -67,6 +67,46 @@ enum PostService {
         }
     }
 
+    /// 我的收藏（收藏与动态-收藏作品）
+    static func fetchFavorites(page: Int, size: Int,
+                               completion: @escaping ([FavoriteItem]?, Bool, String?) -> Void) {
+        APIClient.shared.request(
+            "/favorites",
+            method: .get,
+            parameters: ["target_type": "post", "page": page, "page_size": size],
+            encoding: URLEncoding.default
+        ) { result in
+            switch result {
+            case .success(let json):
+                let total = json["total"].intValue
+                let list = JSONKit.decodeList([FavoriteItem].self, from: json)
+                completion(list, page * size < total, nil)
+            case .failure(let error):
+                completion(nil, false, error.message)
+            }
+        }
+    }
+
+    /// 孩子动态（收藏与动态）：我孩子相关的帖子（家长帖 + 老师关联帖）
+    static func fetchChildFeed(page: Int, size: Int,
+                               completion: @escaping ([PostItem]?, Bool, String?) -> Void) {
+        APIClient.shared.request(
+            "/posts/child-feed",
+            method: .get,
+            parameters: ["page": page, "size": size],
+            encoding: URLEncoding.default
+        ) { result in
+            switch result {
+            case .success(let json):
+                let total = json["total"].intValue
+                let list = JSONKit.decodeList([PostItem].self, from: json)
+                completion(list, page * size < total, nil)
+            case .failure(let error):
+                completion(nil, false, error.message)
+            }
+        }
+    }
+
     /// 帖子详情
     static func fetchDetail(postId: String, completion: @escaping (PostItem?, String?) -> Void) {
         APIClient.shared.request("/posts/\(postId)", method: .get) { result in

@@ -204,6 +204,25 @@ struct TeacherItem: Codable {
 
 // MARK: - 帖子（老师动态 feed）
 
+/// 收藏的作品（收藏与动态）
+struct FavoriteItem: Codable {
+    let target_id: String
+    let title: String
+    let cover: String?
+    let subtitle: String?
+    let topic: String?
+    let created_at: String?
+    let author: FavoriteAuthor?
+
+    struct FavoriteAuthor: Codable {
+        let nickname: String
+        let avatar: String?
+    }
+
+    var authorName: String { author?.nickname ?? "匿名" }
+    var timeText: String { created_at?.shortRelativeTime ?? "" }
+}
+
 struct PostItem: Codable {
     let post_id: String
     let author: PostAuthor?

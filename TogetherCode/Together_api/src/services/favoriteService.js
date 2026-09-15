@@ -102,7 +102,10 @@ async function listFavorites(userId, query = {}) {
           };
         });
     } else if (targetType === "post") {
-      const posts = await Post.findAll({ where: { post_id: { [Op.in]: ids } } });
+      const posts = await Post.findAll({
+        where: { post_id: { [Op.in]: ids } },
+        include: [{ model: User, as: "author", attributes: ["user_id", "nickname", "avatar", "current_role"] }]
+      });
       const byId = {};
       posts.forEach((p) => (byId[p.post_id] = p));
       items = rows
@@ -110,11 +113,16 @@ async function listFavorites(userId, query = {}) {
         .map((r) => {
           const p = byId[r.target_id];
           const imgs = p.images || [];
+          const author = p.author || {};
           return {
             target_id: String(p.post_id),
             title: (p.content || "作品").slice(0, 30),
             cover: imgs[0] || null,
-            subtitle: `${p.like_count || 0} 赞 · ${p.comment_count || 0} 评论`
+            subtitle: `${p.like_count || 0} 赞 · ${p.comment_count || 0} 评论`,
+            author: { nickname: author.nickname || "匿名", avatar: author.avatar || null },
+            topic: p.topic || null,
+            created_at: p.created_at,
+            visibility: p.visibility
           };
         });
     } else {

@@ -469,7 +469,7 @@ final class PostCardView: UIView {
     private let roleLabel = UILabel()
     private let timeLabel = UILabel()
     private let bodyLabel = UILabel()
-    private let imageStack = UIStackView()
+    private let gridView = PostImageGridView()
     private let likeLabel = UILabel()
     private let commentLabel = UILabel()
     private let relationLabel = UILabel()
@@ -515,15 +515,13 @@ final class PostCardView: UIView {
         addSubview(bodyLabel)
         bodyLabel.snp.makeConstraints { $0.top.equalTo(authorNameLabel.snp.bottom).offset(Theme.Spacing.s); $0.leading.equalToSuperview().inset(60); $0.trailing.equalToSuperview().inset(Theme.Spacing.m) }
 
-        // 图片（最多 3 张横排；无图时高度收为 0）
-        imageStack.axis = .horizontal
-        imageStack.spacing = Theme.Spacing.s
-        imageStack.distribution = .fillEqually
-        addSubview(imageStack)
-        imageStack.snp.makeConstraints {
+        // 图片（微信式九宫格 1-9 张；无图时高度收为 0；左对齐用户名/正文）
+        addSubview(gridView)
+        gridView.snp.makeConstraints {
             imageTop = $0.top.equalTo(bodyLabel.snp.bottom).offset(Theme.Spacing.s).constraint
-            imageHeight = $0.height.equalTo(96).constraint
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
+            imageHeight = $0.height.equalTo(0).constraint
+            $0.leading.equalToSuperview().inset(60)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.m)
         }
 
         // 底部：点赞 / 评论 / 关联
@@ -531,7 +529,7 @@ final class PostCardView: UIView {
         likeIcon.tintColor = Theme.Color.muted
         likeIcon.contentMode = .scaleAspectFit
         addSubview(likeIcon)
-        likeIcon.snp.makeConstraints { $0.leading.equalToSuperview().inset(Theme.Spacing.m); $0.top.greaterThanOrEqualTo(imageStack.snp.bottom).offset(Theme.Spacing.m); $0.bottom.equalToSuperview().inset(Theme.Spacing.m); $0.width.height.equalTo(14) }
+        likeIcon.snp.makeConstraints { $0.leading.equalToSuperview().inset(Theme.Spacing.m); $0.top.greaterThanOrEqualTo(gridView.snp.bottom).offset(Theme.Spacing.m); $0.bottom.equalToSuperview().inset(Theme.Spacing.m); $0.width.height.equalTo(14) }
 
         likeLabel.font = .appLabel(11)
         likeLabel.textColor = Theme.Color.muted
@@ -596,25 +594,17 @@ final class PostCardView: UIView {
             ph.snp.makeConstraints { $0.leading.equalToSuperview().inset(Theme.Spacing.m); $0.top.equalToSuperview().inset(Theme.Spacing.m); $0.width.height.equalTo(36) }
         }
 
-        // 图片：无图隐藏（高度收 0）
-        imageStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        let urls = item.imageList.prefix(3)
+        // 图片：微信式九宫格（无图高度收 0，有图由内容撑高）
+        let urls = item.imageList
         let empty = urls.isEmpty
-        imageStack.isHidden = empty
+        gridView.isHidden = empty
         imageTop?.update(offset: empty ? 0 : Theme.Spacing.s)
-        imageHeight?.update(offset: empty ? 0 : 96)
-        for urlString in urls {
-            let img = UIImageView()
-            img.contentMode = .scaleAspectFill
-            img.clipsToBounds = true
-            img.backgroundColor = Theme.Color.surfaceAlt
-            img.layer.cornerRadius = Theme.Radius.icon
-            img.layer.masksToBounds = true
-            if let url = URL(string: urlString) {
-                img.kf.setImage(with: url)
-            }
-            imageStack.addArrangedSubview(img)
+        if empty {
+            imageHeight?.update(offset: 0)
+        } else {
+            imageHeight?.deactivate()
         }
+        gridView.configure(urls: urls)
 
         // 关联文案
         if let relation = item.relationText {

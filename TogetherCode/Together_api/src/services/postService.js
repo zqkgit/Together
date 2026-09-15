@@ -582,6 +582,54 @@ async function listMyPosts(userId, query = {}) {
   };
 }
 
+/**
+ * 孩子动态（收藏与动态）：我孩子相关的帖子（家长帖关联我的孩子 + 老师帖关联我的孩子），按时间倒序
+ */
+async function listChildFeed(userId, query = {}) {
+  const page = Math.max(1, Number(query.page) || 1);
+  const size = Math.min(Number(query.size) || 20, 50);
+
+  const children = await Child.findAll({
+    where: { parent_user_id: userId },
+    attributes: ["child_id"],
+    raw: true
+  });
+  const childIds = children.map((c) => String(c.child_id));
+  if (!childIds.length) {
+    return { total: 0, page, size, list: [] };
+  }
+
+  // 老师帖：PostStudent 关联我的孩子
+  const studentPosts = await PostStudent.findAll({
+    where: { child_id: { [Op.in]: childIds } },
+    attributes: ["post_id"],
+    raw: true
+  });
+  const studentPostIds = studentPosts.map((s) => String(s.post_id));
+
+  const where = {
+    [Op.or]: [
+      { child_id: { [Op.in]: childIds } },
+      ...(studentPostIds.length ? [{ post_id: { [Op.in]: studentPostIds } }] : [])
+    ]
+  };
+
+  const { rows, count } = await Post.findAndCountAll({
+    where,
+    include: postInclude(userId),
+    order: [["created_at", "DESC"]],
+    offset: (page - 1) * size,
+    limit: size
+  });
+
+  return {
+    total: count,
+    page,
+    size,
+    list: rows.map((row) => normalizePostItem(row, userId))
+  };
+}
+
 async function createParentPost(userId, payload) {
   const content = String(payload.content || "").trim();
   const images = Array.isArray(payload.images) ? payload.images.slice(0, 9) : [];
@@ -637,6 +685,7 @@ module.exports = {
   listFeed,
   listPlaza,
   listMyPosts,
+  listChildFeed,
   createParentPost,
   likeComment,
   unlikeComment
