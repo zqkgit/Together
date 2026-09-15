@@ -24,8 +24,11 @@ extension MainTabBarController: UITabBarControllerDelegate {
         guard let index = viewControllers?.firstIndex(of: viewController), index == 2 else {
             return true
         }
-        // 点击中间大加号 → 模态发布页
-        let publish = BaseNavigationController(rootViewController: PostCreateViewController())
+        // 点击中间大加号 → 模态发布页（按角色路由：老师走老师发布，家长走家长发布）
+        let vc: UIViewController = TokenManager.shared.userRole == 2
+            ? TeacherPostCreateViewController()
+            : ParentPostCreateViewController()
+        let publish = BaseNavigationController(rootViewController: vc)
         publish.modalPresentationStyle = .fullScreen
         present(publish, animated: true)
         return false
