@@ -65,10 +65,30 @@ const createTeacherScheduleValidators = [
   body("remark").optional({ values: "falsy" }).isString().isLength({ max: 255 })
 ];
 
+const batchCreateStudioScheduleValidators = [
+  body("studio_id").isString().notEmpty().withMessage("studio_id is required"),
+  body("class_id").isString().notEmpty().withMessage("class_id is required"),
+  body("teacher_id").optional({ values: "falsy" }).isString(),
+  body("start_time")
+    .matches(/^\d{2}:\d{2}$/)
+    .withMessage("start_time must be HH:mm"),
+  body("end_time")
+    .matches(/^\d{2}:\d{2}$/)
+    .withMessage("end_time must be HH:mm"),
+  body("location").optional({ values: "falsy" }).isString().isLength({ max: 120 }),
+  body("remark").optional({ values: "falsy" }).isString().isLength({ max: 255 }),
+  // 两种批量方式二选一：dates 直接给日期数组；或 weekdays + start_date/end_date 按每周几展开
+  body("dates").optional().isArray().withMessage("dates must be an array"),
+  body("weekdays").optional().isArray().withMessage("weekdays must be an array"),
+  body("start_date").optional({ values: "falsy" }).isISO8601().withMessage("start_date is invalid"),
+  body("end_date").optional({ values: "falsy" }).isISO8601().withMessage("end_date is invalid")
+];
+
 module.exports = {
   createStudioClassValidators,
   listStudioClassesValidators,
   createStudioScheduleValidators,
+  batchCreateStudioScheduleValidators,
   listStudioSchedulesValidators,
   createTeacherScheduleValidators
 };

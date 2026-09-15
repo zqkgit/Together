@@ -365,6 +365,24 @@ export async function createStudioSchedule(payload: {
   return response.data;
 }
 
+/** 批量排课：dates（多日期）或 weekdays + start_date/end_date（每周几展开）二选一 */
+export async function batchCreateStudioSchedules(payload: {
+  studio_id: string;
+  class_id: string;
+  teacher_id?: string;
+  start_time: string;
+  end_time: string;
+  location?: string;
+  remark?: string;
+  dates?: string[];
+  weekdays?: number[];
+  start_date?: string;
+  end_date?: string;
+}): Promise<{ total: number; created: number; skipped: number; skipped_dates: string[] }> {
+  const response = await request.post("/studio/schedules/batch", payload);
+  return response.data;
+}
+
 export interface AttendanceStudent {
   child_id: string;
   order_id: string;

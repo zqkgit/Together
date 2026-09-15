@@ -461,10 +461,132 @@ async function createTeacherSchedule(userId, payload) {
   });
 }
 
+function expandDates(payload) {
+  const dates = [];
+  if (Array.isArray(payload.dates) && payload.dates.length) {
+    for (const raw of payload.dates) {
+      const d = String(raw || "").trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(d) && !dates.includes(d)) {
+        dates.push(d);
+      }
+    }
+  } else if (
+    Array.isArray(payload.weekdays) &&
+    payload.weekdays.length &&
+    payload.start_date &&
+    payload.end_date
+  ) {
+    const weekdays = new Set(payload.weekdays.map((w) => Number(w)));
+    const start = new Date(`${payload.start_date}T00:00:00`);
+    const end = new Date(`${payload.end_date}T00:00:00`);
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      let wd = cursor.getDay(); // 0=周日
+      if (wd === 0) wd = 7;
+      if (weekdays.has(wd)) {
+        const y = cursor.getFullYear();
+        const m = String(cursor.getMonth() + 1).padStart(2, "0");
+        const d = String(cursor.getDate()).padStart(2, "0");
+        dates.push(`${y}-${m}-${d}`);
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  }
+  return dates;
+}
+
+/**
+ * 批量排课：按日期数组 或 每周几+起止日期 一次生成多条排课。
+ * 冲突/已存在的日期自动跳过，不中断整批。
+ */
+async function batchCreateStudioSchedules(payload) {
+  const dates = expandDates(payload);
+  if (!dates.length) {
+    throw new Error("No valid dates provided");
+  }
+
+  const startMinutes = parseTimeToMinutes(payload.start_time);
+  const endMinutes = parseTimeToMinutes(payload.end_time);
+  if (endMinutes <= startMinutes) {
+    throw new Error("Schedule end time must be greater than start time");
+  }
+
+  return sequelize.transaction(async (transaction) => {
+    await ensureStudio(payload.studio_id, transaction);
+    const classItem = await Class.findByPk(payload.class_id, {
+      transaction,
+      include: [{ model: Course, as: "course" }]
+    });
+    if (!classItem) {
+      throw new Error("Class not found");
+    }
+    if (!classItem.course || String(classItem.course.studio_id) !== String(payload.studio_id)) {
+      throw new Error("Class does not belong to studio");
+    }
+
+    const teacherId = payload.teacher_id || classItem.teacher_id || null;
+    await ensureTeacher(teacherId, payload.studio_id, transaction);
+
+    const created = [];
+    const skipped = [];
+    for (const lessonDate of dates) {
+      // 同一班级/老师 同日同时段冲突检测
+      const conflictWhere = {
+        studio_id: payload.studio_id,
+        lesson_date: lessonDate,
+        [Op.or]: []
+      };
+      if (teacherId) {
+        conflictWhere[Op.or].push({ teacher_id: teacherId });
+      }
+      conflictWhere[Op.or].push({ class_id: payload.class_id });
+
+      const existing = await Schedule.findAll({ where: conflictWhere, transaction });
+      const hasConflict = existing.some((item) => {
+        const itemStart = parseTimeToMinutes(item.start_time);
+        const itemEnd = parseTimeToMinutes(item.end_time);
+        return startMinutes < itemEnd && endMinutes > itemStart;
+      });
+      if (hasConflict) {
+        skipped.push(lessonDate);
+        continue;
+      }
+
+      const schedule = await Schedule.create(
+        {
+          schedule_id: generateId(),
+          studio_id: payload.studio_id,
+          class_id: payload.class_id,
+          course_id: classItem.course_id,
+          teacher_id: teacherId,
+          lesson_date: lessonDate,
+          start_time: payload.start_time,
+          end_time: payload.end_time,
+          location: payload.location || null,
+          is_makeup: false,
+          makeup_from: null,
+          status: 0,
+          remark: payload.remark || null
+        },
+        { transaction }
+      );
+      created.push(String(schedule.schedule_id));
+    }
+
+    return {
+      total: dates.length,
+      created: created.length,
+      skipped: skipped.length,
+      skipped_dates: skipped
+    };
+  });
+}
+
 module.exports = {
   listStudioClasses,
   createStudioClass,
   createStudioSchedule,
+  batchCreateStudioSchedules,
   listStudioSchedules,
   createTeacherSchedule
 };

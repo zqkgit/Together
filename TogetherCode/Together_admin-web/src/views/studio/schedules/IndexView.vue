@@ -6,10 +6,13 @@ import {
   fetchStudioSchedules,
   fetchStudioClasses,
   createStudioSchedule,
+  batchCreateStudioSchedules,
+  fetchStudioTeachers,
   fetchClassStudents,
   submitScheduleAttendance,
   type ScheduleItem,
-  type ClassStudent
+  type ClassStudent,
+  type TeacherStaffItem
 } from "../../../services/studio";
 import { useAuthStore } from "../../../stores/auth";
 
@@ -87,10 +90,12 @@ async function loadData() {
 // ============ 新增排课 ============
 const createVisible = ref(false);
 const submitting = ref(false);
-const classes = ref<{ class_id: string; name: string }[]>([]);
+const classes = ref<{ class_id: string; name: string; teacher_id: string | null }[]>([]);
+const teachers = ref<TeacherStaffItem[]>([]);
 const form = ref({
   studio_id: "",
   class_id: "",
+  teacher_id: "" as string,
   lesson_date: "",
   start_time: "18:30",
   end_time: "20:00",
@@ -98,10 +103,18 @@ const form = ref({
   remark: ""
 });
 
+function applyClassTeacher(target: "form" | "batch") {
+  const model = target === "form" ? form.value : batchForm.value;
+  const cls = classes.value.find((c) => c.class_id === model.class_id);
+  // 切班级时默认带出班级老师，用户可改
+  model.teacher_id = cls?.teacher_id || "";
+}
+
 async function openCreate(date?: string) {
   form.value = {
     studio_id: studioId.value,
     class_id: "",
+    teacher_id: "",
     lesson_date: date || weekDays.value.find((d) => d.isToday)?.date || weekStart.value,
     start_time: "18:30",
     end_time: "20:00",
@@ -109,9 +122,15 @@ async function openCreate(date?: string) {
     remark: ""
   };
   try {
-    classes.value = (await fetchStudioClasses({ studio_id: studioId.value })).list;
+    const [classData, teacherData] = await Promise.all([
+      fetchStudioClasses({ studio_id: studioId.value }),
+      fetchStudioTeachers()
+    ]);
+    classes.value = classData.list;
+    teachers.value = teacherData.staff;
   } catch {
     classes.value = [];
+    teachers.value = [];
   }
   createVisible.value = true;
 }
@@ -130,6 +149,7 @@ async function submitCreate() {
     await createStudioSchedule({
       studio_id: studioId.value,
       class_id: form.value.class_id,
+      teacher_id: form.value.teacher_id || undefined,
       lesson_date: form.value.lesson_date,
       start_time: form.value.start_time,
       end_time: form.value.end_time,
@@ -143,6 +163,111 @@ async function submitCreate() {
     // 忽略
   } finally {
     submitting.value = false;
+  }
+}
+
+// ============ 批量排课 ============
+const batchVisible = ref(false);
+const batchSubmitting = ref(false);
+const batchForm = ref({
+  class_id: "",
+  teacher_id: "" as string,
+  start_time: "18:30",
+  end_time: "20:00",
+  location: "",
+  remark: "",
+  mode: "dates" as "dates" | "weekly",
+  dates: [] as string[],
+  weekdays: [] as number[],
+  start_date: "",
+  end_date: ""
+});
+
+const WEEK_OPTIONS = [
+  { value: 1, label: "周一" },
+  { value: 2, label: "周二" },
+  { value: 3, label: "周三" },
+  { value: 4, label: "周四" },
+  { value: 5, label: "周五" },
+  { value: 6, label: "周六" },
+  { value: 7, label: "周日" }
+];
+
+async function openBatch() {
+  batchForm.value = {
+    class_id: "",
+    teacher_id: "",
+    start_time: "18:30",
+    end_time: "20:00",
+    location: "",
+    remark: "",
+    mode: "dates",
+    dates: [],
+    weekdays: [],
+    start_date: "",
+    end_date: ""
+  };
+  try {
+    const [classData, teacherData] = await Promise.all([
+      fetchStudioClasses({ studio_id: studioId.value }),
+      fetchStudioTeachers()
+    ]);
+    classes.value = classData.list;
+    teachers.value = teacherData.staff;
+  } catch {
+    classes.value = [];
+    teachers.value = [];
+  }
+  batchVisible.value = true;
+}
+
+async function submitBatch() {
+  if (!batchForm.value.class_id) {
+    ElMessage.warning("请选择班级");
+    return;
+  }
+  const payload: Record<string, unknown> = {
+    studio_id: studioId.value,
+    class_id: batchForm.value.class_id,
+    teacher_id: batchForm.value.teacher_id || undefined,
+    start_time: batchForm.value.start_time,
+    end_time: batchForm.value.end_time,
+    location: batchForm.value.location || undefined,
+    remark: batchForm.value.remark || undefined
+  };
+  if (batchForm.value.mode === "dates") {
+    if (!batchForm.value.dates.length) {
+      ElMessage.warning("请选择上课日期");
+      return;
+    }
+    payload.dates = batchForm.value.dates;
+  } else {
+    if (!batchForm.value.weekdays.length) {
+      ElMessage.warning("请选择每周几上课");
+      return;
+    }
+    if (!batchForm.value.start_date || !batchForm.value.end_date) {
+      ElMessage.warning("请选择起止日期");
+      return;
+    }
+    payload.weekdays = batchForm.value.weekdays;
+    payload.start_date = batchForm.value.start_date;
+    payload.end_date = batchForm.value.end_date;
+  }
+  batchSubmitting.value = true;
+  try {
+    const result = await batchCreateStudioSchedules(payload as never);
+    ElMessage.success(
+      result.created > 0
+        ? `已生成 ${result.created} 条排课${result.skipped > 0 ? `，跳过 ${result.skipped} 条冲突` : ""}`
+        : "没有可生成的排课（日期冲突或已存在）"
+    );
+    batchVisible.value = false;
+    loadData();
+  } catch {
+    // 忽略
+  } finally {
+    batchSubmitting.value = false;
   }
 }
 
@@ -215,7 +340,10 @@ onMounted(loadData);
             </el-button-group>
             <span class="week-range">{{ weekRangeText }}</span>
           </div>
-          <el-button type="primary" :icon="Plus" @click="openCreate()">新增排课</el-button>
+          <div class="toolbar-actions">
+            <el-button :icon="Plus" @click="openCreate()">新增排课</el-button>
+            <el-button type="primary" :icon="Plus" @click="openBatch()">批量排课</el-button>
+          </div>
         </div>
       </template>
 
@@ -234,6 +362,9 @@ onMounted(loadData);
               <div class="schedule-time">{{ item.start_time }}-{{ item.end_time }}</div>
               <div class="schedule-title">{{ item.class?.name || "-" }}</div>
               <div class="schedule-sub">{{ item.course?.title || "" }}</div>
+              <div class="schedule-teacher" v-if="item.teacher">
+                老师：{{ item.teacher.real_name }}
+              </div>
               <div class="schedule-actions">
                 <el-button text size="small" type="primary" @click="openAttendance(item)">
                   出勤消课
@@ -250,12 +381,22 @@ onMounted(loadData);
     <el-dialog v-model="createVisible" title="新增排课" width="500px">
       <el-form label-width="100px">
         <el-form-item label="班级" required>
-          <el-select v-model="form.class_id" style="width: 100%" placeholder="选择班级">
+          <el-select v-model="form.class_id" style="width: 100%" placeholder="选择班级" @change="applyClassTeacher('form')">
             <el-option
               v-for="item in classes"
               :key="item.class_id"
               :label="item.name"
               :value="item.class_id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="老师">
+          <el-select v-model="form.teacher_id" style="width: 100%" placeholder="默认班级老师，可更换" clearable>
+            <el-option
+              v-for="t in teachers"
+              :key="t.teacher_id"
+              :label="t.real_name"
+              :value="t.teacher_id"
             />
           </el-select>
         </el-form-item>
@@ -277,6 +418,90 @@ onMounted(loadData);
       <template #footer>
         <el-button @click="createVisible = false">取消</el-button>
         <el-button type="primary" :loading="submitting" @click="submitCreate">确认排课</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 批量排课 -->
+    <el-dialog v-model="batchVisible" title="批量排课" width="560px">
+      <el-form label-width="100px">
+        <el-form-item label="班级" required>
+          <el-select v-model="batchForm.class_id" style="width: 100%" placeholder="选择班级" @change="applyClassTeacher('batch')">
+            <el-option
+              v-for="item in classes"
+              :key="item.class_id"
+              :label="item.name"
+              :value="item.class_id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="老师">
+          <el-select v-model="batchForm.teacher_id" style="width: 100%" placeholder="默认班级老师，可更换" clearable>
+            <el-option
+              v-for="t in teachers"
+              :key="t.teacher_id"
+              :label="t.real_name"
+              :value="t.teacher_id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="时间" required>
+          <el-time-select v-model="batchForm.start_time" start="08:00" step="00:30" end="21:00" style="width: 130px" />
+          ~
+          <el-time-select v-model="batchForm.end_time" start="08:00" step="00:30" end="22:00" style="width: 130px" />
+        </el-form-item>
+        <el-form-item label="排课方式" required>
+          <el-radio-group v-model="batchForm.mode">
+            <el-radio-button value="dates">选择日期</el-radio-button>
+            <el-radio-button value="weekly">每周固定</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item v-if="batchForm.mode === 'dates'" label="上课日期" required>
+          <el-date-picker
+            v-model="batchForm.dates"
+            type="dates"
+            value-format="YYYY-MM-DD"
+            style="width: 100%"
+            placeholder="可多选日期"
+          />
+        </el-form-item>
+        <template v-else>
+          <el-form-item label="每周" required>
+            <el-checkbox-group v-model="batchForm.weekdays">
+              <el-checkbox v-for="w in WEEK_OPTIONS" :key="w.value" :value="w.value">
+                {{ w.label }}
+              </el-checkbox>
+            </el-checkbox-group>
+          </el-form-item>
+          <el-form-item label="起止日期" required>
+            <el-date-picker
+              v-model="batchForm.start_date"
+              type="date"
+              value-format="YYYY-MM-DD"
+              style="width: 160px"
+              placeholder="开始"
+            />
+            ~
+            <el-date-picker
+              v-model="batchForm.end_date"
+              type="date"
+              value-format="YYYY-MM-DD"
+              style="width: 160px"
+              placeholder="结束"
+            />
+          </el-form-item>
+        </template>
+        <el-form-item label="上课地点">
+          <el-input v-model="batchForm.location" placeholder="如：3 号教室" />
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="batchForm.remark" type="textarea" :rows="2" maxlength="255" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="batchVisible = false">取消</el-button>
+        <el-button type="primary" :loading="batchSubmitting" @click="submitBatch">
+          生成排课
+        </el-button>
       </template>
     </el-dialog>
 
@@ -416,6 +641,12 @@ onMounted(loadData);
 .schedule-sub {
   font-size: 11px;
   color: #9c9385;
+  margin-top: 2px;
+}
+
+.schedule-teacher {
+  font-size: 11px;
+  color: #2f5d45;
   margin-top: 2px;
 }
 

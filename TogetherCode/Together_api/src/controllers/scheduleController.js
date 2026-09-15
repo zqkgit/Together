@@ -3,6 +3,7 @@ const {
   listStudioClasses,
   createStudioClass,
   createStudioSchedule,
+  batchCreateStudioSchedules,
   listStudioSchedules,
   createTeacherSchedule
 } = require("../services/scheduleService");
@@ -82,12 +83,24 @@ async function postScheduleAttendance(req, res) {
   }
 }
 
+// POST /studio/schedules/batch · 批量排课
+async function postStudioScheduleBatch(req, res) {
+  try {
+    const data = await batchCreateStudioSchedules(req.body);
+    return ok(res, data, "schedules created");
+  } catch (error) {
+    const status = /not found|does not belong|conflict|greater than/i.test(error.message) ? 400 : 500;
+    return fail(res, status, status === 400 ? 40041 : 50000, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   getStudioClasses,
   postStudioClass,
   getClassStudents,
   getStudioSchedules,
   postStudioSchedule,
+  postStudioScheduleBatch,
   postTeacherSchedule,
   postScheduleAttendance
 };
