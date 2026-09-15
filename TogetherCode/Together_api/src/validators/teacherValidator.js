@@ -23,7 +23,7 @@ const handleTeacherLeaveValidators = [
 ];
 
 const createTeacherPostValidators = [
-  // 老师支持纯分享帖：course_id 可选；但有 students（消课）时必须有课程上下文
+  // 老师支持纯分享帖：course_id 可选；有 students（关联学生）时必须有课程上下文
   body("course_id")
     .if(body("students").exists())
     .isString()
@@ -31,11 +31,17 @@ const createTeacherPostValidators = [
     .withMessage("course_id is required when students are marked"),
   body("course_id").optional({ values: "falsy" }).isString(),
   body("class_id").optional({ values: "falsy" }).isString(),
+  body("consume")
+    .optional({ values: "falsy" })
+    .isBoolean()
+    .withMessage("consume must be a boolean"),
+  // 同步消课（consume=true）才必须选课次；仅关联学生（发帖可见/推送）不强制
   body("schedule_id")
     .if(body("students").exists())
+    .if(body("consume").custom((v) => v === true))
     .isString()
     .notEmpty()
-    .withMessage("schedule_id is required when students are marked"),
+    .withMessage("schedule_id is required when consuming lessons"),
   body("content").optional({ values: "falsy" }).isString().isLength({ max: 1000 }),
   body("images").optional().isArray({ max: 9 }).withMessage("images must be an array"),
   body("images.*").optional().isString(),

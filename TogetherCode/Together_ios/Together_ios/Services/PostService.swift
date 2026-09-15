@@ -316,7 +316,7 @@ extension PostService {
         }
     }
 
-    /// 老师发帖（可选销课：course/class/schedule/students）
+    /// 老师发帖：students=关联学生（家长可见/推送）；consume=true 时同步消课（扣课时，需 schedule_id）
     static func createTeacherPost(
         content: String,
         images: [String],
@@ -324,6 +324,7 @@ extension PostService {
         classId: String? = nil,
         scheduleId: String? = nil,
         students: [[String: Any]] = [],
+        consume: Bool = false,
         topic: String = "",
         visibility: Int = 2,
         completion: @escaping (String?, String?) -> Void
@@ -332,7 +333,8 @@ extension PostService {
             "content": content,
             "images": images,
             "visibility": visibility,
-            "type": 1
+            "type": 1,
+            "consume": consume
         ]
         if let courseId, !courseId.isEmpty { params["course_id"] = courseId }
         if let classId, !classId.isEmpty { params["class_id"] = classId }

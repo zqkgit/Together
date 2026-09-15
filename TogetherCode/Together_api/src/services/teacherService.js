@@ -381,6 +381,10 @@ async function consumeStudentsForPost(post, teacher, payload, transaction) {
 
   const consumedList = [];
 
+  // 发帖关联学生（家长可见/推送）与"同步消课"（扣课时）是两回事：
+  // consume=false（默认）只关联学生，不扣课时；consume=true 时才走扣课时流程
+  const consume = payload.consume === true;
+
   for (const item of dedupedStudents) {
     const rosterItem = rosterMap.get(String(item.child_id));
     if (!rosterItem) {
@@ -395,6 +399,30 @@ async function consumeStudentsForPost(post, teacher, payload, transaction) {
       transaction,
       lock: transaction.LOCK.UPDATE
     });
+
+    if (!consume) {
+      // 仅关联：记录到 post_students（deducted=false），不扣课时、不校验请假
+      if (existingPostStudent) {
+        await existingPostStudent.update({ order_id: rosterItem.order_id, deducted: false }, { transaction });
+      } else {
+        await PostStudent.create(
+          {
+            post_id: post.post_id,
+            child_id: item.child_id,
+            order_id: rosterItem.order_id,
+            deducted: false
+          },
+          { transaction }
+        );
+      }
+      consumedList.push({
+        child_id: String(item.child_id),
+        order_id: String(rosterItem.order_id),
+        consumed_count: 0,
+        remaining_lessons: Number(rosterItem.remaining_lessons)
+      });
+      continue;
+    }
 
     if (existingPostStudent?.deducted) {
       throw new Error("Student already consumed for this post");

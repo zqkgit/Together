@@ -80,6 +80,8 @@ final class PostCreateViewController: BaseViewController, UITableViewDataSource,
         tableView.register(TextCell.self, forCellReuseIdentifier: TextCell.reuseId)
         tableView.register(PickerCell.self, forCellReuseIdentifier: PickerCell.reuseId)
         tableView.register(SwitchCell.self, forCellReuseIdentifier: SwitchCell.reuseId)
+        tableView.register(TeacherClassCell.self, forCellReuseIdentifier: TeacherClassCell.reuseId)
+        tableView.register(ConsumeCell.self, forCellReuseIdentifier: ConsumeCell.reuseId)
         tableView.register(VisibilityCell.self, forCellReuseIdentifier: VisibilityCell.reuseId)
         view.addSubview(tableView)
         tableView.snp.makeConstraints {
@@ -181,7 +183,8 @@ final class PostCreateViewController: BaseViewController, UITableViewDataSource,
 
     private var sectionsCount: Int {
         if isTeacher {
-            return consumeEnabled ? 8 : 6
+            // 0文字 1图片 2课程·班级+选择学生 3同步消课+上课课次 4话题 5谁可以看
+            return 6
         }
         return 6
     }
@@ -191,10 +194,8 @@ final class PostCreateViewController: BaseViewController, UITableViewDataSource,
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         if isTeacher {
             switch section {
-            case 2: return 1 // 关联课程·班级
-            case 3: return 1 // 销课开关
-            case 4: return consumeEnabled ? 1 : 0 // 课次
-            case 5: return consumeEnabled ? 1 : 0 // 学生
+            case 2: return teacherClasses.isEmpty ? 0 : 1 // 课程·班级+学生卡片：无班级时不显示
+            case 3: return teacherClasses.isEmpty ? 0 : 1 // 同步消课+课次卡片：无班级时用不到
             default: return 1
             }
         }
@@ -221,10 +222,8 @@ final class PostCreateViewController: BaseViewController, UITableViewDataSource,
             switch section {
             case 2: return "关联课程"
             case 3: return "同步销课"
-            case 4: return "上课课次"
-            case 5: return "选择学生"
-            case 6: return "选择话题"
-            case 7: return "谁可以看"
+            case 4: return "选择话题"
+            case 5: return "谁可以看"
             default: return nil
             }
         }
@@ -265,9 +264,18 @@ final class PostCreateViewController: BaseViewController, UITableViewDataSource,
             return card(cell)
         case 2:
             if isTeacher {
-                let cell = tableView.dequeueReusableCell(withIdentifier: PickerCell.reuseId, for: indexPath) as! PickerCell
-                cell.title = "课程 · 班级"
-                cell.detail = selectedClass?.displayName ?? "请选择"
+                let cell = tableView.dequeueReusableCell(withIdentifier: TeacherClassCell.reuseId, for: indexPath) as! TeacherClassCell
+                cell.configure(
+                    classDetail: selectedClass?.displayName ?? "请选择",
+                    students: classStudents.map { $0.nickname },
+                    selected: Set(classStudents.filter { selectedStudentIds.contains($0.child_id) }.map { $0.nickname }),
+                    hasClass: selectedClass != nil
+                )
+                cell.onTapClass = { [weak self] in self?.presentClassPicker() }
+                cell.onStudentsChanged = { [weak self] tags in
+                    guard let self else { return }
+                    self.selectedStudentIds = Set(self.classStudents.filter { tags.contains($0.nickname) }.map { $0.child_id })
+                }
                 return card(cell)
             } else {
                 let cell = UITableViewCell(style: .default, reuseIdentifier: "childTag")
@@ -294,16 +302,19 @@ final class PostCreateViewController: BaseViewController, UITableViewDataSource,
             }
         case 3:
             if isTeacher {
-                let cell = tableView.dequeueReusableCell(withIdentifier: SwitchCell.reuseId, for: indexPath) as! SwitchCell
-                cell.title = "发布后同步消课"
-                cell.subtitle = "开启后为所选学生扣除本节课时"
-                cell.switchValue = consumeEnabled
+                let cell = tableView.dequeueReusableCell(withIdentifier: ConsumeCell.reuseId, for: indexPath) as! ConsumeCell
+                cell.configure(
+                    switchValue: consumeEnabled,
+                    showSchedule: consumeEnabled,
+                    scheduleDetail: selectedSchedule?.displayName ?? "请选择"
+                )
                 cell.onSwitch = { [weak self] on in
                     guard let self else { return }
                     self.consumeEnabled = on
                     if !on { self.selectedSchedule = nil }
                     self.tableView.reloadData()
                 }
+                cell.onTapSchedule = { [weak self] in self?.presentSchedulePicker() }
                 return card(cell)
             } else {
                 let cell = tableView.dequeueReusableCell(withIdentifier: PickerCell.reuseId, for: indexPath) as! PickerCell
@@ -312,24 +323,13 @@ final class PostCreateViewController: BaseViewController, UITableViewDataSource,
                 return card(cell)
             }
         case 4:
-            if isTeacher {
-                let cell = tableView.dequeueReusableCell(withIdentifier: PickerCell.reuseId, for: indexPath) as! PickerCell
-                cell.title = "上课课次"
-                cell.detail = selectedSchedule?.displayName ?? "请选择"
-                return card(cell)
-            } else {
-                return card(topicCell(tableView, indexPath: indexPath))
-            }
+            return card(topicCell(tableView, indexPath: indexPath))
         case 5:
             if isTeacher {
-                return card(studentCell(tableView, indexPath: indexPath))
+                return card(visibilityCell(tableView, indexPath: indexPath))
             } else {
                 return card(visibilityCell(tableView, indexPath: indexPath))
             }
-        case 6:
-            return card(topicCell(tableView, indexPath: indexPath))
-        case 7:
-            return card(visibilityCell(tableView, indexPath: indexPath))
         default:
             return UITableViewCell()
         }
@@ -461,15 +461,20 @@ final class PostCreateViewController: BaseViewController, UITableViewDataSource,
         case 1:
             return 132 // 照片横向：100 高 + 上下间距 16×2
         case 2:
-            if isTeacher { return UITableView.automaticDimension }
+            if isTeacher {
+                // 未选班级：只显示课程·班级行 48；选了班级：+ 分割线 + 学生区
+                guard selectedClass != nil else { return 48 }
+                return 48 + 0.5 + 12 + 18 + 8 + tagRowsHeight(classStudents.map { $0.nickname }) + Theme.Spacing.l
+            }
             return tagRowsHeight(childList.map { $0.nickname }) + Theme.Spacing.l * 2 + 40
+        case 3:
+            if isTeacher {
+                // 消课开关行 70 + 分割线 0.5 + 课次行（开启消课才显示 48）
+                return 70 + 0.5 + (consumeEnabled ? 48 : 0)
+            }
+            return UITableView.automaticDimension
         case 4:
-            if !isTeacher { return tagRowsHeight(topics.map { "#\($0)" }) + Theme.Spacing.l * 2 + 40 }
-            return UITableView.automaticDimension
-        case 5:
-            if isTeacher { return tagRowsHeight(classStudents.map { $0.nickname }) + Theme.Spacing.l * 2 + 40 }
-            return UITableView.automaticDimension
-        case 6:
+            // 话题标签流式布局：TagSelectView 初始 intrinsic 为 0，须固定高度（家长/老师一致）
             return tagRowsHeight(topics.map { "#\($0)" }) + Theme.Spacing.l * 2 + 40
         default:
             return UITableView.automaticDimension
@@ -500,7 +505,7 @@ final class PostCreateViewController: BaseViewController, UITableViewDataSource,
         view.endEditing(true)
         if isTeacher && indexPath.section == 2 {
             presentClassPicker()
-        } else if isTeacher && consumeEnabled && indexPath.section == 4 {
+        } else if isTeacher && consumeEnabled && indexPath.section == 3 {
             presentSchedulePicker()
         } else if !isTeacher && indexPath.section == 3 {
             presentParentCoursePicker()
@@ -672,10 +677,8 @@ final class PostCreateViewController: BaseViewController, UITableViewDataSource,
     }
 
     private func publishTeacherPost(content: String, imageUrls: [String]) {
-        var students: [[String: Any]] = []
-        if consumeEnabled {
-            students = selectedStudentIds.map { ["child_id": $0, "count": 1] }
-        }
+        // 关联学生（家长可见/推送）与消课分离：选学生即关联；consume=true 才扣课时
+        let students: [[String: Any]] = selectedStudentIds.map { ["child_id": $0, "count": 1] }
         PostService.createTeacherPost(
             content: content,
             images: imageUrls,
@@ -683,6 +686,7 @@ final class PostCreateViewController: BaseViewController, UITableViewDataSource,
             classId: selectedClass?.class_id,
             scheduleId: selectedSchedule?.schedule_id,
             students: students,
+            consume: consumeEnabled,
             topic: topic,
             visibility: visibility
         ) { [weak self] postId, error in
@@ -986,6 +990,210 @@ final class PickerCell: UITableViewCell {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 }
 
+// MARK: - 课程·班级 + 选择学生 合并卡片
+
+final class TeacherClassCell: UITableViewCell {
+    static let reuseId = "TeacherClassCell"
+
+    var onTapClass: (() -> Void)?
+    var onStudentsChanged: ((Set<String>) -> Void)?
+
+    private let classTitleLabel = UILabel()
+    private let detailLabel = UILabel()
+    private let chevron = UIImageView()
+    private let divider = UIView()
+    private let studentTitleLabel = UILabel()
+    private var tagView: TagSelectView?
+
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        backgroundColor = Theme.Color.surface
+        selectionStyle = .none
+
+        classTitleLabel.font = .appBody(15)
+        classTitleLabel.textColor = Theme.Color.ink
+        classTitleLabel.text = "课程 · 班级"
+        contentView.addSubview(classTitleLabel)
+        classTitleLabel.snp.makeConstraints {
+            $0.top.equalToSuperview()
+            $0.leading.equalToSuperview().offset(Theme.Spacing.l * 2)
+            $0.height.equalTo(48)
+        }
+
+        chevron.image = UIImage(systemName: "chevron.right")
+        chevron.tintColor = Theme.Color.sub.withAlphaComponent(0.5)
+        chevron.contentMode = .scaleAspectFit
+        contentView.addSubview(chevron)
+        chevron.snp.makeConstraints {
+            $0.centerY.equalTo(classTitleLabel)
+            $0.trailing.equalToSuperview().offset(-Theme.Spacing.l * 2)
+            $0.width.equalTo(12)
+            $0.height.equalTo(14)
+        }
+
+        detailLabel.font = .appBody(14)
+        detailLabel.textColor = Theme.Color.sub
+        detailLabel.textAlignment = .right
+        contentView.addSubview(detailLabel)
+        detailLabel.snp.makeConstraints {
+            $0.centerY.equalTo(classTitleLabel)
+            $0.trailing.equalTo(chevron.snp.leading).offset(-4)
+            $0.leading.greaterThanOrEqualTo(classTitleLabel.snp.trailing).offset(Theme.Spacing.m)
+        }
+
+        divider.backgroundColor = Theme.Color.line
+        contentView.addSubview(divider)
+        divider.snp.makeConstraints {
+            $0.top.equalTo(classTitleLabel.snp.bottom)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l * 2)
+            $0.height.equalTo(0.5)
+        }
+
+        studentTitleLabel.text = "选择学生"
+        studentTitleLabel.font = .systemFont(ofSize: 13, weight: .medium)
+        studentTitleLabel.textColor = Theme.Color.sub
+        contentView.addSubview(studentTitleLabel)
+        studentTitleLabel.snp.makeConstraints {
+            $0.top.equalTo(divider.snp.bottom).offset(12)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.l * 2)
+            $0.height.equalTo(18)
+        }
+    }
+
+    func configure(classDetail: String, students: [String], selected: Set<String>, hasClass: Bool) {
+        detailLabel.text = classDetail
+
+        // 未选班级：只显示"课程·班级"一行（无线、无学生区）
+        divider.isHidden = !hasClass
+        studentTitleLabel.isHidden = !hasClass
+        tagView?.removeFromSuperview()
+        tagView = nil
+        guard hasClass else { return }
+
+        let tag = TagSelectView(options: students, selected: selected)
+        tag.allowsMultipleSelection = true
+        tag.onSelectionChanged = { [weak self] tags in self?.onStudentsChanged?(tags) }
+        contentView.addSubview(tag)
+        tag.snp.makeConstraints {
+            $0.top.equalTo(studentTitleLabel.snp.bottom).offset(8)
+            $0.bottom.equalToSuperview().offset(-Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l * 2)
+        }
+        tagView = tag
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+}
+
+// MARK: - 同步消课 + 上课课次 合并卡片
+
+final class ConsumeCell: UITableViewCell {
+    static let reuseId = "ConsumeCell"
+
+    var onSwitch: ((Bool) -> Void)?
+    var onTapSchedule: (() -> Void)?
+
+    private let titleLabel = UILabel()
+    private let subtitleLabel = UILabel()
+    private let switchControl = UISwitch()
+    private let divider = UIView()
+    private let scheduleTitleLabel = UILabel()
+    private let scheduleDetailLabel = UILabel()
+    private let scheduleChevron = UIImageView()
+
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        backgroundColor = Theme.Color.surface
+        selectionStyle = .none
+
+        switchControl.onTintColor = Theme.Color.brand
+        switchControl.addTarget(self, action: #selector(switched(_:)), for: .valueChanged)
+
+        titleLabel.font = .appBody(15)
+        titleLabel.textColor = Theme.Color.ink
+        titleLabel.text = "发布后同步消课"
+
+        subtitleLabel.font = .appBody(12)
+        subtitleLabel.textColor = Theme.Color.sub
+        subtitleLabel.text = "开启后为所选学生扣除本节课时"
+
+        divider.backgroundColor = Theme.Color.line
+
+        scheduleTitleLabel.font = .appBody(15)
+        scheduleTitleLabel.textColor = Theme.Color.ink
+        scheduleTitleLabel.text = "上课课次"
+
+        scheduleChevron.image = UIImage(systemName: "chevron.right")
+        scheduleChevron.tintColor = Theme.Color.sub.withAlphaComponent(0.5)
+        scheduleChevron.contentMode = .scaleAspectFit
+
+        scheduleDetailLabel.font = .appBody(14)
+        scheduleDetailLabel.textColor = Theme.Color.sub
+        scheduleDetailLabel.textAlignment = .right
+
+        // 先全部 addSubview 再统一约束，避免跨层级引用崩溃
+        [titleLabel, subtitleLabel, switchControl, divider, scheduleTitleLabel, scheduleDetailLabel, scheduleChevron].forEach {
+            contentView.addSubview($0)
+        }
+
+        switchControl.snp.makeConstraints {
+            $0.centerY.equalTo(titleLabel)
+            $0.trailing.equalToSuperview().offset(-Theme.Spacing.l * 2)
+        }
+
+        titleLabel.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.l * 2)
+            $0.trailing.lessThanOrEqualTo(switchControl.snp.leading).offset(-Theme.Spacing.m)
+        }
+
+        subtitleLabel.snp.makeConstraints {
+            $0.top.equalTo(titleLabel.snp.bottom).offset(2)
+            $0.leading.equalTo(titleLabel)
+            $0.trailing.lessThanOrEqualTo(switchControl.snp.leading).offset(-Theme.Spacing.m)
+        }
+
+        divider.snp.makeConstraints {
+            $0.top.equalTo(subtitleLabel.snp.bottom).offset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l * 2)
+            $0.height.equalTo(0.5)
+        }
+
+        scheduleTitleLabel.snp.makeConstraints {
+            $0.top.equalTo(divider.snp.bottom)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.l * 2)
+            $0.height.equalTo(48)
+        }
+
+        scheduleChevron.snp.makeConstraints {
+            $0.centerY.equalTo(scheduleTitleLabel)
+            $0.trailing.equalToSuperview().offset(-Theme.Spacing.l * 2)
+            $0.width.equalTo(12)
+            $0.height.equalTo(14)
+        }
+
+        scheduleDetailLabel.snp.makeConstraints {
+            $0.centerY.equalTo(scheduleTitleLabel)
+            $0.trailing.equalTo(scheduleChevron.snp.leading).offset(-4)
+            $0.leading.greaterThanOrEqualTo(scheduleTitleLabel.snp.trailing).offset(Theme.Spacing.m)
+        }
+    }
+
+    func configure(switchValue: Bool, showSchedule: Bool, scheduleDetail: String) {
+        switchControl.isOn = switchValue
+        scheduleDetailLabel.text = scheduleDetail
+        // 消课关闭时课次行与分割线都不显示
+        divider.isHidden = !showSchedule
+        scheduleTitleLabel.isHidden = !showSchedule
+        scheduleChevron.isHidden = !showSchedule
+        scheduleDetailLabel.isHidden = !showSchedule
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    @objc private func switched(_ sender: UISwitch) { onSwitch?(sender.isOn) }
+}
+
 // MARK: - 开关行 Cell
 
 final class SwitchCell: UITableViewCell {
@@ -1005,6 +1213,15 @@ final class SwitchCell: UITableViewCell {
         backgroundColor = Theme.Color.surface
         selectionStyle = .none
 
+        // 先 addSubview 再约束：label 的 trailing 会引用 switch 的 leading
+        switchControl.onTintColor = Theme.Color.brand
+        switchControl.addTarget(self, action: #selector(switched(_:)), for: .valueChanged)
+        contentView.addSubview(switchControl)
+        switchControl.snp.makeConstraints {
+            $0.centerY.equalToSuperview()
+            $0.trailing.equalToSuperview().offset(-Theme.Spacing.m)
+        }
+
         titleLabel.font = .appBody(15)
         titleLabel.textColor = Theme.Color.ink
         contentView.addSubview(titleLabel)
@@ -1022,14 +1239,6 @@ final class SwitchCell: UITableViewCell {
             $0.leading.equalTo(titleLabel)
             $0.bottom.equalToSuperview().offset(-Theme.Spacing.l)
             $0.trailing.lessThanOrEqualTo(switchControl.snp.leading).offset(-Theme.Spacing.m)
-        }
-
-        switchControl.onTintColor = Theme.Color.brand
-        switchControl.addTarget(self, action: #selector(switched(_:)), for: .valueChanged)
-        contentView.addSubview(switchControl)
-        switchControl.snp.makeConstraints {
-            $0.centerY.equalToSuperview()
-            $0.trailing.equalToSuperview().offset(-Theme.Spacing.m)
         }
     }
 
