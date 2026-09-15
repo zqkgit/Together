@@ -2,19 +2,21 @@ import UIKit
 import SnapKit
 import ESPullToRefresh
 
-/// 我的订单（家长端，对齐 PR：全部/待支付/已报名 Tab + 订单卡片）
+/// 我的订单（家长端，对齐 PR：全部/待支付/已支付/已退款 Tab + 订单卡片）
 final class MyOrdersViewController: BaseViewController {
 
     private enum Tab: Int, CaseIterable {
         case all = 0
         case pending
         case enrolled
+        case refunded
 
         var title: String {
             switch self {
             case .all: return "全部"
             case .pending: return "待支付"
-            case .enrolled: return "已报名"
+            case .enrolled: return "已支付"
+            case .refunded: return "已退款"
             }
         }
         /// 对应的后端 status（all 无过滤）
@@ -23,6 +25,7 @@ final class MyOrdersViewController: BaseViewController {
             case .all: return nil
             case .pending: return 0
             case .enrolled: return 1
+            case .refunded: return 3
             }
         }
     }
@@ -37,6 +40,11 @@ final class MyOrdersViewController: BaseViewController {
         super.viewDidLoad()
         configureImmersiveNav(title: "我的订单")
         setupUI()
+    }
+
+    /// 每次进入/返回列表都刷新，保证退款、取消等操作后状态最新
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
         loadData()
     }
 

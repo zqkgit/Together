@@ -122,7 +122,7 @@ final class OrderDetailViewController: BaseViewController {
         let statusDesc: String
         switch order.refundStatusValue {
         case .processing:
-            statusTitle = "退款申请中"
+            statusTitle = "退款中"
             statusDesc = "退款处理中，到账后将自动更新"
         case .refunded:
             statusTitle = "已退款"
@@ -133,7 +133,7 @@ final class OrderDetailViewController: BaseViewController {
         case .none:
             switch order.statusValue {
             case .enrolled:
-                statusTitle = "√ 已报名 · 学习中"
+                statusTitle = "√ 已支付 · 学习中"
                 statusDesc = "已完成\(order.consumed_lessons ?? 0)/\(order.total_lessons ?? 0)节 · 剩余课时可申请退款"
             case .pending:
                 statusTitle = "待支付"
@@ -141,9 +141,9 @@ final class OrderDetailViewController: BaseViewController {
             case .cancelled:
                 statusTitle = "已取消"
                 statusDesc = "订单已取消"
-            case .completed:
-                statusTitle = "已完成"
-                statusDesc = "课程已完成"
+            case .refunded, .completed:
+                statusTitle = "已退款"
+                statusDesc = "退款已原路退回"
             }
         }
         statusRow = .status(title: statusTitle, desc: statusDesc)
@@ -172,7 +172,15 @@ final class OrderDetailViewController: BaseViewController {
 
     private func updateBottomBar(_ order: OrderItem) {
         if order.refundStatusValue != .none {
-            // 有退款单（处理中/已退款/已驳回）→ 只留查看退款
+            if order.refundStatusValue == .rejected {
+                // 已驳回：保留查看退款 + 提供再次申请入口
+                secondaryButton.isHidden = false
+                secondaryButton.setTitle("再次申请退款", for: .normal)
+                primaryButton.setTitle("查看退款", for: .normal)
+                primaryButton.isEnabled = true
+                return
+            }
+            // 处理中/已退款 → 只留查看退款
             secondaryButton.isHidden = true
             primaryButton.setTitle(order.refundStatusValue == .processing ? "查看退款进度" : "查看退款", for: .normal)
             primaryButton.isEnabled = true
@@ -184,7 +192,7 @@ final class OrderDetailViewController: BaseViewController {
             primaryButton.setTitle("去支付", for: .normal)
             primaryButton.isEnabled = true
             secondaryButton.isHidden = false
-        case .enrolled, .completed:
+        case .enrolled, .completed, .refunded:
             secondaryButton.setTitle("申请退款", for: .normal)
             primaryButton.setTitle("去学习", for: .normal)
             primaryButton.isEnabled = true
@@ -223,7 +231,7 @@ final class OrderDetailViewController: BaseViewController {
                 self?.loadData()
             }
             navigationController?.pushViewController(vc, animated: true)
-        case .enrolled, .completed:
+        case .enrolled, .completed, .refunded:
             goStudy(order)
         case .cancelled:
             break
@@ -244,7 +252,11 @@ final class OrderDetailViewController: BaseViewController {
     }
 
     @objc private func didTapSecondary() {
-        guard let order, let orderId = order.order_id, order.refundStatusValue == .none else { return }
+        guard let order, let orderId = order.order_id else { return }
+        // 除「已驳回」外的退款状态不允许再走次按钮（处理中/已退款只留查看退款）
+        if order.refundStatusValue != .none && order.refundStatusValue != .rejected {
+            return
+        }
         switch order.statusValue {
         case .pending:
             ThemeAlertView.show(
@@ -254,7 +266,7 @@ final class OrderDetailViewController: BaseViewController {
                 cancelTitle: "再想想",
                 onConfirm: { [weak self] in self?.cancelOrder(orderId) }
             )
-        case .enrolled, .completed:
+        case .enrolled, .completed, .refunded:
             ThemeAlertView.show(
                 title: "申请退款",
                 message: "退还将按剩余课时计算，确定申请吗？",
@@ -284,12 +296,20 @@ final class OrderDetailViewController: BaseViewController {
 
     private func requestRefund(_ orderId: String) {
         showLoading()
-        OrderService.requestRefund(orderId: orderId, lessons: 1, reason: nil) { [weak self] result in
+        // 退款按剩余全部课时申请
+        let refundLessons = order?.remaining_lessons ?? 0
+        guard refundLessons > 0 else {
+            hideLoading()
+            showToast("没有可退课时")
+            return
+        }
+        OrderService.requestRefund(orderId: orderId, lessons: refundLessons, reason: nil) { [weak self] result in
             guard let self else { return }
             self.hideLoading()
             switch result {
             case .success:
                 self.showToast("退款申请已提交")
+                self.loadData()
             case .failure(let error):
                 self.showToast(error.message ?? "申请失败")
             }

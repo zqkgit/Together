@@ -368,7 +368,7 @@ async function confirmRefundPaid(studioId, refundId, operator = {}) {
       {
         refunded_lessons: Number(order.refunded_lessons || 0) + requestedLessons,
         refund_amount: Number(order.refund_amount || 0) + Number(refund.amount || 0),
-        status: remainingAfter === 0 && Number(order.consumed_lessons || 0) === 0 ? 4 : 3
+        status: 3 // 确认打款后订单进入已退款终态（与 web 状态体系一致：3=已退款）
       },
       { transaction }
     );

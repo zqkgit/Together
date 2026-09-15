@@ -1,19 +1,21 @@
 import Foundation
 
-// MARK: - 订单状态（对齐后端 orders.status）
+// MARK: - 订单状态（对齐后端 orders.status：0 待支付 / 1 已支付 / 2 已取消 / 3 已退款 / 4 全额退款终态）
 
 enum OrderStatus: Int {
     case pending = 0      // 待支付
-    case enrolled = 1     // 已报名（已支付）
+    case enrolled = 1     // 已支付（已报名）
     case cancelled = 2    // 已取消
-    case completed = 3    // 已完成
+    case refunded = 3     // 已退款
+    case completed = 4    // 全额退款终态（未上课全退）
 
     var text: String {
         switch self {
         case .pending: return "待支付"
-        case .enrolled: return "已报名"
+        case .enrolled: return "已支付"
         case .cancelled: return "已取消"
-        case .completed: return "已完成"
+        case .refunded: return "已退款"
+        case .completed: return "已退款"
         }
     }
 }
