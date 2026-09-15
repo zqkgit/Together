@@ -14,6 +14,7 @@ final class OrderPayViewController: BaseViewController {
     private let wechatRow = PayMethodRow()
     private let balanceRow = PayMethodRow()
     private var selectedChannel = "wechat_mini"
+    private var balance: Double = 0
 
     /// 可切换的上课孩子（默认订单孩子优先）
     private var childList: [ChildItem] = []
@@ -61,16 +62,42 @@ final class OrderPayViewController: BaseViewController {
         )
         wechatRow.onTap = { [weak self] in self?.selectChannel("wechat_mini") }
 
+        updateBalanceRow()
+        loadWallet()
+    }
+
+    // MARK: - 艺启余额
+
+    private func loadWallet() {
+        OrderService.fetchWalletBalance { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .success(let balance):
+                self.balance = balance
+            case .failure:
+                self.balance = 0
+            }
+            self.updateBalanceRow()
+        }
+    }
+
+    private func updateBalanceRow() {
+        let hasBalance = balance > 0
+        let amountText = String(format: "%.0f", balance)
         balanceRow.configure(
             icon: "yensign.circle",
             title: "艺启余额",
-            subtitle: "余额支付暂未开通",
-            selected: false,
-            enabled: false
+            subtitle: hasBalance ? "可用余额 ¥\(amountText)" : "余额不足",
+            selected: selectedChannel == "balance",
+            enabled: hasBalance
         )
         balanceRow.onTap = { [weak self] in
             guard let self else { return }
-            self.showToast("余额支付暂未开通，请使用微信支付")
+            if self.balance > 0 {
+                self.selectChannel("balance")
+            } else {
+                self.showToast("余额不足，请使用微信支付")
+            }
         }
     }
 
@@ -122,6 +149,7 @@ final class OrderPayViewController: BaseViewController {
     private func selectChannel(_ channel: String) {
         selectedChannel = channel
         wechatRow.setSelected(channel == "wechat_mini")
+        balanceRow.setSelected(channel == "balance")
     }
 
     // MARK: - 孩子数据

@@ -77,6 +77,18 @@ extension OrderService {
         }
     }
 
+    /// 艺启余额（返利钱包余额，单位元）
+    static func fetchWalletBalance(completion: @escaping (Result<Double, APIError>) -> Void) {
+        APIClient.shared.request("/distribution/commission/summary", method: .get) { result in
+            switch result {
+            case .success(let json):
+                completion(.success(json["wallet"]["balance"].doubleValue))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
     /// 退款详情（状态流转）
     static func fetchRefundDetail(refundId: String, completion: @escaping (Result<RefundDetail, APIError>) -> Void) {
         APIClient.shared.request("/orders/refunds/\(refundId)", method: .get) { result in

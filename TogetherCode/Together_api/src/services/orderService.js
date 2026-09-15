@@ -10,7 +10,8 @@ const {
   Refund,
   ChildCourseBalance,
   LessonLog,
-  StudioProfile
+  StudioProfile,
+  Wallet
 } = require("../models");
 const { generateId } = require("../utils/id");
 const { resolveDistributionCode, settleCommissionForOrder } = require("./commissionService");
@@ -269,6 +270,19 @@ async function payOrder(userId, orderId, payload) {
       if (String(targetChildId) !== String(order.child_id)) {
         await order.update({ child_id: targetChildId }, { transaction });
       }
+    }
+
+    // 艺启余额支付：校验并扣减钱包余额（Wallet.balance 单位为元）
+    if (payload.channel === "balance") {
+      const wallet = await Wallet.findByPk(userId, { transaction, lock: transaction.LOCK.UPDATE });
+      const amountYuan = Number((Number(order.total_amount) / 100).toFixed(2));
+      if (!wallet || Number(wallet.balance) < amountYuan) {
+        throw new Error("Insufficient balance");
+      }
+      await wallet.update(
+        { balance: Number((Number(wallet.balance) - amountYuan).toFixed(2)) },
+        { transaction }
+      );
     }
 
     const paidAt = new Date();

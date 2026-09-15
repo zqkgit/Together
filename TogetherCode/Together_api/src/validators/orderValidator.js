@@ -10,7 +10,7 @@ const createOrderValidators = [
 
 const payOrderValidators = [
   param("id").isString().notEmpty().withMessage("order id is required"),
-  body("channel").optional({ values: "falsy" }).isIn(["wechat_mini", "ios_iap", "offline"]),
+  body("channel").optional({ values: "falsy" }).isIn(["wechat_mini", "ios_iap", "offline", "balance"]),
   body("child_id").optional({ values: "falsy" }).isString().notEmpty()
 ];
 
