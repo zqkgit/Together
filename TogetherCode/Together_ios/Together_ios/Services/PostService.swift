@@ -44,6 +44,29 @@ enum PostService {
         }
     }
 
+    /// 我的作品（作品管理）：当前用户发布的全部帖子（含待审核/已驳回），按时间倒序
+    /// status: all / public / private；counts 为 [全部, 公开, 未公开]
+    static func fetchMyWorks(page: Int, size: Int, status: String,
+                             completion: @escaping ([PostItem]?, [Int]?, Bool, String?) -> Void) {
+        APIClient.shared.request(
+            "/posts/mine",
+            method: .get,
+            parameters: ["page": page, "size": size, "status": status],
+            encoding: URLEncoding.default
+        ) { result in
+            switch result {
+            case .success(let json):
+                let total = json["total"].intValue
+                let list = JSONKit.decodeList([PostItem].self, from: json)
+                let counts = json["counts"]
+                let countsArray = [counts["all"].intValue, counts["public"].intValue, counts["private"].intValue]
+                completion(list, countsArray, page * size < total, nil)
+            case .failure(let error):
+                completion(nil, nil, false, error.message)
+            }
+        }
+    }
+
     /// 帖子详情
     static func fetchDetail(postId: String, completion: @escaping (PostItem?, String?) -> Void) {
         APIClient.shared.request("/posts/\(postId)", method: .get) { result in

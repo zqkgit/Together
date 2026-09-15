@@ -117,7 +117,7 @@ final class WorkCardView: UIView {
         }
     }
 
-    private static func gradientPlaceholder(colors: [UIColor]) -> UIImage? {
+    static func gradientPlaceholder(colors: [UIColor]) -> UIImage? {
         let size = CGSize(width: 1, height: 1)
         UIGraphicsBeginImageContextWithOptions(size, false, 0)
         guard let ctx = UIGraphicsGetCurrentContext() else { return nil }

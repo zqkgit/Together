@@ -545,14 +545,28 @@ async function listPlaza(query = {}) {
  */
 
 /**
- * 我的帖子：当前用户发布的全部帖子（含待审核/被隐藏），按时间倒序
+ * 我的帖子（作品管理）：当前用户发布的全部帖子（含待审核/被隐藏），按时间倒序
+ * status: all / public(visibility=2) / private(visibility=1)
+ * 返回 counts{all,public,private} 供分类标签计数
  */
 async function listMyPosts(userId, query = {}) {
   const page = Math.max(1, Number(query.page) || 1);
   const size = Math.min(Number(query.size) || 20, 50);
+  const status = String(query.status || "all");
 
-  const { rows, count } = await Post.findAndCountAll({
-    where: { author_id: userId },
+  const where = { author_id: userId };
+  if (status === "public") where.visibility = 2;
+  else if (status === "private") where.visibility = 1;
+
+  const [count, allCount, publicCount, privateCount] = await Promise.all([
+    Post.count({ where }),
+    Post.count({ where: { author_id: userId } }),
+    Post.count({ where: { author_id: userId, visibility: 2 } }),
+    Post.count({ where: { author_id: userId, visibility: 1 } })
+  ]);
+
+  const { rows } = await Post.findAndCountAll({
+    where,
     include: postInclude(userId),
     order: [["created_at", "DESC"]],
     offset: (page - 1) * size,
@@ -561,6 +575,7 @@ async function listMyPosts(userId, query = {}) {
 
   return {
     total: count,
+    counts: { all: allCount, public: publicCount, private: privateCount },
     page,
     size,
     list: rows.map((row) => normalizePostItem(row, userId))

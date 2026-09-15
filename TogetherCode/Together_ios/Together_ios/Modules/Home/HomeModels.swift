@@ -220,6 +220,8 @@ struct PostItem: Codable {
     let child: PostChild?
     let course: PostCourse?
     let created_at: String?
+    let visibility: Int? // 2 公开 / 1 仅好友
+    let status: Int?     // 1 已通过 / 0 待审核 / -1 已驳回
 
     struct PostAuthor: Codable {
         let user_id: String
@@ -246,6 +248,18 @@ struct PostItem: Codable {
     var imageList: [String] { images ?? [] }
     var likeText: String { "\(like_count ?? 0)" }
     var commentText: String { "\(comment_count ?? 0)" }
+    /// 是否公开（2=公开 / 1=仅好友）
+    var isPublic: Bool { visibility == 2 }
+    /// 作品管理状态文案
+    var visibilityText: String { isPublic ? "公开" : "未公开" }
+    /// 审核状态文案
+    var statusText: String {
+        switch status {
+        case 0: return "审核中"
+        case -1: return "已驳回"
+        default: return "已发布"
+        }
+    }
 
     /// 关联文案：优先孩子，其次课程
     var relationText: String? {
