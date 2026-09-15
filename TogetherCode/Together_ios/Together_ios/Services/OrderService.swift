@@ -77,6 +77,22 @@ extension OrderService {
         }
     }
 
+    /// 退款详情（状态流转）
+    static func fetchRefundDetail(refundId: String, completion: @escaping (Result<RefundDetail, APIError>) -> Void) {
+        APIClient.shared.request("/orders/refunds/\(refundId)", method: .get) { result in
+            switch result {
+            case .success(let json):
+                if let detail = JSONKit.decode(RefundDetail.self, from: json) {
+                    completion(.success(detail))
+                } else {
+                    completion(.failure(.parse))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
     /// 申请退款
     static func requestRefund(orderId: String, lessons: Int, reason: String? = nil, completion: @escaping (Result<Void, APIError>) -> Void) {
         var parameters: [String: Any] = ["lessons": lessons]

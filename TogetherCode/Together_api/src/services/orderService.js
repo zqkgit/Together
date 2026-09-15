@@ -17,6 +17,33 @@ const { resolveDistributionCode, settleCommissionForOrder } = require("./commiss
 const { createNotification } = require("./messageService");
 
 function formatOrder(order) {
+  const refundList = (order.refunds || []).map((item) => ({
+    refund_id: String(item.refund_id),
+    amount: item.amount,
+    requested_lessons: item.requested_lessons,
+    refundable_lessons: item.refundable_lessons,
+    status: item.status,
+    status_text: REFUND_STATUS_TEXT[Number(item.status)] || "未知",
+    reason: item.reason,
+    created_at: item.created_at
+  }));
+  // 订单层退款聚合状态：0 无 / 1 退款中 / 2 已退款 / 3 已驳回
+  const activeRefund = refundList.find((r) => r.status === 0 || r.status === 1);
+  const refundedRefund = refundList.find((r) => r.status === 3);
+  const rejectedRefund = refundList.find((r) => r.status === 2);
+  let refund_status = 0;
+  let refund_status_text = "无";
+  if (activeRefund) {
+    refund_status = 1;
+    refund_status_text = "退款中";
+  } else if (refundedRefund) {
+    refund_status = 2;
+    refund_status_text = "已退款";
+  } else if (rejectedRefund) {
+    refund_status = 3;
+    refund_status_text = "已驳回";
+  }
+
   return {
     order_id: String(order.order_id),
     order_no: order.order_no,
@@ -31,6 +58,8 @@ function formatOrder(order) {
     total_amount: order.total_amount,
     paid_amount: order.paid_amount,
     refund_amount: order.refund_amount,
+    refund_status: refund_status,
+    refund_status_text: refund_status_text,
     pay_channel: order.pay_channel,
     paid_at: order.paid_at,
     created_at: order.created_at,
@@ -77,15 +106,7 @@ function formatOrder(order) {
       status: item.status,
       paid_at: item.paid_at
     })),
-    refunds: (order.refunds || []).map((item) => ({
-      refund_id: String(item.refund_id),
-      amount: item.amount,
-      requested_lessons: item.requested_lessons,
-      refundable_lessons: item.refundable_lessons,
-      status: item.status,
-      reason: item.reason,
-      created_at: item.created_at
-    })),
+    refunds: refundList,
     balance: order.balance
       ? {
           balance_id: String(order.balance.balance_id),

@@ -12,11 +12,5 @@ final class MainTabBarController: BaseTabBarViewController {
             makeTab(MessageViewController(), title: "消息", icon: "bell"),
             makeTab(MineViewController(), title: "我的", icon: "person")
         ]
-
-        // TEMP: 验证支付按钮高度
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
-            guard let self, let nav = self.selectedViewController as? UINavigationController else { return }
-            nav.pushViewController(MyOrdersViewController(), animated: true)
-        }
     }
 }

@@ -169,6 +169,12 @@ extension MyOrdersViewController: UITableViewDataSource, UITableViewDelegate {
             case .pay: self.goPay(order)
             case .schedule: self.goCourse(order)
             case .study: self.goCourse(order)
+            case .refundDetail:
+                guard let refundId = order.latestRefundId else {
+                    self.showToast("退款单不存在")
+                    return
+                }
+                self.navigationController?.pushViewController(RefundDetailViewController(refundId: refundId), animated: true)
             }
         }
         return cell
@@ -190,6 +196,7 @@ final class OrderCell: UITableViewCell {
         case pay         // 去支付
         case schedule    // 查看课表
         case study       // 去学习
+        case refundDetail // 查看退款
     }
 
     var onAction: ((Action) -> Void)?
@@ -252,8 +259,13 @@ final class OrderCell: UITableViewCell {
 
     func configure(_ order: OrderItem) {
         orderNoLabel.text = "订单号\(order.order_no ?? "-")"
-        statusLabel.text = order.statusValue.text
-        statusLabel.textColor = statusColor(order.statusValue)
+        if order.refundStatusValue != .none {
+            statusLabel.text = order.refundStatusValue.text
+            statusLabel.textColor = Theme.Color.brand
+        } else {
+            statusLabel.text = order.statusValue.text
+            statusLabel.textColor = statusColor(order.statusValue)
+        }
         titleLabel.text = order.courseTitleWithLessons
         studioLabel.text = order.studioTeacherText
         amountLabel.text = order.amountText
@@ -283,6 +295,9 @@ final class OrderCell: UITableViewCell {
     }
 
     private func buttonActions(for order: OrderItem) -> [(String, Action, Bool)] {
+        if order.refundStatusValue != .none {
+            return [("查看退款", .refundDetail, true)]
+        }
         switch order.statusValue {
         case .pending:
             return [("取消", .cancel, false), ("去支付", .pay, true)]

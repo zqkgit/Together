@@ -120,19 +120,31 @@ final class OrderDetailViewController: BaseViewController {
 
         let statusTitle: String
         let statusDesc: String
-        switch order.statusValue {
-        case .enrolled:
-            statusTitle = "√ 已报名 · 学习中"
-            statusDesc = "已完成\(order.consumed_lessons ?? 0)/\(order.total_lessons ?? 0)节 · 剩余课时可申请退款"
-        case .pending:
-            statusTitle = "待支付"
-            statusDesc = "订单待支付，请尽快完成支付"
-        case .cancelled:
-            statusTitle = "已取消"
-            statusDesc = "订单已取消"
-        case .completed:
-            statusTitle = "已完成"
-            statusDesc = "课程已完成"
+        switch order.refundStatusValue {
+        case .processing:
+            statusTitle = "退款申请中"
+            statusDesc = "退款处理中，到账后将自动更新"
+        case .refunded:
+            statusTitle = "已退款"
+            statusDesc = "退款 \(OrderItem.fenToYuan(order.refunds?.first?.amount ?? 0)) 已原路退回"
+        case .rejected:
+            statusTitle = "退款已驳回"
+            statusDesc = "退款申请未通过，如有疑问请联系机构"
+        case .none:
+            switch order.statusValue {
+            case .enrolled:
+                statusTitle = "√ 已报名 · 学习中"
+                statusDesc = "已完成\(order.consumed_lessons ?? 0)/\(order.total_lessons ?? 0)节 · 剩余课时可申请退款"
+            case .pending:
+                statusTitle = "待支付"
+                statusDesc = "订单待支付，请尽快完成支付"
+            case .cancelled:
+                statusTitle = "已取消"
+                statusDesc = "订单已取消"
+            case .completed:
+                statusTitle = "已完成"
+                statusDesc = "课程已完成"
+            }
         }
         statusRow = .status(title: statusTitle, desc: statusDesc)
         courseRow = .course(title: order.courseTitleWithLessons, subtitle: order.studioTeacherText)
@@ -159,6 +171,13 @@ final class OrderDetailViewController: BaseViewController {
     }
 
     private func updateBottomBar(_ order: OrderItem) {
+        if order.refundStatusValue != .none {
+            // 有退款单（处理中/已退款/已驳回）→ 只留查看退款
+            secondaryButton.isHidden = true
+            primaryButton.setTitle(order.refundStatusValue == .processing ? "查看退款进度" : "查看退款", for: .normal)
+            primaryButton.isEnabled = true
+            return
+        }
         switch order.statusValue {
         case .pending:
             secondaryButton.setTitle("取消", for: .normal)
@@ -189,6 +208,14 @@ final class OrderDetailViewController: BaseViewController {
 
     @objc private func didTapPrimary() {
         guard let order else { return }
+        if order.refundStatusValue != .none {
+            guard let refundId = order.latestRefundId else {
+                showToast("退款单不存在")
+                return
+            }
+            navigationController?.pushViewController(RefundDetailViewController(refundId: refundId), animated: true)
+            return
+        }
         switch order.statusValue {
         case .pending:
             let vc = OrderPayViewController(order: order)
@@ -217,7 +244,7 @@ final class OrderDetailViewController: BaseViewController {
     }
 
     @objc private func didTapSecondary() {
-        guard let order, let orderId = order.order_id else { return }
+        guard let order, let orderId = order.order_id, order.refundStatusValue == .none else { return }
         switch order.statusValue {
         case .pending:
             ThemeAlertView.show(
