@@ -19,7 +19,11 @@ const {
   getTagsData,
   postTag,
   putTag,
-  deleteTagItem
+  deleteTagItem,
+  getTopicsData,
+  postTopic,
+  putTopic,
+  deleteTopicItem
 } = require("../controllers/adminController");
 const adminAuthRoutes = require("./adminAuth");
 const { validateRequest } = require("../middlewares/validate");
@@ -92,6 +96,10 @@ router.get("/tags", getTagsData);
 router.post("/tags", postTag);
 router.put("/tags/:id", putTag);
 router.delete("/tags/:id", deleteTagItem);
+router.get("/topics", getTopicsData);
+router.post("/topics", postTopic);
+router.put("/topics/:id", putTopic);
+router.delete("/topics/:id", deleteTopicItem);
 
 // 举报处置（P3）
 router.get("/reports", getReportsList);

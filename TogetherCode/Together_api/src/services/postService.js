@@ -1,5 +1,5 @@
 const { Op } = require("sequelize");
-const { sequelize, Post, PostLike, PostComment, PostCommentLike, User, Child, Course, Favorite } = require("../models");
+const { sequelize, Post, PostLike, PostComment, PostCommentLike, User, Child, Course, Favorite, PostStudent } = require("../models");
 const { generateId } = require("../utils/id");
 const { createNotification } = require("./messageService");
 
@@ -48,6 +48,14 @@ function normalizePostItem(post, viewerUserId = null, favoritePostIds = null) {
     topic: post.topic || null,
     visibility: post.visibility,
     status: post.status,
+    students: Array.isArray(post.students)
+      ? post.students.map((s) => ({
+          child_id: String(s.child_id),
+          nickname: s.child?.nickname || null,
+          avatar: s.child?.avatar || null,
+          deducted: !!s.deducted
+        }))
+      : [],
     like_count: Number(post.like_count || 0),
     comment_count: Number(post.comment_count || 0),
     share_count: Number(post.share_count || 0),
@@ -83,6 +91,18 @@ function postInclude(viewerUserId = null) {
       model: Course,
       as: "course",
       attributes: ["course_id", "title", "studio_id", "price"]
+    },
+    {
+      model: PostStudent,
+      as: "students",
+      required: false,
+      include: [
+        {
+          model: Child,
+          as: "child",
+          attributes: ["child_id", "nickname", "avatar"]
+        }
+      ]
     },
     ...(viewerUserId
       ? [

@@ -32,6 +32,18 @@ enum PostService {
         }
     }
 
+    /// 发帖可选话题（公共接口，仅上架）
+    static func fetchTopics(completion: @escaping ([String]?, String?) -> Void) {
+        APIClient.shared.request("/topics", method: .get) { result in
+            switch result {
+            case .success(let json):
+                completion(json.arrayValue.map { $0["name"].stringValue }, nil)
+            case .failure(let error):
+                completion(nil, error.message)
+            }
+        }
+    }
+
     /// 帖子详情
     static func fetchDetail(postId: String, completion: @escaping (PostItem?, String?) -> Void) {
         APIClient.shared.request("/posts/\(postId)", method: .get) { result in
@@ -174,6 +186,166 @@ enum PostService {
                 case .success: completion(true, nil)
                 case .failure(let error): completion(nil, error.message)
                 }
+            }
+        }
+    }
+}
+
+
+// MARK: - 发布（家长/老师双角色）
+
+/// 老师班级（含课程信息，一个班级对应一门课）
+struct TeacherClassItem: Codable {
+    let class_id: String
+    let name: String
+    let course: TeacherCourse?
+
+    var displayName: String {
+        if let course = course, !course.title.isEmpty {
+            return "\(course.title) · \(name)"
+        }
+        return name
+    }
+}
+
+struct TeacherCourse: Codable {
+    let course_id: String
+    let title: String
+}
+
+/// 老师排课（课次）
+struct TeacherTimetableItem: Codable {
+    let schedule_id: String
+    let lesson_date: String?
+    let start_time: String?
+    let end_time: String?
+    let status: Int?
+    let `class`: TeacherClassRef?
+    let course: TeacherCourse?
+
+    var displayName: String {
+        let date = lesson_date ?? ""
+        let time = start_time ?? ""
+        if date.isEmpty { return "课次 \(schedule_id)" }
+        return date.isEmpty ? "未知课次" : "\(date) \(time)"
+    }
+}
+
+struct TeacherClassRef: Codable {
+    let class_id: String
+    let name: String?
+}
+
+/// 班级学生（花名册）
+struct TeacherStudentItem: Codable {
+    let child_id: String
+    let nickname: String
+    let avatar: String?
+}
+
+extension PostService {
+
+    /// 老师班级列表（含课程）
+    static func fetchTeacherClasses(completion: @escaping (Result<[TeacherClassItem], APIError>) -> Void) {
+        APIClient.shared.request("/teacher/classes", method: .get) { result in
+            switch result {
+            case .success(let json):
+                completion(.success(JSONKit.decodeList([TeacherClassItem].self, from: json)))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 老师排课（课次）
+    static func fetchTeacherTimetable(completion: @escaping (Result<[TeacherTimetableItem], APIError>) -> Void) {
+        APIClient.shared.request("/teacher/timetable", method: .get) { result in
+            switch result {
+            case .success(let json):
+                completion(.success(JSONKit.decodeList([TeacherTimetableItem].self, from: json)))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 班级学生（花名册）
+    static func fetchTeacherClassStudents(classId: String, completion: @escaping (Result<[TeacherStudentItem], APIError>) -> Void) {
+        APIClient.shared.request("/teacher/classes/\(classId)/students", method: .get) { result in
+            switch result {
+            case .success(let json):
+                completion(.success(JSONKit.decodeList([TeacherStudentItem].self, from: json)))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 家长发帖
+    /// - Parameters:
+    ///   - images: 已上传图片 URL 数组
+    ///   - childId: 关联孩子
+    ///   - topic: 话题（#成长记录 等）
+    ///   - visibility: 1 仅好友 / 2 公开
+    static func createPost(
+        content: String,
+        images: [String],
+        childId: String,
+        courseId: String? = nil,
+        topic: String = "",
+        visibility: Int = 2,
+        completion: @escaping (String?, String?) -> Void
+    ) {
+        var params: [String: Any] = [
+            "content": content,
+            "images": images,
+            "child_id": childId,
+            "visibility": visibility,
+            "type": 1
+        ]
+        if let courseId, !courseId.isEmpty { params["course_id"] = courseId }
+        if !topic.isEmpty { params["topic"] = topic }
+
+        APIClient.shared.request("/posts", method: .post, parameters: params) { result in
+            switch result {
+            case .success(let json):
+                completion(json["post_id"].string, nil)
+            case .failure(let error):
+                completion(nil, error.message)
+            }
+        }
+    }
+
+    /// 老师发帖（可选销课：course/class/schedule/students）
+    static func createTeacherPost(
+        content: String,
+        images: [String],
+        courseId: String? = nil,
+        classId: String? = nil,
+        scheduleId: String? = nil,
+        students: [[String: Any]] = [],
+        topic: String = "",
+        visibility: Int = 2,
+        completion: @escaping (String?, String?) -> Void
+    ) {
+        var params: [String: Any] = [
+            "content": content,
+            "images": images,
+            "visibility": visibility,
+            "type": 1
+        ]
+        if let courseId, !courseId.isEmpty { params["course_id"] = courseId }
+        if let classId, !classId.isEmpty { params["class_id"] = classId }
+        if let scheduleId, !scheduleId.isEmpty { params["schedule_id"] = scheduleId }
+        if !students.isEmpty { params["students"] = students }
+        if !topic.isEmpty { params["topic"] = topic }
+
+        APIClient.shared.request("/teacher/posts", method: .post, parameters: params) { result in
+            switch result {
+            case .success(let json):
+                completion(json["post_id"].string, nil)
+            case .failure(let error):
+                completion(nil, error.message)
             }
         }
     }

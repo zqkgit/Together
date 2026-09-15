@@ -23,7 +23,13 @@ const handleTeacherLeaveValidators = [
 ];
 
 const createTeacherPostValidators = [
-  body("course_id").isString().notEmpty().withMessage("course_id is required"),
+  // 老师支持纯分享帖：course_id 可选；但有 students（消课）时必须有课程上下文
+  body("course_id")
+    .if(body("students").exists())
+    .isString()
+    .notEmpty()
+    .withMessage("course_id is required when students are marked"),
+  body("course_id").optional({ values: "falsy" }).isString(),
   body("class_id").optional({ values: "falsy" }).isString(),
   body("schedule_id")
     .if(body("students").exists())

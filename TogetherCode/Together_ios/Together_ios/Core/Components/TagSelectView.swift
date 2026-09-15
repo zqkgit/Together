@@ -56,6 +56,9 @@ final class TagSelectView: UIView {
             let isSelected = selected.contains(options[index])
             button.backgroundColor = isSelected ? Theme.Color.brandSoft : Theme.Color.surfaceAlt
             button.setTitleColor(isSelected ? Theme.Color.brand : Theme.Color.sub, for: .normal)
+            // 选中加细描边，避免浅色底在高亮下不明显
+            button.layer.borderWidth = isSelected ? 1 : 0
+            button.layer.borderColor = isSelected ? Theme.Color.brand.withAlphaComponent(0.35).cgColor : UIColor.clear.cgColor
         }
     }
 

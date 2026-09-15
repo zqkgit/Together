@@ -14,6 +14,7 @@ const {
 const { listPlatformTeachers } = require("../services/adminTeacherService");
 const { getTeacherApplications, reviewTeacherApplication } = require("../services/teacherApplicationService");
 const { listTags, createTag, updateTag, deleteTag } = require("../services/tagService");
+const { listTopics, createTopic, updateTopic, deleteTopic } = require("../services/topicService");
 const { generateSettlements, payoutSettlement } = require("../services/settlementService");
 
 
@@ -200,6 +201,46 @@ async function deleteTagItem(req, res) {
   }
 }
 
+async function getTopicsData(req, res) {
+  return ok(res, await listTopics(req.query));
+}
+
+async function postTopic(req, res) {
+  try {
+    const result = await createTopic(req.body);
+    if (result && result.error) {
+      return fail(res, result.error.status || 400, result.error.code || 40000, result.error.message);
+    }
+    return ok(res, result);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+async function putTopic(req, res) {
+  try {
+    const result = await updateTopic(req.params.id, req.body);
+    if (result && result.error) {
+      return fail(res, result.error.status || 400, result.error.code || 40000, result.error.message);
+    }
+    return ok(res, result);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+async function deleteTopicItem(req, res) {
+  try {
+    const result = await deleteTopic(req.params.id);
+    if (result && result.error) {
+      return fail(res, result.error.status || 400, result.error.code || 40000, result.error.message);
+    }
+    return ok(res, result);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   getOverview,
   getStudiosList,
@@ -219,5 +260,9 @@ module.exports = {
   getTagsData,
   postTag,
   putTag,
-  deleteTagItem
+  deleteTagItem,
+  getTopicsData,
+  postTopic,
+  putTopic,
+  deleteTopicItem
 };

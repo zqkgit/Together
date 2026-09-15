@@ -373,6 +373,38 @@ export async function deleteTag(id: string): Promise<{ tag_id: string; status?: 
   return response.data;
 }
 
+// ============ 话题管理 ============
+
+export interface TopicItem {
+  topic_id: string;
+  name: string;
+  sort: number;
+  status: number;
+}
+
+export async function fetchTopics(params: { q?: string } = {}): Promise<TopicItem[]> {
+  const response = await request.get("/admin/topics", { params });
+  return response.data;
+}
+
+export async function createTopic(payload: { name: string; sort?: number }): Promise<TopicItem> {
+  const response = await request.post("/admin/topics", payload);
+  return response.data;
+}
+
+export async function updateTopic(
+  id: string,
+  payload: { name?: string; sort?: number; status?: number }
+): Promise<TopicItem> {
+  const response = await request.put(`/admin/topics/${id}`, payload);
+  return response.data;
+}
+
+export async function deleteTopic(id: string): Promise<{ topic_id: string; status?: number; deleted?: boolean }> {
+  const response = await request.delete(`/admin/topics/${id}`);
+  return response.data;
+}
+
 // ============ 平台治理（举报处置 / 内容管理 / 配置 / 公告 / 员工 / 审计） ============
 
 export interface PagedList<T> {

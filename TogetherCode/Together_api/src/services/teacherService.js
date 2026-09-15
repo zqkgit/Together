@@ -316,6 +316,11 @@ async function resolvePostContext(teacher, payload, transaction) {
   }
 
   const courseId = schedule?.course_id || classItem?.course_id || payload.course_id;
+  if (!courseId) {
+    // 纯分享帖：不带课程/班级/排课
+    return { course: null, classItem: null, schedule: null };
+  }
+
   const course = await Course.findByPk(courseId, { transaction });
   if (!course) {
     throw new Error("Course not found");
@@ -351,6 +356,10 @@ async function consumeStudentsForPost(post, teacher, payload, transaction) {
     },
     transaction
   );
+
+  if (!course) {
+    throw new Error("Course context required for consumption");
+  }
 
   const dedupedStudents = [];
   const seen = new Set();
@@ -721,7 +730,7 @@ async function createTeacherPost(userId, payload) {
         author_id: userId,
         author_role: 2,
         type: Number(payload.type || 1),
-        course_id: course.course_id,
+        course_id: course ? course.course_id : null,
         images: payload.images || [],
         content: payload.content || null,
         visibility: payload.visibility !== undefined ? Number(payload.visibility) : 2,

@@ -8,6 +8,7 @@ const teacherRoutes = require("./teacher");
 const childRoutes = require("./child");
 const postRoutes = require("./post");
 const tagRoutes = require("./tags");
+const topicRoutes = require("./topic");
 const commissionRoutes = require("./commission");
 const messageRoutes = require("./message");
 const parentRoutes = require("./parent");
@@ -74,6 +75,7 @@ router.use("/posts", postRoutes);
 
 // 公共兴趣标签库：课程筛选 / 工作室、老师申请表单可选。
 router.use("/tags", tagRoutes);
+router.use("/topics", topicRoutes);
 
 // 平台公告（App 端只展示已发布）。
 router.get("/announcements", async (req, res) => {
