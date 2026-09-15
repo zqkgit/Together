@@ -217,6 +217,10 @@ final class MineViewController: BaseViewController, UITableViewDataSource, UITab
             navigationController?.pushViewController(MyOrdersViewController(), animated: true)
             return
         }
+        if item.title == "收益中心" {
+            navigationController?.pushViewController(WalletViewController(), animated: true)
+            return
+        }
         showToast("「\(item.title)」功能开发中")
     }
 
