@@ -22,6 +22,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING(100),
         allowNull: true
       },
+      pay_password_hash: {
+        type: DataTypes.STRING(100),
+        allowNull: true
+      },
       nickname: {
         type: DataTypes.STRING(40),
         allowNull: true

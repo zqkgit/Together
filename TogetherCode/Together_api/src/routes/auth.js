@@ -9,7 +9,11 @@ const {
   getMe,
   postRoleApply,
   getRoleApplyStatusHandler,
-  postRoleSwitch
+  postRoleSwitch,
+  postChangePassword,
+  postChangePhone,
+  postSetPayPassword,
+  postDeactivate
 } = require("../controllers/authController");
 const { requireAuth } = require("../middlewares/auth");
 
@@ -29,5 +33,10 @@ router.get("/me", requireAuth, getMe);
 router.post("/role/apply", requireAuth, postRoleApply);
 router.get("/role/apply/:role", requireAuth, getRoleApplyStatusHandler);
 router.post("/role/switch", requireAuth, postRoleSwitch);
+
+// 账号与安全
+router.post("/change-password", requireAuth, postChangePassword);
+router.post("/change-phone", requireAuth, postChangePhone);
+router.post("/deactivate", requireAuth, postDeactivate);
 
 module.exports = router;

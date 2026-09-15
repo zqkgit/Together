@@ -184,6 +184,7 @@ final class AuthService {
 
     struct UserProfile {
         let userId: String
+        let phone: String
         let nickname: String
         let avatar: String?
         let city: String?
@@ -199,6 +200,7 @@ final class AuthService {
                 let user = json["user"]
                 completion(UserProfile(
                     userId: user["user_id"].stringValue,
+                    phone: user["phone"].stringValue,
                     nickname: user["nickname"].stringValue,
                     avatar: user["avatar"].string,
                     city: user["city"].string,
@@ -224,6 +226,64 @@ final class AuthService {
             return
         }
         APIClient.shared.request("/me/profile", method: .put, parameters: params) { result in
+            switch result {
+            case .success:
+                completion(true, nil)
+            case .failure(let error):
+                completion(false, error.message)
+            }
+        }
+    }
+
+    // MARK: - 账号与安全
+
+    /// 修改登录密码
+    static func changePassword(oldPassword: String, newPassword: String,
+                               completion: @escaping (Bool, String?) -> Void) {
+        APIClient.shared.request("/auth/change-password", method: .post,
+                                 parameters: ["old_password": oldPassword, "new_password": newPassword]) { result in
+            switch result {
+            case .success:
+                completion(true, nil)
+            case .failure(let error):
+                completion(false, error.message)
+            }
+        }
+    }
+
+    /// 更换绑定手机号
+    static func changePhone(phone: String, code: String,
+                            completion: @escaping (Bool, String?) -> Void) {
+        APIClient.shared.request("/auth/change-phone", method: .post,
+                                 parameters: ["phone": phone, "code": code]) { result in
+            switch result {
+            case .success:
+                completion(true, nil)
+            case .failure(let error):
+                completion(false, error.message)
+            }
+        }
+    }
+
+    /// 设置支付密码
+    static func setPayPassword(_ payPassword: String,
+                               completion: @escaping (Bool, String?) -> Void) {
+        APIClient.shared.request("/me/pay-password", method: .post,
+                                 parameters: ["pay_password": payPassword]) { result in
+            switch result {
+            case .success:
+                completion(true, nil)
+            case .failure(let error):
+                completion(false, error.message)
+            }
+        }
+    }
+
+    /// 注销账号
+    static func deactivateAccount(code: String,
+                                  completion: @escaping (Bool, String?) -> Void) {
+        APIClient.shared.request("/auth/deactivate", method: .post,
+                                 parameters: ["code": code]) { result in
             switch result {
             case .success:
                 completion(true, nil)

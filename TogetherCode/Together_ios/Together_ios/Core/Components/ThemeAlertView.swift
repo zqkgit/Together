@@ -141,6 +141,8 @@ final class ThemeAlertView: UIView {
     }
 
     private func dismiss(cancelled: Bool) {
+        // 立即禁用交互，避免渐隐窗口期内二次触摸/自动化事件穿透到下层页面
+        isUserInteractionEnabled = false
         if cancelled {
             onCancel?()
         } else {
@@ -152,6 +154,17 @@ final class ThemeAlertView: UIView {
             self.alpha = 0
         }) { _ in
             self.removeFromSuperview()
+            // 弹框移除后再挂一个短暂拦截层：吞掉可能残留的触摸，
+            // 防止自动化/快速连点的第二次事件穿透到下层 cell
+            guard let window = UIApplication.shared.connectedScenes
+                .compactMap({ ($0 as? UIWindowScene)?.keyWindow }).first else { return }
+            let blocker = UIView(frame: window.bounds)
+            blocker.backgroundColor = .clear
+            blocker.isUserInteractionEnabled = true
+            window.addSubview(blocker)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                blocker.removeFromSuperview()
+            }
         }
     }
 }

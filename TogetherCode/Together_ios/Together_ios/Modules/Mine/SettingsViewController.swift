@@ -80,15 +80,16 @@ final class SettingsViewController: BaseViewController {
             title: "退出登录",
             message: "确定要退出当前账号吗？",
             confirmTitle: "退出",
-            cancelTitle: "取消"
-        ) { [weak self] in
-            guard let self else { return }
-            self.showLoading("正在退出...")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                self.hideLoading()
-                AppRouter.shared.showLogin()
+            cancelTitle: "取消",
+            onConfirm: { [weak self] in
+                guard let self else { return }
+                self.showLoading("正在退出...")
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    self.hideLoading()
+                    AppRouter.shared.showLogin()
+                }
             }
-        }
+        )
     }
 
     private func handleRow(_ indexPath: IndexPath) {
@@ -97,7 +98,7 @@ final class SettingsViewController: BaseViewController {
         case "个人资料":
             navigationController?.pushViewController(EditProfileViewController(), animated: true)
         case "账号与安全":
-            showToast("手机号与密码修改功能开发中")
+            navigationController?.pushViewController(AccountSecurityViewController(), animated: true)
         case "消息通知":
             break // 开关已内联处理
         case "支付与钱包":

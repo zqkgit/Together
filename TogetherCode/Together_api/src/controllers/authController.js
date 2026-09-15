@@ -8,7 +8,11 @@ const {
   logout,
   getProfile,
   updateProfile,
-  switchRole
+  switchRole,
+  changePassword,
+  changePhone,
+  setPayPassword,
+  deactivateAccount
 } = require("../services/authStore");
 const {
   submitRoleApply,
@@ -201,6 +205,68 @@ async function postWxLogin(req, res) {
   }
 }
 
+// POST /v1/auth/change-password · 修改登录密码
+async function postChangePassword(req, res) {
+  try {
+    const result = await changePassword(req.user.userId, {
+      old_password: req.body.old_password,
+      new_password: req.body.new_password
+    });
+    if (result.error) {
+      return fail(res, result.error.status, result.error.code, result.error.message);
+    }
+    return ok(res, result.data, "密码已修改");
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+// POST /v1/auth/change-phone · 更换绑定手机号
+async function postChangePhone(req, res) {
+  try {
+    const result = await changePhone(req.user.userId, {
+      phone: req.body.phone,
+      code: req.body.code
+    });
+    if (result.error) {
+      return fail(res, result.error.status, result.error.code, result.error.message);
+    }
+    return ok(res, result.data, "手机号已更换");
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+// POST /v1/me/pay-password · 设置支付密码
+async function postSetPayPassword(req, res) {
+  try {
+    const result = await setPayPassword(req.user.userId, {
+      pay_password: req.body.pay_password
+    });
+    if (result.error) {
+      return fail(res, result.error.status, result.error.code, result.error.message);
+    }
+    return ok(res, result.data, "支付密码已设置");
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+// POST /v1/auth/deactivate · 注销账号（短信验证码确认）
+async function postDeactivate(req, res) {
+  try {
+    const result = await deactivateAccount(req.user.userId, {
+      code: req.body.code
+    });
+    if (result.error) {
+      return fail(res, result.error.status, result.error.code, result.error.message);
+    }
+    return ok(res, result.data, "账号已注销");
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   postSendCode,
   postRegister,
@@ -213,5 +279,9 @@ module.exports = {
   putMeProfile,
   postRoleApply,
   getRoleApplyStatusHandler,
-  postRoleSwitch
+  postRoleSwitch,
+  postChangePassword,
+  postChangePhone,
+  postSetPayPassword,
+  postDeactivate
 };

@@ -219,6 +219,10 @@ async function loginWithPassword({ phone, password }) {
     return { error: { status: 404, code: 40401, message: "Phone not registered" } };
   }
 
+  if (user.status === 0) {
+    return { error: { status: 403, code: 40302, message: "账号已注销，无法登录" } };
+  }
+
   if (user.locked_until && new Date(user.locked_until).getTime() > Date.now()) {
     return { error: { status: 423, code: 42301, message: "Account temporarily locked" } };
   }
@@ -483,6 +487,98 @@ async function updateProfile(userId, payload = {}) {
   return { data: await buildUserPayload(user) };
 }
 
+/**
+ * 修改登录密码
+ * 校验原密码后更新 password_hash
+ */
+async function changePassword(userId, { old_password, new_password }) {
+  const user = await getUserById(userId);
+  if (!user) {
+    return { error: { status: 404, code: 40402, message: "User not found" } };
+  }
+
+  const matched = bcrypt.compareSync(String(old_password || ""), user.password_hash || "");
+  if (!matched) {
+    return { error: { status: 400, code: 40001, message: "原密码不正确" } };
+  }
+
+  const password = String(new_password || "").trim();
+  if (password.length < 6 || password.length > 20) {
+    return { error: { status: 400, code: 40000, message: "新密码长度需为 6-20 位" } };
+  }
+
+  await user.update({ password_hash: bcrypt.hashSync(password, 10) });
+  return { data: { updated: true } };
+}
+
+/**
+ * 更换绑定手机号
+ * 校验新手机号验证码 + 手机号未被占用
+ */
+async function changePhone(userId, { phone, code }) {
+  const user = await getUserById(userId);
+  if (!user) {
+    return { error: { status: 404, code: 40402, message: "User not found" } };
+  }
+
+  const newPhone = String(phone || "").trim();
+  if (!/^1\d{10}$/.test(newPhone)) {
+    return { error: { status: 400, code: 40000, message: "手机号格式不正确" } };
+  }
+
+  const existed = await getUserByPhone(newPhone);
+  if (existed && String(existed.user_id) !== String(userId)) {
+    return { error: { status: 400, code: 40003, message: "该手机号已被其他账号绑定" } };
+  }
+
+  return sequelize.transaction(async (transaction) => {
+    const record = await consumeVerificationCode(newPhone, code, transaction);
+    if (!record) {
+      return { error: { status: 400, code: 40001, message: "验证码错误或已过期" } };
+    }
+    await user.update({ phone: newPhone }, { transaction });
+    return { data: { phone: newPhone } };
+  });
+}
+
+/**
+ * 设置/修改支付密码（6 位数字，bcrypt 存储）
+ */
+async function setPayPassword(userId, { pay_password }) {
+  const user = await getUserById(userId);
+  if (!user) {
+    return { error: { status: 404, code: 40402, message: "User not found" } };
+  }
+
+  const payPassword = String(pay_password || "").trim();
+  if (!/^\d{6}$/.test(payPassword)) {
+    return { error: { status: 400, code: 40000, message: "支付密码需为 6 位数字" } };
+  }
+
+  await user.update({ pay_password_hash: bcrypt.hashSync(payPassword, 10) });
+  return { data: { updated: true } };
+}
+
+/**
+ * 注销账号（软注销）
+ * 校验当前手机号验证码后置 status=0
+ */
+async function deactivateAccount(userId, { code }) {
+  const user = await getUserById(userId);
+  if (!user) {
+    return { error: { status: 404, code: 40402, message: "User not found" } };
+  }
+
+  return sequelize.transaction(async (transaction) => {
+    const record = await consumeVerificationCode(user.phone, code, transaction);
+    if (!record) {
+      return { error: { status: 400, code: 40001, message: "验证码错误或已过期" } };
+    }
+    await user.update({ status: 0 }, { transaction });
+    return { data: { deactivated: true } };
+  });
+}
+
 module.exports = {
   sendCode,
   register,
@@ -493,5 +589,9 @@ module.exports = {
   logout,
   getProfile,
   updateProfile,
-  switchRole
+  switchRole,
+  changePassword,
+  changePhone,
+  setPayPassword,
+  deactivateAccount
 };
