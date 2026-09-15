@@ -10,12 +10,15 @@ const createOrderValidators = [
 
 const payOrderValidators = [
   param("id").isString().notEmpty().withMessage("order id is required"),
-  body("channel").optional({ values: "falsy" }).isIn(["wechat_mini", "ios_iap", "offline"])
+  body("channel").optional({ values: "falsy" }).isIn(["wechat_mini", "ios_iap", "offline"]),
+  body("child_id").optional({ values: "falsy" }).isString().notEmpty()
 ];
 
 const orderIdValidators = [param("id").isString().notEmpty().withMessage("order id is required")];
 
 const listOrderValidators = [query("status").optional({ values: "falsy" }).isInt({ min: 0, max: 5 })];
+
+const cancelOrderValidators = [param("id").isString().notEmpty().withMessage("order id is required")];
 
 const createRefundValidators = [
   param("id").isString().notEmpty().withMessage("order id is required"),
@@ -40,6 +43,7 @@ const studioReviewRefundValidators = [
 ];
 
 module.exports = {
+  cancelOrderValidators,
   createOrderValidators,
   payOrderValidators,
   orderIdValidators,

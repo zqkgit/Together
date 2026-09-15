@@ -213,6 +213,10 @@ final class MineViewController: BaseViewController, UITableViewDataSource, UITab
             openMyCourses()
             return
         }
+        if item.title == "我的订单" {
+            navigationController?.pushViewController(MyOrdersViewController(), animated: true)
+            return
+        }
         showToast("「\(item.title)」功能开发中")
     }
 

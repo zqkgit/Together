@@ -240,6 +240,16 @@ async function payOrder(userId, orderId, payload) {
       throw new Error("Order already paid or unavailable");
     }
 
+    // 支付时允许切换上课孩子（课时记入所选孩子）
+    let targetChildId = order.child_id;
+    if (payload.child_id) {
+      const child = await ensureChildBelongsToUser(payload.child_id, userId, transaction);
+      targetChildId = child.child_id;
+      if (String(targetChildId) !== String(order.child_id)) {
+        await order.update({ child_id: targetChildId }, { transaction });
+      }
+    }
+
     const paidAt = new Date();
     await Payment.create(
       {
@@ -268,7 +278,7 @@ async function payOrder(userId, orderId, payload) {
     await ChildCourseBalance.create(
       {
         balance_id: generateId(),
-        child_id: order.child_id,
+        child_id: targetChildId,
         course_id: order.course_id,
         order_id: order.order_id,
         total_lessons: order.total_lessons,
@@ -285,7 +295,7 @@ async function payOrder(userId, orderId, payload) {
     await LessonLog.create(
       {
         log_id: generateId(),
-        child_id: order.child_id,
+        child_id: targetChildId,
         course_id: order.course_id,
         order_id: order.order_id,
         source: 0,
@@ -351,6 +361,26 @@ async function getOrderDetail(userId, orderId) {
   return formatOrder(row);
 }
 
+
+
+/** 家长端：取消待支付订单（status 0 -> 2 已取消） */
+async function cancelOrder(userId, orderId) {
+  return sequelize.transaction(async (transaction) => {
+    const order = await Order.findOne({
+      where: { order_id: orderId, user_id: userId },
+      transaction,
+      lock: transaction.LOCK.UPDATE
+    });
+    if (!order) {
+      return null;
+    }
+    if (Number(order.status) !== 0) {
+      throw new Error("Order already paid or unavailable");
+    }
+    await order.update({ status: 2, completed_at: new Date() }, { transaction });
+    return getOrderWithDetails(orderId, { transaction });
+  });
+}
 
 const REFUND_STATUS_TEXT = { 0: "申请中", 1: "打款中", 2: "已驳回", 3: "已退款到账" };
 
@@ -539,6 +569,7 @@ async function createRefund(userId, orderId, payload) {
 module.exports = {
   createOrder,
   payOrder,
+  cancelOrder,
   listOrders,
   getOrderDetail,
   createRefund,

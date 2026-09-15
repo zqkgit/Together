@@ -6,11 +6,13 @@ const {
   payOrderValidators,
   orderIdValidators,
   listOrderValidators,
+  cancelOrderValidators,
   createRefundValidators
 } = require("../validators/orderValidator");
 const {
   postOrder,
   postOrderPay,
+  postOrderCancel,
   getOrders,
   getOrder,
   postOrderRefund
@@ -26,6 +28,7 @@ router.get("/", listOrderValidators, validateRequest, getOrders);
 router.get("/:id", orderIdValidators, validateRequest, getOrder);
 router.post("/", createOrderValidators, validateRequest, postOrder);
 router.post("/:id/pay", payOrderValidators, validateRequest, postOrderPay);
+router.post("/:id/cancel", cancelOrderValidators, validateRequest, postOrderCancel);
 router.post("/:id/refunds", createRefundValidators, validateRequest, postOrderRefund);
 
 module.exports = router;
