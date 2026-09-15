@@ -107,29 +107,35 @@ final class MyOrdersViewController: BaseViewController {
     // MARK: - 操作
 
     private func cancelOrder(_ order: OrderItem) {
-        let alert = UIAlertController(title: "取消订单", message: "确定取消该待支付订单吗？", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "再想想", style: .cancel))
-        alert.addAction(UIAlertAction(title: "取消订单", style: .destructive) { [weak self] _ in
-            guard let self, let orderId = order.order_id else { return }
-            self.showLoading()
-            OrderService.cancelOrder(orderId: orderId) { [weak self] result in
-                guard let self else { return }
-                self.hideLoading()
-                switch result {
-                case .success:
-                    self.showToast("订单已取消")
-                    self.loadData()
-                case .failure(let error):
-                    self.showToast(error.message ?? "取消失败")
+        ThemeAlertView.show(
+            title: "取消订单",
+            message: "确定取消该待支付订单吗？",
+            confirmTitle: "取消订单",
+            cancelTitle: "再想想",
+            onConfirm: { [weak self] in
+                guard let self, let orderId = order.order_id else { return }
+                self.showLoading()
+                OrderService.cancelOrder(orderId: orderId) { [weak self] result in
+                    guard let self else { return }
+                    self.hideLoading()
+                    switch result {
+                    case .success:
+                        self.showToast("订单已取消")
+                        self.loadData()
+                    case .failure(let error):
+                        self.showToast(error.message ?? "取消失败")
+                    }
                 }
             }
-        })
-        present(alert, animated: true)
+        )
     }
 
     private func goPay(_ order: OrderItem) {
-        // P0-2 确认订单/支付接入后替换；当前占位
-        showToast("支付功能开发中")
+        let vc = OrderPayViewController(order: order)
+        vc.onPaid = { [weak self] in
+            self?.loadData()
+        }
+        navigationController?.pushViewController(vc, animated: true)
     }
 
     private func goCourse(_ order: OrderItem) {

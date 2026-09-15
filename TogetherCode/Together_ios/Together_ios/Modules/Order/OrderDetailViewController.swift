@@ -191,31 +191,50 @@ final class OrderDetailViewController: BaseViewController {
         guard let order else { return }
         switch order.statusValue {
         case .pending:
-            navigationController?.pushViewController(OrderPayViewController(order: order), animated: true)
+            let vc = OrderPayViewController(order: order)
+            vc.onPaid = { [weak self] in
+                self?.loadData()
+            }
+            navigationController?.pushViewController(vc, animated: true)
         case .enrolled, .completed:
-            showToast("去学习开发中")
+            goStudy(order)
         case .cancelled:
             break
         }
+    }
+
+    private func goStudy(_ order: OrderItem) {
+        guard let courseId = order.course?.course_id, let childId = order.child?.child_id else {
+            showToast("课程信息缺失")
+            return
+        }
+        let vc = CourseStudyViewController(
+            childId: childId,
+            courseId: courseId,
+            courseTitle: order.course?.title ?? "课程学习"
+        )
+        navigationController?.pushViewController(vc, animated: true)
     }
 
     @objc private func didTapSecondary() {
         guard let order, let orderId = order.order_id else { return }
         switch order.statusValue {
         case .pending:
-            let alert = UIAlertController(title: "取消订单", message: "确定取消该待支付订单吗？", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "再想想", style: .cancel))
-            alert.addAction(UIAlertAction(title: "取消订单", style: .destructive) { [weak self] _ in
-                self?.cancelOrder(orderId)
-            })
-            present(alert, animated: true)
+            ThemeAlertView.show(
+                title: "取消订单",
+                message: "确定取消该待支付订单吗？",
+                confirmTitle: "取消订单",
+                cancelTitle: "再想想",
+                onConfirm: { [weak self] in self?.cancelOrder(orderId) }
+            )
         case .enrolled, .completed:
-            let alert = UIAlertController(title: "申请退款", message: "退还将按剩余课时计算，确定申请吗？", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "再想想", style: .cancel))
-            alert.addAction(UIAlertAction(title: "申请退款", style: .destructive) { [weak self] _ in
-                self?.requestRefund(orderId)
-            })
-            present(alert, animated: true)
+            ThemeAlertView.show(
+                title: "申请退款",
+                message: "退还将按剩余课时计算，确定申请吗？",
+                confirmTitle: "申请退款",
+                cancelTitle: "再想想",
+                onConfirm: { [weak self] in self?.requestRefund(orderId) }
+            )
         case .cancelled:
             break
         }

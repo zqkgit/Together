@@ -113,7 +113,10 @@ final class OrderPayViewController: BaseViewController {
 
         bottomStack.addArrangedSubview(amountLabel)
         bottomStack.addArrangedSubview(payButton)
-        payButton.snp.makeConstraints { $0.width.equalTo(120) }
+        payButton.snp.makeConstraints {
+            $0.width.equalTo(120)
+            $0.height.equalTo(44)
+        }
     }
 
     private func selectChannel(_ channel: String) {
