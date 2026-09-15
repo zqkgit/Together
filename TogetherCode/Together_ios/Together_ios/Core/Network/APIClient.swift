@@ -94,4 +94,5 @@ final class APIClient {
 
 extension Notification.Name {
     static let authExpired = Notification.Name("authExpired")
+    static let userProfileUpdated = Notification.Name("userProfileUpdated")
 }

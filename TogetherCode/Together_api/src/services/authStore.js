@@ -41,7 +41,8 @@ async function buildUserPayload(userRecord) {
       phone: user.phone,
       nickname: user.nickname,
       avatar: user.avatar,
-      city: user.city
+      city: user.city,
+      signature: user.signature
     },
     current_role: user.current_role,
     roles: roles.map((item) => item.role)
@@ -426,7 +427,7 @@ async function switchRole(userId, role) {
 
 /**
  * 完善资料（注册引导 / 个人中心编辑）
- * 支持：nickname / avatar / city；terms_agreed: true 时留痕协议同意时间
+ * 支持：nickname / avatar / city / signature；terms_agreed: true 时留痕协议同意时间
  */
 async function updateProfile(userId, payload = {}) {
   const user = await getUserById(userId);
@@ -461,6 +462,14 @@ async function updateProfile(userId, payload = {}) {
       return { error: { status: 400, code: 40000, message: "城市名称过长" } };
     }
     changes.city = city;
+  }
+
+  if (payload.signature !== undefined && payload.signature !== null) {
+    const signature = String(payload.signature).trim();
+    if (signature.length > 255) {
+      return { error: { status: 400, code: 40000, message: "个性签名不能超过 255 字" } };
+    }
+    changes.signature = signature;
   }
 
   if (payload.terms_agreed === true && !user.terms_agreed_at) {

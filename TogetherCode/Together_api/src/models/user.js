@@ -34,6 +34,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING(60),
         allowNull: true
       },
+      signature: {
+        type: DataTypes.STRING(255),
+        allowNull: true
+      },
       terms_agreed_at: {
         type: DataTypes.DATE,
         allowNull: true

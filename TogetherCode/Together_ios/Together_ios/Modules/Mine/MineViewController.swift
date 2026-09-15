@@ -132,16 +132,7 @@ final class MineViewController: BaseViewController, UITableViewDataSource, UITab
     // MARK: - 菜单
 
     private func openSettings() {
-        let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-        alert.addAction(UIAlertAction(title: "退出登录", style: .destructive) { _ in
-            AppRouter.shared.showLogin()
-        })
-        alert.addAction(UIAlertAction(title: "取消", style: .cancel))
-        if let popover = alert.popoverPresentationController {
-            popover.sourceView = view
-            popover.sourceRect = CGRect(x: view.bounds.midX, y: 40, width: 1, height: 1)
-        }
-        present(alert, animated: true)
+        navigationController?.pushViewController(SettingsViewController(), animated: true)
     }
 
     // MARK: - 身份弹窗

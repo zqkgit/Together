@@ -179,4 +179,57 @@ final class AuthService {
             completion(result)
         }
     }
+
+    // MARK: - 个人资料（设置）
+
+    struct UserProfile {
+        let userId: String
+        let nickname: String
+        let avatar: String?
+        let city: String?
+        let signature: String?
+        let role: Int
+    }
+
+    /// 当前用户资料
+    static func fetchMe(completion: @escaping (UserProfile?, String?) -> Void) {
+        APIClient.shared.request("/auth/me", method: .get) { result in
+            switch result {
+            case .success(let json):
+                let user = json["user"]
+                completion(UserProfile(
+                    userId: user["user_id"].stringValue,
+                    nickname: user["nickname"].stringValue,
+                    avatar: user["avatar"].string,
+                    city: user["city"].string,
+                    signature: user["signature"].string,
+                    role: user["role"].intValue
+                ), nil)
+            case .failure(let error):
+                completion(nil, error.message)
+            }
+        }
+    }
+
+    /// 更新资料（昵称/头像/城市，只传需要修改的字段）
+    static func updateProfile(nickname: String? = nil, avatar: String? = nil, city: String? = nil, signature: String? = nil,
+                              completion: @escaping (Bool, String?) -> Void) {
+        var params: [String: Any] = [:]
+        if let nickname { params["nickname"] = nickname }
+        if let avatar { params["avatar"] = avatar }
+        if let city { params["city"] = city }
+        if let signature { params["signature"] = signature }
+        guard !params.isEmpty else {
+            completion(true, nil)
+            return
+        }
+        APIClient.shared.request("/me/profile", method: .put, parameters: params) { result in
+            switch result {
+            case .success:
+                completion(true, nil)
+            case .failure(let error):
+                completion(false, error.message)
+            }
+        }
+    }
 }
