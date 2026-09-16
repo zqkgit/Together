@@ -11,6 +11,7 @@ const { validateRequest } = require("../middlewares/validate");
 const { saveStudioProfileValidators } = require("../validators/backofficeValidator");
 const studioOrderRoutes = require("./studioOrder");
 const studioRefundRoutes = require("./studioRefund");
+const { getTeachers, putTeacherReview, deleteTeacherBinding } = require("../controllers/studioGovernanceController");
 
 const router = express.Router();
 
@@ -21,6 +22,9 @@ router.use(requireBackofficeAuth("studio"));
 // 说明：这一组只服务 studio_owner / studio_ops，负责工作室内部经营与教务。
 router.get("/profile", getMyStudioProfile);
 router.put("/profile", saveStudioProfileValidators, validateRequest, putMyStudioProfile);
+router.get("/teachers", getTeachers);
+router.put("/teachers/:id", putTeacherReview);
+router.delete("/teachers/:teacherId", deleteTeacherBinding);
 router.use("/orders", studioOrderRoutes);
 router.use("/refunds", studioRefundRoutes);
 router.use("/courses", adminCourseRoutes);
