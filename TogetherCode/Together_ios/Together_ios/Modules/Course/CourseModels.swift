@@ -1,19 +1,102 @@
 import Foundation
 
-// MARK: - 课程详情（报名页用）
+// MARK: - 课程详情（详情页 + 报名页用）
 
 struct CourseDetail: Codable {
     let course_id: String
     let title: String?
     let price: Int?
+    let original_price: Int?
     let cover: String?
+    let intro: String?
+    let category: Int?
+    let age_min: Int?
+    let age_max: Int?
+    let total_lessons: Int?
+    let duration_min: Int?
+    let class_size: Int?
+    let rating: Double?
+    let sales: Int?
     let studio: CourseStudio?
+    let teacher: CourseDetailTeacher?
     let packages: [PackageItem]?
+    let classes: [CourseClassItem]?
+
+    /// 价格文案「¥1280」；无价格「价格咨询」
+    var priceText: String {
+        if let price, price > 0 {
+            return price.fenToYuanText
+        }
+        return "价格咨询"
+    }
+
+    /// 原价划线（> 现价才显示）
+    var originalPriceText: String? {
+        guard let original = original_price, let price, original > price else { return nil }
+        return original.fenToYuanText
+    }
+
+    /// 评分「4.8」；无评分「新课程」
+    var ratingText: String {
+        guard let rating, rating > 0 else { return "新课程" }
+        return String(format: "%.1f", rating)
+    }
+
+    /// 年龄标签「4-8岁」；只有下界「6岁+」
+    var ageRangeText: String? {
+        if let min = age_min, let max = age_max, max > min {
+            return "\(min)-\(max)岁"
+        }
+        if let min = age_min { return "\(min)岁+" }
+        if let max = age_max { return "\(max)岁以内" }
+        return nil
+    }
+
+    /// 班型标签「小班 6 人」
+    var classSizeText: String? {
+        guard let size = class_size, size > 0 else { return nil }
+        return "小班 \(size)人"
+    }
+
+    /// 标签行（年龄 · 班型）
+    var tagTexts: [String] {
+        [ageRangeText, classSizeText].compactMap { $0 }
+    }
+
+    /// 副标题：机构 · 总课时
+    var subtitleText: String {
+        var parts: [String] = []
+        if let studioName = studio?.name, !studioName.isEmpty { parts.append(studioName) }
+        if let lessons = total_lessons, lessons > 0 { parts.append("\(lessons) 课时") }
+        return parts.joined(separator: " · ")
+    }
+
+    /// 机构 · 老师
+    var studioTeacherText: String {
+        if let studioName = studio?.name, let teacherName = teacher?.real_name, !teacherName.isEmpty {
+            return "\(studioName) · \(teacherName)"
+        }
+        return studio?.name ?? "未知机构"
+    }
+
+    /// 在售课包（兼容旧数据）
+    var activePackages: [PackageItem] {
+        (packages ?? []).filter { ($0.status ?? 1) == 1 }
+    }
 }
 
 struct CourseStudio: Codable {
     let studio_id: String
     let name: String?
+    let address: String?
+    let phone: String?
+}
+
+struct CourseDetailTeacher: Codable {
+    let teacher_id: String
+    let real_name: String?
+    let intro: String?
+    let rating: Double?
 }
 
 struct PackageItem: Codable {
@@ -23,6 +106,39 @@ struct PackageItem: Codable {
     let price: Int?
     let original_price: Int?
     let status: Int?
+
+    /// 课包副标题「16 课时 · ¥1280」
+    var subtitleText: String {
+        var parts: [String] = []
+        if let lessons, lessons > 0 { parts.append("\(lessons) 课时") }
+        if let price, price > 0 { parts.append(price.fenToYuanText) }
+        return parts.joined(separator: " · ")
+    }
+}
+
+/// 班级（详情页展示）
+struct CourseClassItem: Codable {
+    let class_id: String
+    let name: String?
+    let capacity: Int?
+    let enrolled: Int?
+    let start_date: String?
+    let end_date: String?
+}
+
+// MARK: - 课程评价（详情页家长评价）
+
+struct CourseReviewItem: Codable {
+    let review_id: String?
+    let rating: Int?
+    let content: String?
+    let images: [String]?
+    let nickname: String?
+    let avatar: String?
+    let created_at: String?
+
+    var authorName: String { nickname ?? "艺启家长" }
+    var timeText: String { created_at?.shortRelativeTime ?? "" }
 }
 
 // MARK: - 我的课程（列表）

@@ -18,7 +18,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       package_id: {
         type: DataTypes.BIGINT,
-        allowNull: false
+        allowNull: true
       },
       course_title: {
         type: DataTypes.STRING(80),
@@ -26,7 +26,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       package_name: {
         type: DataTypes.STRING(40),
-        allowNull: false
+        allowNull: true
       },
       lessons: {
         type: DataTypes.SMALLINT,

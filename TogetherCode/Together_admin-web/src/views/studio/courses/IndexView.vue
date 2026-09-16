@@ -36,8 +36,7 @@ const form = ref<CoursePayload>({
   class_size: 8,
   distribute_rate: 0.1,
   validity_days: 180,
-  status: 1,
-  packages: [{ name: "标准包", lessons: 24, price: 2880, original_price: null }]
+  status: 1
 });
 
 const categoryLabel = (value: number) =>
@@ -88,8 +87,7 @@ function openCreate() {
     class_size: 8,
     distribute_rate: 0.1,
     validity_days: 180,
-    status: 1,
-    packages: [{ name: "标准包", lessons: 24, price: 2880, original_price: null }]
+    status: 1
   };
   editorVisible.value = true;
 }
@@ -100,6 +98,7 @@ async function openEdit(row: CourseItem) {
   form.value = {
     studio_id: authStore.account?.studio_id || "",
     title: row.title,
+    intro: row.intro || "",
     category: row.category,
     age_min: row.age_min,
     age_max: row.age_max,
@@ -109,27 +108,9 @@ async function openEdit(row: CourseItem) {
     class_size: row.class_size,
     distribute_rate: row.distribute_rate,
     validity_days: row.validity_days,
-    status: row.status,
-    packages: row.packages.map((pkg) => ({
-      name: pkg.name,
-      lessons: pkg.lessons,
-      price: pkg.price,
-      original_price: pkg.original_price
-    }))
+    status: row.status
   };
   editorVisible.value = true;
-}
-
-function addPackage() {
-  form.value.packages.push({ name: "", lessons: 1, price: 0, original_price: null });
-}
-
-function removePackage(index: number) {
-  if (form.value.packages.length <= 1) {
-    ElMessage.warning("至少保留一个课时包");
-    return;
-  }
-  form.value.packages.splice(index, 1);
 }
 
 function validateForm(): boolean {
@@ -137,19 +118,13 @@ function validateForm(): boolean {
     ElMessage.warning("请填写课程名称");
     return false;
   }
-  for (const pkg of form.value.packages) {
-    if (!pkg.name.trim()) {
-      ElMessage.warning("课时包名称不能为空");
-      return false;
-    }
-    if (!pkg.lessons || pkg.lessons < 1) {
-      ElMessage.warning("课时包节数必须大于 0");
-      return false;
-    }
-    if (!pkg.price || pkg.price < 1) {
-      ElMessage.warning("课时包价格必须大于 0");
-      return false;
-    }
+  if (!form.value.total_lessons || form.value.total_lessons < 1) {
+    ElMessage.warning("课时数必须大于 0");
+    return false;
+  }
+  if (!form.value.price || form.value.price < 1) {
+    ElMessage.warning("参考价格必须大于 0");
+    return false;
   }
   return true;
 }
@@ -158,11 +133,26 @@ async function submitCourse() {
   if (!validateForm()) return;
   submitting.value = true;
   try {
+    const payload: CoursePayload = {
+      studio_id: form.value.studio_id,
+      title: form.value.title,
+      intro: form.value.intro,
+      category: form.value.category,
+      age_min: form.value.age_min,
+      age_max: form.value.age_max,
+      total_lessons: form.value.total_lessons,
+      duration_min: form.value.duration_min,
+      price: form.value.price,
+      class_size: form.value.class_size,
+      distribute_rate: form.value.distribute_rate,
+      validity_days: form.value.validity_days,
+      status: form.value.status
+    };
     if (editorMode.value === "create") {
-      await createCourse(form.value);
+      await createCourse(payload);
       ElMessage.success("课程创建成功");
     } else {
-      await updateCourse(editingId.value, form.value);
+      await updateCourse(editingId.value, payload);
       ElMessage.success("课程已更新");
     }
     editorVisible.value = false;
@@ -179,6 +169,7 @@ async function toggleStatus(row: CourseItem) {
     await updateCourse(row.course_id, {
       studio_id: authStore.account?.studio_id || "",
       title: row.title,
+      intro: row.intro || "",
       category: row.category,
       age_min: row.age_min,
       age_max: row.age_max,
@@ -188,13 +179,7 @@ async function toggleStatus(row: CourseItem) {
       class_size: row.class_size,
       distribute_rate: row.distribute_rate,
       validity_days: row.validity_days,
-      status: row.status === 1 ? 2 : 1,
-      packages: row.packages.map((pkg) => ({
-        name: pkg.name,
-        lessons: pkg.lessons,
-        price: pkg.price,
-        original_price: pkg.original_price
-      }))
+      status: row.status === 1 ? 2 : 1
     });
     ElMessage.success(row.status === 1 ? "课程已下架" : "课程已上架");
     loadData();
@@ -248,11 +233,10 @@ onMounted(loadData);
             <div class="cell-sub">{{ categoryLabel(row.category) }} · {{ row.age_min }}-{{ row.age_max }}岁</div>
           </template>
         </el-table-column>
-        <el-table-column label="课时包" min-width="180">
+        <el-table-column label="课时数" min-width="120">
           <template #default="{ row }">
-            <div v-for="pkg in row.packages" :key="pkg.package_id || pkg.name" class="cell-sub">
-              {{ pkg.name }}（{{ pkg.lessons }}节 · {{ formatPrice(pkg.price) }}）
-            </div>
+            <span class="cell-strong">{{ row.total_lessons }} 节</span>
+            <div class="cell-sub">{{ formatPrice(row.price) }}</div>
           </template>
         </el-table-column>
         <el-table-column prop="duration_min" label="时长" width="90">
@@ -328,16 +312,15 @@ onMounted(loadData);
           <el-input-number v-model="form.validity_days" :min="1" :max="3650" />
           <span class="cell-sub">天</span>
         </el-form-item>
-        <el-form-item label="课时包" required>
-          <div class="package-list">
-            <div v-for="(pkg, index) in form.packages" :key="index" class="package-row">
-              <el-input v-model="pkg.name" placeholder="包名" style="width: 120px" />
-              <el-input-number v-model="pkg.lessons" :min="1" :max="500" placeholder="节数" />
-              <el-input-number v-model="pkg.price" :min="1" :step="100" placeholder="价格(分)" />
-              <el-button text type="danger" @click="removePackage(index)">移除</el-button>
-            </div>
-            <el-button text type="primary" :icon="Plus" @click="addPackage">添加课时包</el-button>
-          </div>
+        <el-form-item label="课程介绍">
+          <el-input
+            v-model="form.intro"
+            type="textarea"
+            :rows="3"
+            maxlength="500"
+            show-word-limit
+            placeholder="介绍课程内容、适合人群、上课安排等（APP 课程详情页展示）"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -374,18 +357,5 @@ onMounted(loadData);
 .cell-sub {
   font-size: 12px;
   color: #9c9385;
-}
-
-.package-list {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.package-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 </style>

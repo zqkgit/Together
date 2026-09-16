@@ -8,7 +8,7 @@ const scheduleRuleValidator = body("schedule_rule")
 const createStudioClassValidators = [
   body("studio_id").isString().notEmpty().withMessage("studio_id is required"),
   body("course_id").isString().notEmpty().withMessage("course_id is required"),
-  body("teacher_id").optional({ values: "falsy" }).isString(),
+  body("teacher_id").isString().notEmpty().withMessage("teacher_id is required"),
   body("name").isString().trim().notEmpty().withMessage("name is required"),
   scheduleRuleValidator,
   body("start_date").optional({ values: "falsy" }).isISO8601().withMessage("start_date is invalid"),

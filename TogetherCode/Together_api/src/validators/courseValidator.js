@@ -1,8 +1,9 @@
 const { body, query, param } = require("express-validator");
 
 const packageValidator = body("packages")
-  .isArray({ min: 1 })
-  .withMessage("packages must be a non-empty array");
+  .optional({ values: "falsy" })
+  .isArray()
+  .withMessage("packages must be an array");
 
 const packageFieldsValidator = body("packages.*.name")
   .notEmpty()
@@ -21,6 +22,7 @@ const saveCourseValidators = [
   body("teacher_id").optional({ values: "falsy" }).isString(),
   body("title").isString().trim().notEmpty().withMessage("title is required"),
   body("cover").optional({ values: "falsy" }).isString(),
+  body("intro").optional({ values: "falsy" }).isString().isLength({ max: 2000 }),
   body("category").isInt({ min: 1, max: 5 }).withMessage("category is invalid"),
   body("age_min").optional({ values: "falsy" }).isInt({ min: 1, max: 18 }),
   body("age_max").optional({ values: "falsy" }).isInt({ min: 1, max: 18 }),

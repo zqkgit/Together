@@ -155,32 +155,19 @@ async function ensureChildBelongsToUser(childId, userId, transaction) {
   return child;
 }
 
-async function ensureCoursePackage(courseId, packageId, transaction) {
+async function ensureCourse(courseId, transaction) {
   const course = await Course.findByPk(courseId, { transaction });
   if (!course || Number(course.status) !== 1) {
     throw new Error("Course not available");
   }
-
-  const coursePackage = await CoursePackage.findOne({
-    where: {
-      package_id: packageId,
-      course_id: courseId,
-      status: 1
-    },
-    transaction
-  });
-
-  if (!coursePackage) {
-    throw new Error("Course package not found");
-  }
-
-  return { course, coursePackage };
+  return course;
 }
 
 async function createOrder(userId, payload) {
   return sequelize.transaction(async (transaction) => {
     const child = await ensureChildBelongsToUser(payload.child_id, userId, transaction);
-    const { course, coursePackage } = await ensureCoursePackage(payload.course_id, payload.package_id, transaction);
+    // 课程固定课时与价格：一个课程一个课时包（不再选择课时包）
+    const course = await ensureCourse(payload.course_id, transaction);
 
     // 分销归因：带分享码下单时，记录分享来源，支付成功后按工作室返利比例结算
     let distributionLinkId = null;
@@ -199,9 +186,9 @@ async function createOrder(userId, payload) {
         child_id: child.child_id,
         studio_id: course.studio_id,
         course_id: course.course_id,
-        package_id: coursePackage.package_id,
-        total_lessons: coursePackage.lessons,
-        total_amount: coursePackage.price,
+        package_id: payload.package_id || null,
+        total_lessons: course.total_lessons,
+        total_amount: course.price,
         remark: payload.remark || null,
         distribution_link_id: distributionLinkId,
         status: 0
@@ -214,13 +201,13 @@ async function createOrder(userId, payload) {
         item_id: generateId(),
         order_id: order.order_id,
         course_id: course.course_id,
-        package_id: coursePackage.package_id,
+        package_id: payload.package_id || null,
         course_title: course.title,
-        package_name: coursePackage.name,
-        lessons: coursePackage.lessons,
+        package_name: null,
+        lessons: course.total_lessons,
         quantity: 1,
-        unit_price: coursePackage.price,
-        total_price: coursePackage.price
+        unit_price: course.price,
+        total_price: course.price
       },
       { transaction }
     );

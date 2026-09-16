@@ -1,17 +1,15 @@
 import UIKit
 import SnapKit
 
-/// 课程报名：课程信息卡 + 选择孩子 + 选择课包 + 确认下单
+/// 课程报名：课程信息卡 + 选择孩子 + 确认下单（课程固定课时与价格，无需选择课时包）
 final class CourseEnrollViewController: BaseViewController {
 
     private let courseId: String
 
     private var course: CourseDetail?
     private var childList: [ChildItem] = []
-    private var packages: [PackageItem] = []
 
     private var selectedChildIndex: Int = -1
-    private var selectedPackageIndex: Int = -1
 
     private lazy var tableView = UITableView(frame: .zero, style: .grouped)
     private let courseHeader = CourseEnrollHeaderView()
@@ -46,8 +44,7 @@ final class CourseEnrollViewController: BaseViewController {
 
     private func setupTableView() {
         tableView.backgroundColor = Theme.Color.bg
-        tableView.separatorStyle = .singleLine
-        tableView.separatorInset = UIEdgeInsets(top: 0, left: Theme.Spacing.m, bottom: 0, right: 0)
+        tableView.separatorStyle = .none
         tableView.register(EnrollOptionCell.self, forCellReuseIdentifier: "OptionCell")
         tableView.dataSource = self
         tableView.delegate = self
@@ -98,7 +95,6 @@ final class CourseEnrollViewController: BaseViewController {
         showLoading()
         let group = DispatchGroup()
         var detailError: String?
-        var childrenError: String?
 
         group.enter()
         CourseService.fetchDetail(courseId: courseId) { [weak self] course, error in
@@ -110,17 +106,15 @@ final class CourseEnrollViewController: BaseViewController {
         group.enter()
         CourseService.fetchChildren { [weak self] list, error in
             self?.childList = list
-            childrenError = error
             group.leave()
         }
 
         group.notify(queue: .main) { [weak self] in
             guard let self else { return }
             self.hideLoading()
-            if let error = detailError ?? childrenError {
+            if let error = detailError {
                 self.showToast(error)
             }
-            self.packages = self.course?.packages?.filter { ($0.status ?? 1) == 1 } ?? []
             self.refreshHeader()
             self.tableView.reloadData()
             self.refreshAmount()
@@ -138,40 +132,58 @@ final class CourseEnrollViewController: BaseViewController {
     }
 
     private func refreshAmount() {
-        guard selectedPackageIndex >= 0, selectedPackageIndex < packages.count else {
-            amountLabel.text = "请选择课包"
+        guard let course else {
+            amountLabel.text = ""
             submitButton.alpha = 0.5
             submitButton.isEnabled = false
             return
         }
-        let price = packages[selectedPackageIndex].price ?? 0
-        amountLabel.text = "¥\(String(format: "%.2f", Double(price) / 100))"
+        if let lessons = course.total_lessons, lessons > 0 {
+            amountLabel.text = "\(course.priceText)/\(lessons)节"
+        } else {
+            amountLabel.text = course.priceText
+        }
         submitButton.alpha = selectedChildIndex >= 0 ? 1 : 0.5
         submitButton.isEnabled = selectedChildIndex >= 0
     }
 
     @objc private func didTapSubmit() {
-        guard selectedChildIndex >= 0, selectedPackageIndex >= 0 else {
-            showToast("请选择孩子和课包")
+        guard selectedChildIndex >= 0 else {
+            showToast("请选择孩子")
             return
         }
         let child = childList[selectedChildIndex]
-        let package = packages[selectedPackageIndex]
         showLoading()
         CourseService.createOrder(
             childId: child.child_id,
-            courseId: courseId,
-            packageId: package.package_id
+            courseId: courseId
         ) { [weak self] orderId, error in
             guard let self else { return }
-            self.hideLoading()
-            if let error {
-                self.showToast(error)
-                return
-            }
-            self.showToast("报名成功，请尽快支付")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                self.navigationController?.popViewController(animated: true)
+            DispatchQueue.main.async {
+                if let error {
+                    self.hideLoading()
+                    self.showToast(error)
+                    return
+                }
+                guard let orderId else {
+                    self.hideLoading()
+                    self.showToast("报名失败，请稍后重试")
+                    return
+                }
+                // 拉取订单详情 → 跳转确认支付
+                OrderService.fetchOrderDetail(orderId: orderId) { result in
+                    DispatchQueue.main.async {
+                        self.hideLoading()
+                        switch result {
+                        case .success(let order):
+                            let vc = OrderPayViewController(order: order)
+                            self.navigationController?.pushViewController(vc, animated: true)
+                        case .failure:
+                            self.showToast("报名成功，请到「我的订单」完成支付")
+                            self.navigationController?.popViewController(animated: true)
+                        }
+                    }
+                }
             }
         }
     }
@@ -180,46 +192,32 @@ final class CourseEnrollViewController: BaseViewController {
 // MARK: - TableView
 
 extension CourseEnrollViewController: UITableViewDataSource, UITableViewDelegate {
-    func numberOfSections(in tableView: UITableView) -> Int { 2 }
+    func numberOfSections(in tableView: UITableView) -> Int { 1 }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        section == 0 ? childList.count : packages.count
+        childList.count
     }
 
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        section == 0 ? "选择孩子" : "选择课包"
+        "选择孩子"
     }
 
     func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat { 44 }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "OptionCell", for: indexPath) as! EnrollOptionCell
-        if indexPath.section == 0 {
-            let child = childList[indexPath.row]
-            cell.configure(
-                title: child.nickname ?? "宝宝",
-                subtitle: nil,
-                selected: indexPath.row == selectedChildIndex
-            )
-        } else {
-            let package = packages[indexPath.row]
-            let price = package.price ?? 0
-            cell.configure(
-                title: package.name ?? "课包",
-                subtitle: "\(package.lessons ?? 0) 课时 · ¥\(String(format: "%.2f", Double(price) / 100))",
-                selected: indexPath.row == selectedPackageIndex
-            )
-        }
+        let child = childList[indexPath.row]
+        cell.configure(
+            title: child.nickname ?? "宝宝",
+            subtitle: child.ageText,
+            selected: indexPath.row == selectedChildIndex
+        )
         return cell
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        if indexPath.section == 0 {
-            selectedChildIndex = indexPath.row
-        } else {
-            selectedPackageIndex = indexPath.row
-        }
+        selectedChildIndex = indexPath.row
         tableView.reloadData()
         refreshAmount()
     }
@@ -265,11 +263,11 @@ final class CourseEnrollHeaderView: UIView {
     func configure(course: CourseDetail?) {
         guard let course else { return }
         titleLabel.text = course.title
-        studioLabel.text = course.studio?.name
-        if let price = course.price, price > 0 {
-            priceLabel.text = "¥\(String(format: "%.2f", Double(price) / 100)) 起"
+        studioLabel.text = course.subtitleText
+        if let lessons = course.total_lessons, lessons > 0 {
+            priceLabel.text = "\(course.priceText)/\(lessons)节"
         } else {
-            priceLabel.text = "价格咨询"
+            priceLabel.text = course.priceText
         }
     }
 

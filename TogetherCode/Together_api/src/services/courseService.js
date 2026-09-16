@@ -15,6 +15,7 @@ function normalizeCourseItem(course) {
     course_id: String(course.course_id),
     title: course.title,
     cover: course.cover,
+    intro: course.intro,
     category: course.category,
     age_min: course.age_min,
     age_max: course.age_max,
@@ -230,6 +231,7 @@ async function createCourse(payload) {
         teacher_id: payload.teacher_id || null,
         title: payload.title,
         cover: payload.cover || null,
+        intro: payload.intro || null,
         category: Number(payload.category),
         age_min: payload.age_min || null,
         age_max: payload.age_max || null,
@@ -244,18 +246,21 @@ async function createCourse(payload) {
       { transaction }
     );
 
-    await CoursePackage.bulkCreate(
-      payload.packages.map((item) => ({
-        package_id: generateId(),
-        course_id: course.course_id,
-        name: item.name,
-        lessons: Number(item.lessons),
-        price: Number(item.price),
-        original_price: item.original_price ? Number(item.original_price) : null,
-        status: item.status !== undefined ? Number(item.status) : 1
-      })),
-      { transaction }
-    );
+    // 课时包兼容：传了才创建（新流程课程固定课时，不再维护课时包）
+    if (Array.isArray(payload.packages) && payload.packages.length > 0) {
+      await CoursePackage.bulkCreate(
+        payload.packages.map((item) => ({
+          package_id: generateId(),
+          course_id: course.course_id,
+          name: item.name,
+          lessons: Number(item.lessons),
+          price: Number(item.price),
+          original_price: item.original_price ? Number(item.original_price) : null,
+          status: item.status !== undefined ? Number(item.status) : 1
+        })),
+        { transaction }
+      );
+    }
 
     return getCourseDetail(course.course_id, { transaction });
   });
@@ -277,6 +282,7 @@ async function updateCourse(courseId, payload) {
         teacher_id: payload.teacher_id || null,
         title: payload.title,
         cover: payload.cover || null,
+        intro: payload.intro || null,
         category: Number(payload.category),
         age_min: payload.age_min || null,
         age_max: payload.age_max || null,
@@ -291,23 +297,28 @@ async function updateCourse(courseId, payload) {
       { transaction }
     );
 
-    await CoursePackage.destroy({
-      where: { course_id: course.course_id },
-      transaction
-    });
+    // 课时包兼容：不传则不重建（保持旧课时包数据）
+    if (Array.isArray(payload.packages)) {
+      await CoursePackage.destroy({
+        where: { course_id: course.course_id },
+        transaction
+      });
 
-    await CoursePackage.bulkCreate(
-      payload.packages.map((item) => ({
-        package_id: generateId(),
-        course_id: course.course_id,
-        name: item.name,
-        lessons: Number(item.lessons),
-        price: Number(item.price),
-        original_price: item.original_price ? Number(item.original_price) : null,
-        status: item.status !== undefined ? Number(item.status) : 1
-      })),
-      { transaction }
-    );
+      if (payload.packages.length > 0) {
+        await CoursePackage.bulkCreate(
+          payload.packages.map((item) => ({
+            package_id: generateId(),
+            course_id: course.course_id,
+            name: item.name,
+            lessons: Number(item.lessons),
+            price: Number(item.price),
+            original_price: item.original_price ? Number(item.original_price) : null,
+            status: item.status !== undefined ? Number(item.status) : 1
+          })),
+          { transaction }
+        );
+      }
+    }
 
     return getCourseDetail(course.course_id, { transaction });
   });

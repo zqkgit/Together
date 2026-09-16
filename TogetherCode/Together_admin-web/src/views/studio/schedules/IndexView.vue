@@ -95,7 +95,8 @@ const teachers = ref<TeacherStaffItem[]>([]);
 const form = ref({
   studio_id: "",
   class_id: "",
-  teacher_id: "" as string,
+  teacher_id: "",
+  teacher_name: "",
   lesson_date: "",
   start_time: "18:30",
   end_time: "20:00",
@@ -106,8 +107,10 @@ const form = ref({
 function applyClassTeacher(target: "form" | "batch") {
   const model = target === "form" ? form.value : batchForm.value;
   const cls = classes.value.find((c) => c.class_id === model.class_id);
-  // 切班级时默认带出班级老师，用户可改
-  model.teacher_id = cls?.teacher_id || "";
+  const teacher = teachers.value.find((t) => t.teacher_id === cls?.teacher_id);
+  // 排课老师固定为班级授课老师，不可更换
+  model.teacher_id = teacher?.teacher_id || cls?.teacher_id || "";
+  model.teacher_name = teacher?.real_name || "";
 }
 
 async function openCreate(date?: string) {
@@ -115,6 +118,7 @@ async function openCreate(date?: string) {
     studio_id: studioId.value,
     class_id: "",
     teacher_id: "",
+    teacher_name: "",
     lesson_date: date || weekDays.value.find((d) => d.isToday)?.date || weekStart.value,
     start_time: "18:30",
     end_time: "20:00",
@@ -149,7 +153,6 @@ async function submitCreate() {
     await createStudioSchedule({
       studio_id: studioId.value,
       class_id: form.value.class_id,
-      teacher_id: form.value.teacher_id || undefined,
       lesson_date: form.value.lesson_date,
       start_time: form.value.start_time,
       end_time: form.value.end_time,
@@ -171,7 +174,8 @@ const batchVisible = ref(false);
 const batchSubmitting = ref(false);
 const batchForm = ref({
   class_id: "",
-  teacher_id: "" as string,
+  teacher_id: "",
+  teacher_name: "",
   start_time: "18:30",
   end_time: "20:00",
   location: "",
@@ -197,6 +201,7 @@ async function openBatch() {
   batchForm.value = {
     class_id: "",
     teacher_id: "",
+    teacher_name: "",
     start_time: "18:30",
     end_time: "20:00",
     location: "",
@@ -229,7 +234,6 @@ async function submitBatch() {
   const payload: Record<string, unknown> = {
     studio_id: studioId.value,
     class_id: batchForm.value.class_id,
-    teacher_id: batchForm.value.teacher_id || undefined,
     start_time: batchForm.value.start_time,
     end_time: batchForm.value.end_time,
     location: batchForm.value.location || undefined,
@@ -390,15 +394,13 @@ onMounted(loadData);
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="老师">
-          <el-select v-model="form.teacher_id" style="width: 100%" placeholder="默认班级老师，可更换" clearable>
-            <el-option
-              v-for="t in teachers"
-              :key="t.teacher_id"
-              :label="t.real_name"
-              :value="t.teacher_id"
-            />
-          </el-select>
+        <el-form-item label="授课老师">
+          <el-input
+            v-model="form.teacher_name"
+            placeholder="选择班级后自动带出（不可更换）"
+            disabled
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="上课日期" required>
           <el-date-picker v-model="form.lesson_date" type="date" value-format="YYYY-MM-DD" style="width: 180px" />
@@ -434,15 +436,13 @@ onMounted(loadData);
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="老师">
-          <el-select v-model="batchForm.teacher_id" style="width: 100%" placeholder="默认班级老师，可更换" clearable>
-            <el-option
-              v-for="t in teachers"
-              :key="t.teacher_id"
-              :label="t.real_name"
-              :value="t.teacher_id"
-            />
-          </el-select>
+        <el-form-item label="授课老师">
+          <el-input
+            v-model="batchForm.teacher_name"
+            placeholder="选择班级后自动带出（不可更换）"
+            disabled
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="时间" required>
           <el-time-select v-model="batchForm.start_time" start="08:00" step="00:30" end="21:00" style="width: 130px" />

@@ -5,10 +5,12 @@ import { Plus, Refresh, Search } from "@element-plus/icons-vue";
 import {
   fetchStudioClasses,
   fetchStudioCourses,
+  fetchStudioTeachers,
   createStudioClass,
   fetchClassStudents,
   type ClassItem,
-  type ClassStudent
+  type ClassStudent,
+  type TeacherStaffItem
 } from "../../../services/studio";
 import { useAuthStore } from "../../../stores/auth";
 
@@ -19,6 +21,7 @@ const loading = ref(false);
 const q = ref("");
 const classes = ref<ClassItem[]>([]);
 const courses = ref<{ course_id: string; title: string }[]>([]);
+const teachers = ref<TeacherStaffItem[]>([]);
 
 // 新建班级
 const createVisible = ref(false);
@@ -26,6 +29,7 @@ const submitting = ref(false);
 const form = ref({
   studio_id: "",
   course_id: "",
+  teacher_id: "",
   name: "",
   weekday: 1,
   time: "18:30-20:00",
@@ -71,6 +75,7 @@ async function openCreate() {
   form.value = {
     studio_id: studioId.value,
     course_id: "",
+    teacher_id: "",
     name: "",
     weekday: 1,
     time: "18:30-20:00",
@@ -79,9 +84,15 @@ async function openCreate() {
     capacity: 12
   };
   try {
-    courses.value = await fetchStudioCourses({ studio_id: studioId.value, status: 1 });
+    const [courseData, teacherData] = await Promise.all([
+      fetchStudioCourses({ studio_id: studioId.value, status: 1 }),
+      fetchStudioTeachers()
+    ]);
+    courses.value = courseData;
+    teachers.value = teacherData.staff;
   } catch {
     courses.value = [];
+    teachers.value = [];
   }
   createVisible.value = true;
 }
@@ -89,6 +100,10 @@ async function openCreate() {
 async function submitCreate() {
   if (!form.value.course_id) {
     ElMessage.warning("请选择所属课程");
+    return;
+  }
+  if (!form.value.teacher_id) {
+    ElMessage.warning("请选择授课老师");
     return;
   }
   if (!form.value.name.trim()) {
@@ -100,6 +115,7 @@ async function submitCreate() {
     await createStudioClass({
       studio_id: studioId.value,
       course_id: form.value.course_id,
+      teacher_id: form.value.teacher_id,
       name: form.value.name.trim(),
       schedule_rule: { weekday: [form.value.weekday], time: form.value.time },
       start_date: form.value.start_date || undefined,
@@ -165,6 +181,12 @@ onMounted(loadData);
         <el-table-column label="所属课程" min-width="200">
           <template #default="{ row }">{{ row.course?.title || "-" }}</template>
         </el-table-column>
+        <el-table-column label="授课老师" min-width="140">
+          <template #default="{ row }">
+            <span v-if="row.teacher?.real_name">{{ row.teacher.real_name }}</span>
+            <span v-else class="cell-muted">未指定</span>
+          </template>
+        </el-table-column>
         <el-table-column label="上课时间" min-width="160">
           <template #default="{ row }">{{ weekdayText(row.schedule_rule) }}</template>
         </el-table-column>
@@ -196,6 +218,20 @@ onMounted(loadData);
               :value="course.course_id"
             />
           </el-select>
+        </el-form-item>
+        <el-form-item label="授课老师" required>
+          <el-select v-model="form.teacher_id" style="width: 100%" placeholder="选择授课老师">
+            <el-option
+              v-for="teacher in teachers"
+              :key="teacher.teacher_id"
+              :label="teacher.real_name"
+              :value="teacher.teacher_id"
+            >
+              <span>{{ teacher.real_name }}</span>
+              <span class="cell-muted">（{{ teacher.subjects?.[0] || "综合" }} · {{ teacher.years || 0 }}年）</span>
+            </el-option>
+          </el-select>
+          <div v-if="teachers.length === 0" class="cell-muted">暂无可授课老师，请先在「老师管理」中通过合作申请</div>
         </el-form-item>
         <el-form-item label="班级名称" required>
           <el-input v-model="form.name" placeholder="如：启蒙绘画周六班" />
@@ -256,6 +292,10 @@ onMounted(loadData);
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.cell-muted {
+  color: #9c9385;
 }
 
 .cell-strong {

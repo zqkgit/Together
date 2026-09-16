@@ -200,6 +200,7 @@ export interface CourseItem {
   course_id: string;
   title: string;
   cover: string | null;
+  intro: string | null;
   category: number;
   age_min: number;
   age_max: number;
@@ -222,6 +223,7 @@ export interface CoursePayload {
   teacher_id?: string;
   title: string;
   cover?: string;
+  intro?: string;
   category: number;
   age_min?: number;
   age_max?: number;
@@ -232,7 +234,7 @@ export interface CoursePayload {
   distribute_rate?: number;
   validity_days?: number;
   status?: number;
-  packages: CoursePackage[];
+  packages?: CoursePackage[];
 }
 
 export async function fetchStudioCourses(params: {
@@ -292,6 +294,7 @@ export async function fetchStudioClasses(params: {
 export async function createStudioClass(payload: {
   studio_id: string;
   course_id: string;
+  teacher_id: string;
   name: string;
   schedule_rule: { weekday: number[]; time: string };
   start_date?: string;

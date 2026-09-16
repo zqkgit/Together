@@ -31,7 +31,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       package_id: {
         type: DataTypes.BIGINT,
-        allowNull: false
+        allowNull: true
       },
       total_lessons: {
         type: DataTypes.SMALLINT,

@@ -3,7 +3,7 @@ const { body, param, query } = require("express-validator");
 const createOrderValidators = [
   body("child_id").isString().notEmpty().withMessage("child_id is required"),
   body("course_id").isString().notEmpty().withMessage("course_id is required"),
-  body("package_id").isString().notEmpty().withMessage("package_id is required"),
+  body("package_id").optional({ values: "falsy" }).isString(),
   body("distribution_code").optional({ values: "falsy" }).isString().isLength({ max: 64 }),
   body("remark").optional({ values: "falsy" }).isString().isLength({ max: 255 })
 ];

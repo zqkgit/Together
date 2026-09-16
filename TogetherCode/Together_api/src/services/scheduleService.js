@@ -238,14 +238,15 @@ async function createStudioSchedule(payload) {
       ]
     });
 
-    if (!classItem) {
-      throw new Error("Class not found");
+    if (!classItem || !classItem.teacher_id) {
+      throw new Error("请先为班级指定授课老师");
     }
     if (!classItem.course || String(classItem.course.studio_id) !== String(payload.studio_id)) {
       throw new Error("Class does not belong to studio");
     }
 
-    const teacherId = payload.teacher_id || classItem.teacher_id || null;
+    // 排课老师固定为班级授课老师，不可更换
+    const teacherId = String(classItem.teacher_id);
     await ensureTeacher(teacherId, payload.studio_id, transaction);
 
     if (payload.makeup_from) {
@@ -517,14 +518,15 @@ async function batchCreateStudioSchedules(payload) {
       transaction,
       include: [{ model: Course, as: "course" }]
     });
-    if (!classItem) {
-      throw new Error("Class not found");
+    if (!classItem || !classItem.teacher_id) {
+      throw new Error("请先为班级指定授课老师");
     }
     if (!classItem.course || String(classItem.course.studio_id) !== String(payload.studio_id)) {
       throw new Error("Class does not belong to studio");
     }
 
-    const teacherId = payload.teacher_id || classItem.teacher_id || null;
+    // 排课老师固定为班级授课老师，不可更换
+    const teacherId = String(classItem.teacher_id);
     await ensureTeacher(teacherId, payload.studio_id, transaction);
 
     const created = [];

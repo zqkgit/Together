@@ -167,7 +167,10 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
         case .courseRow:
             let cell = tableView.dequeueReusableCell(withIdentifier: "HomeCourseRowCell", for: indexPath) as! HomeCourseRowCell
             cell.reload(items: data.courses)
-            cell.onCourseTap = { [weak self] _ in self?.showToast("课程详情开发中") }
+            cell.onCourseTap = { [weak self] item in
+                let vc = CourseDetailViewController(courseId: item.course_id)
+                self?.navigationController?.pushViewController(vc, animated: true)
+            }
             return cell
         case .studioHeader:
             let cell = tableView.dequeueReusableCell(withIdentifier: "HomeSectionCell", for: indexPath) as! HomeSectionCell
@@ -185,7 +188,10 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
         case .post(let item):
             let cell = tableView.dequeueReusableCell(withIdentifier: "HomePostCell", for: indexPath) as! HomePostCell
             cell.configure(item: item)
-            cell.onTap = { [weak self] in self?.showToast("帖子详情开发中") }
+            cell.onTap = { [weak self] in
+                let vc = PostDetailViewController(postId: item.post_id)
+                self?.navigationController?.pushViewController(vc, animated: true)
+            }
             return cell
         }
     }

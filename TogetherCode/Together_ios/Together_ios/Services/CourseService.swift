@@ -29,18 +29,16 @@ enum CourseService {
         }
     }
 
-    /// 创建订单（报名）
+    /// 创建订单（报名：课程固定课时与价格，无需选择课时包）
     static func createOrder(
         childId: String,
         courseId: String,
-        packageId: String,
         distributionCode: String? = nil,
         completion: @escaping (String?, String?) -> Void
     ) {
         var parameters: [String: Any] = [
             "child_id": childId,
-            "course_id": courseId,
-            "package_id": packageId
+            "course_id": courseId
         ]
         if let code = distributionCode, !code.isEmpty {
             parameters["distribution_code"] = code
@@ -48,10 +46,26 @@ enum CourseService {
         APIClient.shared.request("/orders", method: .post, parameters: parameters) { result in
             switch result {
             case .success(let json):
-                let orderId = json["data"]["order_id"].string
+                // json 已是 data 层（APIClient 已解包）
+                let orderId = json["order_id"].string
                 completion(orderId, nil)
             case .failure(let error):
                 completion(nil, error.message)
+            }
+        }
+    }
+
+    /// 课程评价（详情页家长评价）
+    static func fetchReviews(
+        courseId: String,
+        completion: @escaping ([CourseReviewItem], String?) -> Void
+    ) {
+        APIClient.shared.request("/courses/\(courseId)/reviews", method: .get) { result in
+            switch result {
+            case .success(let json):
+                completion(JSONKit.decodeList([CourseReviewItem].self, from: json["list"]), nil)
+            case .failure(let error):
+                completion([], error.message)
             }
         }
     }
