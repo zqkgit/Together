@@ -8,8 +8,9 @@ const STATUS_TEXT: Record<number, string> = {
   0: "待支付",
   1: "已支付",
   2: "已取消",
-  3: "已完成"
+  3: "已退款"
 };
+const REFUND_TEXT: Record<number, string> = { 1: "退款中", 2: "已退款", 3: "退款已驳回" };
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderItem[]>([]);
@@ -54,7 +55,7 @@ export default function OrdersPage() {
   return (
     <View className="orders">
       <View className="order-tabs">
-        {[["", "全部"], [0, "待支付"], [1, "已支付"], [3, "已完成"]].map(([key, label]) => (
+        {[["", "全部"], [0, "待支付"], [1, "已支付"], [3, "已退款"]].map(([key, label]) => (
           <Text
             key={key as string}
             className={`order-tab ${status === key ? "tab-active" : ""}`}
@@ -70,7 +71,7 @@ export default function OrdersPage() {
           <View key={order.order_id} className="order-card card" onClick={() => goDetail(order.order_id)}>
             <View className="order-head">
               <Text className="order-no">{order.order_no}</Text>
-              <Text className="order-status">{STATUS_TEXT[order.status] || order.status_text}</Text>
+              <Text className="order-status">{order.refund_status ? REFUND_TEXT[order.refund_status] : STATUS_TEXT[order.status] || order.status_text}</Text>
             </View>
             <View className="order-main">
               <Image className="order-cover" src={order.course?.cover || ""} mode="aspectFill" />

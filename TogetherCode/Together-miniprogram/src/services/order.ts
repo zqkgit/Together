@@ -15,13 +15,18 @@ export interface OrderItem {
   course: { course_id: string; title: string; cover: string | null } | null;
   child: { child_id: string; nickname: string } | null;
   studio: { studio_id: string; name: string } | null;
+  class_id?: string | null;
+  // 订单层退款聚合状态：0 无 / 1 退款中 / 2 已退款 / 3 已驳回
+  refund_status?: number;
+  refund_status_text?: string;
+  refunds?: Array<{ refund_id: string; amount: number; status: number }>;
   balance?: { remaining_lessons: number; valid_to: string | null };
 }
 
 export function createOrder(payload: {
   child_id: string;
   course_id: string;
-  package_id: string;
+  class_id: string;
   distribution_code?: string;
   remark?: string;
 }): Promise<OrderItem> {

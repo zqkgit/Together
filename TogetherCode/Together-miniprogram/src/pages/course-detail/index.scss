@@ -91,38 +91,6 @@
   margin-bottom: 20rpx;
 }
 
-.pkg-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20rpx;
-  border: 2rpx solid #e6dfd3;
-  border-radius: 14rpx;
-  margin-bottom: 16rpx;
-}
-
-.pkg-active {
-  border-color: #2f5d45;
-  background: #f2f6f1;
-}
-
-.pkg-name {
-  font-size: 28rpx;
-  font-weight: 600;
-}
-
-.pkg-lessons {
-  margin-top: 4rpx;
-  font-size: 24rpx;
-  color: #8a8378;
-}
-
-.pkg-price {
-  color: #c4564a;
-  font-size: 32rpx;
-  font-weight: 700;
-}
-
 .teacher-row {
   display: flex;
   align-items: center;

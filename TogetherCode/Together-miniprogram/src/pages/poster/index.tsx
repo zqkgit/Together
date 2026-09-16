@@ -56,11 +56,10 @@ export default function PosterPage() {
         };
       } else {
         const course = await getCourseDetail(id);
-        const pkg = (course.packages || []).find((p: any) => Number(p.status) === 1) || course.packages?.[0];
         d = {
           title: course.title,
           cover: course.cover || "",
-          price: `¥${fenToYuan(pkg?.price ?? course.price)}`,
+          price: `¥${fenToYuan(course.price)}`,
           nickname: user?.nickname || "艺启用户"
         };
       }

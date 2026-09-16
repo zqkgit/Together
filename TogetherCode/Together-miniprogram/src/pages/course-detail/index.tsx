@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Taro, { useRouter, useShareAppMessage } from "@tarojs/taro";
 import { View, Text, Image, Button, Input, Textarea } from "@tarojs/components";
-import { getCourseDetail, fenToYuan, type CoursePackage } from "../../services/course";
+import { getCourseDetail, fenToYuan } from "../../services/course";
 import { createDistributionLink } from "../../services/distribution";
 import { uploadImages } from "../../services/upload";
 import { getDistFromParams, buildCourseSharePath, getShareUid } from "../../utils/share";
@@ -15,7 +15,6 @@ export default function CourseDetailPage() {
   const distCode = getDistFromParams();
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const [course, setCourse] = useState<any>(null);
-  const [pkg, setPkg] = useState<CoursePackage | null>(null);
   const [loading, setLoading] = useState(true);
   // 分享码：登录用户分享本课程时生成，用于分享卡片归因
   const [shareLink, setShareLink] = useState<{ code: string; share_url: string } | null>(null);
@@ -40,8 +39,6 @@ export default function CourseDetailPage() {
     try {
       const data = await getCourseDetail(id);
       setCourse(data);
-      const available = (data.packages || []).filter((p: CoursePackage) => Number(p.status) === 1);
-      if (available.length > 0) setPkg(available[0]);
       prefetchShareCode(data);
       loadReviews(1);
       if (isLoggedIn) loadFavoriteState();
@@ -163,15 +160,15 @@ export default function CourseDetailPage() {
   // 微信分享卡片（右上角/转发按钮触发）
   useShareAppMessage(() => {
     return {
-      title: `${course?.title || "艺启课程"}${pkg ? ` · ${pkg.lessons}课时 ¥${fenToYuan(pkg.price)}` : ""}`,
+      title: `${course?.title || "艺启课程"}${course?.total_lessons ? ` · ${course.total_lessons}课时 ¥${fenToYuan(course.price)}` : ""}`,
       path: buildCourseSharePath(id, shareLink?.code || ""),
       imageUrl: course?.cover || ""
     };
   });
 
   const goBuy = () => {
-    if (!pkg) return;
-    const base = `/pages/order-confirm/index?course_id=${course.course_id}&package_id=${pkg.package_id}`;
+    if (!course) return;
+    const base = `/pages/order-confirm/index?course_id=${course.course_id}`;
     // 透传分享归因：被分享者进入课程详情 → 报名 → 下单归因到分享人
     const dist = distCode || shareLink?.code;
     Taro.navigateTo({
@@ -198,9 +195,9 @@ export default function CourseDetailPage() {
           <Image className="detail-cover" src={course.cover || ""} mode="aspectFill" />
           <View className="card detail-body">
             <View className="detail-price">
-              <Text className="price-now">¥{pkg ? fenToYuan(pkg.price) : fenToYuan(course.price)}</Text>
-              {pkg && pkg.original_price > 0 && (
-                <Text className="price-original">¥{fenToYuan(pkg.original_price)}</Text>
+              <Text className="price-now">¥{fenToYuan(course.price)}</Text>
+              {course.original_price > 0 && (
+                <Text className="price-original">¥{fenToYuan(course.original_price)}</Text>
               )}
             </View>
             <View className="detail-title-row">
@@ -227,27 +224,6 @@ export default function CourseDetailPage() {
               </View>
             )}
           </View>
-
-          {course.packages && course.packages.length > 0 && (
-            <View className="card">
-              <View className="section-label">课时包</View>
-              {course.packages
-                .filter((p: CoursePackage) => Number(p.status) === 1)
-                .map((p: CoursePackage) => (
-                  <View
-                    key={p.package_id}
-                    className={`pkg-row ${pkg?.package_id === p.package_id ? "pkg-active" : ""}`}
-                    onClick={() => setPkg(p)}
-                  >
-                    <View className="pkg-info">
-                      <View className="pkg-name">{p.name}</View>
-                      <View className="pkg-lessons">{p.lessons} 课时</View>
-                    </View>
-                    <View className="pkg-price">¥{fenToYuan(p.price)}</View>
-                  </View>
-                ))}
-            </View>
-          )}
 
           {course.teacher && (
             <View className="card" onClick={goTeacher}>
@@ -379,7 +355,7 @@ export default function CourseDetailPage() {
 
           <View className="buy-bar">
             <View className="buy-price">
-              <Text className="buy-price-now">¥{pkg ? fenToYuan(pkg.price) : fenToYuan(course.price)}</Text>
+              <Text className="buy-price-now">¥{fenToYuan(course.price)}</Text>
             </View>
             <View
               className="buy-share-btn"
@@ -391,7 +367,7 @@ export default function CourseDetailPage() {
             >
               海报
             </View>
-            <Button className="btn-primary buy-btn" disabled={!pkg} onClick={goBuy}>
+            <Button className="btn-primary buy-btn" onClick={goBuy}>
               立即报名
             </Button>
           </View>

@@ -51,6 +51,47 @@
   font-size: 28rpx;
 }
 
+.class-row {
+  padding: 20rpx;
+  border: 2rpx solid #eee5d3;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.class-row--active {
+  border-color: #2f5d45;
+  background: #f2f6f1;
+}
+
+.class-row--full {
+  opacity: 0.55;
+}
+
+.class-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.class-name {
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.class-meta {
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: #8a7d63;
+}
+
+.class-full-tag {
+  font-size: 24rpx;
+  color: #c4564a;
+}
+
 .amount-row {
   display: flex;
   justify-content: space-between;

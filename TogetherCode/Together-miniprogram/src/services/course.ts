@@ -28,7 +28,16 @@ export interface CourseItem {
   studio: { studio_id: string; name: string; address: string; phone: string } | null;
   teacher: { teacher_id: string; real_name: string; intro: string | null; rating: number } | null;
   packages: CoursePackage[];
-  classes?: Array<{ class_id: string; name: string; capacity: number; enrolled: number; start_date: string; end_date: string }>;
+  classes?: Array<{
+    class_id: string;
+    name: string;
+    capacity: number;
+    enrolled: number;
+    start_date: string;
+    end_date: string;
+    time: string | null;
+    teacher_name: string | null;
+  }>;
 }
 
 export function fenToYuan(fen: number): string {

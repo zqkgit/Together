@@ -11,6 +11,7 @@ export interface PostCourse {
   course_id: string;
   title: string;
   cover: string | null;
+  price?: number;
   price_text?: string;
   studio_name?: string;
 }

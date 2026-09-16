@@ -5,7 +5,8 @@ import { getOrderDetail, payOrder, type OrderItem } from "../../services/order";
 import { fenToYuan } from "../../services/course";
 import "./index.scss";
 
-const STATUS_TEXT: Record<number, string> = { 0: "待支付", 1: "已支付", 2: "已取消", 3: "已完成" };
+const STATUS_TEXT: Record<number, string> = { 0: "待支付", 1: "已支付", 2: "已取消", 3: "已退款" };
+const REFUND_TEXT: Record<number, string> = { 1: "退款中", 2: "已退款", 3: "退款已驳回" };
 
 export default function OrderDetailPage() {
   const [order, setOrder] = useState<OrderItem | null>(null);
@@ -47,6 +48,36 @@ export default function OrderDetailPage() {
     Taro.navigateTo({ url: `/pages/refund/index?order_id=${order.order_id}` });
   };
 
+  const goRefundDetail = () => {
+    if (!order) return;
+    // 聚合状态 → 对应退款单：退款中=0/1，已退款=3，已驳回=2
+    const refundStatus = order.refund_status || 0;
+    const targets = refundStatus === 2 ? [3] : refundStatus === 3 ? [2] : [0, 1];
+    const refundId = order.refunds?.find((r) => targets.includes(r.status))?.refund_id;
+    if (refundId) {
+      Taro.navigateTo({ url: `/pages/refund-detail/index?id=${refundId}` });
+    } else {
+      goRefund();
+    }
+  };
+
+  // 退款聚合状态：0 无 / 1 退款中 / 2 已退款 / 3 已驳回（与 iOS 对齐）
+  const refundStatus = order?.refund_status || 0;
+  const statusTitle = refundStatus > 0 ? REFUND_TEXT[refundStatus] : STATUS_TEXT[order?.status ?? 0] || "未知状态";
+  const statusSub = refundStatus === 1
+    ? "退款处理中，到账后将自动更新"
+    : refundStatus === 2
+      ? "退款已原路退回"
+      : refundStatus === 3
+        ? "退款申请未通过，如有疑问请联系机构"
+        : order?.status === 0
+          ? "请尽快完成支付，锁定课时"
+          : order?.status === 1
+            ? "课时已到账，可在「我的孩子」中查看"
+            : order?.status === 3
+              ? "本订单已退款"
+              : "";
+
   if (loading) {
     return <View className="empty-tip">加载中...</View>;
   }
@@ -57,12 +88,8 @@ export default function OrderDetailPage() {
   return (
     <View className="order-detail">
       <View className="status-banner">
-        <View className="status-text">{order.status_text || STATUS_TEXT[order.status] || "未知状态"}</View>
-        <View className="status-sub">
-          {order.status === 0 && "请尽快完成支付，锁定课时"}
-          {order.status === 1 && "课时已到账，可在「我的孩子」中查看"}
-          {order.status === 3 && "本订单已结课完成"}
-        </View>
+        <View className="status-text">{order.status_text || statusTitle}</View>
+        <View className="status-sub">{statusSub}</View>
       </View>
 
       <View className="card course-card" onClick={() => order.course?.course_id && Taro.navigateTo({ url: `/pages/course-detail/index?id=${order.course.course_id}` })}>
@@ -108,9 +135,30 @@ export default function OrderDetailPage() {
           <View className="btn-primary action-btn" onClick={goPay}>{paying ? "支付中..." : "去支付"}</View>
         </View>
       )}
-      {order.status === 1 && (
+      {refundStatus === 1 && (
         <View className="action-bar">
-          <View className="btn-plain action-btn" onClick={goRefund}>申请退款</View>
+          <View className="btn-primary action-btn" onClick={goRefundDetail}>查看退款进度</View>
+        </View>
+      )}
+      {refundStatus === 2 && (
+        <View className="action-bar">
+          <View className="btn-primary action-btn" onClick={goRefundDetail}>查看退款</View>
+        </View>
+      )}
+      {refundStatus === 3 && (
+        <View className="action-bar">
+          <View className="btn-plain action-btn" onClick={goRefundDetail}>查看退款</View>
+          <View className="btn-primary action-btn" onClick={goRefund}>再次申请退款</View>
+        </View>
+      )}
+      {order.status === 1 && refundStatus === 0 && (
+        <View className="action-bar">
+          <View className="btn-primary action-btn" onClick={goRefund}>申请退款</View>
+        </View>
+      )}
+      {order.status === 3 && refundStatus === 0 && (
+        <View className="action-bar">
+          <View className="btn-primary action-btn" onClick={goRefundDetail}>查看退款</View>
         </View>
       )}
     </View>
