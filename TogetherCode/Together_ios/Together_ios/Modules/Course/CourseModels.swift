@@ -124,6 +124,31 @@ struct CourseClassItem: Codable {
     let enrolled: Int?
     let start_date: String?
     let end_date: String?
+    let time: String?
+    let teacher_name: String?
+
+    /// 时段「09:30-11:00」
+    var timeText: String { time ?? "时间待定" }
+
+    /// 满员
+    var isFull: Bool {
+        guard let capacity, capacity > 0 else { return false }
+        return (enrolled ?? 0) >= capacity
+    }
+
+    /// 人数「8/10」
+    var seatText: String {
+        "\(enrolled ?? 0)/\(capacity ?? 0)"
+    }
+
+    /// 副标题：老师 · 时段 · 人数
+    var subtitleText: String {
+        var parts: [String] = []
+        if let teacher = teacher_name, !teacher.isEmpty { parts.append(teacher) }
+        parts.append(timeText)
+        parts.append(seatText)
+        return parts.joined(separator: " · ")
+    }
 }
 
 // MARK: - 课程评价（详情页家长评价）

@@ -29,6 +29,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.BIGINT,
         allowNull: false
       },
+      class_id: {
+        type: DataTypes.BIGINT,
+        allowNull: true
+      },
       package_id: {
         type: DataTypes.BIGINT,
         allowNull: true

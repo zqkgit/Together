@@ -197,7 +197,14 @@ async function getCourseDetail(courseId, options = {}) {
       {
         model: Class,
         as: "classes",
-        attributes: ["class_id", "name", "capacity", "enrolled", "start_date", "end_date"]
+        attributes: ["class_id", "name", "capacity", "enrolled", "start_date", "end_date", "schedule_rule"],
+        include: [
+          {
+            model: TeacherProfile,
+            as: "teacher",
+            attributes: ["teacher_id", "real_name"]
+          }
+        ]
       }
     ]
   });
@@ -213,7 +220,9 @@ async function getCourseDetail(courseId, options = {}) {
     capacity: item.capacity,
     enrolled: item.enrolled,
     start_date: item.start_date,
-    end_date: item.end_date
+    end_date: item.end_date,
+    time: item.schedule_rule?.time || null,
+    teacher_name: item.teacher?.real_name || null
   }));
 
   return payload;

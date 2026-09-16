@@ -305,7 +305,11 @@ async function listClassStudents(classId, query = {}) {
 
   const balances = await ChildCourseBalance.findAll({
     where: {
-      course_id: classItem.course_id,
+      // 优先按班级精确匹配（报名绑定班级）；存量无班级记录回退到课程级
+      [Op.or]: [
+        { class_id: String(classItem.class_id) },
+        { class_id: null, course_id: classItem.course_id }
+      ],
       status: {
         [Op.in]: [1, 2]
       }

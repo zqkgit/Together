@@ -11,7 +11,8 @@ const {
   ChildCourseBalance,
   LessonLog,
   StudioProfile,
-  Wallet
+  Wallet,
+  Class
 } = require("../models");
 const { generateId } = require("../utils/id");
 const { resolveDistributionCode, settleCommissionForOrder } = require("./commissionService");
@@ -49,6 +50,7 @@ function formatOrder(order) {
     order_id: String(order.order_id),
     order_no: order.order_no,
     status: order.status,
+    class_id: order.class_id ? String(order.class_id) : null,
     total_lessons: order.total_lessons,
     consumed_lessons: order.consumed_lessons,
     refunded_lessons: order.refunded_lessons,
@@ -169,6 +171,19 @@ async function createOrder(userId, payload) {
     // 课程固定课时与价格：一个课程一个课时包（不再选择课时包）
     const course = await ensureCourse(payload.course_id, transaction);
 
+    // 报名必须选择班级：校验班级属于该课程，且未满员
+    let classId = null;
+    if (payload.class_id) {
+      const classItem = await Class.findByPk(payload.class_id, { transaction });
+      if (!classItem || String(classItem.course_id) !== String(course.course_id)) {
+        throw new Error("Class does not belong to course");
+      }
+      if (Number(classItem.enrolled) >= Number(classItem.capacity)) {
+        throw new Error("班级已满员，请选择其他班级");
+      }
+      classId = String(classItem.class_id);
+    }
+
     // 分销归因：带分享码下单时，记录分享来源，支付成功后按工作室返利比例结算
     let distributionLinkId = null;
     if (payload.distribution_code) {
@@ -186,6 +201,7 @@ async function createOrder(userId, payload) {
         child_id: child.child_id,
         studio_id: course.studio_id,
         course_id: course.course_id,
+        class_id: classId,
         package_id: payload.package_id || null,
         total_lessons: course.total_lessons,
         total_amount: course.price,
@@ -201,6 +217,7 @@ async function createOrder(userId, payload) {
         item_id: generateId(),
         order_id: order.order_id,
         course_id: course.course_id,
+        class_id: classId,
         package_id: payload.package_id || null,
         course_title: course.title,
         package_name: null,
@@ -302,6 +319,7 @@ async function payOrder(userId, orderId, payload) {
         balance_id: generateId(),
         child_id: targetChildId,
         course_id: order.course_id,
+        class_id: order.class_id ? String(order.class_id) : null,
         order_id: order.order_id,
         total_lessons: order.total_lessons,
         consumed_lessons: 0,
@@ -313,6 +331,15 @@ async function payOrder(userId, orderId, payload) {
       },
       { transaction }
     );
+
+    // 报名成功：班级在学人数 +1
+    if (order.class_id) {
+      await Class.increment("enrolled", {
+        by: 1,
+        where: { class_id: order.class_id },
+        transaction
+      });
+    }
 
     await LessonLog.create(
       {

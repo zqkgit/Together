@@ -8,8 +8,10 @@ final class CourseEnrollViewController: BaseViewController {
 
     private var course: CourseDetail?
     private var childList: [ChildItem] = []
+    private var classList: [CourseClassItem] = []
 
     private var selectedChildIndex: Int = -1
+    private var selectedClassIndex: Int = -1
 
     private lazy var tableView = UITableView(frame: .zero, style: .grouped)
     private let courseHeader = CourseEnrollHeaderView()
@@ -115,6 +117,7 @@ final class CourseEnrollViewController: BaseViewController {
             if let error = detailError {
                 self.showToast(error)
             }
+            self.classList = self.course?.classes ?? []
             self.refreshHeader()
             self.tableView.reloadData()
             self.refreshAmount()
@@ -143,8 +146,9 @@ final class CourseEnrollViewController: BaseViewController {
         } else {
             amountLabel.text = course.priceText
         }
-        submitButton.alpha = selectedChildIndex >= 0 ? 1 : 0.5
-        submitButton.isEnabled = selectedChildIndex >= 0
+        let ready = selectedChildIndex >= 0 && selectedClassIndex >= 0
+        submitButton.alpha = ready ? 1 : 0.5
+        submitButton.isEnabled = ready
     }
 
     @objc private func didTapSubmit() {
@@ -152,11 +156,17 @@ final class CourseEnrollViewController: BaseViewController {
             showToast("请选择孩子")
             return
         }
+        guard selectedClassIndex >= 0 else {
+            showToast("请选择上课班级")
+            return
+        }
         let child = childList[selectedChildIndex]
+        let classItem = classList[selectedClassIndex]
         showLoading()
         CourseService.createOrder(
             childId: child.child_id,
-            courseId: courseId
+            courseId: courseId,
+            classId: classItem.class_id
         ) { [weak self] orderId, error in
             guard let self else { return }
             DispatchQueue.main.async {
@@ -192,32 +202,70 @@ final class CourseEnrollViewController: BaseViewController {
 // MARK: - TableView
 
 extension CourseEnrollViewController: UITableViewDataSource, UITableViewDelegate {
-    func numberOfSections(in tableView: UITableView) -> Int { 1 }
+    private enum Section: Int, CaseIterable {
+        case children, classes
+    }
+
+    func numberOfSections(in tableView: UITableView) -> Int { Section.allCases.count }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        childList.count
+        switch Section(rawValue: section) {
+        case .children: return childList.count
+        case .classes: return classList.count
+        default: return 0
+        }
     }
 
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        "选择孩子"
+        switch Section(rawValue: section) {
+        case .children: return "选择孩子"
+        case .classes: return "选择班级"
+        default: return nil
+        }
     }
 
     func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat { 44 }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "OptionCell", for: indexPath) as! EnrollOptionCell
-        let child = childList[indexPath.row]
-        cell.configure(
-            title: child.nickname ?? "宝宝",
-            subtitle: child.ageText,
-            selected: indexPath.row == selectedChildIndex
-        )
+        switch Section(rawValue: indexPath.section) {
+        case .children:
+            let child = childList[indexPath.row]
+            cell.configure(
+                title: child.nickname ?? "宝宝",
+                subtitle: child.ageText,
+                selected: indexPath.row == selectedChildIndex
+            )
+        case .classes:
+            let classItem = classList[indexPath.row]
+            cell.configure(
+                title: classItem.name ?? "未命名班级",
+                subtitle: classItem.subtitleText,
+                selected: indexPath.row == selectedClassIndex,
+                disabled: classItem.isFull,
+                disabledText: classItem.isFull ? "已满员" : nil
+            )
+        default:
+            break
+        }
         return cell
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        selectedChildIndex = indexPath.row
+        switch Section(rawValue: indexPath.section) {
+        case .children:
+            selectedChildIndex = indexPath.row
+        case .classes:
+            let classItem = classList[indexPath.row]
+            guard !classItem.isFull else {
+                showToast("该班级已满员")
+                return
+            }
+            selectedClassIndex = indexPath.row
+        default:
+            break
+        }
         tableView.reloadData()
         refreshAmount()
     }
@@ -314,11 +362,12 @@ final class EnrollOptionCell: UITableViewCell {
         }
     }
 
-    func configure(title: String?, subtitle: String?, selected: Bool) {
+    func configure(title: String?, subtitle: String?, selected: Bool, disabled: Bool = false, disabledText: String? = nil) {
         titleLabel.text = title
-        subtitleLabel.text = subtitle
+        subtitleLabel.text = disabled ? (disabledText ?? "已满员") : subtitle
         checkView.isHidden = !selected
-        titleLabel.textColor = selected ? Theme.Color.brand : Theme.Color.ink
+        titleLabel.textColor = selected ? Theme.Color.brand : (disabled ? Theme.Color.muted : Theme.Color.ink)
+        subtitleLabel.textColor = disabled ? Theme.Color.muted : Theme.Color.sub
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }

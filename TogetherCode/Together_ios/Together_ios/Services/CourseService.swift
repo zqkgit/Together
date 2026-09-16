@@ -29,10 +29,11 @@ enum CourseService {
         }
     }
 
-    /// 创建订单（报名：课程固定课时与价格，无需选择课时包）
+    /// 创建订单（报名：课程固定课时与价格 + 选择班级）
     static func createOrder(
         childId: String,
         courseId: String,
+        classId: String? = nil,
         distributionCode: String? = nil,
         completion: @escaping (String?, String?) -> Void
     ) {
@@ -40,6 +41,9 @@ enum CourseService {
             "child_id": childId,
             "course_id": courseId
         ]
+        if let classId, !classId.isEmpty {
+            parameters["class_id"] = classId
+        }
         if let code = distributionCode, !code.isEmpty {
             parameters["distribution_code"] = code
         }
