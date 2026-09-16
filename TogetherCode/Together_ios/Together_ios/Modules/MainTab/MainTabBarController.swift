@@ -5,6 +5,17 @@ import UIKit
 /// 中间"发布"tab 点击后 present 模态发布页（右上角 × 关闭）
 final class MainTabBarController: BaseTabBarViewController {
 
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        // 消息未读数 → TabBar 角标
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleUnreadChanged(_:)),
+            name: .messageUnreadChanged,
+            object: nil
+        )
+    }
+
     override func setupTabs() {
         viewControllers = [
             makeTab(HomeViewController(), title: "首页", icon: "house"),
@@ -14,6 +25,12 @@ final class MainTabBarController: BaseTabBarViewController {
             makeTab(MineViewController(), title: "我的", icon: "person")
         ]
         delegate = self
+    }
+
+    @objc private func handleUnreadChanged(_ note: Notification) {
+        let unread = (note.userInfo?["unread"] as? Int) ?? 0
+        guard let items = tabBar.items, items.count > 3 else { return }
+        items[3].badgeValue = unread > 0 ? (unread > 99 ? "99+" : "\(unread)") : nil
     }
 }
 

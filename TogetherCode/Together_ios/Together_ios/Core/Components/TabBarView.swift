@@ -23,6 +23,13 @@ final class TabBarView: UIView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
+    /// 容器宽度 = 按钮内容宽 + 间距（保证调用方只给 leading 时也有宽度，避免 hitTest 失效）
+    override var intrinsicContentSize: CGSize {
+        let buttonsWidth = buttons.reduce(CGFloat(0)) { $0 + $1.intrinsicContentSize.width }
+        let spacing = CGFloat(max(0, buttons.count - 1)) * Theme.Spacing.xl
+        return CGSize(width: buttonsWidth + spacing, height: UIView.noIntrinsicMetric)
+    }
+
     func select(index: Int) {
         guard index >= 0, index < buttons.count, index != selectedIndex else { return }
         selectedIndex = index
@@ -37,6 +44,10 @@ final class TabBarView: UIView {
         addSubview(stack)
         stack.snp.makeConstraints {
             $0.top.bottom.leading.equalToSuperview()
+        }
+        // 容器宽度由内容撑开（必须有宽度，否则子按钮 hitTest 失效点不到）
+        stack.snp.makeConstraints {
+            $0.trailing.equalToSuperview()
         }
 
         for (i, title) in titles.enumerated() {
