@@ -6,14 +6,18 @@ const {
   payOrderValidators,
   orderIdValidators,
   listOrderValidators,
+  cancelOrderValidators,
   createRefundValidators
 } = require("../validators/orderValidator");
 const {
   postOrder,
   postOrderPay,
+  postOrderCancel,
   getOrders,
   getOrder,
-  postOrderRefund
+  postOrderRefund,
+  getRefunds,
+  getRefund
 } = require("../controllers/orderController");
 
 const router = express.Router();
@@ -22,10 +26,14 @@ router.use(requireAuth);
 
 // 角色归属：家长端接口。
 // 说明：订单、支付、退款申请都由家长在 App 端发起；退款确认由工作室在 /studio/refunds/* 审核。
+// 退款列表/详情需放在 /:id 之前，避免被参数路由吞掉
+router.get("/refunds/:refundId", getRefund);
+router.get("/refunds", getRefunds);
 router.get("/", listOrderValidators, validateRequest, getOrders);
 router.get("/:id", orderIdValidators, validateRequest, getOrder);
 router.post("/", createOrderValidators, validateRequest, postOrder);
 router.post("/:id/pay", payOrderValidators, validateRequest, postOrderPay);
+router.post("/:id/cancel", cancelOrderValidators, validateRequest, postOrderCancel);
 router.post("/:id/refunds", createRefundValidators, validateRequest, postOrderRefund);
 
 module.exports = router;

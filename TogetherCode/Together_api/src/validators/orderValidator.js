@@ -4,17 +4,21 @@ const createOrderValidators = [
   body("child_id").isString().notEmpty().withMessage("child_id is required"),
   body("course_id").isString().notEmpty().withMessage("course_id is required"),
   body("package_id").isString().notEmpty().withMessage("package_id is required"),
+  body("distribution_code").optional({ values: "falsy" }).isString().isLength({ max: 64 }),
   body("remark").optional({ values: "falsy" }).isString().isLength({ max: 255 })
 ];
 
 const payOrderValidators = [
   param("id").isString().notEmpty().withMessage("order id is required"),
-  body("channel").optional({ values: "falsy" }).isIn(["wechat_mini", "ios_iap", "offline"])
+  body("channel").optional({ values: "falsy" }).isIn(["wechat_mini", "ios_iap", "offline", "balance"]),
+  body("child_id").optional({ values: "falsy" }).isString().notEmpty()
 ];
 
 const orderIdValidators = [param("id").isString().notEmpty().withMessage("order id is required")];
 
 const listOrderValidators = [query("status").optional({ values: "falsy" }).isInt({ min: 0, max: 5 })];
+
+const cancelOrderValidators = [param("id").isString().notEmpty().withMessage("order id is required")];
 
 const createRefundValidators = [
   param("id").isString().notEmpty().withMessage("order id is required"),
@@ -34,11 +38,12 @@ const studioListRefundValidators = [
 
 const studioReviewRefundValidators = [
   param("id").isString().notEmpty().withMessage("refund id is required"),
-  body("action").isIn(["approve", "reject"]).withMessage("action is invalid"),
+  body("action").isIn(["approve", "reject", "confirm"]).withMessage("action is invalid"),
   body("reason").optional({ values: "falsy" }).isString().isLength({ max: 255 })
 ];
 
 module.exports = {
+  cancelOrderValidators,
   createOrderValidators,
   payOrderValidators,
   orderIdValidators,

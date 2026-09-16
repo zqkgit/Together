@@ -10,11 +10,41 @@ const {
   Refund,
   ChildCourseBalance,
   LessonLog,
-  StudioProfile
+  StudioProfile,
+  Wallet
 } = require("../models");
 const { generateId } = require("../utils/id");
+const { resolveDistributionCode, settleCommissionForOrder } = require("./commissionService");
+const { createNotification } = require("./messageService");
 
 function formatOrder(order) {
+  const refundList = (order.refunds || []).map((item) => ({
+    refund_id: String(item.refund_id),
+    amount: item.amount,
+    requested_lessons: item.requested_lessons,
+    refundable_lessons: item.refundable_lessons,
+    status: item.status,
+    status_text: REFUND_STATUS_TEXT[Number(item.status)] || "未知",
+    reason: item.reason,
+    created_at: item.created_at
+  }));
+  // 订单层退款聚合状态：0 无 / 1 退款中 / 2 已退款 / 3 已驳回
+  const activeRefund = refundList.find((r) => r.status === 0 || r.status === 1);
+  const refundedRefund = refundList.find((r) => r.status === 3);
+  const rejectedRefund = refundList.find((r) => r.status === 2);
+  let refund_status = 0;
+  let refund_status_text = "无";
+  if (activeRefund) {
+    refund_status = 1;
+    refund_status_text = "退款中";
+  } else if (refundedRefund) {
+    refund_status = 2;
+    refund_status_text = "已退款";
+  } else if (rejectedRefund) {
+    refund_status = 3;
+    refund_status_text = "已驳回";
+  }
+
   return {
     order_id: String(order.order_id),
     order_no: order.order_no,
@@ -29,6 +59,8 @@ function formatOrder(order) {
     total_amount: order.total_amount,
     paid_amount: order.paid_amount,
     refund_amount: order.refund_amount,
+    refund_status: refund_status,
+    refund_status_text: refund_status_text,
     pay_channel: order.pay_channel,
     paid_at: order.paid_at,
     created_at: order.created_at,
@@ -75,15 +107,7 @@ function formatOrder(order) {
       status: item.status,
       paid_at: item.paid_at
     })),
-    refunds: (order.refunds || []).map((item) => ({
-      refund_id: String(item.refund_id),
-      amount: item.amount,
-      requested_lessons: item.requested_lessons,
-      refundable_lessons: item.refundable_lessons,
-      status: item.status,
-      reason: item.reason,
-      created_at: item.created_at
-    })),
+    refunds: refundList,
     balance: order.balance
       ? {
           balance_id: String(order.balance.balance_id),
@@ -158,6 +182,15 @@ async function createOrder(userId, payload) {
     const child = await ensureChildBelongsToUser(payload.child_id, userId, transaction);
     const { course, coursePackage } = await ensureCoursePackage(payload.course_id, payload.package_id, transaction);
 
+    // 分销归因：带分享码下单时，记录分享来源，支付成功后按工作室返利比例结算
+    let distributionLinkId = null;
+    if (payload.distribution_code) {
+      const link = await resolveDistributionCode(payload.distribution_code, transaction);
+      if (link && String(link.parent_user_id) !== String(userId)) {
+        distributionLinkId = link.link_id;
+      }
+    }
+
     const order = await Order.create(
       {
         order_id: generateId(),
@@ -170,6 +203,7 @@ async function createOrder(userId, payload) {
         total_lessons: coursePackage.lessons,
         total_amount: coursePackage.price,
         remark: payload.remark || null,
+        distribution_link_id: distributionLinkId,
         status: 0
       },
       { transaction }
@@ -214,7 +248,7 @@ async function payOrder(userId, orderId, payload) {
         user_id: userId
       },
       include: [
-        { model: Course, as: "course", attributes: ["course_id", "validity_days"] }
+        { model: Course, as: "course", attributes: ["course_id", "title", "validity_days"] }
       ],
       transaction,
       lock: transaction.LOCK.UPDATE
@@ -226,6 +260,29 @@ async function payOrder(userId, orderId, payload) {
 
     if (Number(order.status) !== 0) {
       throw new Error("Order already paid or unavailable");
+    }
+
+    // 支付时允许切换上课孩子（课时记入所选孩子）
+    let targetChildId = order.child_id;
+    if (payload.child_id) {
+      const child = await ensureChildBelongsToUser(payload.child_id, userId, transaction);
+      targetChildId = child.child_id;
+      if (String(targetChildId) !== String(order.child_id)) {
+        await order.update({ child_id: targetChildId }, { transaction });
+      }
+    }
+
+    // 艺启余额支付：校验并扣减钱包余额（Wallet.balance 单位为元）
+    if (payload.channel === "balance") {
+      const wallet = await Wallet.findByPk(userId, { transaction, lock: transaction.LOCK.UPDATE });
+      const amountYuan = Number((Number(order.total_amount) / 100).toFixed(2));
+      if (!wallet || Number(wallet.balance) < amountYuan) {
+        throw new Error("Insufficient balance");
+      }
+      await wallet.update(
+        { balance: Number((Number(wallet.balance) - amountYuan).toFixed(2)) },
+        { transaction }
+      );
     }
 
     const paidAt = new Date();
@@ -256,7 +313,7 @@ async function payOrder(userId, orderId, payload) {
     await ChildCourseBalance.create(
       {
         balance_id: generateId(),
-        child_id: order.child_id,
+        child_id: targetChildId,
         course_id: order.course_id,
         order_id: order.order_id,
         total_lessons: order.total_lessons,
@@ -273,7 +330,7 @@ async function payOrder(userId, orderId, payload) {
     await LessonLog.create(
       {
         log_id: generateId(),
-        child_id: order.child_id,
+        child_id: targetChildId,
         course_id: order.course_id,
         order_id: order.order_id,
         source: 0,
@@ -284,6 +341,19 @@ async function payOrder(userId, orderId, payload) {
       },
       { transaction }
     );
+
+    // 分销结算：带分享码下单的订单，支付成功后按工作室返利比例给分享人结算佣金
+    await settleCommissionForOrder(order, { transaction, settleImmediately: true });
+
+    // 闭环：支付成功 → 通知家长（课时到账）
+    createNotification({
+      userId,
+      type: "order",
+      title: "支付成功",
+      content: `《${order.course?.title || "课程"}》${order.total_lessons} 课时已到账，可在「我的订单」查看。`,
+      refType: "order",
+      refId: order.order_id
+    }).catch(() => {});
 
     const detail = await getOrderWithDetails(order.order_id, { transaction });
     return formatOrder(detail);
@@ -324,6 +394,133 @@ async function getOrderDetail(userId, orderId) {
   }
 
   return formatOrder(row);
+}
+
+
+
+/** 家长端：取消待支付订单（status 0 -> 2 已取消） */
+async function cancelOrder(userId, orderId) {
+  return sequelize.transaction(async (transaction) => {
+    const order = await Order.findOne({
+      where: { order_id: orderId, user_id: userId },
+      transaction,
+      lock: transaction.LOCK.UPDATE
+    });
+    if (!order) {
+      return null;
+    }
+    if (Number(order.status) !== 0) {
+      throw new Error("Order already paid or unavailable");
+    }
+    await order.update({ status: 2, completed_at: new Date() }, { transaction });
+    return getOrderWithDetails(orderId, { transaction });
+  });
+}
+
+const REFUND_STATUS_TEXT = { 0: "申请中", 1: "打款中", 2: "已驳回", 3: "已退款到账" };
+
+function refundStatusText(status) {
+  return REFUND_STATUS_TEXT[Number(status)] || "未知";
+}
+
+/** 家长端：我的退款列表 */
+async function listMyRefunds(userId, query = {}) {
+  const where = { user_id: userId };
+  if (query.status !== undefined && query.status !== "") {
+    where.status = Number(query.status);
+  }
+
+  const rows = await Refund.findAll({
+    where,
+    include: [
+      {
+        model: Order,
+        as: "order",
+        required: true,
+        include: [
+          { model: Child, as: "child", attributes: ["child_id", "nickname"] },
+          { model: StudioProfile, as: "studio", attributes: ["studio_id", "name"] },
+          { model: Course, as: "course", attributes: ["course_id", "title", "cover"] },
+          { model: ChildCourseBalance, as: "balance", attributes: ["balance_id", "total_lessons", "consumed_lessons", "refunded_lessons", "remaining_lessons"] }
+        ]
+      }
+    ],
+    order: [["created_at", "DESC"]]
+  });
+
+  return {
+    total: rows.length,
+    list: rows.map((r) => ({
+      refund_id: String(r.refund_id),
+      order_id: String(r.order_id),
+      course_title: r.order?.course ? r.order.course.title : "-",
+      course_cover: r.order?.course ? r.order.course.cover : null,
+      studio_name: r.order?.studio ? r.order.studio.name : null,
+      child_name: r.order?.child ? r.order.child.nickname : "-",
+      requested_lessons: Number(r.requested_lessons),
+      amount: Number(r.amount),
+      amount_text: `¥${(Number(r.amount) / 100).toFixed(2)}`,
+      status: Number(r.status),
+      status_text: refundStatusText(r.status),
+      reason: r.reason,
+      created_at: r.created_at
+    }))
+  };
+}
+
+/** 家长端：退款详情（状态流转） */
+async function getRefundDetail(userId, refundId) {
+  const row = await Refund.findOne({
+    where: { refund_id: refundId, user_id: userId },
+    include: [
+      {
+        model: Order,
+        as: "order",
+        required: true,
+        include: [
+          { model: Child, as: "child", attributes: ["child_id", "nickname"] },
+          { model: StudioProfile, as: "studio", attributes: ["studio_id", "name"] },
+          { model: Course, as: "course", attributes: ["course_id", "title", "cover"] },
+          { model: ChildCourseBalance, as: "balance", attributes: ["balance_id", "total_lessons", "consumed_lessons", "refunded_lessons", "remaining_lessons", "valid_to"] }
+        ]
+      }
+    ]
+  });
+  if (!row) return null;
+
+  const status = Number(row.status);
+  const order = row.order;
+  return {
+    refund_id: String(row.refund_id),
+    order_id: String(row.order_id),
+    order_no: order ? order.order_no : null,
+    course_title: order?.course ? order.course.title : "-",
+    course_cover: order?.course ? order.course.cover : null,
+    studio_name: order?.studio ? order.studio.name : null,
+    child_name: order?.child ? order.child.nickname : "-",
+    total_lessons: order ? Number(order.total_lessons) : 0,
+    consumed_lessons: order ? Number(order.consumed_lessons) : 0,
+    refunded_lessons: order ? Number(order.refunded_lessons) : 0,
+    balance_remaining: order?.balance ? Number(order.balance.remaining_lessons) : 0,
+    valid_to: order?.balance ? order.balance.valid_to : null,
+    requested_lessons: Number(row.requested_lessons),
+    refundable_lessons: Number(row.refundable_lessons),
+    unit_price: Number(row.unit_price),
+    unit_price_text: `¥${(Number(row.unit_price) / 100).toFixed(2)}/课时`,
+    amount: Number(row.amount),
+    amount_text: `¥${(Number(row.amount) / 100).toFixed(2)}`,
+    reason: row.reason,
+    status: status,
+    status_text: refundStatusText(status),
+    created_at: row.created_at,
+    reviewed_at: row.reviewed_at,
+    refunded_at: row.refunded_at,
+    steps: [
+      { key: "submit", title: "提交申请", time: row.created_at, done: true },
+      { key: "review", title: "工作室审核", time: row.reviewed_at, done: row.reviewed_at != null, current: status === 0 },
+      { key: "result", title: status === 2 ? "已驳回" : "已通过并退款", time: status === 2 ? row.reviewed_at : row.refunded_at, done: status === 2 || status === 3, current: status === 2 || status === 3 }
+    ]
+  };
 }
 
 async function createRefund(userId, orderId, payload) {
@@ -407,9 +604,12 @@ async function createRefund(userId, orderId, payload) {
 module.exports = {
   createOrder,
   payOrder,
+  cancelOrder,
   listOrders,
   getOrderDetail,
   createRefund,
+  listMyRefunds,
+  getRefundDetail,
   formatOrder,
   getOrderWithDetails
 };
