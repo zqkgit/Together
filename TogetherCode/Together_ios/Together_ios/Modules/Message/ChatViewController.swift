@@ -2,6 +2,8 @@ import UIKit
 import SnapKit
 import Kingfisher
 import MBProgressHUD
+import HXPhotoPicker
+import SwiftyJSON
 
 /// 聊天展示项：时间行 / 消息行
 enum ChatDisplayItem {
@@ -27,11 +29,13 @@ final class ChatViewController: BaseViewController, UITableViewDataSource, UITab
 
     private var keyboardHeight: CGFloat = 0
     private var didInitialLoad = false
+    private var isUploading = false
 
     // MARK: - UI
 
     private let tableView = UITableView(frame: .zero, style: .plain)
     private let inputBar = UIView()
+    private let photoButton = UIButton(type: .system)
     private let inputField = UITextField()
     private let sendButton = UIButton(type: .system)
     private let emptyView = EmptyStateView()
@@ -129,6 +133,12 @@ final class ChatViewController: BaseViewController, UITableViewDataSource, UITab
             $0.height.equalTo(0.5)
         }
 
+        // 三个控件先全部加入 inputBar（交叉约束需要共同祖先，否则 anchor 激活崩溃）
+        photoButton.setImage(UIImage(systemName: "photo"), for: .normal)
+        photoButton.tintColor = Theme.Color.brand
+        photoButton.addTarget(self, action: #selector(didTapPhoto), for: .touchUpInside)
+        inputBar.addSubview(photoButton)
+
         // 输入框（圆角胶囊）
         inputField.placeholder = "发消息…"
         inputField.font = .appBody(14)
@@ -142,12 +152,6 @@ final class ChatViewController: BaseViewController, UITableViewDataSource, UITab
         inputField.leftView = padding
         inputField.leftViewMode = .always
         inputBar.addSubview(inputField)
-        inputField.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(10)
-            $0.leading.equalToSuperview().offset(Theme.Spacing.m)
-            $0.height.equalTo(40)
-            $0.bottom.equalToSuperview().offset(-10).priority(.high)
-        }
 
         // 发送按钮（品牌绿、圆角=高度一半）
         sendButton.setTitle("发送", for: .normal)
@@ -158,6 +162,19 @@ final class ChatViewController: BaseViewController, UITableViewDataSource, UITab
         sendButton.clipsToBounds = true
         sendButton.addTarget(self, action: #selector(didTapSend), for: .touchUpInside)
         inputBar.addSubview(sendButton)
+
+        // 统一约束（三个控件已在同一层级）
+        photoButton.snp.makeConstraints {
+            $0.leading.equalToSuperview().offset(Theme.Spacing.m)
+            $0.centerY.equalTo(inputField)
+            $0.width.height.equalTo(40)
+        }
+        inputField.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(10)
+            $0.leading.equalTo(photoButton.snp.trailing).offset(8)
+            $0.height.equalTo(40)
+            $0.bottom.equalToSuperview().offset(-10).priority(.high)
+        }
         sendButton.snp.makeConstraints {
             $0.leading.equalTo(inputField.snp.trailing).offset(Theme.Spacing.m)
             $0.trailing.equalToSuperview().offset(-Theme.Spacing.m)
@@ -261,23 +278,22 @@ final class ChatViewController: BaseViewController, UITableViewDataSource, UITab
     // MARK: - 发送
 
     @objc private func didTapSend() {
-        send()
+        send(content: inputField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
     }
 
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        send()
+        send(content: inputField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
         return true
     }
 
-    private func send() {
+    private func send(content: String, type: Int = 1) {
         guard !isSending else { return }
-        let content = inputField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !content.isEmpty else {
-            showToast("请输入内容")
+            if type == 1 { showToast("请输入内容") }
             return
         }
         isSending = true
-        MessageService.sendMessage(conversationId: conversation.conversationId, content: content) { [weak self] message, error in
+        MessageService.sendMessage(conversationId: conversation.conversationId, content: content, type: type) { [weak self] message, error in
             guard let self else { return }
             self.isSending = false
             if let error {
@@ -294,6 +310,58 @@ final class ChatViewController: BaseViewController, UITableViewDataSource, UITab
             // 发送成功同步会话列表未读角标
             NotificationCenter.default.post(name: .messageUnreadChanged, object: nil)
         }
+    }
+
+    // MARK: - 图片消息
+
+    @objc private func didTapPhoto() {
+        view.endEditing(true)
+        var config = PickerConfiguration()
+        config.selectOptions = [.photo]
+        config.maximumSelectedCount = 1
+        let picker = PhotoPickerController(config: config)
+        picker.finishHandler = { [weak self] result, _ in
+            guard let self, let asset = result.photoAssets.first else { return }
+            // 聊天图片压缩到长边 1080 内
+            result.getImage(targetSize: CGSize(width: 1080, height: 1080)) { images in
+                guard let image = images.first else { return }
+                self.uploadAndSendImage(image)
+            }
+        }
+        present(picker, animated: true)
+    }
+
+    private func uploadAndSendImage(_ image: UIImage) {
+        guard !isUploading else { return }
+        guard let data = image.jpegData(compressionQuality: 0.8) else {
+            showToast("图片处理失败")
+            return
+        }
+        isUploading = true
+        showLoading("发送中...")
+        APIClient.shared.upload(files: [data], folder: "chat") { [weak self] result in
+            guard let self else { return }
+            self.isUploading = false
+            self.hideLoading()
+            switch result {
+            case .success(let json):
+                let url = self.extractUploadedURL(from: json)
+                guard let url else {
+                    self.showToast("图片上传失败")
+                    return
+                }
+                self.send(content: url, type: 2)
+            case .failure(let error):
+                self.showToast(error.message)
+            }
+        }
+    }
+
+    /// 兼容上传接口两种返回：{"urls":["..."]} 或 [{"url":"..."}]
+    private func extractUploadedURL(from json: JSON) -> String? {
+        if let first = json["urls"].array?.first?.string { return first }
+        if let first = json.array?.first?["url"].string { return first }
+        return nil
     }
 
     // MARK: - WS 新消息
