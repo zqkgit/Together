@@ -12,10 +12,11 @@ const {
   LeaveRequest,
   Post,
   PostStudent,
-  LessonLog
+  LessonLog,
+  Attendance
 } = require("../models");
 const { createNotification } = require("./messageService");
-const { applyLessonConsumption } = require("./studentService");
+const { applyLessonConsumption, attendSchedule } = require("./studentService");
 const { reviewLeaveRequest } = require("./leaveService");
 
 function getWeekRange(week) {
@@ -313,6 +314,21 @@ async function resolvePostContext(teacher, payload, transaction) {
       throw new Error("Schedule does not belong to class");
     }
     classItem = classItem || (await ensureTeacherClass(schedule.class_id, teacher.teacher_id, transaction));
+  } else if (classItem && payload.consume === true) {
+    // 同步消课未指定课次：自动匹配该班级今天的排课；没有则取最近一次
+    const today = localToday();
+    schedule = await Schedule.findOne({
+      where: { class_id: classItem.class_id, lesson_date: today },
+      order: [["start_time", "ASC"]],
+      transaction
+    });
+    if (!schedule) {
+      schedule = await Schedule.findOne({
+        where: { class_id: classItem.class_id },
+        order: [["lesson_date", "DESC"], ["start_time", "DESC"]],
+        transaction
+      });
+    }
   }
 
   const courseId = schedule?.course_id || classItem?.course_id || payload.course_id;
@@ -352,7 +368,8 @@ async function consumeStudentsForPost(post, teacher, payload, transaction) {
     {
       course_id: post.course_id,
       class_id: payload.class_id,
-      schedule_id: payload.schedule_id
+      schedule_id: payload.schedule_id,
+      consume: payload.consume
     },
     transaction
   );
@@ -839,6 +856,316 @@ async function markTeacherPostStudents(userId, postId, payload) {
   });
 }
 
+// ===== 老师工作台 =====
+
+function localToday() {
+  const now = new Date(Date.now() + 8 * 60 * 60 * 1000);
+  return now.toISOString().slice(0, 10);
+}
+
+async function getTeacherWorkbench(userId) {
+  const teacher = await ensureTeacherProfile(userId);
+  const today = localToday();
+
+  // 今日排课（按开始时间升序）
+  const schedules = await Schedule.findAll({
+    where: { teacher_id: teacher.teacher_id, lesson_date: today },
+    include: [
+      { model: Class, as: "classItem", attributes: ["class_id", "name", "enrolled"] },
+      { model: Course, as: "course", attributes: ["course_id", "studio_id", "title", "duration_min"] }
+    ],
+    order: [["start_time", "ASC"]]
+  });
+
+  const todayList = [];
+  let todayPending = 0;
+
+  for (const schedule of schedules) {
+    const roster = await findRosterByCourse(schedule.course_id, schedule.course.studio_id);
+
+    const leaveRows = await LeaveRequest.findAll({
+      where: { schedule_id: schedule.schedule_id, status: 1 },
+      attributes: ["child_id"]
+    });
+    const logRows = await LessonLog.findAll({
+      where: { schedule_id: schedule.schedule_id, source: { [Op.in]: [1, 2] } },
+      attributes: ["child_id", "source"]
+    });
+
+    const leaveSet = new Set(leaveRows.map((r) => String(r.child_id)));
+    const consumedSet = new Set(logRows.map((r) => String(r.child_id)));
+    const sourceByChild = new Map(logRows.map((r) => [String(r.child_id), Number(r.source)]));
+
+    const students = roster.map((balance) => ({
+      child_id: String(balance.child_id),
+      nickname: balance.child?.nickname || "宝宝",
+      avatar: balance.child?.avatar || null,
+      leave: leaveSet.has(String(balance.child_id)),
+      consumed: consumedSet.has(String(balance.child_id)),
+      consumed_source: sourceByChild.get(String(balance.child_id)) || 0,
+      remaining_lessons: Number(balance.remaining_lessons || 0)
+    }));
+
+    const consumedCount = roster.filter((r) => consumedSet.has(String(r.child_id))).length;
+    const leaveCount = roster.filter((r) => leaveSet.has(String(r.child_id))).length;
+    const expectCount = Math.max(roster.length - leaveCount, 0);
+
+    let consumeStatus = "pending";
+    if (roster.length > 0 && consumedCount >= expectCount) {
+      consumeStatus = "completed";
+    } else if (consumedCount > 0) {
+      consumeStatus = "partial";
+    }
+    if (consumeStatus !== "completed") {
+      todayPending += 1;
+    }
+
+    todayList.push({
+      schedule_id: String(schedule.schedule_id),
+      start_time: schedule.start_time,
+      end_time: schedule.end_time,
+      location: schedule.location,
+      is_makeup: Boolean(schedule.is_makeup),
+      consume_status: consumeStatus,
+      class: schedule.classItem
+        ? { class_id: String(schedule.classItem.class_id), name: schedule.classItem.name }
+        : null,
+      course: schedule.course
+        ? { course_id: String(schedule.course.course_id), title: schedule.course.title }
+        : null,
+      students
+    });
+  }
+
+  // 在读学生：老师名下班级 enrolled 求和
+  const classRows = await Class.findAll({
+    where: { teacher_id: teacher.teacher_id },
+    attributes: ["class_id", "enrolled"]
+  });
+  const activeStudents = classRows.reduce((sum, c) => sum + Number(c.enrolled || 0), 0);
+
+  // 本月出勤率：本月已消课人次 / 本月应到人次
+  const monthStart = `${today.slice(0, 8)}01`;
+  const monthSchedules = await Schedule.findAll({
+    where: {
+      teacher_id: teacher.teacher_id,
+      lesson_date: { [Op.gte]: monthStart }
+    },
+    attributes: ["schedule_id", "course_id", "studio_id"]
+  });
+
+  let expected = 0;
+  let attended = 0;
+  for (const ms of monthSchedules) {
+    const roster = await findRosterByCourse(ms.course_id, ms.studio_id);
+    const leaves = await LeaveRequest.count({
+      where: { schedule_id: ms.schedule_id, status: 1 }
+    });
+    expected += Math.max(roster.length - leaves, 0);
+    const logs = await LessonLog.count({
+      where: { schedule_id: ms.schedule_id, source: { [Op.in]: [1, 2] } }
+    });
+    attended += Math.min(logs, roster.length);
+  }
+  const attendanceRate = expected > 0 ? Math.round((attended / expected) * 100) : 0;
+
+  return {
+    stats: {
+      today_pending: todayPending,
+      active_students: activeStudents,
+      attendance_rate: attendanceRate
+    },
+    today: todayList
+  };
+}
+
+async function teacherAttendSchedule(userId, scheduleId, payload) {
+  const teacher = await ensureTeacherProfile(userId);
+  const schedule = await Schedule.findByPk(scheduleId, {
+    include: [
+      { model: Course, as: "course", attributes: ["course_id", "studio_id"] }
+    ]
+  });
+  if (!schedule || String(schedule.teacher_id) !== String(teacher.teacher_id)) {
+    throw new Error("Schedule does not belong to teacher");
+  }
+
+  // 老师端只传 child_id + status：order_id 从课程花名册自动补齐
+  const roster = await findRosterByCourse(schedule.course_id, schedule.course.studio_id);
+  const rosterMap = new Map(roster.map((b) => [String(b.child_id), b]));
+  const students = (payload.students || []).map((item) => {
+    const balance = rosterMap.get(String(item.child_id));
+    if (!balance) {
+      throw new Error("Student is not enrolled in class course");
+    }
+    return {
+      child_id: String(item.child_id),
+      order_id: String(balance.order_id),
+      status: Number(item.status ?? 1),
+      note: item.note || null
+    };
+  });
+
+  return attendSchedule(scheduleId, { students, note: payload.note });
+}
+
+async function teacherUndoAttendance(userId, scheduleId, childIds) {
+  const teacher = await ensureTeacherProfile(userId);
+  const schedule = await Schedule.findByPk(scheduleId, { attributes: ["schedule_id", "teacher_id"] });
+  if (!schedule || String(schedule.teacher_id) !== String(teacher.teacher_id)) {
+    throw new Error("Schedule does not belong to teacher");
+  }
+
+  const ids = Array.isArray(childIds) ? childIds : [childIds];
+  if (!ids.length) {
+    throw new Error("child_ids is required");
+  }
+
+  return sequelize.transaction(async (transaction) => {
+    const results = [];
+    for (const childId of ids) {
+      const log = await LessonLog.findOne({
+        where: {
+          schedule_id: scheduleId,
+          child_id: childId,
+          source: { [Op.in]: [1, 2] }
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+      if (!log) {
+        results.push({ child_id: String(childId), undone: false, reason: "无点名消课记录" });
+        continue;
+      }
+
+      const delta = Math.abs(Number(log.delta || 1));
+      const order = await Order.findByPk(log.order_id, { transaction, lock: transaction.LOCK.UPDATE });
+      const balance = await ChildCourseBalance.findOne({
+        where: { order_id: log.order_id, course_id: log.course_id, status: { [Op.in]: [1, 2] } },
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+      if (!order || !balance) {
+        results.push({ child_id: String(childId), undone: false, reason: "订单或课时包不存在" });
+        continue;
+      }
+
+      const remainingAfter = Number(balance.remaining_lessons || 0) + delta;
+      await order.update(
+        {
+          consumed_lessons: Math.max(Number(order.consumed_lessons || 0) - delta, 0)
+        },
+        { transaction }
+      );
+      // 已完成订单（课时恰好用完）撤销后恢复为已支付
+      if (Number(order.status) === 2 && remainingAfter > 0) {
+        await order.update({ status: 1 }, { transaction });
+      }
+      await balance.update(
+        {
+          consumed_lessons: Math.max(Number(balance.consumed_lessons || 0) - delta, 0),
+          remaining_lessons: remainingAfter
+        },
+        { transaction }
+      );
+      await Attendance.destroy({
+        where: { schedule_id: scheduleId, child_id: childId },
+        transaction
+      });
+      // 老师发帖消课（source=1）：同步还原帖子关联学生的扣课标记
+      if (Number(log.source) === 1) {
+        await PostStudent.update(
+          { deducted: 0 },
+          {
+            where: { child_id: childId, order_id: log.order_id, deducted: 1 },
+            transaction
+          }
+        );
+      }
+      await log.destroy({ transaction });
+
+      results.push({ child_id: String(childId), undone: true, remaining_lessons: remainingAfter });
+    }
+
+    return {
+      schedule_id: String(scheduleId),
+      processed_count: results.filter((r) => r.undone).length,
+      list: results
+    };
+  });
+}
+
+async function undoTeacherPostConsumption(userId, postId, childIds) {
+  const post = await Post.findOne({ where: { post_id: postId, author_id: userId } });
+  if (!post) {
+    throw new Error("Post not found");
+  }
+
+  const ids = Array.isArray(childIds) ? childIds : [childIds];
+  if (!ids.length) {
+    throw new Error("child_ids is required");
+  }
+
+  return sequelize.transaction(async (transaction) => {
+    const results = [];
+    for (const childId of ids) {
+      const log = await LessonLog.findOne({
+        where: { post_id: postId, child_id: childId, source: 1 },
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+      if (!log) {
+        results.push({ child_id: String(childId), undone: false, reason: "该学生未在本帖消课" });
+        continue;
+      }
+
+      const delta = Math.abs(Number(log.delta || 1));
+      const order = await Order.findByPk(log.order_id, { transaction, lock: transaction.LOCK.UPDATE });
+      const balance = await ChildCourseBalance.findOne({
+        where: { order_id: log.order_id, course_id: log.course_id, status: { [Op.in]: [1, 2] } },
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+      if (!order || !balance) {
+        results.push({ child_id: String(childId), undone: false, reason: "订单或课时包不存在" });
+        continue;
+      }
+
+      const remainingAfter = Number(balance.remaining_lessons || 0) + delta;
+      await order.update(
+        { consumed_lessons: Math.max(Number(order.consumed_lessons || 0) - delta, 0) },
+        { transaction }
+      );
+      if (Number(order.status) === 2 && remainingAfter > 0) {
+        await order.update({ status: 1 }, { transaction });
+      }
+      await balance.update(
+        {
+          consumed_lessons: Math.max(Number(balance.consumed_lessons || 0) - delta, 0),
+          remaining_lessons: remainingAfter
+        },
+        { transaction }
+      );
+      await PostStudent.update(
+        { deducted: 0 },
+        {
+          where: { post_id: postId, child_id: childId, deducted: 1 },
+          transaction
+        }
+      );
+      await log.destroy({ transaction });
+
+      results.push({ child_id: String(childId), undone: true, remaining_lessons: remainingAfter });
+    }
+
+    return {
+      post_id: String(postId),
+      processed_count: results.filter((r) => r.undone).length,
+      list: results
+    };
+  });
+}
+
 module.exports = {
   listTeacherClasses,
   getTeacherClassStudents,
@@ -846,5 +1173,9 @@ module.exports = {
   listTeacherLeaves,
   reviewTeacherLeave,
   createTeacherPost,
-  markTeacherPostStudents
+  markTeacherPostStudents,
+  getTeacherWorkbench,
+  teacherAttendSchedule,
+  teacherUndoAttendance,
+  undoTeacherPostConsumption
 };

@@ -238,6 +238,7 @@ struct PostItem: Codable {
     var is_following: Bool?
     let child: PostChild?
     let course: PostCourse?
+    let students: [PostStudentItem]?
     let created_at: String?
     let visibility: Int? // 2 公开 / 1 仅好友
     let status: Int?     // 1 已通过 / 0 待审核 / -1 已驳回
@@ -259,6 +260,18 @@ struct PostItem: Codable {
         let title: String?
         let price: Int?
     }
+
+    struct PostStudentItem: Codable {
+        let child_id: String
+        let nickname: String?
+        let avatar: String?
+        let deducted: Bool?
+    }
+
+    /// 关联学生列表（老师帖）
+    var studentList: [PostStudentItem] { students ?? [] }
+    /// 是否有已消课学生
+    var hasConsumedStudents: Bool { studentList.contains { $0.deducted == true } }
 
     var authorName: String { author?.nickname ?? "匿名" }
     var authorAvatar: String? { author?.avatar }

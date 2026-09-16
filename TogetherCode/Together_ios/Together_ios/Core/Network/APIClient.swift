@@ -96,4 +96,5 @@ extension Notification.Name {
     static let authExpired = Notification.Name("authExpired")
     static let userProfileUpdated = Notification.Name("userProfileUpdated")
     static let messageUnreadChanged = Notification.Name("messageUnreadChanged")
+    static let userRoleDidChange = Notification.Name("userRoleDidChange")
 }

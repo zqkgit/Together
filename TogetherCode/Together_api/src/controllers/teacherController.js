@@ -6,7 +6,11 @@ const {
   listTeacherLeaves,
   reviewTeacherLeave,
   createTeacherPost,
-  markTeacherPostStudents
+  markTeacherPostStudents,
+  getTeacherWorkbench,
+  teacherAttendSchedule,
+  teacherUndoAttendance,
+  undoTeacherPostConsumption
 } = require("../services/teacherService");
 
 async function getTeacherClasses(req, res) {
@@ -87,6 +91,48 @@ async function postTeacherPostStudents(req, res) {
   }
 }
 
+async function getTeacherWorkbenchHandler(req, res) {
+  try {
+    const data = await getTeacherWorkbench(req.user.userId);
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+async function postTeacherScheduleAttendance(req, res) {
+  try {
+    const data = await teacherAttendSchedule(req.user.userId, req.params.id, req.body);
+    if (!data) {
+      return fail(res, 404, 40464, "Schedule not found");
+    }
+    return ok(res, data, "attendance submitted");
+  } catch (error) {
+    const status = /does not belong|not found|not available|exceed|already/i.test(error.message) ? 400 : 500;
+    return fail(res, status, status === 400 ? 40064 : 50000, error.message || "Internal server error");
+  }
+}
+
+async function postTeacherScheduleAttendanceUndo(req, res) {
+  try {
+    const data = await teacherUndoAttendance(req.user.userId, req.params.id, req.body.child_ids);
+    return ok(res, data, "attendance undone");
+  } catch (error) {
+    const status = /does not belong|required|not found/i.test(error.message) ? 400 : 500;
+    return fail(res, status, status === 400 ? 40065 : 50000, error.message || "Internal server error");
+  }
+}
+
+async function postTeacherPostStudentsUndo(req, res) {
+  try {
+    const data = await undoTeacherPostConsumption(req.user.userId, req.params.id, req.body.child_ids);
+    return ok(res, data, "post consumption undone");
+  } catch (error) {
+    const status = /required|not found/i.test(error.message) ? 400 : 500;
+    return fail(res, status, status === 400 ? 40066 : 50000, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   getTeacherClasses,
   getTeacherStudents,
@@ -94,5 +140,9 @@ module.exports = {
   getTeacherLeaves,
   putTeacherLeave,
   postTeacherPost,
-  postTeacherPostStudents
+  postTeacherPostStudents,
+  getTeacherWorkbenchHandler,
+  postTeacherScheduleAttendance,
+  postTeacherScheduleAttendanceUndo,
+  postTeacherPostStudentsUndo
 };

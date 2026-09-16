@@ -717,21 +717,16 @@ final class TeacherClassCell: UITableViewCell {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 }
 
-// MARK: - 同步消课 + 上课课次 合并卡片
+// MARK: - 同步消课卡片
 
 final class ConsumeCell: UITableViewCell {
     static let reuseId = "ConsumeCell"
 
     var onSwitch: ((Bool) -> Void)?
-    var onTapSchedule: (() -> Void)?
 
     private let titleLabel = UILabel()
     private let subtitleLabel = UILabel()
     private let switchControl = UISwitch()
-    private let divider = UIView()
-    private let scheduleTitleLabel = UILabel()
-    private let scheduleDetailLabel = UILabel()
-    private let scheduleChevron = UIImageView()
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -747,29 +742,14 @@ final class ConsumeCell: UITableViewCell {
 
         subtitleLabel.font = .appBody(12)
         subtitleLabel.textColor = Theme.Color.sub
-        subtitleLabel.text = "开启后为所选学生扣除本节课时"
+        subtitleLabel.text = "开启后为所选学生扣除本节课时（自动匹配最近课次）"
 
-        divider.backgroundColor = Theme.Color.line
-
-        scheduleTitleLabel.font = .appBody(15)
-        scheduleTitleLabel.textColor = Theme.Color.ink
-        scheduleTitleLabel.text = "上课课次"
-
-        scheduleChevron.image = UIImage(systemName: "chevron.right")
-        scheduleChevron.tintColor = Theme.Color.sub.withAlphaComponent(0.5)
-        scheduleChevron.contentMode = .scaleAspectFit
-
-        scheduleDetailLabel.font = .appBody(14)
-        scheduleDetailLabel.textColor = Theme.Color.sub
-        scheduleDetailLabel.textAlignment = .right
-
-        // 先全部 addSubview 再统一约束，避免跨层级引用崩溃
-        [titleLabel, subtitleLabel, switchControl, divider, scheduleTitleLabel, scheduleDetailLabel, scheduleChevron].forEach {
+        [titleLabel, subtitleLabel, switchControl].forEach {
             contentView.addSubview($0)
         }
 
         switchControl.snp.makeConstraints {
-            $0.centerY.equalTo(titleLabel)
+            $0.centerY.equalToSuperview()
             $0.trailing.equalToSuperview().offset(-Theme.Spacing.l * 2)
         }
 
@@ -783,42 +763,12 @@ final class ConsumeCell: UITableViewCell {
             $0.top.equalTo(titleLabel.snp.bottom).offset(2)
             $0.leading.equalTo(titleLabel)
             $0.trailing.lessThanOrEqualTo(switchControl.snp.leading).offset(-Theme.Spacing.m)
-        }
-
-        divider.snp.makeConstraints {
-            $0.top.equalTo(subtitleLabel.snp.bottom).offset(Theme.Spacing.l)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l * 2)
-            $0.height.equalTo(0.5)
-        }
-
-        scheduleTitleLabel.snp.makeConstraints {
-            $0.top.equalTo(divider.snp.bottom)
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l * 2)
-            $0.height.equalTo(48)
-        }
-
-        scheduleChevron.snp.makeConstraints {
-            $0.centerY.equalTo(scheduleTitleLabel)
-            $0.trailing.equalToSuperview().offset(-Theme.Spacing.l * 2)
-            $0.width.equalTo(12)
-            $0.height.equalTo(14)
-        }
-
-        scheduleDetailLabel.snp.makeConstraints {
-            $0.centerY.equalTo(scheduleTitleLabel)
-            $0.trailing.equalTo(scheduleChevron.snp.leading).offset(-4)
-            $0.leading.greaterThanOrEqualTo(scheduleTitleLabel.snp.trailing).offset(Theme.Spacing.m)
+            $0.bottom.equalToSuperview().offset(-Theme.Spacing.l)
         }
     }
 
-    func configure(switchValue: Bool, showSchedule: Bool, scheduleDetail: String) {
+    func configure(switchValue: Bool) {
         switchControl.isOn = switchValue
-        scheduleDetailLabel.text = scheduleDetail
-        // 消课关闭时课次行与分割线都不显示
-        divider.isHidden = !showSchedule
-        scheduleTitleLabel.isHidden = !showSchedule
-        scheduleChevron.isHidden = !showSchedule
-        scheduleDetailLabel.isHidden = !showSchedule
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }

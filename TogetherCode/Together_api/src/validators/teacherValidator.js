@@ -35,13 +35,8 @@ const createTeacherPostValidators = [
     .optional({ values: "falsy" })
     .isBoolean()
     .withMessage("consume must be a boolean"),
-  // 同步消课（consume=true）才必须选课次；仅关联学生（发帖可见/推送）不强制
-  body("schedule_id")
-    .if(body("students").exists())
-    .if(body("consume").custom((v) => v === true))
-    .isString()
-    .notEmpty()
-    .withMessage("schedule_id is required when consuming lessons"),
+  // 同步消课（consume=true）可不传课次：后端自动匹配该班级最近排课
+  body("schedule_id").optional({ values: "falsy" }).isString(),
   body("content").optional({ values: "falsy" }).isString().isLength({ max: 1000 }),
   body("images").optional().isArray({ max: 9 }).withMessage("images must be an array"),
   body("images.*").optional().isString(),
@@ -63,11 +58,35 @@ const markTeacherPostStudentsValidators = [
   body("students.*.note").optional({ values: "falsy" }).isString().isLength({ max: 255 })
 ];
 
+const teacherScheduleAttendanceValidators = [
+  param("id").isString().notEmpty().withMessage("schedule id is required"),
+  body("note").optional({ values: "falsy" }).isString().isLength({ max: 255 }),
+  body("students").isArray({ min: 1 }).withMessage("students must be a non-empty array"),
+  body("students.*.child_id").isString().notEmpty().withMessage("child_id is required"),
+  body("students.*.status").isInt({ min: 1, max: 3 }).withMessage("status is invalid"),
+  body("students.*.note").optional({ values: "falsy" }).isString().isLength({ max: 255 })
+];
+
+const teacherScheduleAttendanceUndoValidators = [
+  param("id").isString().notEmpty().withMessage("schedule id is required"),
+  body("child_ids").isArray({ min: 1 }).withMessage("child_ids must be a non-empty array"),
+  body("child_ids.*").isString().notEmpty().withMessage("child_id is required")
+];
+
+const teacherPostStudentsUndoValidators = [
+  param("id").isString().notEmpty().withMessage("post id is required"),
+  body("child_ids").isArray({ min: 1 }).withMessage("child_ids must be a non-empty array"),
+  body("child_ids.*").isString().notEmpty().withMessage("child_id is required")
+];
+
 module.exports = {
   listTeacherTimetableValidators,
   teacherClassStudentsValidators,
   listTeacherLeavesValidators,
   handleTeacherLeaveValidators,
   createTeacherPostValidators,
-  markTeacherPostStudentsValidators
+  markTeacherPostStudentsValidators,
+  teacherScheduleAttendanceValidators,
+  teacherScheduleAttendanceUndoValidators,
+  teacherPostStudentsUndoValidators
 };

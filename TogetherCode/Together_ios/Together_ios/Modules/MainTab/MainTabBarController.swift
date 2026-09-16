@@ -14,11 +14,26 @@ final class MainTabBarController: BaseTabBarViewController {
             name: .messageUnreadChanged,
             object: nil
         )
+        // 切换身份（家长 ↔ 老师）→ 重建第一个 tab（首页/工作台）
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleRoleDidChange),
+            name: .userRoleDidChange,
+            object: nil
+        )
+    }
+
+    @objc private func handleRoleDidChange() {
+        setupTabs()
     }
 
     override func setupTabs() {
+        // 第一个 tab 按角色切换：老师 → 工作台；家长 → 首页（PR #parentHome / #teacherWorkbench）
+        let firstVC: UIViewController = TokenManager.shared.userRole == 2
+            ? TeacherWorkbenchViewController()
+            : HomeViewController()
         viewControllers = [
-            makeTab(HomeViewController(), title: "首页", icon: "house"),
+            makeTab(firstVC, title: TokenManager.shared.userRole == 2 ? "工作台" : "首页", icon: TokenManager.shared.userRole == 2 ? "briefcase" : "house"),
             makeTab(PlazaViewController(), title: "广场", icon: "rectangle.grid.2x2"),
             makeCenterTab(PlaceholderViewController(title: "发布"), tag: 2),
             makeTab(MessageViewController(), title: "消息", icon: "bell"),

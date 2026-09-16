@@ -73,6 +73,9 @@ final class PostDetailViewController: BaseViewController {
             let preview = ImagePreviewViewController(images: images, startIndex: index)
             self.present(preview, animated: true)
         }
+        headerView.onUndoStudent = { [weak self] student in
+            self?.confirmUndoStudent(student)
+        }
         tableView.tableHeaderView = headerView
 
         view.addSubview(tableView)
@@ -241,7 +244,35 @@ final class PostDetailViewController: BaseViewController {
         keyboardView.clear()
     }
 
-    private func toggleFollow() {        guard var post, let authorId = post.author?.user_id else { return }
+    /// 帖子详情撤销某学生的发帖消课（仅作者可操作）
+    private func confirmUndoStudent(_ student: PostItem.PostStudentItem) {
+        let name = student.nickname ?? "该学员"
+        ThemeAlertView.show(
+            title: "撤销消课",
+            message: "\(name) 是通过老师发帖自动消课的。撤销将退还课时，并同步取消帖子中的消课记录，确认撤销？",
+            confirmTitle: "撤销",
+            onConfirm: { [weak self] in
+                self?.undoStudent(student)
+            }
+        )
+    }
+
+    private func undoStudent(_ student: PostItem.PostStudentItem) {
+        showLoading()
+        PostService.undoPostStudentConsumption(postId: postId, childIds: [student.child_id]) { [weak self] ok, error in
+            guard let self else { return }
+            self.hideLoading()
+            if let error {
+                self.showToast(error)
+                return
+            }
+            self.showToast("已撤销，课时已退还，帖子消课记录已取消")
+            self.loadDetail()
+        }
+    }
+
+    private func toggleFollow() {
+        guard var post, let authorId = post.author?.user_id else { return }
         let target = !(post.is_following ?? false)
         PostService.followUser(userId: authorId, followed: post.is_following ?? false) { [weak self] ok, error in
             guard let self else { return }
@@ -383,6 +414,7 @@ final class PostHeaderView: UIView {
     var onFollow: (() -> Void)?
     var onEnroll: (() -> Void)?
     var onTapImage: ((Int) -> Void)?
+    var onUndoStudent: ((PostItem.PostStudentItem) -> Void)?
 
     // 顶部图片轮播（可横滑 + 点击全屏预览）
     private let carouselView = ImageCarouselView()
@@ -401,6 +433,10 @@ final class PostHeaderView: UIView {
     private let courseTitle = UILabel()
     private let coursePrice = UILabel()
     private let enrollButton = UIButton(type: .system)
+    // 关联学生卡（老师帖 + 有学生）
+    private let studentCard = UIView()
+    private let studentTitle = UILabel()
+    private var studentRowViews: [PostStudentRowView] = []
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -409,6 +445,107 @@ final class PostHeaderView: UIView {
         setupAuthorRow()
         setupContent()
         setupCourseCard()
+        setupStudentCard()
+    }
+
+    /// 关联学生卡片（课程卡下方）：标题 + 学生行（已消课可点撤销）
+    private func setupStudentCard() {
+        studentCard.backgroundColor = Theme.Color.surface
+        studentCard.layer.cornerRadius = Theme.Radius.card
+        studentCard.layer.borderWidth = 1
+        studentCard.layer.borderColor = Theme.Color.line.cgColor
+        addSubview(studentCard)
+        studentCard.snp.makeConstraints {
+            $0.top.equalTo(courseCard.snp.bottom).offset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
+        }
+
+        studentTitle.font = .appSection(13)
+        studentTitle.textColor = Theme.Color.sub
+        studentTitle.text = "已关联学生"
+        studentCard.addSubview(studentTitle)
+        studentTitle.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(Theme.Spacing.m)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+        }
+    }
+
+    /// 重建学生行（数据变化时调用）
+    private func rebuildStudentRows(_ students: [PostItem.PostStudentItem]) {
+        studentRowViews.forEach { $0.removeFromSuperview() }
+        studentRowViews = []
+
+        var previous: UIView = studentTitle
+        for student in students {
+            let row = PostStudentRowView()
+            row.onTap = { [weak self] in self?.onUndoStudent?(student) }
+            studentCard.addSubview(row)
+            row.snp.makeConstraints {
+                $0.top.equalTo(previous.snp.bottom).offset(Theme.Spacing.s)
+                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+                $0.height.equalTo(40)
+            }
+            studentRowViews.append(row)
+            previous = row
+        }
+        if let last = studentRowViews.last {
+            last.snp.makeConstraints { $0.bottom.equalToSuperview().offset(-Theme.Spacing.m) }
+        } else {
+            studentTitle.snp.makeConstraints { $0.bottom.equalToSuperview().offset(-Theme.Spacing.m) }
+        }
+    }
+
+    /// 关联学生单行：头像 + 昵称 + 已消课/未消课
+    private final class PostStudentRowView: UIView {
+        var onTap: (() -> Void)?
+        private let avatarView = AvatarPlaceholderView(name: "?", size: 28)
+        private let nameLabel = UILabel()
+        private let statusLabel = UILabel()
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            avatarView.isUserInteractionEnabled = false
+            addSubview(avatarView)
+            avatarView.snp.makeConstraints {
+                $0.leading.centerY.equalToSuperview()
+                $0.width.height.equalTo(28)
+            }
+
+            nameLabel.font = .appBody(14)
+            nameLabel.textColor = Theme.Color.ink
+            addSubview(nameLabel)
+            nameLabel.snp.makeConstraints {
+                $0.leading.equalTo(avatarView.snp.trailing).offset(Theme.Spacing.s)
+                $0.centerY.equalToSuperview()
+            }
+
+            statusLabel.font = .appLabel(11)
+            statusLabel.textAlignment = .center
+            statusLabel.layer.cornerRadius = 8
+            statusLabel.clipsToBounds = true
+            addSubview(statusLabel)
+            statusLabel.snp.makeConstraints {
+                $0.centerY.trailing.equalToSuperview()
+                $0.height.equalTo(17)
+                $0.width.greaterThanOrEqualTo(44)
+            }
+
+            let tap = UITapGestureRecognizer(target: self, action: #selector(didTap))
+            addGestureRecognizer(tap)
+        }
+
+        required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+        @objc private func didTap() { onTap?() }
+
+        func configure(student: PostItem.PostStudentItem) {
+            avatarView.update(name: student.nickname ?? "宝宝")
+            nameLabel.text = student.nickname ?? "宝宝"
+            let consumed = student.deducted == true
+            statusLabel.text = consumed ? "已消课" : "未消课"
+            statusLabel.textColor = consumed ? Theme.Color.brand : Theme.Color.sub
+            statusLabel.backgroundColor = consumed ? Theme.Color.brandSoft : Theme.Color.bg
+        }
     }
 
     /// 顶部图片数组轮播（400pt），返回按钮浮在图片左上角
@@ -598,6 +735,18 @@ final class PostHeaderView: UIView {
             }
         } else {
             courseCard.isHidden = true
+        }
+
+        // 关联学生卡（老师帖 + 有学生时展示；有学生必有课程上下文）
+        let students = post.studentList
+        NSLog("[PostDetail] students count=\(students.count) decoded=\(post.students?.count ?? -1)")
+        if !students.isEmpty {
+            studentCard.isHidden = false
+            rebuildStudentRows(students)
+        } else {
+            studentCard.isHidden = true
+            studentRowViews.forEach { $0.removeFromSuperview() }
+            studentRowViews = []
         }
     }
 

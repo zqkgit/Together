@@ -10,10 +10,8 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
     // MARK: - 状态
 
     private var teacherClasses: [TeacherClassItem] = []
-    private var timetableItems: [TeacherTimetableItem] = []
     private var classStudents: [TeacherStudentItem] = []
     private var selectedClass: TeacherClassItem?
-    private var selectedSchedule: TeacherTimetableItem?
     private var selectedStudentIds = Set<String>()
     private var consumeEnabled = false
 
@@ -28,12 +26,6 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
                 self.tableView.reloadData()
             case .failure(let error):
                 self.showToast(error.message)
-            }
-        }
-        PostService.fetchTeacherTimetable { [weak self] result in
-            guard let self else { return }
-            if case .success(let list) = result {
-                self.timetableItems = list
             }
         }
         loadTopics(reloadSection: 4)
@@ -107,18 +99,12 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
             return card(cell)
         case 3:
             let cell = tableView.dequeueReusableCell(withIdentifier: ConsumeCell.reuseId, for: indexPath) as! ConsumeCell
-            cell.configure(
-                switchValue: consumeEnabled,
-                showSchedule: consumeEnabled,
-                scheduleDetail: selectedSchedule?.displayName ?? "请选择"
-            )
+            cell.configure(switchValue: consumeEnabled)
             cell.onSwitch = { [weak self] on in
                 guard let self else { return }
                 self.consumeEnabled = on
-                if !on { self.selectedSchedule = nil }
                 self.tableView.reloadData()
             }
-            cell.onTapSchedule = { [weak self] in self?.presentSchedulePicker() }
             return card(cell)
         case 4:
             return card(topicCell(tableView, indexPath: indexPath))
@@ -140,8 +126,8 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
             guard selectedClass != nil else { return 48 }
             return 48 + 0.5 + 12 + 18 + 8 + tagRowsHeight(classStudents.map { $0.nickname }) + Theme.Spacing.l
         case 3:
-            // 消课开关行 70 + 分割线 0.5 + 课次行（开启消课才显示 48）
-            return 70 + 0.5 + (consumeEnabled ? 48 : 0)
+            // 消课开关：标题 20 + 副标题 17 + 上下内边距 16×2
+            return 70
         case 4:
             return tagRowsHeight(topics.map { "#\($0)" }) + Theme.Spacing.l * 2 + 40
         default:
@@ -154,8 +140,6 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
         view.endEditing(true)
         if indexPath.section == 2 {
             presentClassPicker()
-        } else if consumeEnabled && indexPath.section == 3 {
-            presentSchedulePicker()
         }
     }
 
@@ -164,7 +148,6 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
     override func validateForm() -> Bool {
         if consumeEnabled {
             guard selectedClass != nil else { showToast("请先选择课程班级"); return false }
-            guard selectedSchedule != nil else { showToast("请选择上课课次"); return false }
             guard !selectedStudentIds.isEmpty else { showToast("请选择上课学生"); return false }
         }
         return true
@@ -172,13 +155,14 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
 
     override func publish(content: String, imageUrls: [String]) {
         // 关联学生（家长可见/推送）与消课分离：选学生即关联；consume=true 才扣课时
+        // 消课课次由后端按班级自动匹配（今天优先，无则最近一次）
         let students: [[String: Any]] = selectedStudentIds.map { ["child_id": $0, "count": 1] }
         PostService.createTeacherPost(
             content: content,
             images: imageUrls,
             courseId: selectedClass?.course?.course_id,
             classId: selectedClass?.class_id,
-            scheduleId: selectedSchedule?.schedule_id,
+            scheduleId: nil,
             students: students,
             consume: consumeEnabled,
             topic: topic,
@@ -199,26 +183,9 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
         picker.onConfirm = { [weak self] index in
             guard let self, index < self.teacherClasses.count else { return }
             self.selectedClass = self.teacherClasses[index]
-            self.selectedSchedule = nil
             self.selectedStudentIds.removeAll()
             self.classStudents = []
             self.loadClassStudents(classId: self.teacherClasses[index].class_id)
-        }
-        present(picker, animated: false)
-    }
-
-    private func presentSchedulePicker() {
-        guard let selectedClass else { return }
-        let items = timetableItems.filter { $0.class?.class_id == selectedClass.class_id }
-        guard !items.isEmpty else {
-            showToast("该班级暂无课次")
-            return
-        }
-        let picker = PickerSheetViewController(title: "选择上课课次", rows: items.map { $0.displayName })
-        picker.onConfirm = { [weak self] index in
-            guard let self, index < items.count else { return }
-            self.selectedSchedule = items[index]
-            self.tableView.reloadData()
         }
         present(picker, animated: false)
     }

@@ -215,6 +215,7 @@ final class MineViewController: BaseViewController, UITableViewDataSource, UITab
                     TokenManager.shared.save(token: token, userId: TokenManager.shared.userId ?? "", role: role)
                 }
                 self.showToast("已切换身份")
+                NotificationCenter.default.post(name: .userRoleDidChange, object: nil)
                 self.refreshData()
             case .failure(let error):
                 self.showToast(error.message ?? "切换失败")

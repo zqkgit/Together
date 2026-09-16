@@ -119,6 +119,26 @@ enum PostService {
         }
     }
 
+    /// 帖子详情撤销某学生的发帖消课（仅帖子作者/老师）
+    static func undoPostStudentConsumption(
+        postId: String,
+        childIds: [String],
+        completion: @escaping (Bool, String?) -> Void
+    ) {
+        APIClient.shared.request(
+            "/teacher/posts/\(postId)/students/undo",
+            method: .post,
+            parameters: ["child_ids": childIds]
+        ) { result in
+            switch result {
+            case .success:
+                completion(true, nil)
+            case .failure(let error):
+                completion(false, error.message)
+            }
+        }
+    }
+
     /// 评论点赞 / 取消点赞（帖子详情评论区）
     static func toggleCommentLike(postId: String, commentId: String, liked: Bool,
                                   completion: @escaping (Bool, String?) -> Void) {
