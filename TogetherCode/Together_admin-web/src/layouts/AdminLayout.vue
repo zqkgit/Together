@@ -53,9 +53,9 @@ const platformMenus = [
 const studioMenus = [
   { path: "/studio-home", title: "经营概览", icon: House },
   { path: "/studio-reports", title: "经营报表", icon: DataAnalysis },
+  { path: "/studio-teachers", title: "教师管理", icon: User },
   { path: "/studio-courses", title: "课程管理", icon: Tickets },
   { path: "/studio-classes", title: "班级管理", icon: OfficeBuilding },
-  { path: "/studio-teachers", title: "教师管理", icon: User },
   { path: "/studio-schedules", title: "排课管理", icon: Calendar },
   { path: "/studio-students", title: "学员管理", icon: User },
   { path: "/studio-orders", title: "订单管理", icon: Coin },

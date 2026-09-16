@@ -1,4 +1,4 @@
-const { body, query } = require("express-validator");
+const { body, query, param } = require("express-validator");
 
 const scheduleRuleValidator = body("schedule_rule")
   .optional({ values: "falsy" })
@@ -15,6 +15,15 @@ const createStudioClassValidators = [
   body("end_date").optional({ values: "falsy" }).isISO8601().withMessage("end_date is invalid"),
   body("capacity").optional({ values: "falsy" }).isInt({ min: 1, max: 200 }),
   body("enrolled").optional({ values: "falsy" }).isInt({ min: 0, max: 200 })
+];
+
+const updateStudioClassValidators = [
+  param("id").isString().notEmpty().withMessage("class id is required"),
+  body("studio_id").optional({ values: "falsy" }).isString(),
+  body("teacher_id").optional({ values: "falsy" }).isString(),
+  body("name").optional({ values: "falsy" }).isString().trim().notEmpty().withMessage("name cannot be empty"),
+  body("time").optional({ values: "falsy" }).isString().matches(/^\d{2}:\d{2}-\d{2}:\d{2}$/).withMessage("time must be like 18:30-20:00"),
+  body("capacity").optional({ values: "falsy" }).isInt({ min: 1, max: 200 })
 ];
 
 const listStudioClassesValidators = [
@@ -87,6 +96,8 @@ const batchCreateStudioScheduleValidators = [
 module.exports = {
   createStudioClassValidators,
   listStudioClassesValidators,
+  createStudioClassValidators,
+  updateStudioClassValidators,
   createStudioScheduleValidators,
   batchCreateStudioScheduleValidators,
   listStudioSchedulesValidators,

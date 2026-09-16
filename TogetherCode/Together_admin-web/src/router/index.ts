@@ -110,6 +110,12 @@ const router = createRouter({
           meta: { title: "经营报表", requiresAuth: true, scopes: ["studio"] }
         },
         {
+          path: "/studio-teachers",
+          name: "studio-teachers",
+          component: () => import("../views/studio/teachers/IndexView.vue"),
+          meta: { title: "教师管理", requiresAuth: true, scopes: ["studio"] }
+        },
+        {
           path: "/studio-courses",
           name: "studio-courses",
           component: () => import("../views/studio/courses/IndexView.vue"),
@@ -120,12 +126,6 @@ const router = createRouter({
           name: "studio-classes",
           component: () => import("../views/studio/classes/IndexView.vue"),
           meta: { title: "班级管理", requiresAuth: true, scopes: ["studio"] }
-        },
-        {
-          path: "/studio-teachers",
-          name: "studio-teachers",
-          component: () => import("../views/studio/teachers/IndexView.vue"),
-          meta: { title: "教师管理", requiresAuth: true, scopes: ["studio"] }
         },
         {
           path: "/studio-schedules",

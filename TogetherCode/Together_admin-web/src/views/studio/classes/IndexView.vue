@@ -7,6 +7,7 @@ import {
   fetchStudioCourses,
   fetchStudioTeachers,
   createStudioClass,
+  updateStudioClass,
   fetchClassStudents,
   type ClassItem,
   type ClassStudent,
@@ -26,15 +27,14 @@ const teachers = ref<TeacherStaffItem[]>([]);
 // 新建班级
 const createVisible = ref(false);
 const submitting = ref(false);
+const editingId = ref("");
 const form = ref({
   studio_id: "",
   course_id: "",
   teacher_id: "",
   name: "",
-  weekday: 1,
-  time: "18:30-20:00",
-  start_date: "",
-  end_date: "",
+  start_time: "18:30",
+  end_time: "20:00",
   capacity: 12
 });
 
@@ -43,22 +43,6 @@ const studentsVisible = ref(false);
 const studentsLoading = ref(false);
 const currentClass = ref<ClassItem | null>(null);
 const students = ref<ClassStudent[]>([]);
-
-const WEEKDAYS = [
-  { value: 1, label: "周一" },
-  { value: 2, label: "周二" },
-  { value: 3, label: "周三" },
-  { value: 4, label: "周四" },
-  { value: 5, label: "周五" },
-  { value: 6, label: "周六" },
-  { value: 7, label: "周日" }
-];
-
-function weekdayText(rule: ClassItem["schedule_rule"]): string {
-  if (!rule || !rule.weekday || !rule.time) return "-";
-  const days = rule.weekday.map((d) => WEEKDAYS.find((w) => w.value === d)?.label || String(d)).join("、");
-  return `${days} ${rule.time}`;
-}
 
 async function loadData() {
   loading.value = true;
@@ -72,15 +56,14 @@ async function loadData() {
 }
 
 async function openCreate() {
+  editingId.value = "";
   form.value = {
     studio_id: studioId.value,
     course_id: "",
     teacher_id: "",
     name: "",
-    weekday: 1,
-    time: "18:30-20:00",
-    start_date: "",
-    end_date: "",
+    start_time: "18:30",
+    end_time: "20:00",
     capacity: 12
   };
   try {
@@ -112,17 +95,26 @@ async function submitCreate() {
   }
   submitting.value = true;
   try {
-    await createStudioClass({
-      studio_id: studioId.value,
-      course_id: form.value.course_id,
-      teacher_id: form.value.teacher_id,
-      name: form.value.name.trim(),
-      schedule_rule: { weekday: [form.value.weekday], time: form.value.time },
-      start_date: form.value.start_date || undefined,
-      end_date: form.value.end_date || undefined,
-      capacity: form.value.capacity
-    });
-    ElMessage.success("班级创建成功");
+    if (editingId.value) {
+      await updateStudioClass(editingId.value, {
+        studio_id: studioId.value,
+        teacher_id: form.value.teacher_id,
+        name: form.value.name.trim(),
+        time: `${form.value.start_time}-${form.value.end_time}`,
+        capacity: form.value.capacity
+      });
+      ElMessage.success("班级已更新");
+    } else {
+      await createStudioClass({
+        studio_id: studioId.value,
+        course_id: form.value.course_id,
+        teacher_id: form.value.teacher_id,
+        name: form.value.name.trim(),
+        schedule_rule: { weekday: [], time: `${form.value.start_time}-${form.value.end_time}` },
+        capacity: form.value.capacity
+      });
+      ElMessage.success("班级创建成功");
+    }
     createVisible.value = false;
     loadData();
   } catch {
@@ -130,6 +122,27 @@ async function submitCreate() {
   } finally {
     submitting.value = false;
   }
+}
+
+async function openEdit(row: ClassItem) {
+  editingId.value = row.class_id;
+  const ruleTime = row.schedule_rule?.time || "";
+  const [start, end] = ruleTime.includes("-") ? ruleTime.split("-") : ["18:30", "20:00"];
+  form.value = {
+    studio_id: studioId.value,
+    course_id: row.course_id,
+    teacher_id: row.teacher_id || "",
+    name: row.name,
+    start_time: start.trim(),
+    end_time: end.trim(),
+    capacity: row.capacity || 12
+  };
+  try {
+    teachers.value = (await fetchStudioTeachers()).staff;
+  } catch {
+    teachers.value = [];
+  }
+  createVisible.value = true;
 }
 
 async function openStudents(row: ClassItem) {
@@ -140,7 +153,7 @@ async function openStudents(row: ClassItem) {
   try {
     const data = await fetchClassStudents(row.class_id);
     currentClass.value = data.class;
-    students.value = data.students;
+    students.value = data.list;
   } catch {
     studentsVisible.value = false;
   } finally {
@@ -187,8 +200,11 @@ onMounted(loadData);
             <span v-else class="cell-muted">未指定</span>
           </template>
         </el-table-column>
-        <el-table-column label="上课时间" min-width="160">
-          <template #default="{ row }">{{ weekdayText(row.schedule_rule) }}</template>
+        <el-table-column label="上课时段" min-width="140">
+          <template #default="{ row }">
+            <span v-if="row.schedule_rule?.time">{{ row.schedule_rule.time }}</span>
+            <span v-else class="cell-muted">未设置</span>
+          </template>
         </el-table-column>
         <el-table-column label="容量" width="140">
           <template #default="{ row }">
@@ -197,8 +213,9 @@ onMounted(loadData);
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
+        <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
+            <el-button text type="primary" @click="openEdit(row)">编辑</el-button>
             <el-button text type="primary" @click="openStudents(row)">学生名单</el-button>
           </template>
         </el-table-column>
@@ -206,11 +223,11 @@ onMounted(loadData);
       <div v-if="!loading && classes.length === 0" class="empty-tip">暂无班级，点击右上角「新建班级」创建</div>
     </el-card>
 
-    <!-- 新建班级 -->
-    <el-dialog v-model="createVisible" title="新建班级" width="520px">
+    <!-- 新建/编辑班级 -->
+    <el-dialog v-model="createVisible" :title="editingId ? '编辑班级' : '新建班级'" width="520px">
       <el-form label-width="100px">
         <el-form-item label="所属课程" required>
-          <el-select v-model="form.course_id" style="width: 100%" placeholder="选择课程">
+          <el-select v-model="form.course_id" style="width: 100%" placeholder="选择课程" :disabled="!!editingId">
             <el-option
               v-for="course in courses"
               :key="course.course_id"
@@ -236,24 +253,10 @@ onMounted(loadData);
         <el-form-item label="班级名称" required>
           <el-input v-model="form.name" placeholder="如：启蒙绘画周六班" />
         </el-form-item>
-        <el-form-item label="上课日" required>
-          <el-select v-model="form.weekday" style="width: 140px">
-            <el-option
-              v-for="day in WEEKDAYS"
-              :key="day.value"
-              :label="day.label"
-              :value="day.value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="上课时段" required>
-          <el-input v-model="form.time" placeholder="18:30-20:00" style="width: 180px" />
-        </el-form-item>
-        <el-form-item label="开班日期">
-          <el-date-picker v-model="form.start_date" type="date" value-format="YYYY-MM-DD" style="width: 180px" />
-        </el-form-item>
-        <el-form-item label="结课日期">
-          <el-date-picker v-model="form.end_date" type="date" value-format="YYYY-MM-DD" style="width: 180px" />
+        <el-form-item label="上课时间" required>
+          <el-time-select v-model="form.start_time" start="08:00" step="00:30" end="21:00" style="width: 130px" />
+          ~
+          <el-time-select v-model="form.end_time" start="08:00" step="00:30" end="22:00" style="width: 130px" />
         </el-form-item>
         <el-form-item label="班级容量">
           <el-input-number v-model="form.capacity" :min="1" :max="200" />
@@ -261,7 +264,7 @@ onMounted(loadData);
       </el-form>
       <template #footer>
         <el-button @click="createVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="submitCreate">创建班级</el-button>
+        <el-button type="primary" :loading="submitting" @click="submitCreate">{{ editingId ? "保存修改" : "创建班级" }}</el-button>
       </template>
     </el-dialog>
 

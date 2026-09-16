@@ -2,6 +2,7 @@ const { ok, fail } = require("../utils/response");
 const {
   listStudioClasses,
   createStudioClass,
+  updateStudioClass,
   createStudioSchedule,
   batchCreateStudioSchedules,
   listStudioSchedules,
@@ -22,6 +23,16 @@ async function postStudioClass(req, res) {
   try {
     const data = await createStudioClass(req.body);
     return ok(res, data, "class created");
+  } catch (error) {
+    const status = /not found|does not belong/i.test(error.message) ? 400 : 500;
+    return fail(res, status, status === 400 ? 40040 : 50000, error.message || "Internal server error");
+  }
+}
+
+async function putStudioClass(req, res) {
+  try {
+    const data = await updateStudioClass(req.params.id, req.body);
+    return ok(res, data, "class updated");
   } catch (error) {
     const status = /not found|does not belong/i.test(error.message) ? 400 : 500;
     return fail(res, status, status === 400 ? 40040 : 50000, error.message || "Internal server error");
@@ -97,6 +108,7 @@ async function postStudioScheduleBatch(req, res) {
 module.exports = {
   getStudioClasses,
   postStudioClass,
+  putStudioClass,
   getClassStudents,
   getStudioSchedules,
   postStudioSchedule,

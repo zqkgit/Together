@@ -224,6 +224,59 @@ async function createStudioClass(payload) {
   });
 }
 
+async function updateStudioClass(classId, payload) {
+  return sequelize.transaction(async (transaction) => {
+    const classItem = await Class.findByPk(classId, {
+      transaction,
+      include: [{ model: Course, as: "course", attributes: ["course_id", "studio_id"] }]
+    });
+    if (!classItem) {
+      throw new Error("Class not found");
+    }
+    if (payload.studio_id && String(classItem.course.studio_id) !== String(payload.studio_id)) {
+      throw new Error("Class does not belong to studio");
+    }
+
+    const updates = {};
+    if (payload.name !== undefined) {
+      updates.name = String(payload.name).trim();
+    }
+    if (payload.teacher_id !== undefined) {
+      await ensureTeacher(payload.teacher_id, String(classItem.course.studio_id), transaction);
+      updates.teacher_id = payload.teacher_id;
+    }
+    if (payload.capacity !== undefined) {
+      updates.capacity = Number(payload.capacity);
+    }
+    if (payload.time !== undefined) {
+      const rule = classItem.schedule_rule || {};
+      updates.schedule_rule = { weekday: Array.isArray(rule.weekday) ? rule.weekday : [], time: String(payload.time) };
+    }
+
+    if (Object.keys(updates).length) {
+      await classItem.update(updates, { transaction });
+    }
+
+    const row = await Class.findByPk(classItem.class_id, {
+      transaction,
+      include: [
+        {
+          model: Course,
+          as: "course",
+          attributes: ["course_id", "title", "duration_min", "class_size"]
+        },
+        {
+          model: TeacherProfile,
+          as: "teacher",
+          attributes: ["teacher_id", "real_name"]
+        }
+      ]
+    });
+
+    return normalizeClassItem(row);
+  });
+}
+
 async function createStudioSchedule(payload) {
   return sequelize.transaction(async (transaction) => {
     await ensureStudio(payload.studio_id, transaction);
@@ -587,6 +640,7 @@ async function batchCreateStudioSchedules(payload) {
 module.exports = {
   listStudioClasses,
   createStudioClass,
+  updateStudioClass,
   createStudioSchedule,
   batchCreateStudioSchedules,
   listStudioSchedules,

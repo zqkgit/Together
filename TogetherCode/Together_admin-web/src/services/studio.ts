@@ -296,12 +296,26 @@ export async function createStudioClass(payload: {
   course_id: string;
   teacher_id: string;
   name: string;
-  schedule_rule: { weekday: number[]; time: string };
+  schedule_rule?: { weekday: number[]; time: string };
   start_date?: string;
   end_date?: string;
   capacity?: number;
 }): Promise<ClassItem> {
   const response = await request.post("/studio/classes", payload);
+  return response.data;
+}
+
+export async function updateStudioClass(
+  classId: string,
+  payload: {
+    studio_id?: string;
+    teacher_id?: string;
+    name?: string;
+    time?: string;
+    capacity?: number;
+  }
+): Promise<ClassItem> {
+  const response = await request.put(`/studio/classes/${classId}`, payload);
   return response.data;
 }
 
@@ -317,7 +331,7 @@ export interface ClassStudent {
   last_attended_at: string | null;
 }
 
-export async function fetchClassStudents(classId: string): Promise<{ class: ClassItem; students: ClassStudent[] }> {
+export async function fetchClassStudents(classId: string): Promise<{ class: ClassItem; total: number; list: ClassStudent[] }> {
   const response = await request.get(`/studio/classes/${classId}/students`);
   return response.data;
 }

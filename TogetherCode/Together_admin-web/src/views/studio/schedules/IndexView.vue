@@ -90,7 +90,7 @@ async function loadData() {
 // ============ 新增排课 ============
 const createVisible = ref(false);
 const submitting = ref(false);
-const classes = ref<{ class_id: string; name: string; teacher_id: string | null }[]>([]);
+const classes = ref<{ class_id: string; name: string; teacher_id: string | null; schedule_rule: { weekday: number[]; time: string } | null }[]>([]);
 const teachers = ref<TeacherStaffItem[]>([]);
 const form = ref({
   studio_id: "",
@@ -111,6 +111,15 @@ function applyClassTeacher(target: "form" | "batch") {
   // 排课老师固定为班级授课老师，不可更换
   model.teacher_id = teacher?.teacher_id || cls?.teacher_id || "";
   model.teacher_name = teacher?.real_name || "";
+  // 自动带入班级上课时段
+  const ruleTime = cls?.schedule_rule?.time;
+  if (ruleTime && ruleTime.includes("-")) {
+    const [start, end] = ruleTime.split("-");
+    if (start && end) {
+      model.start_time = start.trim();
+      model.end_time = end.trim();
+    }
+  }
 }
 
 async function openCreate(date?: string) {
@@ -293,7 +302,7 @@ async function openAttendance(row: ScheduleItem) {
   attendanceNote.value = "";
   try {
     const data = await fetchClassStudents(row.class_id);
-    attendanceStudents.value = data.students;
+    attendanceStudents.value = data.list;
   } catch {
     attendanceVisible.value = false;
   } finally {
