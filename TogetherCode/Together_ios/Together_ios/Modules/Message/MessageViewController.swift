@@ -28,7 +28,7 @@ final class MessageViewController: BaseViewController, UITableViewDataSource, UI
     private let segmentView = UIView()
     private let chatButton = UIButton(type: .system)
     private let noticeButton = UIButton(type: .system)
-    private let underlineView = UIView()
+    private let selectionView = UIView()
     private let tableView = UITableView(frame: .zero, style: .plain)
     private let emptyView = EmptyStateView()
 
@@ -40,7 +40,22 @@ final class MessageViewController: BaseViewController, UITableViewDataSource, UI
         setupTabBar()
         setupTableView()
         setupEmptyView()
+        registerSocketObserver()
         reloadCurrent()
+    }
+
+    private func registerSocketObserver() {
+        // 收到新聊天消息：刷新会话列表（未读数、最后一条实时更新）
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(socketMessageReceived(_:)),
+            name: .chatMessageReceived, object: nil
+        )
+    }
+
+    @objc private func socketMessageReceived(_ notification: Notification) {
+        guard currentTab == 0 else { return }
+        loadConversations(page: 1, showLoading: false)
+        NotificationCenter.default.post(name: .messageUnreadChanged, object: nil)
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -60,12 +75,21 @@ final class MessageViewController: BaseViewController, UITableViewDataSource, UI
     }
 
     private func setupTabBar() {
+        // 胶囊式切换容器：浅米圆角底
+        segmentView.backgroundColor = Theme.Color.surfaceAlt
+        segmentView.layer.cornerRadius = 20
+        segmentView.clipsToBounds = true
         view.addSubview(segmentView)
         segmentView.snp.makeConstraints {
             $0.top.equalTo(view.safeAreaLayoutGuide).offset(Theme.Spacing.m)
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
-            $0.height.equalTo(30)
+            $0.height.equalTo(40)
         }
+        // 选中胶囊块（浅绿圆角）——先 addSubview 置于底层，避免遮挡按钮文字
+        selectionView.backgroundColor = Theme.Color.brandSoft
+        selectionView.layer.cornerRadius = 18
+        segmentView.addSubview(selectionView)
+
         chatButton.setTitle("对话", for: .normal)
         chatButton.titleLabel?.font = .appSection(16)
         chatButton.tag = 0
@@ -87,10 +111,7 @@ final class MessageViewController: BaseViewController, UITableViewDataSource, UI
             $0.width.equalTo(chatButton)
         }
 
-        // 选中下划线（品牌绿，跟随选中按钮居中）
-        underlineView.backgroundColor = Theme.Color.brand
-        underlineView.layer.cornerRadius = 1.5
-        segmentView.addSubview(underlineView)
+        // 胶囊定位（三者均已在 segmentView 上）
         applySegmentSelection(animated: false)
 
         // Tab 下方细分隔线
@@ -118,12 +139,10 @@ final class MessageViewController: BaseViewController, UITableViewDataSource, UI
         chatButton.setTitleColor(chatSelected ? Theme.Color.brand : Theme.Color.sub, for: .normal)
         noticeButton.setTitleColor(chatSelected ? Theme.Color.sub : Theme.Color.brand, for: .normal)
         let target = chatSelected ? chatButton : noticeButton
-        let width = target.titleLabel?.intrinsicContentSize.width ?? 32
-        underlineView.snp.remakeConstraints {
-            $0.top.equalTo(target.snp.bottom).offset(4)
-            $0.height.equalTo(3)
-            $0.width.equalTo(width)
-            $0.centerX.equalTo(target)
+        selectionView.snp.remakeConstraints {
+            $0.leading.equalTo(target)
+            $0.top.bottom.equalToSuperview().inset(2)
+            $0.width.equalTo(target)
         }
         if animated {
             UIView.animate(withDuration: 0.2) { self.segmentView.layoutIfNeeded() }
@@ -140,7 +159,7 @@ final class MessageViewController: BaseViewController, UITableViewDataSource, UI
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 84
         // 底部 Tab 占位；左右边距由 cell 卡片 inset 12 承担
-        tableView.contentInset = UIEdgeInsets(top: Theme.Spacing.m, left: 0, bottom: 120, right: 0)
+        tableView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 120, right: 0)
         tableView.register(ConversationCell.self, forCellReuseIdentifier: ConversationCell.reuseId)
         tableView.register(NotificationCell.self, forCellReuseIdentifier: NotificationCell.reuseId)
         tableView.dataSource = self
@@ -150,13 +169,13 @@ final class MessageViewController: BaseViewController, UITableViewDataSource, UI
         }
 
         view.addSubview(tableView)
-        // tableView 从 Tab 下方开始，避免遮挡 segmentView
+        // tableView 从 Tab 下方开始，避免遮挡 segmentView；首个 cell 紧贴 segment（卡片自带 8pt 上边距）
         tableView.snp.makeConstraints {
-            $0.top.equalTo(segmentView.snp.bottom).offset(Theme.Spacing.m + Theme.Spacing.s)
+            $0.top.equalTo(segmentView.snp.bottom)
             $0.leading.trailing.bottom.equalToSuperview()
         }
-        // 内容区顶部留 12，底部 Tab 占位
-        tableView.contentInset = UIEdgeInsets(top: Theme.Spacing.m, left: 0, bottom: 120, right: 0)
+        // 底部 Tab 占位；顶部不留额外间距（首个 cell 卡片自带 8pt 上边距）
+        tableView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 120, right: 0)
 
         // 底部加载指示
         let footer = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: 44))
@@ -330,7 +349,9 @@ final class MessageViewController: BaseViewController, UITableViewDataSource, UI
         tableView.deselectRow(at: indexPath, animated: true)
         if currentTab == 0 {
             let item = conversations[indexPath.row]
-            showToast("与 \(item.peer?.nickname ?? "对方") 的聊天开发中")
+            print("[Chat] didSelect conversation: \(item.conversationId), nav=\(navigationController != nil)")
+            let vc = ChatViewController(conversation: item)
+            navigationController?.pushViewController(vc, animated: true)
         } else {
             let item = notifications[indexPath.row]
             guard !item.isRead else { return }
@@ -404,6 +425,9 @@ final class ConversationCell: UITableViewCell {
             $0.leading.equalToSuperview().offset(Theme.Spacing.m)
             $0.centerY.equalToSuperview()
             $0.width.height.equalTo(52)
+            // top/bottom 撑起卡片高度（automaticDimension 需要完整约束链）
+            $0.top.greaterThanOrEqualToSuperview().offset(Theme.Spacing.s)
+            $0.bottom.lessThanOrEqualToSuperview().offset(-Theme.Spacing.s)
         }
 
         nameLabel.font = .appSection(15)
@@ -412,7 +436,7 @@ final class ConversationCell: UITableViewCell {
         cardView.addSubview(nameLabel)
         nameLabel.snp.makeConstraints {
             $0.leading.equalTo(avatarView.snp.trailing).offset(Theme.Spacing.m)
-            $0.top.equalToSuperview().offset(14)
+            $0.centerY.equalTo(avatarView.snp.centerY).offset(-11)
             $0.trailing.lessThanOrEqualToSuperview().offset(-64)
         }
 
@@ -433,7 +457,7 @@ final class ConversationCell: UITableViewCell {
         cardView.addSubview(previewLabel)
         previewLabel.snp.makeConstraints {
             $0.leading.equalTo(nameLabel)
-            $0.top.equalTo(nameLabel.snp.bottom).offset(5)
+            $0.centerY.equalTo(avatarView.snp.centerY).offset(13)
             $0.trailing.equalTo(timeLabel)
         }
 
@@ -471,7 +495,7 @@ final class ConversationCell: UITableViewCell {
             preview = "\(child.nickname)："
         }
         if let last = item.lastMessage {
-            preview += (last.type == "image" ? "[图片]" : last.content)
+            preview += (last.type == 2 ? "[图片]" : last.content)
         } else {
             preview += "开始聊天吧"
         }
@@ -544,6 +568,9 @@ final class NotificationCell: UITableViewCell {
             $0.leading.equalToSuperview().offset(Theme.Spacing.m)
             $0.centerY.equalToSuperview()
             $0.width.height.equalTo(40)
+            // top/bottom 撑起卡片高度（automaticDimension 需要完整约束链）
+            $0.top.greaterThanOrEqualToSuperview().offset(Theme.Spacing.s)
+            $0.bottom.lessThanOrEqualToSuperview().offset(-Theme.Spacing.s)
         }
         iconView.contentMode = .scaleAspectFit
         iconView.tintColor = Theme.Color.brand

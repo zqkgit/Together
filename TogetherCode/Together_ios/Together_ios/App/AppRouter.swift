@@ -16,6 +16,7 @@ final class AppRouter {
     /// 根控制器
     func rootViewController() -> UIViewController {
         if TokenManager.shared.isLoggedIn {
+            MessageSocketService.shared.connect()
             return MainTabBarController()
         }
         return makeLoginNavigation()
@@ -23,6 +24,7 @@ final class AppRouter {
 
     /// 登录成功 / 启动
     func showMainTab() {
+        MessageSocketService.shared.connect()
         guard let window = window() else { return }
         UIView.transition(with: window, duration: 0.3, options: .transitionCrossDissolve) {
             window.rootViewController = MainTabBarController()
@@ -31,6 +33,7 @@ final class AppRouter {
 
     /// 退出登录 / 登录态失效
     func showLogin() {
+        MessageSocketService.shared.disconnect()
         TokenManager.shared.clear()
         guard let window = window() else { return }
         UIView.transition(with: window, duration: 0.3, options: .transitionCrossDissolve) {

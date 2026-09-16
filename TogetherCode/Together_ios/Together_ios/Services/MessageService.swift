@@ -34,7 +34,8 @@ struct ConversationChild: Codable {
 struct LastMessage: Codable {
     let messageId: String
     let senderId: String
-    let type: String
+    /// 1=文本 2=图片（后端返回数字）
+    let type: Int
     let content: String
     let createdAt: String
 
@@ -45,6 +46,51 @@ struct LastMessage: Codable {
         case content
         case createdAt = "created_at"
     }
+}
+
+/// 消息发送者
+struct ChatMessageSender: Codable {
+    let userId: String
+    let nickname: String
+    let avatar: String?
+    let role: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
+        case nickname
+        case avatar
+        case role
+    }
+}
+
+/// 会话单条消息
+struct ChatMessage: Codable {
+    let messageId: String
+    let conversationId: String?
+    /// 兼容字段：部分场景无顶层 sender_id（后端统一从 sender.user_id 取）
+    let senderId: String?
+    /// 1=文本 2=图片
+    let type: Int
+    let content: String
+    let readAt: String?
+    let createdAt: String
+    let sender: ChatMessageSender?
+
+    enum CodingKeys: String, CodingKey {
+        case messageId = "message_id"
+        case conversationId = "conversation_id"
+        case senderId = "sender_id"
+        case type
+        case content
+        case readAt = "read_at"
+        case createdAt = "created_at"
+        case sender
+    }
+
+    /// 发送者 user id（兼容两种结构）
+    var senderUserId: String? { senderId ?? sender?.userId }
+    var isImage: Bool { type == 2 }
+    var isMine: Bool { senderUserId == TokenManager.shared.userId }
 }
 
 /// 会话条目
@@ -170,6 +216,65 @@ enum MessageService {
                 completion(true, nil)
             case .failure(let error):
                 completion(false, error.message)
+            }
+        }
+    }
+
+    /// 会话消息列表（服务端按时间倒序返回，index 0 最新；读取后自动标记已读）
+    /// - Returns: (消息列表, 总数, 错误)
+    static func fetchMessages(
+        conversationId: String,
+        page: Int,
+        size: Int = 30,
+        completion: @escaping ([ChatMessage]?, Int, String?) -> Void
+    ) {
+        APIClient.shared.request(
+            "/messages/conversations/\(conversationId)/messages",
+            method: .get,
+            parameters: ["page": page, "size": size],
+            encoding: URLEncoding.default
+        ) { result in
+            switch result {
+            case .success(let json):
+                let total = json["total"].intValue
+                let list = JSONKit.decodeList([ChatMessage].self, from: json)
+                completion(list, total, nil)
+            case .failure(let error):
+                completion(nil, 0, error.message)
+            }
+        }
+    }
+
+    /// 发送消息（type 1=文本 2=图片）
+    static func sendMessage(
+        conversationId: String,
+        content: String,
+        type: Int = 1,
+        completion: @escaping (ChatMessage?, String?) -> Void
+    ) {
+        APIClient.shared.request(
+            "/messages/conversations/\(conversationId)/messages",
+            method: .post,
+            parameters: ["content": content, "type": type]
+        ) { result in
+            switch result {
+            case .success(let json):
+                let message = JSONKit.decode(ChatMessage.self, from: json["data"])
+                completion(message, nil)
+            case .failure(let error):
+                completion(nil, error.message)
+            }
+        }
+    }
+
+    /// 获取 WebSocket 连接地址（ws ticket 5 分钟有效）
+    static func fetchWsToken(completion: @escaping (String?) -> Void) {
+        APIClient.shared.request("/messages/ws/token", method: .get) { result in
+            switch result {
+            case .success(let json):
+                completion(json["ws_url"].string)
+            case .failure:
+                completion(nil)
             }
         }
     }
