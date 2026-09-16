@@ -60,6 +60,8 @@ final class MessageViewController: BaseViewController, UITableViewDataSource, UI
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        // 主动恢复普通不透明导航栏（聊天页返回后 appearance 自洽，不依赖其 restore 时机）
+        restoreSystemNav()
         // 每次进入刷新未读角标与列表
         if view.window != nil {
             reloadCurrent()

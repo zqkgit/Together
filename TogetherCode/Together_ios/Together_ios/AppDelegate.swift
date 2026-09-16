@@ -13,8 +13,24 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        configureGlobalNavAppearance()
         return true
+    }
+
+    /// 全局导航栏统一外观：不透明白底 + 无分隔线。
+    /// 与 BaseViewController.restoreSystemNav() 保持一致，避免 iOS 17 转场中 appearance 切换导致整片导航阴影。
+    private func configureGlobalNavAppearance() {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = Theme.Color.surface
+        appearance.shadowColor = .clear
+        appearance.titleTextAttributes = [
+            .foregroundColor: Theme.Color.ink,
+            .font: UIFont.appSection(17)
+        ]
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+        UINavigationBar.appearance().compactAppearance = appearance
     }
 
     // MARK: UISceneSession Lifecycle

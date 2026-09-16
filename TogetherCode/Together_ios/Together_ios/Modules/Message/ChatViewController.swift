@@ -95,7 +95,8 @@ final class ChatViewController: BaseViewController, UITableViewDataSource, UITab
         tableView.keyboardDismissMode = .interactive
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 60
-        tableView.register(ChatBubbleCell.self, forCellReuseIdentifier: ChatBubbleCell.reuseId)
+        tableView.register(ChatTextCell.self, forCellReuseIdentifier: ChatTextCell.reuseId)
+        tableView.register(ChatImageCell.self, forCellReuseIdentifier: ChatImageCell.reuseId)
         tableView.register(ChatTimeCell.self, forCellReuseIdentifier: ChatTimeCell.reuseId)
         tableView.dataSource = self
         tableView.delegate = self
@@ -352,14 +353,20 @@ final class ChatViewController: BaseViewController, UITableViewDataSource, UITab
             cell.configure(text: text)
             return cell
         case .message(let message):
-            let cell = tableView.dequeueReusableCell(withIdentifier: ChatBubbleCell.reuseId, for: indexPath) as! ChatBubbleCell
             let peerAvatar = isMyMessage(message) ? TokenManager.shared.avatar : peer?.avatar
-            cell.configure(message: message, isMine: isMyMessage(message), peerAvatar: peerAvatar)
-            cell.onImageTap = { [weak self] url in
-                let vc = ImagePreviewViewController(images: [url], startIndex: 0)
-                self?.present(vc, animated: true)
+            if message.isImage {
+                let cell = tableView.dequeueReusableCell(withIdentifier: ChatImageCell.reuseId, for: indexPath) as! ChatImageCell
+                cell.configure(message: message, isMine: isMyMessage(message), peerAvatar: peerAvatar)
+                cell.onImageTap = { [weak self] url in
+                    let vc = ImagePreviewViewController(images: [url], startIndex: 0)
+                    self?.present(vc, animated: true)
+                }
+                return cell
+            } else {
+                let cell = tableView.dequeueReusableCell(withIdentifier: ChatTextCell.reuseId, for: indexPath) as! ChatTextCell
+                cell.configure(message: message, isMine: isMyMessage(message), peerAvatar: peerAvatar)
+                return cell
             }
-            return cell
         }
     }
 
@@ -415,8 +422,8 @@ final class ChatTimeCell: UITableViewCell {
         timeLabel.textAlignment = .center
         contentView.addSubview(timeLabel)
         timeLabel.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(10)
-            $0.bottom.equalToSuperview().offset(-6)
+            $0.top.equalToSuperview().offset(4)
+            $0.bottom.equalToSuperview().offset(-4)
             $0.centerX.equalToSuperview()
         }
     }
@@ -428,20 +435,15 @@ final class ChatTimeCell: UITableViewCell {
     }
 }
 
-// MARK: - 气泡行
+// MARK: - 文字消息 Cell
 
-/// 聊天气泡 Cell（自己右侧绿渐变 / 对方左侧白底+头像），最大宽度 84%
-final class ChatBubbleCell: UITableViewCell {
-    static let reuseId = "ChatBubbleCell"
-
-    var onImageTap: ((String) -> Void)?
+/// 文字聊天气泡（自己右侧绿渐变 / 对方左侧白底+头像），最大宽度 72%
+final class ChatTextCell: UITableViewCell {
+    static let reuseId = "ChatTextCell"
 
     private let avatarView = UIImageView()
     private let bubbleView = UIView()
     private let messageLabel = UILabel()
-    private let imageContentView = UIImageView()
-    private var isMine = false
-    private var imageURLString: String?
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -455,8 +457,8 @@ final class ChatBubbleCell: UITableViewCell {
         avatarView.contentMode = .scaleAspectFill
         contentView.addSubview(avatarView)
         avatarView.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(6)
-            $0.bottom.lessThanOrEqualToSuperview().offset(-6)
+            $0.top.equalToSuperview().offset(4)
+            $0.bottom.lessThanOrEqualToSuperview().offset(-4)
             $0.width.height.equalTo(30)
         }
 
@@ -470,35 +472,21 @@ final class ChatBubbleCell: UITableViewCell {
             $0.width.lessThanOrEqualToSuperview().multipliedBy(0.72)
         }
 
-        // 文本（上下左右间距统一 12，与气泡边缘对称）
+        // 文本（左右 12 / 上下 5，紧凑贴近微信气泡比例）
         messageLabel.font = .appBody(14)
         messageLabel.textColor = Theme.Color.ink
         messageLabel.numberOfLines = 0
         messageLabel.lineBreakMode = .byWordWrapping
         bubbleView.addSubview(messageLabel)
         messageLabel.snp.makeConstraints {
-            $0.edges.equalToSuperview().inset(12)
-        }
-
-        // 图片消息（覆盖在气泡上，默认隐藏）
-        imageContentView.contentMode = .scaleAspectFill
-        imageContentView.layer.cornerRadius = 12
-        imageContentView.clipsToBounds = true
-        imageContentView.isUserInteractionEnabled = true
-        let tap = UITapGestureRecognizer(target: self, action: #selector(didTapImage))
-        imageContentView.addGestureRecognizer(tap)
-        bubbleView.addSubview(imageContentView)
-        imageContentView.snp.makeConstraints {
-            $0.edges.equalToSuperview().inset(4)
-            $0.width.equalTo(180)
-            $0.height.equalTo(180)
+            $0.leading.trailing.equalToSuperview().inset(12)
+            $0.top.bottom.equalToSuperview().inset(5)
         }
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     func configure(message: ChatMessage, isMine: Bool, peerAvatar: String?) {
-        self.isMine = isMine
         // 头像
         if let avatar = isMine ? TokenManager.shared.avatar : peerAvatar, let url = URL(string: avatar) {
             avatarView.kf.setImage(with: url, placeholder: UIImage(systemName: "person.crop.circle.fill"))
@@ -509,8 +497,8 @@ final class ChatBubbleCell: UITableViewCell {
 
         // 气泡左右 + 头像位置
         avatarView.snp.remakeConstraints {
-            $0.top.equalToSuperview().offset(6)
-            $0.bottom.lessThanOrEqualToSuperview().offset(-6)
+            $0.top.equalToSuperview().offset(4)
+            $0.bottom.lessThanOrEqualToSuperview().offset(-4)
             $0.width.height.equalTo(30)
         }
         bubbleView.snp.remakeConstraints {
@@ -529,30 +517,102 @@ final class ChatBubbleCell: UITableViewCell {
             bubbleView.backgroundColor = Theme.Color.surface
             messageLabel.textColor = Theme.Color.ink
         }
+        messageLabel.text = message.content
+    }
+}
 
-        // 内容：文本 / 图片
-        if message.isImage {
-            imageURLString = message.content
-            messageLabel.isHidden = true
-            imageContentView.isHidden = false
-            if let url = URL(string: message.content) {
-                imageContentView.kf.setImage(with: url, placeholder: UIImage(systemName: "photo"))
-            }
-        } else {
-            imageURLString = nil
-            messageLabel.isHidden = false
-            imageContentView.isHidden = true
-            messageLabel.text = message.content
+// MARK: - 图片消息 Cell
+
+/// 图片聊天气泡（180×180，点击预览）
+final class ChatImageCell: UITableViewCell {
+    static let reuseId = "ChatImageCell"
+
+    var onImageTap: ((String) -> Void)?
+
+    private let avatarView = UIImageView()
+    private let bubbleView = UIView()
+    private let imageContentView = UIImageView()
+    private var imageURLString: String?
+
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        backgroundColor = .clear
+        contentView.backgroundColor = .clear
+        selectionStyle = .none
+
+        // 头像 30pt 圆角
+        avatarView.layer.cornerRadius = 15
+        avatarView.clipsToBounds = true
+        avatarView.contentMode = .scaleAspectFill
+        contentView.addSubview(avatarView)
+        avatarView.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(4)
+            $0.bottom.lessThanOrEqualToSuperview().offset(-4)
+            $0.width.height.equalTo(30)
+        }
+
+        // 气泡（底色同文字气泡，图片内嵌 4pt 边）
+        bubbleView.layer.cornerRadius = 14
+        bubbleView.clipsToBounds = true
+        contentView.addSubview(bubbleView)
+        bubbleView.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(4)
+            $0.bottom.lessThanOrEqualToSuperview().offset(-4)
+        }
+
+        // 图片 180×180
+        imageContentView.contentMode = .scaleAspectFill
+        imageContentView.layer.cornerRadius = 10
+        imageContentView.clipsToBounds = true
+        imageContentView.isUserInteractionEnabled = true
+        let tap = UITapGestureRecognizer(target: self, action: #selector(didTapImage))
+        imageContentView.addGestureRecognizer(tap)
+        bubbleView.addSubview(imageContentView)
+        imageContentView.snp.makeConstraints {
+            $0.edges.equalToSuperview().inset(4)
+            $0.width.equalTo(180)
+            $0.height.equalTo(180)
         }
     }
 
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        // 圆角由 bubbleView.cornerRadius + clipsToBounds 处理（不再使用 mask，避免复用 cell bounds=0 时圆角失效）
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    func configure(message: ChatMessage, isMine: Bool, peerAvatar: String?) {
+        imageURLString = message.content
+
+        if let avatar = isMine ? TokenManager.shared.avatar : peerAvatar, let url = URL(string: avatar) {
+            avatarView.kf.setImage(with: url, placeholder: UIImage(systemName: "person.crop.circle.fill"))
+        } else {
+            avatarView.image = UIImage(systemName: "person.crop.circle.fill")
+            avatarView.tintColor = Theme.Color.line
+        }
+
+        avatarView.snp.remakeConstraints {
+            $0.top.equalToSuperview().offset(4)
+            $0.bottom.lessThanOrEqualToSuperview().offset(-4)
+            $0.width.height.equalTo(30)
+        }
+        bubbleView.snp.remakeConstraints {
+            $0.top.equalToSuperview().offset(4)
+            $0.bottom.lessThanOrEqualToSuperview().offset(-4)
+        }
+        if isMine {
+            avatarView.snp.makeConstraints { $0.trailing.equalToSuperview().offset(-Theme.Spacing.m) }
+            bubbleView.snp.makeConstraints { $0.trailing.equalTo(avatarView.snp.leading).offset(-8) }
+            bubbleView.backgroundColor = Theme.Color.brand
+        } else {
+            avatarView.snp.makeConstraints { $0.leading.equalToSuperview().offset(Theme.Spacing.m) }
+            bubbleView.snp.makeConstraints { $0.leading.equalTo(avatarView.snp.trailing).offset(8) }
+            bubbleView.backgroundColor = Theme.Color.surface
+        }
+
+        if let url = URL(string: message.content) {
+            imageContentView.kf.setImage(with: url, placeholder: UIImage(systemName: "photo"))
+        }
     }
 
     @objc private func didTapImage() {
-        if !imageContentView.isHidden, let url = imageURLString {
+        if let url = imageURLString {
             onImageTap?(url)
         }
     }

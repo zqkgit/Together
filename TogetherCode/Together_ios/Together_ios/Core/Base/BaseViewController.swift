@@ -57,12 +57,19 @@ class BaseViewController: UIViewController {
     /// 恢复默认不透明导航栏（沉浸式页在 viewWillDisappear 调用，保证上一级普通页正常显示）
     func restoreSystemNav() {
         let appearance = UINavigationBarAppearance()
-        appearance.configureWithDefaultBackground()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = Theme.Color.surface
+        appearance.shadowColor = .clear
+        appearance.titleTextAttributes = [
+            .foregroundColor: Theme.Color.ink,
+            .font: UIFont.appSection(17)
+        ]
         guard let nav = navigationController else { return }
         nav.navigationBar.standardAppearance = appearance
         nav.navigationBar.scrollEdgeAppearance = appearance
         nav.navigationBar.compactAppearance = appearance
-        nav.navigationBar.isTranslucent = false
+        // isTranslucent 保持 true（与沉浸式一致）：iOS 17 在转场中切换 translucent 会渲染出整片导航阴影
+        nav.navigationBar.isTranslucent = true
     }
 
     @objc private func didTapImmersiveBack() {
