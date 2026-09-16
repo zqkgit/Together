@@ -1,5 +1,5 @@
 const { ok, fail } = require("../utils/response");
-const { createOrder, payOrder, cancelOrder, listOrders, getOrderDetail, createRefund, listMyRefunds, getRefundDetail } = require("../services/orderService");
+const { createOrder, payOrder, listOrders, getOrderDetail, createRefund } = require("../services/orderService");
 
 async function postOrder(req, res) {
   try {
@@ -61,47 +61,10 @@ async function postOrderRefund(req, res) {
   }
 }
 
-async function getRefunds(req, res) {
-  try {
-    const data = await listMyRefunds(req.user.userId, req.query);
-    return ok(res, data);
-  } catch (error) {
-    return fail(res, 500, 50000, error.message || "Internal server error");
-  }
-}
-
-async function getRefund(req, res) {
-  try {
-    const data = await getRefundDetail(req.user.userId, req.params.refundId);
-    if (!data) {
-      return fail(res, 404, 40430, "Refund not found");
-    }
-    return ok(res, data);
-  } catch (error) {
-    return fail(res, 500, 50000, error.message || "Internal server error");
-  }
-}
-
-async function postOrderCancel(req, res) {
-  try {
-    const data = await cancelOrder(req.user.userId, req.params.id);
-    if (!data) {
-      return fail(res, 404, 40400, "Order not found");
-    }
-    return ok(res, data, "order cancelled");
-  } catch (error) {
-    const status = /already paid|unavailable/i.test(error.message) ? 400 : 500;
-    return fail(res, status, status === 400 ? 40021 : 50000, error.message || "Internal server error");
-  }
-}
-
 module.exports = {
   postOrder,
   postOrderPay,
-  postOrderCancel,
   getOrders,
   getOrder,
-  postOrderRefund,
-  getRefunds,
-  getRefund
+  postOrderRefund
 };

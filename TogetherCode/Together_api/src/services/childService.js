@@ -16,17 +16,12 @@ const {
 } = require("../models");
 
 function formatChildBase(child) {
-  return formatChildBaseImpl(child);
-}
-
-function formatChildBaseImpl(child) {
   return {
     child_id: String(child.child_id),
     nickname: child.nickname,
     avatar: child.avatar,
     birthday: child.birthday,
-    gender: child.gender,
-    interests: child.interests ? String(child.interests).split(",").filter(Boolean) : []
+    gender: child.gender
   };
 }
 
@@ -837,8 +832,7 @@ async function createChild(parentUserId, payload) {
     nickname: payload.nickname,
     avatar: payload.avatar || null,
     birthday: payload.birthday,
-    gender: payload.gender ?? 0,
-    interests: payload.interests || null
+    gender: payload.gender ?? 0
   });
 
   return formatChild({
@@ -863,8 +857,7 @@ async function updateChild(parentUserId, childId, payload) {
     nickname: payload.nickname ?? child.nickname,
     avatar: payload.avatar ?? child.avatar,
     birthday: payload.birthday ?? child.birthday,
-    gender: payload.gender ?? child.gender,
-    interests: payload.interests ?? child.interests
+    gender: payload.gender ?? child.gender
   });
 
   return getChildDetail(parentUserId, childId);
