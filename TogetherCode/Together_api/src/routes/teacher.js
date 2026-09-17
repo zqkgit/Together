@@ -17,6 +17,7 @@ const {
 } = require("../controllers/applicationController");
 const {
   getTeacherClasses,
+  getTeacherCourses,
   getTeacherStudents,
   getTeacherTimetable,
   getTeacherLeaves,
@@ -48,6 +49,7 @@ router.get("/mine", getTeacherMineHandler);
 router.post("/schedules/:id/attendance", teacherScheduleAttendanceValidators, validateRequest, postTeacherScheduleAttendance);
 router.post("/schedules/:id/attendance/undo", teacherScheduleAttendanceUndoValidators, validateRequest, postTeacherScheduleAttendanceUndo);
 router.get("/classes", getTeacherClasses);
+router.get("/courses", getTeacherCourses);
 router.get("/classes/:id/students", teacherClassStudentsValidators, validateRequest, getTeacherStudents);
 router.get("/timetable", listTeacherTimetableValidators, validateRequest, getTeacherTimetable);
 router.get("/leaves", listTeacherLeavesValidators, validateRequest, getTeacherLeaves);

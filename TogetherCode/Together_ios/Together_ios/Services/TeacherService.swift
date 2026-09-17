@@ -110,6 +110,41 @@ struct TeacherMineData: Codable {
     let stats: TeacherMineStats?
 }
 
+// MARK: - 我教的课程
+
+struct TeacherCourseClassItem: Codable {
+    let class_id: String?
+    let name: String?
+    let student_count: Int?
+
+    var studentCount: Int { student_count ?? 0 }
+}
+
+struct TeacherCourseItem: Codable {
+    let course_id: String?
+    let title: String?
+    let total_lessons: Int?
+    let consumed_lessons: Int?
+    let progress: Int?
+    let student_count: Int?
+    let classes: [TeacherCourseClassItem]?
+
+    var total: Int { total_lessons ?? 0 }
+    var consumed: Int { consumed_lessons ?? 0 }
+    var progressValue: Int { progress ?? 0 }
+    var studentCount: Int { student_count ?? 0 }
+    /// 班级文案：朵朵班8人·芽芽班6人
+    var classText: String {
+        guard let classes, !classes.isEmpty else { return "暂无班级" }
+        return classes.map { "\($0.name ?? "")\($0.studentCount)人" }.joined(separator: "·")
+    }
+}
+
+struct TeacherCourseList: Codable {
+    let total: Int?
+    let list: [TeacherCourseItem]?
+}
+
 /// 老师端服务：工作台 / 点名消课（App 侧 /v1/teacher/*）
 enum TeacherService {
 
@@ -131,6 +166,19 @@ enum TeacherService {
             switch result {
             case .success(let json):
                 completion(.success(JSONKit.decode(TeacherMineData.self, from: json) ?? TeacherMineData(profile: nil, stats: nil)))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 我教的课程（按课程聚合班级 + 进度）
+    static func fetchCourses(completion: @escaping (Result<[TeacherCourseItem], APIError>) -> Void) {
+        APIClient.shared.request("/teacher/courses", method: .get) { result in
+            switch result {
+            case .success(let json):
+                let data = JSONKit.decode(TeacherCourseList.self, from: json)
+                completion(.success(data?.list ?? []))
             case .failure(let error):
                 completion(.failure(error))
             }
@@ -187,7 +235,7 @@ enum TeacherService {
     /// 课表详情：班级花名册 + 该排课已消课回显（consumed/selectable/leave）
     static func fetchClassStudents(
         classId: String,
-        scheduleId: String,
+        scheduleId: String = "",
         completion: @escaping (Result<[TeacherWorkbenchStudent], APIError>) -> Void
     ) {
         APIClient.shared.request(

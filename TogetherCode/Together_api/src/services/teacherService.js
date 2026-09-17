@@ -525,6 +525,76 @@ async function listTeacherClasses(userId) {
   };
 }
 
+async function listTeacherCourses(userId) {
+  const teacher = await ensureTeacherProfile(userId);
+  const classes = await Class.findAll({
+    where: { teacher_id: teacher.teacher_id },
+    include: [
+      {
+        model: Course,
+        as: "course",
+        attributes: ["course_id", "studio_id", "title", "total_lessons", "duration_min"]
+      }
+    ],
+    order: [["created_at", "DESC"]]
+  });
+
+  // 按课程聚合班级
+  const courseMap = new Map();
+  for (const cls of classes) {
+    if (!cls.course) continue;
+    const cid = String(cls.course.course_id);
+    if (!courseMap.has(cid)) {
+      courseMap.set(cid, { course: cls.course, classes: [] });
+    }
+    courseMap.get(cid).classes.push(cls);
+  }
+
+  const list = [];
+  for (const { course, classes: clsList } of courseMap.values()) {
+    // 课程级在读学生（有效权益去重）
+    const roster = await findRosterByCourse(course.course_id, course.studio_id);
+    const courseStudentCount = new Set(roster.map((b) => String(b.child_id))).size;
+
+    // 已消课节数（帖子消课 + 排课消课）
+    const logs = await LessonLog.findAll({
+      where: { course_id: course.course_id, source: { [Op.in]: [1, 2] } },
+      attributes: ["delta"]
+    });
+    const consumed = logs.reduce((sum, l) => sum + Math.abs(Number(l.delta || 0)), 0);
+    const total = Number(course.total_lessons || 0);
+    const progress = total > 0 ? Math.min(Math.round((consumed / total) * 100), 100) : 0;
+
+    // 每班学生数：优先按 class_id 绑定，回退课程花名册（兼容历史未绑班数据）
+    const classItems = [];
+    for (const cls of clsList) {
+      const bound = await ChildCourseBalance.findAll({
+        where: { class_id: cls.class_id, status: { [Op.in]: [1, 2] } },
+        attributes: ["child_id"]
+      });
+      let count = new Set(bound.map((b) => String(b.child_id))).size;
+      if (count === 0) count = courseStudentCount;
+      classItems.push({
+        class_id: String(cls.class_id),
+        name: cls.name,
+        student_count: count
+      });
+    }
+
+    list.push({
+      course_id: String(course.course_id),
+      title: course.title,
+      total_lessons: total,
+      consumed_lessons: consumed,
+      progress,
+      student_count: courseStudentCount,
+      classes: classItems
+    });
+  }
+
+  return { total: list.length, list };
+}
+
 async function getTeacherClassStudents(userId, classId, query = {}) {
   const teacher = await ensureTeacherProfile(userId);
   const classItem = await ensureTeacherClass(classId, teacher.teacher_id);
@@ -1319,6 +1389,7 @@ async function undoTeacherPostConsumption(userId, postId, childIds) {
 
 module.exports = {
   listTeacherClasses,
+  listTeacherCourses,
   getTeacherClassStudents,
   listTeacherTimetable,
   listTeacherLeaves,

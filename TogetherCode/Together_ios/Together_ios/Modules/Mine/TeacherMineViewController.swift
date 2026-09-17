@@ -194,6 +194,8 @@ final class TeacherMineViewController: BaseViewController, UITableViewDataSource
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let item = menuItems[indexPath.row]
         switch item.title {
+        case "我教的课程":
+            navigationController?.pushViewController(MyTeachingCoursesViewController(), animated: true)
         case "课表与排课":
             navigationController?.pushViewController(TeacherTimetableViewController(), animated: true)
         case "作品管理":
