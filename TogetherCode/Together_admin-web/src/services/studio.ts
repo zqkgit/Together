@@ -333,6 +333,16 @@ export interface ClassStudent {
   consumed?: boolean;
   attendance_status?: number | null;
   leave_status?: number;
+  leave_id?: string | null;
+  leave_reason?: string | null;
+}
+
+// 工作室审批请假（出勤弹窗内处理待审批）
+export async function reviewStudioLeave(
+  leaveId: string,
+  payload: { agree: boolean; note?: string }
+): Promise<void> {
+  await request.post(`/studio/leaves/${leaveId}/review`, payload);
 }
 
 export async function fetchClassStudents(classId: string, scheduleId?: string): Promise<{ class: ClassItem; total: number; list: ClassStudent[] }> {
@@ -583,8 +593,11 @@ export interface LeaveItem {
   makeup_schedule_id: string | null;
   handled_at: string | null;
   created_at: string;
-  classItem: { class_id: string; name: string } | null;
-  course: { course_id: string; title: string } | null;
+  class: {
+    class_id: string;
+    name: string;
+    course: { course_id: string; title: string } | null;
+  } | null;
   child: { child_id: string; nickname: string; birthday: string | null } | null;
   parent: { user_id: string; phone: string; nickname: string } | null;
   schedule: { schedule_id: string; lesson_date: string; start_time: string; end_time: string; location: string | null } | null;

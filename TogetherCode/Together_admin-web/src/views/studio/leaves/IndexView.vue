@@ -187,10 +187,10 @@ onMounted(loadData);
       </template>
 
       <el-table :data="leaves" row-key="leave_id">
-        <el-table-column label="学员 / 班级" min-width="170">
+        <el-table-column label="课程 / 班级" min-width="200">
           <template #default="{ row }">
-            <div class="cell-strong">{{ row.child?.nickname || "-" }}</div>
-            <div class="cell-sub">{{ row.classItem?.name || "-" }}</div>
+            <div class="cell-strong">{{ row.class?.course?.title || row.class?.name || "-" }}</div>
+            <div class="cell-sub">{{ row.class?.name || "-" }}</div>
           </template>
         </el-table-column>
         <el-table-column label="原上课时间" min-width="170">

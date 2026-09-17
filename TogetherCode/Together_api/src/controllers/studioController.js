@@ -1,5 +1,5 @@
 const { ok, fail } = require("../utils/response");
-const { getStudioProfile, updateStudioProfile } = require("../services/studioService");
+const { getStudioProfile, updateStudioProfile, reviewStudioLeave } = require("../services/studioService");
 
 async function getMyStudioProfile(req, res) {
   try {
@@ -27,7 +27,22 @@ async function putMyStudioProfile(req, res) {
   }
 }
 
+
+async function reviewLeave(req, res) {
+  try {
+    const data = await reviewStudioLeave(req.admin.studioId, req.params.id, req.body);
+    if (!data) {
+      return fail(res, 404, 40481, "Leave request not found");
+    }
+    return ok(res, data, "leave reviewed");
+  } catch (error) {
+    return fail(res, 400, 40062, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   getMyStudioProfile,
-  putMyStudioProfile
+  putMyStudioProfile,
+  reviewLeave
 };
+

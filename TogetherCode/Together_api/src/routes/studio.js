@@ -6,7 +6,7 @@ const adminClassRoutes = require("./adminClass");
 const adminScheduleRoutes = require("./adminSchedule");
 const adminLeaveRoutes = require("./adminLeave");
 const studioAuthRoutes = require("./studioAuth");
-const { getMyStudioProfile, putMyStudioProfile } = require("../controllers/studioController");
+const { getMyStudioProfile, putMyStudioProfile, reviewLeave } = require("../controllers/studioController");
 const { validateRequest } = require("../middlewares/validate");
 const { saveStudioProfileValidators } = require("../validators/backofficeValidator");
 const studioOrderRoutes = require("./studioOrder");
@@ -23,6 +23,7 @@ router.use(requireBackofficeAuth("studio"));
 // 说明：这一组只服务 studio_owner / studio_ops，负责工作室内部经营与教务。
 router.get("/profile", getMyStudioProfile);
 router.put("/profile", saveStudioProfileValidators, validateRequest, putMyStudioProfile);
+router.post("/leaves/:id/review", reviewLeave);
 router.get("/overview", getStudioOverviewData);
 router.get("/reports", getStudioReportsData);
 router.get("/teachers", getTeachers);

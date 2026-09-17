@@ -45,7 +45,13 @@ function normalizeLeaveItem(item) {
     class: item.classItem
       ? {
           class_id: String(item.classItem.class_id),
-          name: item.classItem.name
+          name: item.classItem.name,
+          course: item.classItem.course
+            ? {
+                course_id: String(item.classItem.course.course_id),
+                title: item.classItem.course.title
+              }
+            : null
         }
       : null,
     schedule: item.schedule
@@ -573,6 +579,20 @@ async function bindMakeupSchedule(leaveId, payload) {
     );
 
     leave.makeupSchedule = makeupSchedule;
+
+    // 通知家长：补课已安排（课程 / 时间 / 地点）
+    if (leave.parent?.user_id) {
+      const courseTitle = leave.classItem?.course?.title || "课程";
+      const location = makeupSchedule.location || "上课地点以班级为准";
+      createNotification({
+        userId: leave.parent.user_id,
+        type: "leave",
+        title: "补课已安排",
+        content: `${leave.child?.nickname || "孩子"} 的请假补课已安排：${courseTitle} · ${makeupSchedule.lesson_date} ${makeupSchedule.start_time}-${makeupSchedule.end_time}（${location}）`,
+        refType: "leave",
+        refId: leave.leave_id
+      }).catch(() => {});
+    }
     return normalizeLeaveItem(leave);
   });
 }

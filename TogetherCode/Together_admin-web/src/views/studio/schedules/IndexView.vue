@@ -11,6 +11,7 @@ import {
   fetchStudioCourses,
   fetchClassStudents,
   submitScheduleAttendance,
+  reviewStudioLeave,
   type ScheduleItem,
   type ClassStudent,
   type TeacherStaffItem
@@ -173,7 +174,7 @@ async function openCreate(date?: string) {
     classes.value = classData.list;
     teachers.value = teacherData.staff;
     courseLessonsMap.value = Object.fromEntries(
-      courseData.list.map((c) => [c.course_id, (c.lessons || []).sort((a, b) => a.lesson_no - b.lesson_no)])
+      courseData.map((c) => [c.course_id, (c.lessons || []).sort((a, b) => a.lesson_no - b.lesson_no)])
     );
   } catch {
     classes.value = [];
@@ -266,7 +267,7 @@ async function openBatch() {
     classes.value = classData.list;
     teachers.value = teacherData.staff;
     courseLessonsMap.value = Object.fromEntries(
-      courseData.list.map((c) => [c.course_id, (c.lessons || []).sort((a, b) => a.lesson_no - b.lesson_no)])
+      courseData.map((c) => [c.course_id, (c.lessons || []).sort((a, b) => a.lesson_no - b.lesson_no)])
     );
   } catch {
     classes.value = [];
@@ -349,6 +350,41 @@ async function openAttendance(row: ScheduleItem) {
     attendanceVisible.value = false;
   } finally {
     attendanceLoading.value = false;
+  }
+}
+
+// 请假审批弹框
+const leaveReviewVisible = ref(false);
+const leaveReviewStudent = ref<ClassStudent | null>(null);
+const leaveReviewNote = ref("");
+const leaveReviewSubmitting = ref(false);
+
+function openLeaveReview(student: ClassStudent) {
+  leaveReviewStudent.value = student;
+  leaveReviewNote.value = "";
+  leaveReviewVisible.value = true;
+}
+
+async function doLeaveReview(agree: boolean) {
+  if (!leaveReviewStudent.value?.leave_id) return;
+  leaveReviewSubmitting.value = true;
+  try {
+    await reviewStudioLeave(leaveReviewStudent.value.leave_id, {
+      agree,
+      note: leaveReviewNote.value.trim() || undefined
+    });
+    ElMessage.success(agree ? "已同意请假" : "已婉拒请假");
+    leaveReviewVisible.value = false;
+    // 刷新学生名单（请假状态变化）
+    const data = await fetchClassStudents(
+      attendanceSchedule.value!.class_id,
+      attendanceSchedule.value!.schedule_id
+    );
+    attendanceStudents.value = data.list;
+  } catch {
+    // 拦截器提示
+  } finally {
+    leaveReviewSubmitting.value = false;
   }
 }
 
@@ -490,6 +526,55 @@ onMounted(loadData);
       </template>
     </el-dialog>
 
+    <!-- 请假审批 -->
+    <el-dialog v-model="leaveReviewVisible" title="请假审批" width="440px">
+      <div v-if="leaveReviewStudent" class="leave-review-info">
+        <div class="leave-review-row">
+          <span class="cell-sub">课程</span>
+          <span class="cell-strong">{{ attendanceSchedule?.course?.title || "-" }}</span>
+        </div>
+        <div class="leave-review-row">
+          <span class="cell-sub">班级</span>
+          <span>{{ attendanceSchedule?.class?.name || "-" }}</span>
+        </div>
+        <div class="leave-review-row">
+          <span class="cell-sub">学员</span>
+          <span class="cell-strong">{{ leaveReviewStudent.nickname }}</span>
+        </div>
+        <div class="leave-review-row">
+          <span class="cell-sub">上课日期</span>
+          <span>{{ attendanceSchedule?.lesson_date }} {{ attendanceSchedule?.start_time }}-{{ attendanceSchedule?.end_time }}</span>
+        </div>
+        <div class="leave-review-row leave-review-reason">
+          <span class="cell-sub">请假原因</span>
+          <span>{{ leaveReviewStudent.leave_reason || "未填写" }}</span>
+        </div>
+        <el-input
+          v-model="leaveReviewNote"
+          type="textarea"
+          :rows="2"
+          maxlength="255"
+          placeholder="审批备注（选填）"
+          class="note-input"
+        />
+        <div class="leave-review-hint">同意后该学员此节课保留课时，出勤状态记为请假。</div>
+      </div>
+      <template #footer>
+        <el-button :loading="leaveReviewSubmitting" @click="leaveReviewVisible = false">取消</el-button>
+        <el-button
+          type="danger"
+          plain
+          :loading="leaveReviewSubmitting"
+          @click="doLeaveReview(false)"
+        >
+          婉拒
+        </el-button>
+        <el-button type="primary" :loading="leaveReviewSubmitting" @click="doLeaveReview(true)">
+          同意请假
+        </el-button>
+      </template>
+    </el-dialog>
+
     <!-- 批量排课 -->
     <el-dialog v-model="batchVisible" title="批量排课" width="560px">
       <el-form label-width="100px">
@@ -603,7 +688,16 @@ onMounted(loadData);
           <el-table-column label="请假" width="110" align="center">
             <template #default="{ row }">
               <el-tag v-if="row.leave_status === 2" type="warning" size="small" effect="light">已请假</el-tag>
-              <el-tag v-else-if="row.leave_status === 1" type="danger" size="small" effect="light">待审批</el-tag>
+              <el-tag
+                v-else-if="row.leave_status === 1"
+                type="danger"
+                size="small"
+                effect="light"
+                class="review-tag"
+                @click="openLeaveReview(row)"
+              >
+                待审批
+              </el-tag>
               <el-tag v-else-if="row.leave_status === 3" type="info" size="small" effect="light">已婉拒</el-tag>
               <span v-else>-</span>
             </template>

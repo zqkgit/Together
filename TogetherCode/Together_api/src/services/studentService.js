@@ -433,10 +433,14 @@ async function listClassStudents(classId, query = {}) {
         schedule_id: query.schedule_id,
         status: { [Op.in]: [0, 1, 2] }
       },
-      attributes: ["child_id", "status"]
+      attributes: ["leave_id", "child_id", "status", "reason"]
     });
     leaves.forEach((item) => {
-      leaveMap.set(String(item.child_id), Number(item.status) + 1);
+      leaveMap.set(String(item.child_id), {
+        leave_status: Number(item.status) + 1,
+        leave_id: String(item.leave_id),
+        leave_reason: item.reason || null
+      });
     });
   }
 
@@ -467,7 +471,9 @@ async function listClassStudents(classId, query = {}) {
       order_status: balance.order.status,
       consumed: consumedSet.has(String(balance.child.child_id)),
       attendance_status: attendanceMap.get(String(balance.child.child_id)) || null,
-      leave_status: leaveMap.get(String(balance.child.child_id)) || 0
+      leave_status: leaveMap.get(String(balance.child.child_id))?.leave_status || 0,
+      leave_id: leaveMap.get(String(balance.child.child_id))?.leave_id || null,
+      leave_reason: leaveMap.get(String(balance.child.child_id))?.leave_reason || null
     }))
   };
 }
@@ -497,6 +503,54 @@ function normalizeClassPayload(classItem) {
         }
       : null
   };
+}
+
+// 补课排课出勤消课成功后：标记对应请假单补课已完成 + 通知家长
+async function markMakeupCompleted(schedule, childId, transaction) {
+  if (!schedule.is_makeup) return null;
+  const leave = await LeaveRequest.findOne({
+    where: {
+      child_id: childId,
+      makeup_schedule_id: schedule.schedule_id,
+      status: 1,
+      makeup_status: 0
+    },
+    transaction,
+    lock: transaction.LOCK.UPDATE
+  });
+  if (!leave) return null;
+
+  await leave.update({ makeup_status: 1 }, { transaction });
+
+  if (leave.parent_user_id) {
+    createNotification({
+      userId: leave.parent_user_id,
+      type: "leave",
+      title: "补课已完成",
+      content: `${schedule.lesson_date || ""} ${schedule.start_time || ""}-${schedule.end_time || ""} 的补课已完成，课时已消耗`,
+      refType: "leave",
+      refId: leave.leave_id
+    }).catch(() => {});
+  }
+  return leave;
+}
+
+// 补课排课撤销出勤：请假单补课状态改回「已安排未完成」
+async function resetMakeupStatus(schedule, childId, transaction) {
+  if (!schedule.is_makeup) return null;
+  const leave = await LeaveRequest.findOne({
+    where: {
+      child_id: childId,
+      makeup_schedule_id: schedule.schedule_id,
+      status: 1,
+      makeup_status: 1
+    },
+    transaction,
+    lock: transaction.LOCK.UPDATE
+  });
+  if (!leave) return null;
+  await leave.update({ makeup_status: 0 }, { transaction });
+  return leave;
 }
 
 async function attendSchedule(scheduleId, payload) {
@@ -560,6 +614,9 @@ async function attendSchedule(scheduleId, payload) {
             throw new Error("Student order not found");
           }
 
+          // 补课排课出勤 → 标记对应请假单补课已完成 + 通知家长
+          await markMakeupCompleted(schedule, item.child_id, transaction);
+
           results.push({
             child_id: String(item.child_id),
             order_id: String(item.order_id),
@@ -600,6 +657,10 @@ async function attendSchedule(scheduleId, payload) {
             scheduleId: schedule.schedule_id
           });
           reverted = Boolean(revertedResult);
+          // 补课排课撤销出勤 → 对应请假单补课状态改回「已安排未完成」
+          if (reverted && schedule.is_makeup) {
+            await resetMakeupStatus(schedule, item.child_id, transaction);
+          }
         }
         results.push({
           child_id: String(item.child_id),

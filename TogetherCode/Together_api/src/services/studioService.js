@@ -1,4 +1,5 @@
-const { StudioProfile, User } = require("../models");
+const { StudioProfile, User, LeaveRequest, Class } = require("../models");
+const { reviewLeaveRequest } = require("./leaveService");
 
 function normalizeStudioProfile(studio) {
   return {
@@ -90,5 +91,40 @@ async function updateStudioProfile(studioId, payload) {
 
 module.exports = {
   getStudioProfile,
-  updateStudioProfile
+  updateStudioProfile,
+  reviewStudioLeave
 };
+
+// 工作室审批请假（出勤消课弹窗内直接处理待审批）
+async function reviewStudioLeave(studioId, leaveId, payload) {
+  const { Course } = require("../models");
+  const leave = await LeaveRequest.findByPk(leaveId, {
+    include: [
+      {
+        model: Class,
+        as: "classItem",
+        attributes: ["class_id", "course_id"],
+        include: [
+          {
+            model: Course,
+            as: "course",
+            attributes: ["course_id", "studio_id"]
+          }
+        ]
+      }
+    ]
+  });
+
+  if (!leave) {
+    return null;
+  }
+
+  if (String(leave.classItem?.course?.studio_id || "") !== String(studioId)) {
+    throw new Error("Leave request does not belong to studio");
+  }
+
+  return reviewLeaveRequest(leaveId, {
+    action: payload.agree ? "agree" : "reject",
+    note: payload.note || undefined
+  });
+}
