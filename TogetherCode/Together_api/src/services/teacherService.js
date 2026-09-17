@@ -674,8 +674,14 @@ async function listTeacherStudents(userId) {
       const roster = await findRosterByCourse(s.course_id, s.course.studio_id);
       roster.forEach((b) => todaySet.add(String(b.child_id)));
     }
+    // 请假中：仅统计该老师名下班级的待处理请假（与顶部请假卡同口径）
+    const teacherClassIds = classes.map((c) => String(c.class_id));
     const leaves = await LeaveRequest.findAll({
-      where: { child_id: { [Op.in]: childIds }, status: 0 },
+      where: {
+        child_id: { [Op.in]: childIds },
+        status: 0,
+        class_id: { [Op.in]: teacherClassIds }
+      },
       attributes: ["child_id"]
     });
     leaves.forEach((l) => leavingSet.add(String(l.child_id)));
@@ -1289,6 +1295,7 @@ async function getTeacherMine(userId) {
   return {
     profile: {
       teacher_id: String(teacherDetail.teacher_id),
+      real_name: teacherDetail.real_name || "",
       nickname: teacherDetail.user?.nickname || "老师",
       avatar: teacherDetail.user?.avatar || null,
       subjects: Array.isArray(teacherDetail.subjects) ? teacherDetail.subjects : [],

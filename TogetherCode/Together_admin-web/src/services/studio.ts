@@ -330,6 +330,8 @@ export interface ClassStudent {
   consumed_lessons: number;
   last_attended_at: string | null;
   consumed?: boolean;
+  attendance_status?: number | null;
+  leave_status?: number;
 }
 
 export async function fetchClassStudents(classId: string, scheduleId?: string): Promise<{ class: ClassItem; total: number; list: ClassStudent[] }> {

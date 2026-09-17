@@ -39,6 +39,8 @@ final class TeacherMineViewController: BaseViewController, UITableViewDataSource
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: animated)
+        // 从设置/资料编辑返回时刷新头部（名字/头像/签名变更即时生效）
+        refreshData()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -52,7 +54,7 @@ final class TeacherMineViewController: BaseViewController, UITableViewDataSource
         view.addSubview(headerView)
         headerView.snp.makeConstraints {
             $0.top.leading.trailing.equalToSuperview()
-            $0.height.equalTo(320)
+            // 高度由内部约束自适应（与家长端一致，统计卡不压缩/不悬空）
         }
         headerView.onSettings = { [weak self] in self?.openSettings() }
         headerView.onIdentityTapped = { [weak self] in self?.showRoleSheet() }
@@ -101,6 +103,7 @@ final class TeacherMineViewController: BaseViewController, UITableViewDataSource
             roles: owned,
             currentRole: 2,
             authStatuses: statuses,
+            teacherName: profile?.name,
             onSelect: { [weak self] role in
                 self?.switchRole(role)
             },

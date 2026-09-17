@@ -190,6 +190,8 @@ final class AuthService {
         let city: String?
         let signature: String?
         let role: Int
+        /// 已认证老师实名（切换身份弹框展示老师名字）
+        let teacherRealName: String?
     }
 
     /// 当前用户资料
@@ -198,6 +200,7 @@ final class AuthService {
             switch result {
             case .success(let json):
                 let user = json["user"]
+                let teacherRealName = json["teacher_profile"]["real_name"].string
                 completion(UserProfile(
                     userId: user["user_id"].stringValue,
                     phone: user["phone"].stringValue,
@@ -205,7 +208,8 @@ final class AuthService {
                     avatar: user["avatar"].string,
                     city: user["city"].string,
                     signature: user["signature"].string,
-                    role: user["role"].intValue
+                    role: user["role"].intValue,
+                    teacherRealName: teacherRealName
                 ), nil)
             case .failure(let error):
                 completion(nil, error.message)

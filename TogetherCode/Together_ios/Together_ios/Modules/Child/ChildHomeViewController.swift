@@ -114,7 +114,7 @@ final class ChildHomeViewController: BaseViewController {
         coursesTableView.rowHeight = UITableView.automaticDimension
         coursesTableView.estimatedRowHeight = 84
         coursesTableView.isHidden = true
-        coursesTableView.tableHeaderView = buildCoursesHeader()
+        coursesTableView.contentInset = UIEdgeInsets(top: Theme.Spacing.m, left: 0, bottom: 0, right: 0)
         view.addSubview(coursesTableView)
         coursesTableView.snp.makeConstraints {
             $0.top.equalTo(segmentControl.snp.bottom)
@@ -136,44 +136,6 @@ final class ChildHomeViewController: BaseViewController {
             $0.top.equalTo(segmentControl.snp.bottom)
             $0.leading.trailing.bottom.equalToSuperview()
         }
-    }
-
-    private func buildCoursesHeader() -> UIView {
-        let header = UIView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 64))
-        let button = UIButton(type: .system)
-        button.backgroundColor = Theme.Color.surface
-        button.layer.cornerRadius = Theme.Radius.card
-        button.addTarget(self, action: #selector(didTapAllCourses), for: .touchUpInside)
-        header.addSubview(button)
-        button.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(Theme.Spacing.s)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
-            $0.bottom.equalToSuperview()
-        }
-
-        let title = UILabel()
-        title.text = "我的课程"
-        title.font = .appSection(15)
-        title.textColor = Theme.Color.ink
-        button.addSubview(title)
-        title.snp.makeConstraints {
-            $0.leading.centerY.equalToSuperview().inset(Theme.Spacing.l)
-        }
-
-        let arrow = UILabel()
-        arrow.text = "查看全部 ›"
-        arrow.font = .appLabel(12)
-        arrow.textColor = Theme.Color.sub
-        button.addSubview(arrow)
-        arrow.snp.makeConstraints {
-            $0.trailing.centerY.equalToSuperview().inset(Theme.Spacing.l)
-        }
-        return header
-    }
-
-    @objc private func didTapAllCourses() {
-        let vc = MyCoursesViewController(childId: child.child_id, childName: child.nickname)
-        navigationController?.pushViewController(vc, animated: true)
     }
 
     private func loadData() {

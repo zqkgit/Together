@@ -12,12 +12,13 @@ final class RoleSwitchSheet: UIView {
     private var roles: [Int] = []
     private var currentRole: Int = 1
     private var authStatuses: [Int: String] = [:]   // role → unauth/pending/rejected
+    private var teacherName: String?               // 已认证老师实名，老师行展示
     private var onSelect: ((Int) -> Void)?
     private var onNeedAuth: ((Int) -> Void)?
 
     private struct RoleRow {
         let role: Int
-        let title: String
+        var title: String
         let subtitle: String
         let icon: String
         static let all = [
@@ -33,6 +34,7 @@ final class RoleSwitchSheet: UIView {
         roles: [Int],
         currentRole: Int = 1,
         authStatuses: [Int: String] = [:],
+        teacherName: String? = nil,
         onSelect: ((Int) -> Void)? = nil,
         onNeedAuth: ((Int) -> Void)? = nil
     ) {
@@ -42,6 +44,7 @@ final class RoleSwitchSheet: UIView {
         shared.roles = roles
         shared.currentRole = currentRole
         shared.authStatuses = authStatuses
+        shared.teacherName = teacherName
         shared.onSelect = onSelect
         shared.onNeedAuth = onNeedAuth
         shared.buildRows()
@@ -103,7 +106,11 @@ final class RoleSwitchSheet: UIView {
             .forEach { $0.removeFromSuperview() }
 
         var lastRow: UIView?
-        for (index, row) in RoleRow.all.enumerated() {
+        for (index, base) in RoleRow.all.enumerated() {
+            var row = base
+            if row.role == 2, let name = teacherName, !name.isEmpty {
+                row.title = "老师 · \(name)"
+            }
             let rowView = makeRow(row, index: index)
             rowView.tag = 1000 + index
             panel.addSubview(rowView)

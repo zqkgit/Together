@@ -520,7 +520,7 @@ onMounted(loadData);
     <el-dialog
       v-model="attendanceVisible"
       :title="`出勤消课 · ${attendanceSchedule?.class?.name || ''}（${attendanceSchedule?.lesson_date || ''}）`"
-      width="560px"
+      width="660px"
     >
       <div v-loading="attendanceLoading">
         <div v-if="attendanceStudents.length === 0 && !attendanceLoading" class="empty-tip">
@@ -528,6 +528,14 @@ onMounted(loadData);
         </div>
         <el-table :data="attendanceStudents" size="small">
           <el-table-column prop="nickname" label="学员" min-width="110" />
+          <el-table-column label="请假" width="110" align="center">
+            <template #default="{ row }">
+              <el-tag v-if="row.leave_status === 2" type="warning" size="small" effect="light">已请假</el-tag>
+              <el-tag v-else-if="row.leave_status === 1" type="danger" size="small" effect="light">待审批</el-tag>
+              <el-tag v-else-if="row.leave_status === 3" type="info" size="small" effect="light">已婉拒</el-tag>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
           <el-table-column prop="remaining_lessons" label="剩余课时" width="90" align="center" />
           <el-table-column label="状态" width="100" align="center">
             <template #default="{ row }">
@@ -552,8 +560,11 @@ onMounted(loadData);
               <template v-else>
                 <el-checkbox
                   :model-value="attendanceSelections[row.child_id] === 1"
+                  :disabled="row.leave_status === 2"
                   @change="attendanceSelections[row.child_id] = $event ? 1 : undefined"
-                >消课</el-checkbox>
+                >
+                  {{ row.leave_status === 2 ? "已请假不消" : "消课" }}
+                </el-checkbox>
               </template>
             </template>
           </el-table-column>

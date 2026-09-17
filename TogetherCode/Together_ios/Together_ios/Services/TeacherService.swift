@@ -66,6 +66,7 @@ struct TeacherMineStudio: Codable {
 
 struct TeacherMineProfile: Codable {
     let teacher_id: String?
+    let real_name: String?
     let nickname: String?
     let avatar: String?
     let subjects: [String]?
@@ -74,7 +75,10 @@ struct TeacherMineProfile: Codable {
     let cert_status: Int?
     let studio: TeacherMineStudio?
 
-    var name: String { nickname ?? "老师" }
+    var name: String {
+        if let real = real_name, !real.isEmpty { return real }
+        return nickname ?? "老师"
+    }
     var subjectText: String {
         guard let subjects, !subjects.isEmpty else { return "未设置科目" }
         return subjects.joined(separator: "/")

@@ -10,10 +10,21 @@ struct MineUser: Codable {
     let city: String?
 }
 
+struct MineTeacherProfile: Codable {
+    let real_name: String?
+}
+
 struct MineProfile: Codable {
     let user: MineUser?
     let current_role: Int?
     let roles: [Int]?
+    let teacher_profile: MineTeacherProfile?
+
+    /// 已认证老师实名（切换身份弹框展示老师名字）
+    var teacherRealName: String? {
+        guard let name = teacher_profile?.real_name, !name.isEmpty else { return nil }
+        return name
+    }
 
     /// 是否已开通某角色（1 家长 / 2 老师 / 3 工作室）
     func hasRole(_ role: Int) -> Bool {
@@ -37,7 +48,7 @@ enum MineService {
             switch result {
             case .success(let json):
                 let profile = JSONKit.decode(MineProfile.self, from: json)
-                    ?? MineProfile(user: nil, current_role: 1, roles: [1])
+                    ?? MineProfile(user: nil, current_role: 1, roles: [1], teacher_profile: nil)
                 completion(.success(profile))
             case .failure(let error):
                 completion(.failure(error))

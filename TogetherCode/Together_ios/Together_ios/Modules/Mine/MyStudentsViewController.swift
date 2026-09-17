@@ -1,30 +1,16 @@
 import UIKit
 import SnapKit
 
-/// 我的学生：班级/状态筛选 + 待处理请假卡 + 学生列表（参考 PR：#myStudents）
+/// 我的学生：班级筛选 + 待处理请假卡 + 学生列表（参考 PR：#myStudents）
 final class MyStudentsViewController: BaseViewController, UITableViewDataSource, UITableViewDelegate {
-
-    private enum StatusFilter: Int, CaseIterable {
-        case all = 0, lowLessons, today, leaving
-        var title: String {
-            switch self {
-            case .all: return "全部"
-            case .lowLessons: return "课时不足"
-            case .today: return "今日上课"
-            case .leaving: return "请假中"
-            }
-        }
-    }
 
     private let tableView = UITableView(frame: .zero, style: .grouped)
     private let classChipRow = TagChipRow(chips: ["全部班级"])
-    private let statusChipRow = TagChipRow(chips: StatusFilter.allCases.map { $0.title })
 
     private var classes: [TeacherStudentClassSummary] = []
     private var allStudents: [TeacherStudentRow] = []
     private var leaves: [TeacherLeaveItem] = []
     private var selectedClassIndex = 0
-    private var selectedStatusIndex = 0
     private var loading = false
 
     override func viewDidLoad() {
@@ -67,13 +53,8 @@ final class MyStudentsViewController: BaseViewController, UITableViewDataSource,
             $0.height.equalTo(34)
         }
 
-        statusChipRow.onSelect = { [weak self] index in
-            self?.selectedStatusIndex = index
-            self?.tableView.reloadData()
-        }
-        filterWrap.addSubview(statusChipRow)
-        statusChipRow.snp.makeConstraints {
-            $0.top.equalTo(classChipRow.snp.bottom).offset(Theme.Spacing.s)
+        classChipRow.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(Theme.Spacing.s)
             $0.leading.trailing.equalToSuperview()
             $0.height.equalTo(34)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.s)
@@ -132,16 +113,6 @@ final class MyStudentsViewController: BaseViewController, UITableViewDataSource,
         if selectedClassIndex > 0 {
             let classId = classes[selectedClassIndex - 1].class_id
             list = list.filter { $0.primaryCourse?.class_id == classId }
-        }
-        switch StatusFilter(rawValue: selectedStatusIndex) ?? .all {
-        case .all:
-            break
-        case .lowLessons:
-            list = list.filter { $0.lowLessons }
-        case .today:
-            list = list.filter { $0.todayScheduled }
-        case .leaving:
-            list = list.filter { $0.isLeaving }
         }
         return list
     }

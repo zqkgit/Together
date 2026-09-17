@@ -1,7 +1,7 @@
 const bcrypt = require("bcryptjs");
 const { Op } = require("sequelize");
 const env = require("../config/env");
-const { sequelize, User, UserRole, AuthVerificationCode, RefreshToken } = require("../models");
+const { sequelize, User, UserRole, AuthVerificationCode, RefreshToken, TeacherProfile } = require("../models");
 const { createAccessToken, createRefreshToken } = require("../utils/token");
 const { generateId } = require("../utils/id");
 
@@ -35,6 +35,20 @@ async function buildUserPayload(userRecord) {
     order: [["role", "ASC"]]
   });
 
+  // 已认证老师的实名/头像（切换身份弹框展示老师名字用）
+  let teacherProfile = null;
+  if (roles.some((r) => Number(r.role) === 2)) {
+    const tp = await TeacherProfile.findOne({
+      where: { user_id: user.user_id, cert_status: { [Op.ne]: 2 } },
+      attributes: ["real_name"]
+    });
+    if (tp) {
+      teacherProfile = {
+        real_name: tp.real_name || ""
+      };
+    }
+  }
+
   return {
     user: {
       user_id: String(user.user_id),
@@ -44,6 +58,7 @@ async function buildUserPayload(userRecord) {
       city: user.city,
       signature: user.signature
     },
+    teacher_profile: teacherProfile,
     current_role: user.current_role,
     roles: roles.map((item) => item.role)
   };

@@ -10,7 +10,8 @@ const {
   Schedule,
   Attendance,
   Class,
-  TeacherProfile
+  TeacherProfile,
+  LeaveRequest
 } = require("../models");
 const { generateId } = require("../utils/id");
 const { createNotification } = require("./messageService");
@@ -402,9 +403,10 @@ async function listClassStudents(classId, query = {}) {
     order: [["created_at", "DESC"]]
   });
 
-  // 已消课学生 + 出勤状态（该排课出勤消课，用于 web 出勤弹窗回显，避免重复提交）
+  // 已消课学生 + 出勤状态 + 请假状态（该排课，用于 web 出勤弹窗回显，避免重复提交）
   let consumedSet = new Set();
   const attendanceMap = new Map();
+  const leaveMap = new Map();
   if (query.schedule_id) {
     const logs = await LessonLog.findAll({
       where: {
@@ -423,6 +425,18 @@ async function listClassStudents(classId, query = {}) {
     });
     attendances.forEach((item) => {
       attendanceMap.set(String(item.child_id), Number(item.status));
+    });
+
+    // 请假状态：0无 1待处理 2已同意 3已婉拒（映射 LeaveRequest.status 0→1 1→2 2→3）
+    const leaves = await LeaveRequest.findAll({
+      where: {
+        schedule_id: query.schedule_id,
+        status: { [Op.in]: [0, 1, 2] }
+      },
+      attributes: ["child_id", "status"]
+    });
+    leaves.forEach((item) => {
+      leaveMap.set(String(item.child_id), Number(item.status) + 1);
     });
   }
 
@@ -452,7 +466,8 @@ async function listClassStudents(classId, query = {}) {
       balance_status: balance.status,
       order_status: balance.order.status,
       consumed: consumedSet.has(String(balance.child.child_id)),
-      attendance_status: attendanceMap.get(String(balance.child.child_id)) || null
+      attendance_status: attendanceMap.get(String(balance.child.child_id)) || null,
+      leave_status: leaveMap.get(String(balance.child.child_id)) || 0
     }))
   };
 }

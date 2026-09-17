@@ -41,6 +41,8 @@ final class MineViewController: BaseViewController, UITableViewDataSource, UITab
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: animated)
+        // 从设置/资料编辑返回时刷新头部（昵称/头像/城市/签名变更即时生效）
+        refreshData()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -144,6 +146,7 @@ final class MineViewController: BaseViewController, UITableViewDataSource, UITab
             roles: owned,
             currentRole: profile?.current_role ?? TokenManager.shared.userRole,
             authStatuses: statuses,
+            teacherName: profile?.teacherRealName,
             onSelect: { [weak self] role in
                 self?.switchRole(role)
             },
