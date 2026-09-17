@@ -4,11 +4,9 @@ import { ElMessage } from "element-plus";
 import { Refresh, Search } from "@element-plus/icons-vue";
 import {
   fetchStudioStudents,
-  consumeStudentLessons,
   fetchStudentLessonLogs,
   fetchStudioClasses,
   type StudentItem,
-  type StudentBalance,
   type StudentLessonLogItem,
   type ClassItem
 } from "../../../services/studio";
@@ -31,13 +29,7 @@ const current = ref<StudentItem | null>(null);
 // 课时流水
 const logsLoading = ref(false);
 const logs = ref<StudentLessonLogItem[]>([]);
-
-// 手动消课
-const consumeVisible = ref(false);
-const consumeBalance = ref<StudentBalance | null>(null);
-const consumeCount = ref(1);
-const consumeNote = ref("");
-const consuming = ref(false);
+const logCourseFilter = ref("");
 
 async function loadData() {
   loading.value = true;
@@ -58,19 +50,28 @@ async function loadData() {
 
 function openDetail(row: StudentItem) {
   current.value = row;
+  logCourseFilter.value = "";
   drawerOpen.value = true;
   loadLogs(row.child_id);
 }
 
-async function loadLogs(childId: string) {
+async function loadLogs(childId: string, courseId?: string) {
   logsLoading.value = true;
   try {
-    const data = await fetchStudentLessonLogs(childId);
+    const data = await fetchStudentLessonLogs(childId, {
+      course_id: courseId || undefined
+    });
     logs.value = data.list;
   } catch {
     // 忽略
   } finally {
     logsLoading.value = false;
+  }
+}
+
+function changeLogCourse() {
+  if (current.value) {
+    loadLogs(current.value.child_id, logCourseFilter.value || undefined);
   }
 }
 
@@ -87,40 +88,6 @@ function sourceText(source: number): string {
 function genderText(gender: string): string {
   const map: Record<string, string> = { male: "男", female: "女", other: "其他" };
   return map[gender] || "-";
-}
-
-function openConsume(balance: StudentBalance) {
-  consumeBalance.value = balance;
-  consumeCount.value = 1;
-  consumeNote.value = "";
-  consumeVisible.value = true;
-}
-
-async function submitConsume() {
-  if (!consumeBalance.value || !current.value) return;
-  if (consumeCount.value > consumeBalance.value.remaining_lessons) {
-    ElMessage.warning(`剩余课时不足（仅剩 ${consumeBalance.value.remaining_lessons} 节）`);
-    return;
-  }
-  consuming.value = true;
-  try {
-    await consumeStudentLessons(current.value.child_id, {
-      order_id: consumeBalance.value.order_id,
-      count: consumeCount.value,
-      note: consumeNote.value.trim() || undefined
-    });
-    ElMessage.success(`已消耗 ${consumeCount.value} 课时`);
-    consumeVisible.value = false;
-    loadData();
-    if (current.value) {
-      const updated = students.value.find((s) => s.child_id === current.value!.child_id);
-      if (updated) current.value = updated;
-    }
-  } catch {
-    // 忽略
-  } finally {
-    consuming.value = false;
-  }
 }
 
 onMounted(async () => {
@@ -207,6 +174,22 @@ onMounted(async () => {
     <!-- 学员详情 -->
     <el-drawer v-model="drawerOpen" :title="`学员详情 · ${current?.nickname || ''}`" size="520px">
       <template v-if="current">
+        <div class="student-info-card">
+          <div class="info-row">
+            <span class="info-label">家长</span>
+            <span>{{ current.balances?.[0]?.parent?.nickname || "-" }}
+              <span class="cell-sub">{{ current.balances?.[0]?.parent?.phone || "" }}</span>
+            </span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">学员</span>
+            <span>{{ current.nickname }} · {{ genderText(current.gender) }} · {{ current.birthday || "未填生日" }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">报名时间</span>
+            <span>{{ (current.balances?.map((b) => b.order_created_at).filter(Boolean).sort().shift() || "").slice(0, 10) || "-" }}</span>
+          </div>
+        </div>
         <el-table :data="current.balances" size="small">
           <el-table-column prop="course_title" label="课程" min-width="140" />
           <el-table-column prop="remaining_lessons" label="剩余" width="70" align="center" />
@@ -214,23 +197,27 @@ onMounted(async () => {
           <el-table-column label="有效期" min-width="120">
             <template #default="{ row }">{{ row.valid_from || "-" }} ~ {{ row.valid_to || "-" }}</template>
           </el-table-column>
-          <el-table-column label="操作" width="110" fixed="right">
-            <template #default="{ row }">
-              <el-button
-                text
-                type="primary"
-                size="small"
-                :disabled="row.remaining_lessons <= 0"
-                @click="openConsume(row)"
-              >
-                消课
-              </el-button>
-            </template>
-          </el-table-column>
         </el-table>
 
         <div class="log-section">
-          <div class="log-title">课时流水</div>
+          <div class="log-head">
+            <div class="log-title">课时流水</div>
+            <el-select
+              v-model="logCourseFilter"
+              placeholder="全部课程"
+              clearable
+              size="small"
+              style="width: 160px"
+              @change="changeLogCourse"
+            >
+              <el-option
+                v-for="b in current.balances"
+                :key="b.course_id"
+                :label="b.course_title"
+                :value="b.course_id"
+              />
+            </el-select>
+          </div>
           <el-table v-loading="logsLoading" :data="logs" size="small" empty-text="暂无消课记录">
             <el-table-column label="日期" width="100">
               <template #default="{ row }">
@@ -258,25 +245,6 @@ onMounted(async () => {
       </template>
     </el-drawer>
 
-    <!-- 手动消课 -->
-    <el-dialog v-model="consumeVisible" title="手动消课" width="420px">
-      <el-descriptions :column="1" border size="small">
-        <el-descriptions-item label="课程">{{ consumeBalance?.course_title }}</el-descriptions-item>
-        <el-descriptions-item label="剩余课时">
-          <span class="cell-strong">{{ consumeBalance?.remaining_lessons }} 节</span>
-        </el-descriptions-item>
-      </el-descriptions>
-      <div class="consume-row">
-        <span>本次消耗</span>
-        <el-input-number v-model="consumeCount" :min="1" :max="consumeBalance?.remaining_lessons || 1" />
-        <span>节</span>
-      </div>
-      <el-input v-model="consumeNote" placeholder="消课备注（选填）" maxlength="255" />
-      <template #footer>
-        <el-button @click="consumeVisible = false">取消</el-button>
-        <el-button type="primary" :loading="consuming" @click="submitConsume">确认消课</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -293,6 +261,26 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.student-info-card {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+}
+
+.info-row {
+  display: flex;
+  gap: 12px;
+  line-height: 26px;
+  font-size: 13px;
+}
+
+.info-label {
+  color: #8a8378;
+  width: 64px;
+  flex-shrink: 0;
 }
 
 .cell-strong {
@@ -324,6 +312,13 @@ onMounted(async () => {
   margin: 14px 0;
   font-size: 14px;
   color: #2b2621;
+}
+
+.log-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .log-section {

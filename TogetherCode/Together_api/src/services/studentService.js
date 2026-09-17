@@ -777,7 +777,8 @@ async function listStudentLessonLogs(childId, studioId, query = {}) {
 
   const rows = await LessonLog.findAll({
     where: {
-      child_id: childId
+      child_id: childId,
+      ...(query.course_id ? { course_id: query.course_id } : {})
     },
     include: [
       { model: Course, as: "course", attributes: ["course_id", "title"] },
