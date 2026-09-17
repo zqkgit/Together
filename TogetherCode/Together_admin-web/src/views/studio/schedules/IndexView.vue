@@ -288,7 +288,7 @@ async function submitBatch() {
 const attendanceVisible = ref(false);
 const attendanceSchedule = ref<ScheduleItem | null>(null);
 const attendanceStudents = ref<ClassStudent[]>([]);
-const attendanceSelections = ref<Record<string, number>>({});
+const attendanceSelections = ref<Record<string, number | undefined>>({});
 const attendanceLoading = ref(false);
 const attendanceSubmitting = ref(false);
 const attendanceNote = ref("");
@@ -301,8 +301,10 @@ async function openAttendance(row: ScheduleItem) {
   attendanceSelections.value = {};
   attendanceNote.value = "";
   try {
-    const data = await fetchClassStudents(row.class_id);
+    const data = await fetchClassStudents(row.class_id, row.schedule_id);
     attendanceStudents.value = data.list;
+    // 回显：不做预置，已消课学生默认保持已消；老师按需勾选「消课」或点「撤销消课」
+    attendanceSelections.value = {};
   } catch {
     attendanceVisible.value = false;
   } finally {
@@ -311,7 +313,7 @@ async function openAttendance(row: ScheduleItem) {
 }
 
 async function submitAttendance() {
-  const selected = attendanceStudents.value.filter((s) => attendanceSelections.value[s.child_id]);
+  const selected = attendanceStudents.value.filter((s) => [1, 4].includes(attendanceSelections.value[s.child_id]));
   if (selected.length === 0) {
     ElMessage.warning("请选择出勤学员");
     return;
@@ -327,7 +329,7 @@ async function submitAttendance() {
       })),
       attendanceNote.value.trim() || undefined
     );
-    ElMessage.success(`已提交 ${selected.length} 名学员出勤并消课`);
+    ElMessage.success(`已处理 ${selected.length} 名学员消课`);
     attendanceVisible.value = false;
     loadData();
   } catch {
@@ -527,17 +529,32 @@ onMounted(loadData);
         <el-table :data="attendanceStudents" size="small">
           <el-table-column prop="nickname" label="学员" min-width="110" />
           <el-table-column prop="remaining_lessons" label="剩余课时" width="90" align="center" />
-          <el-table-column label="出勤状态" width="200">
+          <el-table-column label="状态" width="100" align="center">
             <template #default="{ row }">
-              <el-radio-group
-                v-model="attendanceSelections[row.child_id]"
-                size="small"
-                @change="attendanceSelections[row.child_id] = $event"
-              >
-                <el-radio-button :value="1">正常</el-radio-button>
-                <el-radio-button :value="2">迟到</el-radio-button>
-                <el-radio-button :value="3">请假</el-radio-button>
-              </el-radio-group>
+              <el-tag :type="row.consumed ? 'success' : 'info'" size="small" effect="light">
+                {{ row.consumed ? "已消课" : "未消课" }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="消课操作" width="190" align="center">
+            <template #default="{ row }">
+              <template v-if="attendanceSelections[row.child_id] === 4">
+                <el-button link type="primary" size="small" @click="attendanceSelections[row.child_id] = undefined">
+                  恢复
+                </el-button>
+                <span class="op-tag">将撤销</span>
+              </template>
+              <template v-else-if="row.consumed">
+                <el-button link type="danger" size="small" @click="attendanceSelections[row.child_id] = 4">
+                  撤销消课
+                </el-button>
+              </template>
+              <template v-else>
+                <el-checkbox
+                  :model-value="attendanceSelections[row.child_id] === 1"
+                  @change="attendanceSelections[row.child_id] = $event ? 1 : undefined"
+                >消课</el-checkbox>
+              </template>
             </template>
           </el-table-column>
         </el-table>
@@ -577,6 +594,12 @@ onMounted(loadData);
 .week-range {
   font-size: 13px;
   color: #726a60;
+}
+
+.op-tag {
+  font-size: 12px;
+  color: #b76e2a;
+  margin-left: 6px;
 }
 
 .week-grid {

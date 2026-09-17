@@ -238,6 +238,7 @@ private final class DayButton: UIButton {
 
 final class TimetableDayCell: UITableViewCell {
 
+    private let container = UIView()
     private let timeLabel = UILabel()
     private let durationLabel = UILabel()
     private let titleLabel = UILabel()
@@ -247,15 +248,24 @@ final class TimetableDayCell: UITableViewCell {
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
+        selectionStyle = .none
         backgroundColor = .clear
-        contentView.backgroundColor = Theme.Color.surface
-        contentView.layer.cornerRadius = 14
-        contentView.clipsToBounds = true
+        contentView.backgroundColor = .clear
+
+        // 卡片容器：左右统一 12pt，上下留 8pt 组间距
+        container.backgroundColor = Theme.Color.surface
+        container.layer.cornerRadius = Theme.Radius.card
+        contentView.addSubview(container)
+        container.snp.makeConstraints {
+            $0.top.equalToSuperview().inset(Theme.Spacing.s)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
+            $0.bottom.equalToSuperview().inset(Theme.Spacing.s)
+        }
 
         // 左：时间
         timeLabel.font = .appSection(16)
         timeLabel.textColor = Theme.Color.ink
-        contentView.addSubview(timeLabel)
+        container.addSubview(timeLabel)
         timeLabel.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.m)
             $0.leading.equalToSuperview().offset(Theme.Spacing.m)
@@ -263,7 +273,7 @@ final class TimetableDayCell: UITableViewCell {
 
         durationLabel.font = .appBody(11)
         durationLabel.textColor = Theme.Color.muted
-        contentView.addSubview(durationLabel)
+        container.addSubview(durationLabel)
         durationLabel.snp.makeConstraints {
             $0.top.equalTo(timeLabel.snp.bottom).offset(4)
             $0.leading.equalTo(timeLabel)
@@ -272,7 +282,7 @@ final class TimetableDayCell: UITableViewCell {
         // 右：状态标签
         statusView.layer.cornerRadius = 10
         statusView.clipsToBounds = true
-        contentView.addSubview(statusView)
+        container.addSubview(statusView)
         statusView.snp.makeConstraints {
             $0.trailing.equalToSuperview().offset(-Theme.Spacing.m)
             $0.centerY.equalToSuperview()
@@ -291,7 +301,7 @@ final class TimetableDayCell: UITableViewCell {
         titleLabel.font = .appSection(15)
         titleLabel.textColor = Theme.Color.ink
         titleLabel.numberOfLines = 1
-        contentView.addSubview(titleLabel)
+        container.addSubview(titleLabel)
         titleLabel.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.m)
             $0.leading.equalTo(timeLabel.snp.trailing).offset(Theme.Spacing.m)
@@ -301,16 +311,16 @@ final class TimetableDayCell: UITableViewCell {
         metaLabel.font = .appBody(11)
         metaLabel.textColor = Theme.Color.sub
         metaLabel.numberOfLines = 1
-        contentView.addSubview(metaLabel)
+        container.addSubview(metaLabel)
         metaLabel.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(4)
             $0.leading.equalTo(titleLabel)
             $0.trailing.lessThanOrEqualTo(statusView.snp.leading).offset(-Theme.Spacing.m)
         }
 
-        // 底部留白
-        contentView.snp.makeConstraints {
-            $0.bottom.equalTo(metaLabel).offset(Theme.Spacing.m).priority(.low)
+        // 底部留白（容器内最后一行下方）
+        metaLabel.snp.makeConstraints {
+            $0.bottom.lessThanOrEqualToSuperview().offset(-Theme.Spacing.m).priority(.low)
         }
     }
 
@@ -362,7 +372,7 @@ extension TeacherTimetableViewController: UITableViewDataSource, UITableViewDele
     }
 
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        74
+        84
     }
 
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {

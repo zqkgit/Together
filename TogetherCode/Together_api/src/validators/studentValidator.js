@@ -29,7 +29,7 @@ const scheduleAttendanceValidators = [
   body("students").isArray({ min: 1 }).withMessage("students must be a non-empty array"),
   body("students.*.child_id").isString().notEmpty().withMessage("child_id is required"),
   body("students.*.order_id").isString().notEmpty().withMessage("order_id is required"),
-  body("students.*.status").isInt({ min: 1, max: 3 }).withMessage("status is invalid"),
+  body("students.*.status").isInt({ min: 1, max: 4 }).withMessage("status is invalid"),
   body("students.*.count").optional({ values: "falsy" }).isInt({ min: 1, max: 5 }),
   body("students.*.note").optional({ values: "falsy" }).isString().isLength({ max: 255 })
 ];

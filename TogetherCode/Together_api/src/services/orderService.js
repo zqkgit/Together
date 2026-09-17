@@ -171,6 +171,32 @@ async function createOrder(userId, payload) {
     // 课程固定课时与价格：一个课程一个课时包（不再选择课时包）
     const course = await ensureCourse(payload.course_id, transaction);
 
+    // 防重复报名：同一孩子同一课程已有有效权益（报名中/已支付）则拒绝下单
+    const existingBalance = await ChildCourseBalance.findOne({
+      where: {
+        child_id: child.child_id,
+        course_id: course.course_id,
+        status: { [Op.in]: [1, 2] }
+      },
+      transaction
+    });
+    if (existingBalance) {
+      throw new Error("该孩子已报名此课程，请勿重复报名");
+    }
+    // 已有待支付订单也拦截，避免重复支付生成多份权益
+    const pendingOrder = await Order.findOne({
+      where: {
+        user_id: userId,
+        child_id: child.child_id,
+        course_id: course.course_id,
+        status: 0
+      },
+      transaction
+    });
+    if (pendingOrder) {
+      throw new Error("该孩子已有此课程的待支付订单，请先完成支付或取消");
+    }
+
     // 报名必须选择班级：校验班级属于该课程，且未满员
     let classId = null;
     if (payload.class_id) {

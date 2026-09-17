@@ -275,6 +275,75 @@ async function applyLessonConsumption(childId, payload, options = {}) {
   });
 }
 
+/**
+ * 撤销出勤消课：请假切换时恢复课时与余额，删除该排课的消课流水
+ */
+async function reverseLessonConsumption(childId, payload, options = {}) {
+  const { transaction, scheduleId } = options;
+  if (!scheduleId) {
+    return null;
+  }
+
+  const log = await LessonLog.findOne({
+    where: {
+      schedule_id: scheduleId,
+      child_id: childId,
+      source: 2
+    },
+    transaction,
+    lock: transaction.LOCK.UPDATE
+  });
+  if (!log) {
+    return null;
+  }
+
+  const context = await loadOrderContext(childId, log.order_id, transaction);
+  if (!context) {
+    return null;
+  }
+  const { order, balance } = context;
+
+  const count = 1;
+  const remaining = Number(balance.remaining_lessons || 0);
+  const consumed = Number(balance.consumed_lessons || 0);
+
+  await balance.update(
+    {
+      consumed_lessons: Math.max(0, consumed - count),
+      remaining_lessons: remaining + count,
+      status: 1
+    },
+    { transaction }
+  );
+
+  const nextConsumed = Math.max(0, Number(order.consumed_lessons || 0) - count);
+  const remainingAfter = remaining + count;
+  const nextOrderStatus = computeOrderStatus(
+    {
+      ...order.toJSON(),
+      consumed_lessons: nextConsumed
+    },
+    remainingAfter
+  );
+  await order.update(
+    {
+      consumed_lessons: nextConsumed,
+      status: nextOrderStatus,
+      completed_at: null
+    },
+    { transaction }
+  );
+
+  await log.destroy({ transaction });
+
+  return {
+    child_id: String(order.child_id),
+    order_id: String(order.order_id),
+    remaining_lessons: remainingAfter,
+    schedule_id: String(scheduleId)
+  };
+}
+
 async function consumeStudentLessons(childId, payload) {
   return applyLessonConsumption(childId, payload, {
     source: 3,
@@ -333,10 +402,44 @@ async function listClassStudents(classId, query = {}) {
     order: [["created_at", "DESC"]]
   });
 
+  // 已消课学生 + 出勤状态（该排课出勤消课，用于 web 出勤弹窗回显，避免重复提交）
+  let consumedSet = new Set();
+  const attendanceMap = new Map();
+  if (query.schedule_id) {
+    const logs = await LessonLog.findAll({
+      where: {
+        schedule_id: query.schedule_id,
+        source: 2
+      },
+      attributes: ["child_id"]
+    });
+    consumedSet = new Set(logs.map((item) => String(item.child_id)));
+
+    const attendances = await Attendance.findAll({
+      where: {
+        schedule_id: query.schedule_id
+      },
+      attributes: ["child_id", "status"]
+    });
+    attendances.forEach((item) => {
+      attendanceMap.set(String(item.child_id), Number(item.status));
+    });
+  }
+
+  // 按孩子去重：同一孩子多份权益（历史重复报名/测试数据）只保留最新一条，避免花名册重复
+  const seen = new Set();
+  const deduped = [];
+  for (const balance of balances) {
+    const key = String(balance.child.child_id);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(balance);
+  }
+
   return {
     class: normalizeClassPayload(classItem),
-    total: balances.length,
-    list: balances.map((balance) => ({
+    total: deduped.length,
+    list: deduped.map((balance) => ({
       child_id: String(balance.child.child_id),
       nickname: balance.child.nickname,
       birthday: balance.child.birthday,
@@ -347,7 +450,9 @@ async function listClassStudents(classId, query = {}) {
       refunded_lessons: balance.refunded_lessons,
       total_lessons: balance.total_lessons,
       balance_status: balance.status,
-      order_status: balance.order.status
+      order_status: balance.order.status,
+      consumed: consumedSet.has(String(balance.child.child_id)),
+      attendance_status: attendanceMap.get(String(balance.child.child_id)) || null
     }))
   };
 }
@@ -400,6 +505,11 @@ async function attendSchedule(scheduleId, payload) {
     const results = [];
     for (const item of payload.students) {
       const status = Number(item.status);
+      // 出勤/消课动作：1 消课 / 3 请假（撤销消课+记考勤，兼容旧）/ 4 撤销消课（不记考勤）
+      if (![1, 3, 4].includes(status)) {
+        throw new Error("Invalid attendance status");
+      }
+
       const existingAttendance = await Attendance.findOne({
         where: {
           schedule_id: schedule.schedule_id,
@@ -419,35 +529,81 @@ async function attendSchedule(scheduleId, payload) {
         lock: transaction.LOCK.UPDATE
       });
 
-      if (existingConsumption) {
-        throw new Error("Attendance already consumed for this student");
-      }
-
       if (status === 1) {
-        const consumed = await applyLessonConsumption(item.child_id, item, {
-          transaction,
-          scheduleId: schedule.schedule_id,
-          source: 2,
-          type: schedule.is_makeup ? 3 : 1,
-          attendanceStatus: 1,
-          attendanceId: existingAttendance?.attendance_id,
-          defaultNote: item.note || payload.note || (schedule.is_makeup ? "按补课排课出勤消课" : "按排课出勤消课")
-        });
-        if (!consumed) {
-          throw new Error("Student order not found");
+        // 正常出勤：未消课才消课；已消课幂等跳过
+        if (!existingConsumption) {
+          const consumed = await applyLessonConsumption(item.child_id, item, {
+            transaction,
+            scheduleId: schedule.schedule_id,
+            source: 2,
+            type: schedule.is_makeup ? 3 : 1,
+            attendanceStatus: 1,
+            attendanceId: existingAttendance?.attendance_id,
+            defaultNote: item.note || payload.note || (schedule.is_makeup ? "按补课排课出勤消课" : "按排课出勤消课")
+          });
+          if (!consumed) {
+            throw new Error("Student order not found");
+          }
+
+          results.push({
+            child_id: String(item.child_id),
+            order_id: String(item.order_id),
+            attendance_status: 1,
+            remaining_lessons: consumed.remaining_lessons,
+            reverted: false
+          });
+        } else {
+          results.push({
+            child_id: String(item.child_id),
+            order_id: String(item.order_id),
+            attendance_status: 1,
+            remaining_lessons: null,
+            reverted: false
+          });
         }
 
+        await Attendance.upsert(
+          {
+            attendance_id: existingAttendance?.attendance_id || generateId(),
+            schedule_id: schedule.schedule_id,
+            child_id: item.child_id,
+            order_id: item.order_id,
+            status: 1,
+            note: item.note || payload.note || null
+          },
+          { transaction }
+        );
+        continue;
+      }
+
+      // 撤销消课（仅消课管理，不记考勤）
+      if (status === 4) {
+        let reverted = false;
+        if (existingConsumption) {
+          const revertedResult = await reverseLessonConsumption(item.child_id, item, {
+            transaction,
+            scheduleId: schedule.schedule_id
+          });
+          reverted = Boolean(revertedResult);
+        }
         results.push({
           child_id: String(item.child_id),
           order_id: String(item.order_id),
-          attendance_status: 1,
-          remaining_lessons: consumed.remaining_lessons
+          attendance_status: null,
+          remaining_lessons: null,
+          reverted
         });
         continue;
       }
 
-      if (existingAttendance && Number(existingAttendance.status) === 1) {
-        throw new Error("Attendance already consumed and cannot be changed");
+      // 请假：已消课则撤销消课（恢复课时），再记请假出勤
+      let reverted = false;
+      if (existingConsumption) {
+        const revertedResult = await reverseLessonConsumption(item.child_id, item, {
+          transaction,
+          scheduleId: schedule.schedule_id
+        });
+        reverted = Boolean(revertedResult);
       }
 
       await Attendance.upsert(
@@ -456,7 +612,7 @@ async function attendSchedule(scheduleId, payload) {
           schedule_id: schedule.schedule_id,
           child_id: item.child_id,
           order_id: item.order_id,
-          status,
+          status: 3,
           note: item.note || payload.note || null
         },
         { transaction }
@@ -465,8 +621,9 @@ async function attendSchedule(scheduleId, payload) {
       results.push({
         child_id: String(item.child_id),
         order_id: String(item.order_id),
-        attendance_status: status,
-        remaining_lessons: null
+        attendance_status: 3,
+        remaining_lessons: null,
+        reverted
       });
     }
 

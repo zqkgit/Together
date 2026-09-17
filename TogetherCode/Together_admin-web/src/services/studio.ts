@@ -329,10 +329,13 @@ export interface ClassStudent {
   remaining_lessons: number;
   consumed_lessons: number;
   last_attended_at: string | null;
+  consumed?: boolean;
 }
 
-export async function fetchClassStudents(classId: string): Promise<{ class: ClassItem; total: number; list: ClassStudent[] }> {
-  const response = await request.get(`/studio/classes/${classId}/students`);
+export async function fetchClassStudents(classId: string, scheduleId?: string): Promise<{ class: ClassItem; total: number; list: ClassStudent[] }> {
+  const response = await request.get(`/studio/classes/${classId}/students`, {
+    params: scheduleId ? { schedule_id: scheduleId } : {}
+  });
   return response.data;
 }
 

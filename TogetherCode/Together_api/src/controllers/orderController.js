@@ -6,7 +6,7 @@ async function postOrder(req, res) {
     const data = await createOrder(req.user.userId, req.body);
     return ok(res, data, "order created");
   } catch (error) {
-    const status = /not found|not available/i.test(error.message) ? 400 : 500;
+    const status = /not found|not available|重复|已报名|待支付/i.test(error.message) ? 400 : 500;
     return fail(res, status, status === 400 ? 40020 : 50000, error.message || "Internal server error");
   }
 }
