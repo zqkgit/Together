@@ -30,12 +30,13 @@ final class TeacherTimetableViewController: BaseViewController {
         view.backgroundColor = Theme.Color.bg
         setupUI()
         rebuildWeekBar()
-        loadData()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         configureImmersiveNav(title: "课表与排课")
+        // 从排课详情操作（消课/撤销）返回后刷新当天课表状态
+        loadData()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -373,6 +374,13 @@ extension TeacherTimetableViewController: UITableViewDataSource, UITableViewDele
 
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         84
+    }
+
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+        let item = items[indexPath.row]
+        let detail = ScheduleDetailViewController(schedule: item)
+        navigationController?.pushViewController(detail, animated: true)
     }
 
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {

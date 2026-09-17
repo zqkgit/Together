@@ -118,4 +118,26 @@ enum TeacherService {
             }
         }
     }
+
+    /// 课表详情：班级花名册 + 该排课已消课回显（consumed/selectable/leave）
+    static func fetchClassStudents(
+        classId: String,
+        scheduleId: String,
+        completion: @escaping (Result<[TeacherWorkbenchStudent], APIError>) -> Void
+    ) {
+        APIClient.shared.request(
+            "/teacher/classes/\(classId)/students",
+            method: .get,
+            parameters: ["schedule_id": scheduleId],
+            encoding: URLEncoding.queryString
+        ) { result in
+            switch result {
+            case .success(let json):
+                let list = JSONKit.decode([TeacherWorkbenchStudent].self, from: json["list"]) ?? []
+                completion(.success(list))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
 }

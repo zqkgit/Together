@@ -535,6 +535,19 @@ async function getTeacherClassStudents(userId, classId, query = {}) {
     childIds
   });
 
+  // 已消课学生（该排课点名消课，供课表详情回显）
+  let consumedSet = new Set();
+  if (query.schedule_id) {
+    const logs = await LessonLog.findAll({
+      where: {
+        schedule_id: query.schedule_id,
+        source: { [Op.in]: [1, 2] }
+      },
+      attributes: ["child_id"]
+    });
+    consumedSet = new Set(logs.map((item) => String(item.child_id)));
+  }
+
   return {
     class: normalizeClassItem(classItem),
     total: roster.length,
@@ -552,7 +565,8 @@ async function getTeacherClassStudents(userId, classId, query = {}) {
       balance_status: balance.status,
       order_status: balance.order.status,
       leave: leaveMap.get(String(balance.child.child_id)) || null,
-      selectable: !leaveMap.has(String(balance.child.child_id))
+      selectable: !leaveMap.has(String(balance.child.child_id)),
+      consumed: consumedSet.has(String(balance.child.child_id))
     }))
   };
 }
@@ -1126,15 +1140,12 @@ async function teacherUndoAttendance(userId, scheduleId, childIds) {
         where: { schedule_id: scheduleId, child_id: childId },
         transaction
       });
-      // 老师发帖消课（source=1）：同步还原帖子关联学生的扣课标记
-      if (Number(log.source) === 1) {
-        await PostStudent.update(
-          { deducted: 0 },
-          {
-            where: { child_id: childId, order_id: log.order_id, deducted: 1 },
-            transaction
-          }
-        );
+      // 老师发帖消课（source=1）：同步解除帖子与该学生的关联（与帖子侧撤销一致）
+      if (Number(log.source) === 1 && log.post_id) {
+        await PostStudent.destroy({
+          where: { post_id: log.post_id, child_id: childId, deducted: 1 },
+          transaction
+        });
       }
       await log.destroy({ transaction });
 
