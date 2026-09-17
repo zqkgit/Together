@@ -284,16 +284,18 @@ struct TeacherClassItem: Codable {
     let course: TeacherCourse?
 
     var displayName: String {
-        if let course = course, !course.title.isEmpty {
-            return "\(course.title) · \(name)"
+        if let course = course, let title = course.title, !title.isEmpty {
+            return "\(title) · \(name)"
         }
         return name
     }
 }
 
-struct TeacherCourse: Codable {
-    let course_id: String
-    let title: String
+/// 班级学生（花名册）
+struct TeacherStudentItem: Codable {
+    let child_id: String
+    let nickname: String
+    let avatar: String?
 }
 
 /// 老师排课（课次）
@@ -302,6 +304,11 @@ struct TeacherTimetableItem: Codable {
     let lesson_date: String?
     let start_time: String?
     let end_time: String?
+    let location: String?
+    let consume_status: String?      // pending / partial / completed
+    let student_count: Int?
+    let leave_count: Int?
+    let consumed_count: Int?
     let status: Int?
     let `class`: TeacherClassRef?
     let course: TeacherCourse?
@@ -312,18 +319,28 @@ struct TeacherTimetableItem: Codable {
         if date.isEmpty { return "课次 \(schedule_id)" }
         return date.isEmpty ? "未知课次" : "\(date) \(time)"
     }
+
+    /// 消课状态文案
+    var consumeText: String? {
+        guard let consume_status else { return nil }
+        switch consume_status {
+        case "completed": return "已消课"
+        case "partial": return "部分消课"
+        default: return "待消课"
+        }
+    }
 }
 
 struct TeacherClassRef: Codable {
     let class_id: String
     let name: String?
+    let enrolled: Int?
 }
 
-/// 班级学生（花名册）
-struct TeacherStudentItem: Codable {
-    let child_id: String
-    let nickname: String
-    let avatar: String?
+struct TeacherCourse: Codable {
+    let course_id: String
+    let title: String?
+    let duration_min: Int?
 }
 
 extension PostService {
@@ -340,9 +357,12 @@ extension PostService {
         }
     }
 
-    /// 老师排课（课次）
-    static func fetchTeacherTimetable(completion: @escaping (Result<[TeacherTimetableItem], APIError>) -> Void) {
-        APIClient.shared.request("/teacher/timetable", method: .get) { result in
+    /// 老师排课（课次）；date = YYYY-MM-DD 查当天，week = 该周任意日期查整周
+    static func fetchTeacherTimetable(date: String? = nil, week: String? = nil, completion: @escaping (Result<[TeacherTimetableItem], APIError>) -> Void) {
+        var params: [String: Any] = [:]
+        if let date, !date.isEmpty { params["date"] = date }
+        if let week, !week.isEmpty { params["week"] = week }
+        APIClient.shared.request("/teacher/timetable", method: .get, parameters: params, encoding: URLEncoding.queryString) { result in
             switch result {
             case .success(let json):
                 completion(.success(JSONKit.decodeList([TeacherTimetableItem].self, from: json)))

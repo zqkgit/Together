@@ -107,7 +107,7 @@ final class TeacherWorkbenchViewController: BaseViewController {
     }
 
     @objc private func didTapTimetable() {
-        showToast("课表功能开发中，敬请期待")
+        navigationController?.pushViewController(TeacherTimetableViewController(), animated: true)
     }
 
     // MARK: - 点名
