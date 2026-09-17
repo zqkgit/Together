@@ -57,6 +57,59 @@ struct TeacherWorkbench: Codable {
     let today: [TeacherWorkbenchSchedule]?
 }
 
+// MARK: - 老师我的页
+
+struct TeacherMineStudio: Codable {
+    let studio_id: String?
+    let name: String?
+}
+
+struct TeacherMineProfile: Codable {
+    let teacher_id: String?
+    let nickname: String?
+    let avatar: String?
+    let subjects: [String]?
+    let years: Int?
+    let intro: String?
+    let cert_status: Int?
+    let studio: TeacherMineStudio?
+
+    var name: String { nickname ?? "老师" }
+    var subjectText: String {
+        guard let subjects, !subjects.isEmpty else { return "未设置科目" }
+        return subjects.joined(separator: "/")
+    }
+    var yearsText: String { "教龄\(years ?? 0)年" }
+    /// 副标题：工作室 · 科目 · 教龄
+    var subtitle: String {
+        var parts: [String] = []
+        if let studioName = studio?.name, !studioName.isEmpty {
+            parts.append(studioName)
+        }
+        let subj = subjectText
+        if subj != "未设置科目" {
+            parts.append(subj)
+        }
+        parts.append(yearsText)
+        return parts.joined(separator: " · ")
+    }
+}
+
+struct TeacherMineStats: Codable {
+    let active_students: Int?
+    let total_lessons: Int?
+    let post_count: Int?
+
+    var activeStudents: Int { active_students ?? 0 }
+    var totalLessons: Int { total_lessons ?? 0 }
+    var postCount: Int { post_count ?? 0 }
+}
+
+struct TeacherMineData: Codable {
+    let profile: TeacherMineProfile?
+    let stats: TeacherMineStats?
+}
+
 /// 老师端服务：工作台 / 点名消课（App 侧 /v1/teacher/*）
 enum TeacherService {
 
@@ -66,6 +119,18 @@ enum TeacherService {
             switch result {
             case .success(let json):
                 completion(.success(JSONKit.decode(TeacherWorkbench.self, from: json) ?? TeacherWorkbench(stats: nil, today: nil)))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 老师「我的」页：资料 + 统计（在读学生/累计课时/作品数）
+    static func fetchMine(completion: @escaping (Result<TeacherMineData, APIError>) -> Void) {
+        APIClient.shared.request("/teacher/mine", method: .get) { result in
+            switch result {
+            case .success(let json):
+                completion(.success(JSONKit.decode(TeacherMineData.self, from: json) ?? TeacherMineData(profile: nil, stats: nil)))
             case .failure(let error):
                 completion(.failure(error))
             }

@@ -25,6 +25,7 @@ const {
   putTeacherPost,
   postTeacherPostStudents,
   getTeacherWorkbenchHandler,
+  getTeacherMineHandler,
   postTeacherScheduleAttendance,
   postTeacherScheduleAttendanceUndo,
   postTeacherPostStudentsUndo
@@ -43,6 +44,7 @@ router.use(requireAuth, requireRole(2));
 // - 请假：老师审批家长请假
 // - 发帖消课：发帖并标记学生扣课、对已有帖子补标学生
 router.get("/workbench", getTeacherWorkbenchHandler);
+router.get("/mine", getTeacherMineHandler);
 router.post("/schedules/:id/attendance", teacherScheduleAttendanceValidators, validateRequest, postTeacherScheduleAttendance);
 router.post("/schedules/:id/attendance/undo", teacherScheduleAttendanceUndoValidators, validateRequest, postTeacherScheduleAttendanceUndo);
 router.get("/classes", getTeacherClasses);

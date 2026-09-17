@@ -29,15 +29,20 @@ final class MainTabBarController: BaseTabBarViewController {
 
     override func setupTabs() {
         // 第一个 tab 按角色切换：老师 → 工作台；家长 → 首页（PR #parentHome / #teacherWorkbench）
-        let firstVC: UIViewController = TokenManager.shared.userRole == 2
+        // 第 5 个「我的」也按角色：老师 → TeacherMineViewController；家长 → MineViewController
+        let isTeacher = TokenManager.shared.userRole == 2
+        let firstVC: UIViewController = isTeacher
             ? TeacherWorkbenchViewController()
             : HomeViewController()
+        let mineVC: UIViewController = isTeacher
+            ? TeacherMineViewController()
+            : MineViewController()
         viewControllers = [
-            makeTab(firstVC, title: TokenManager.shared.userRole == 2 ? "工作台" : "首页", icon: TokenManager.shared.userRole == 2 ? "briefcase" : "house"),
+            makeTab(firstVC, title: isTeacher ? "工作台" : "首页", icon: isTeacher ? "briefcase" : "house"),
             makeTab(PlazaViewController(), title: "广场", icon: "rectangle.grid.2x2"),
             makeCenterTab(PlaceholderViewController(title: "发布"), tag: 2),
             makeTab(MessageViewController(), title: "消息", icon: "bell"),
-            makeTab(MineViewController(), title: "我的", icon: "person")
+            makeTab(mineVC, title: "我的", icon: "person")
         ]
         delegate = self
     }

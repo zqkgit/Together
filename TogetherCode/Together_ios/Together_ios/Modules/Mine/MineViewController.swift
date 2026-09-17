@@ -78,7 +78,7 @@ final class MineViewController: BaseViewController, UITableViewDataSource, UITab
         tableView.rowHeight = 56
         tableView.dataSource = self
         tableView.delegate = self
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "MenuCell")
+        tableView.register(MenuCell.self, forCellReuseIdentifier: MenuCell.reuseID)
         view.addSubview(tableView)
         tableView.snp.makeConstraints {
             $0.top.equalTo(headerView.snp.bottom)
@@ -234,18 +234,9 @@ final class MineViewController: BaseViewController, UITableViewDataSource, UITab
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "MenuCell", for: indexPath)
-        cell.backgroundColor = Theme.Color.surface
-        cell.selectionStyle = .none
-
+        let cell = tableView.dequeueReusableCell(withIdentifier: MenuCell.reuseID, for: indexPath) as! MenuCell
         let item = menuItems[indexPath.row]
-        cell.imageView?.image = UIImage(systemName: item.icon)
-        cell.imageView?.tintColor = Theme.Color.wood
-        cell.textLabel?.text = item.title
-        cell.textLabel?.font = .appBody(15)
-        cell.textLabel?.textColor = Theme.Color.ink
-        cell.accessoryType = .disclosureIndicator
-
+        cell.configure(icon: item.icon, title: item.title)
         return cell
     }
 

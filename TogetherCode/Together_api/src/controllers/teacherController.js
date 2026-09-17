@@ -9,6 +9,7 @@ const {
   updateTeacherPost,
   markTeacherPostStudents,
   getTeacherWorkbench,
+  getTeacherMine,
   teacherAttendSchedule,
   teacherUndoAttendance,
   undoTeacherPostConsumption
@@ -116,6 +117,15 @@ async function getTeacherWorkbenchHandler(req, res) {
   }
 }
 
+async function getTeacherMineHandler(req, res) {
+  try {
+    const data = await getTeacherMine(req.user.userId);
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 async function postTeacherScheduleAttendance(req, res) {
   try {
     const data = await teacherAttendSchedule(req.user.userId, req.params.id, req.body);
@@ -159,6 +169,7 @@ module.exports = {
   putTeacherPost,
   postTeacherPostStudents,
   getTeacherWorkbenchHandler,
+  getTeacherMineHandler,
   postTeacherScheduleAttendance,
   postTeacherScheduleAttendanceUndo,
   postTeacherPostStudentsUndo

@@ -2,6 +2,7 @@ const { Op } = require("sequelize");
 const {
   sequelize,
   TeacherProfile,
+  StudioProfile,
   User,
   Class,
   Course,
@@ -1058,6 +1059,82 @@ async function getTeacherWorkbench(userId) {
   };
 }
 
+async function getTeacherMine(userId) {
+  const teacher = await ensureTeacherProfile(userId);
+  const teacherDetail = await TeacherProfile.findByPk(teacher.teacher_id, {
+    include: [
+      { model: User, as: "user", attributes: ["user_id", "nickname", "avatar"] },
+      { model: StudioProfile, as: "studio", attributes: ["studio_id", "name"] }
+    ]
+  });
+
+  // 在读学生：老师名下班级对应课程的有效在读学生数（有效权益去重，与工作台口径一致）
+  const teacherClassRows = await Class.findAll({
+    where: { teacher_id: teacher.teacher_id },
+    attributes: ["class_id", "course_id"]
+  });
+  const teacherCourseIds = teacherClassRows.map((c) => String(c.course_id));
+  let activeStudents = 0;
+  if (teacherCourseIds.length > 0) {
+    const activeBalances = await ChildCourseBalance.findAll({
+      where: {
+        course_id: { [Op.in]: teacherCourseIds },
+        status: { [Op.in]: [1, 2] }
+      },
+      attributes: ["child_id"]
+    });
+    activeStudents = new Set(activeBalances.map((b) => String(b.child_id))).size;
+  }
+
+  // 累计课时：帖子消课（source=1）+ 排课消课（source=2）
+  const postLogs = await LessonLog.findAll({
+    where: { source: 1 },
+    include: [
+      { model: Post, as: "post", where: { author_id: userId }, attributes: [] }
+    ],
+    attributes: ["delta"]
+  });
+  const scheduleLogs = await LessonLog.findAll({
+    where: { source: 2 },
+    include: [
+      {
+        model: Schedule,
+        as: "schedule",
+        where: { teacher_id: teacher.teacher_id },
+        attributes: []
+      }
+    ],
+    attributes: ["delta"]
+  });
+  const totalLessons = [...postLogs, ...scheduleLogs].reduce(
+    (sum, log) => sum + Math.abs(Number(log.delta || 0)),
+    0
+  );
+
+  // 我的作品：老师发帖数
+  const postCount = await Post.count({ where: { author_id: userId } });
+
+  return {
+    profile: {
+      teacher_id: String(teacherDetail.teacher_id),
+      nickname: teacherDetail.user?.nickname || "老师",
+      avatar: teacherDetail.user?.avatar || null,
+      subjects: Array.isArray(teacherDetail.subjects) ? teacherDetail.subjects : [],
+      years: Number(teacherDetail.years || 0),
+      intro: teacherDetail.intro || "",
+      cert_status: Number(teacherDetail.cert_status || 0),
+      studio: teacherDetail.studio
+        ? { studio_id: String(teacherDetail.studio.studio_id), name: teacherDetail.studio.name }
+        : null
+    },
+    stats: {
+      active_students: activeStudents,
+      total_lessons: totalLessons,
+      post_count: postCount
+    }
+  };
+}
+
 async function teacherAttendSchedule(userId, scheduleId, payload) {
   const teacher = await ensureTeacherProfile(userId);
   const schedule = await Schedule.findByPk(scheduleId, {
@@ -1250,6 +1327,7 @@ module.exports = {
   updateTeacherPost,
   markTeacherPostStudents,
   getTeacherWorkbench,
+  getTeacherMine,
   teacherAttendSchedule,
   teacherUndoAttendance,
   undoTeacherPostConsumption
