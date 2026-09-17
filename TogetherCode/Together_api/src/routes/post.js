@@ -22,9 +22,9 @@ const {
 const router = express.Router();
 
 // 公共帖子浏览（游客可看公开帖子；带 token 时附带互动状态）
-router.get("/", getFeed);
-router.get("/feed", getFeed);
-router.get("/plaza", getPlaza);
+router.get("/", requireAuthOptional, getFeed);
+router.get("/feed", requireAuthOptional, getFeed);
+router.get("/plaza", requireAuthOptional, getPlaza);
 // 我的帖子（需登录；放在 /:id 之前避免被当作 postId）
 router.get("/mine", requireAuth, getMyPosts);
 router.get("/child-feed", requireAuth, getChildFeed);

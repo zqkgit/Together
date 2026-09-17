@@ -28,10 +28,27 @@ class BasePostCreateViewController: BaseViewController, UITableViewDataSource, U
     /// 是否编辑模式
     var isEditingPost: Bool { editingPostId != nil }
 
-    convenience init(postId: String, role: Int) {
+    /// 帖子类型：1 动态 / 2 孩子作品（发布由入口传，编辑由详情回填）
+    var postType: Int = 1
+
+    convenience init(postId: String, role: Int, postType: Int = 1) {
         self.init(nibName: nil, bundle: nil)
         editingPostId = postId
         editingRole = role
+        self.postType = postType
+    }
+
+    convenience init(postType: Int) {
+        self.init(nibName: nil, bundle: nil)
+        self.postType = postType
+    }
+
+    /// 导航标题：按模式 + 类型区分（孩子作品 / 老师作品）
+    var navTitle: String {
+        if isEditingPost {
+            return postType == 2 ? "编辑孩子作品" : "编辑老师作品"
+        }
+        return postType == 2 ? "发布孩子作品" : "发布老师作品"
     }
 
     // MARK: - UI
@@ -54,7 +71,7 @@ class BasePostCreateViewController: BaseViewController, UITableViewDataSource, U
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        configureImmersiveNav(title: isEditingPost ? "编辑动态" : "发布动态")
+        configureImmersiveNav(title: navTitle)
         // PR 图：右上角 × 关闭（无返回箭头）
         navigationItem.leftBarButtonItem = nil
         navigationItem.hidesBackButton = true
@@ -142,14 +159,14 @@ class BasePostCreateViewController: BaseViewController, UITableViewDataSource, U
         bottomBar.snp.makeConstraints {
             $0.leading.trailing.bottom.equalToSuperview()
         }
-        publishButton.setTitle("发布动态", for: .normal)
+        publishButton.setTitle("发布", for: .normal)
         publishButton.setTitleColor(.white, for: .normal)
         publishButton.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
         publishButton.backgroundColor = Theme.Color.brand
         publishButton.layer.cornerRadius = 22
         publishButton.clipsToBounds = true
         publishButton.addTarget(self, action: #selector(didTapPublish), for: .touchUpInside)
-        publishButton.setTitle(isEditingPost ? "保存" : "发布动态", for: .normal)
+        publishButton.setTitle(isEditingPost ? "保存" : (postType == 2 ? "发布孩子作品" : "发布老师作品"), for: .normal)
         bottomBar.addSubview(publishButton)
         publishButton.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.m)

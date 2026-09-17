@@ -163,7 +163,9 @@ final class ParentPostCreateViewController: BasePostCreateViewController {
             childId: selectedChildId ?? "",
             courseId: selectedParentCourseId(),
             topic: topic,
-            visibility: visibility
+            visibility: visibility,
+            // 关联课程 = 孩子作品；纯分享 = 动态
+            type: selectedParentCourseId() != nil ? 2 : 1
         ) { [weak self] postId, error in
             self?.handlePublishSuccess(postId: postId, error: error)
         }
@@ -175,6 +177,8 @@ final class ParentPostCreateViewController: BasePostCreateViewController {
     private var pendingEditCourseId: String?
 
     override func applyEditingPost(_ post: PostItem) {
+        // 关联课程 = 孩子作品；纯分享 = 动态（决定编辑页标题/菜单权限）
+        postType = (post.course != nil) ? 2 : 1
         pendingEditChildId = post.child?.child_id
         pendingEditCourseId = post.course?.course_id
         if !childList.isEmpty {

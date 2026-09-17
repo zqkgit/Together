@@ -225,7 +225,9 @@ struct FavoriteItem: Codable {
 
 struct PostItem: Codable {
     let post_id: String
+    let type: Int          // 1 动态 / 2 孩子作品
     let author: PostAuthor?
+    let author_role: Int?        // 发帖时角色：1 家长 / 2 老师（权限判断依据，不用 author.role=当前身份）
     let author_role_text: String?
     let content: String?
     let images: [String]?

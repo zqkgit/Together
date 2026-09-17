@@ -60,7 +60,10 @@ final class PostDetailViewController: BaseViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         configureImmersiveNav(titleColor: .white, backBackground: UIColor.black.withAlphaComponent(0.28), backTint: .white)
-        // 编辑/删除保存后刷新详情（随页面生命周期注册/移除）
+        // 编辑保存后返回详情直接刷新（不依赖通知时序）
+        loadDetail()
+        loadComments()
+        // 编辑/删除保存后刷新详情（通知兜底）
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(handlePostPublished),
@@ -154,11 +157,13 @@ final class PostDetailViewController: BaseViewController {
     }
 
     @objc private func didTapMorePost() {
-        guard post != nil else { return }
-        let sheet = ThemeActionSheet(
-            title: nil,
-            actions: [("编辑作品", false), ("删除作品", true)]
-        )
+        guard let post else { return }
+        // 仅老师发的孩子作品不可删除（author_role=发帖时角色）；家长孩子作品 / 动态 / 老师作品都可编辑+删除
+        let isTeacherChildWork = post.author_role == 2 && post.type == 2
+        let actions: [(String, Bool)] = isTeacherChildWork
+            ? [("编辑作品", false)]
+            : [("编辑作品", false), ("删除作品", true)]
+        let sheet = ThemeActionSheet(title: nil, actions: actions)
         sheet.onSelect = { [weak self] index in
             guard let self else { return }
             // 等菜单 dismiss 完成后再 present 编辑页/删除弹框
@@ -204,9 +209,9 @@ final class PostDetailViewController: BaseViewController {
         let role = post.author?.role ?? 1
         let editor: BasePostCreateViewController
         if role == 2 {
-            editor = TeacherPostCreateViewController(postId: post.post_id, role: 2)
+            editor = TeacherPostCreateViewController(postId: post.post_id, role: 2, postType: post.type)
         } else {
-            editor = ParentPostCreateViewController(postId: post.post_id, role: 1)
+            editor = ParentPostCreateViewController(postId: post.post_id, role: 1, postType: post.type)
         }
         let nav = UINavigationController(rootViewController: editor)
         nav.modalPresentationStyle = .fullScreen

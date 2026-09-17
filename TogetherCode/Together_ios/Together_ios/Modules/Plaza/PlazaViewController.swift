@@ -32,6 +32,12 @@ final class PlazaViewController: BaseViewController {
         reload()
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // 编辑/删除后返回列表自动刷新
+        reload()
+    }
+
     private func setupCollectionView() {
         layout.columns = 2
         layout.spacing = Theme.Spacing.m

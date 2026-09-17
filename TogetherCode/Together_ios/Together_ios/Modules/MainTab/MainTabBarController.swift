@@ -56,13 +56,26 @@ extension MainTabBarController: UITabBarControllerDelegate {
         guard let index = viewControllers?.firstIndex(of: viewController), index == 2 else {
             return true
         }
-        // 点击中间大加号 → 模态发布页（按角色路由：老师走老师发布，家长走家长发布）
-        let vc: UIViewController = TokenManager.shared.userRole == 2
-            ? TeacherPostCreateViewController()
-            : ParentPostCreateViewController()
-        let publish = BaseNavigationController(rootViewController: vc)
-        publish.modalPresentationStyle = .fullScreen
-        present(publish, animated: true)
+        // 点击中间大加号 → 发布：老师先选类型（孩子作品/动态），家长直接进家长发布
+        if TokenManager.shared.userRole == 2 {
+            let sheet = ThemeActionSheet(title: "发布类型", actions: [("孩子作品", false), ("老师作品", false)])
+            sheet.onSelect = { [weak self] index in
+                guard let self else { return }
+                let vc = TeacherPostCreateViewController(postType: index == 0 ? 2 : 1)
+                let publish = BaseNavigationController(rootViewController: vc)
+                publish.modalPresentationStyle = .fullScreen
+                // 等类型菜单 dismiss 完成后再 present
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    self.present(publish, animated: true)
+                }
+            }
+            present(sheet, animated: false)
+        } else {
+            let vc = ParentPostCreateViewController()
+            let publish = BaseNavigationController(rootViewController: vc)
+            publish.modalPresentationStyle = .fullScreen
+            present(publish, animated: true)
+        }
         return false
     }
 }

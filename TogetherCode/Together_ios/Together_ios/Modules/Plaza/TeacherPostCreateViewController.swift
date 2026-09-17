@@ -40,6 +40,7 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
     private var pendingEditChildIds: [String] = []
 
     override func applyEditingPost(_ post: PostItem) {
+        postType = post.type
         pendingEditClassId = post.class_id
         pendingEditCourseId = post.course?.course_id
         pendingEditChildIds = post.students?.map { $0.child_id } ?? []
@@ -96,11 +97,12 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         switch section {
         case 2:
-            // 课程·班级卡：编辑/发布都显示（编辑回显帖子原班级）；无班级时用不到
+            // 课程·班级卡：仅孩子作品显示（发布/编辑都回显）；无班级时用不到
+            if postType == 1 { return 0 }
             return teacherClasses.isEmpty ? 0 : 1
         case 3:
-            // 消课卡：仅发布时显示（"发布后同步消课"）；编辑无此语义
-            if isEditingPost { return 0 }
+            // 消课卡：仅发布孩子作品时显示（"发布后同步消课"）；动态/编辑无此语义
+            if postType == 1 || isEditingPost { return 0 }
             return teacherClasses.isEmpty ? 0 : 1
         default: return 1
         }
@@ -220,7 +222,20 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
             }
             return
         }
-        // 关联学生（家长可见/推送）与消课分离：选学生即关联；consume=true 才扣课时
+        // 动态：纯分享，不关联课程班级、不消课
+        if postType == 1 {
+            PostService.createTeacherPost(
+                content: content,
+                images: imageUrls,
+                topic: topic,
+                visibility: visibility,
+                type: 1
+            ) { [weak self] postId, error in
+                self?.handlePublishSuccess(postId: postId, error: error)
+            }
+            return
+        }
+        // 孩子作品：关联学生（家长可见/推送）与消课分离：选学生即关联；consume=true 才扣课时
         // 消课课次由后端按班级自动匹配（今天优先，无则最近一次）
         let students: [[String: Any]] = selectedStudentIds.map { ["child_id": $0, "count": 1] }
         PostService.createTeacherPost(
@@ -232,7 +247,8 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
             students: students,
             consume: consumeEnabled,
             topic: topic,
-            visibility: visibility
+            visibility: visibility,
+            type: 2
         ) { [weak self] postId, error in
             self?.handlePublishSuccess(postId: postId, error: error)
         }

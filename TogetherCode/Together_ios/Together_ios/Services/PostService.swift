@@ -377,6 +377,7 @@ extension PostService {
         courseId: String? = nil,
         topic: String = "",
         visibility: Int = 2,
+        type: Int = 1,
         completion: @escaping (String?, String?) -> Void
     ) {
         var params: [String: Any] = [
@@ -384,7 +385,7 @@ extension PostService {
             "images": images,
             "child_id": childId,
             "visibility": visibility,
-            "type": 1
+            "type": type
         ]
         if let courseId, !courseId.isEmpty { params["course_id"] = courseId }
         if !topic.isEmpty { params["topic"] = topic }
@@ -410,13 +411,14 @@ extension PostService {
         consume: Bool = false,
         topic: String = "",
         visibility: Int = 2,
+        type: Int = 2,
         completion: @escaping (String?, String?) -> Void
     ) {
         var params: [String: Any] = [
             "content": content,
             "images": images,
             "visibility": visibility,
-            "type": 1,
+            "type": type,
             "consume": consume
         ]
         if let courseId, !courseId.isEmpty { params["course_id"] = courseId }

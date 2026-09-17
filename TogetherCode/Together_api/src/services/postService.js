@@ -645,7 +645,9 @@ async function createParentPost(userId, payload) {
     return { error: { status: 400, code: 40060, message: "请至少上传一张作品图片" } };
   }
 
-  const type = [1, 2].includes(Number(payload.type)) ? Number(payload.type) : 1;
+  const type = payload.course_id
+    ? 2 // 关联课程 = 孩子作品
+    : ([1, 2].includes(Number(payload.type)) ? Number(payload.type) : 1);
   const topic = String(payload.topic || "").trim().slice(0, 32) || null;
 
   const created = await Post.create({
@@ -722,6 +724,10 @@ async function deletePost(userId, postId) {
   if (!post) return null;
   if (String(post.author_id) !== String(userId)) {
     return { error: { status: 403, code: 40003, message: "只能删除自己的帖子" } };
+  }
+  // 仅老师发的孩子作品不可删除（老师孩子作品关联消课记录）；家长可删除自己孩子的作品
+  if (Number(post.type) === 2 && Number(post.author_role) === 2) {
+    return { error: { status: 400, code: 40062, message: "老师的孩子作品不支持删除" } };
   }
 
   await sequelize.transaction(async (transaction) => {

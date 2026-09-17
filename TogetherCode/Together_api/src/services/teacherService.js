@@ -768,7 +768,18 @@ async function reviewTeacherLeave(userId, leaveId, payload) {
 async function createTeacherPost(userId, payload) {
   return sequelize.transaction(async (transaction) => {
     const teacher = await ensureTeacherProfile(userId, transaction);
-    const { course } = await resolvePostContext(teacher, payload, transaction);
+    // 1 动态（纯分享，不关联课程） / 2 孩子作品（关联课程班级，可消课）
+    const type = [1, 2].includes(Number(payload.type)) ? Number(payload.type) : 1;
+    let course = null;
+    let classItem = null;
+    if (type === 2) {
+      const ctx = await resolvePostContext(teacher, payload, transaction);
+      course = ctx.course;
+      classItem = ctx.classItem;
+      if (!course) {
+        return { error: { status: 400, code: 40061, message: "孩子作品请选择课程班级" } };
+      }
+    }
 
     const images = Array.isArray(payload.images) ? payload.images.slice(0, 9) : [];
     // 作品帖必须至少一张图（平台内容规范，与家长发帖一致）
@@ -780,7 +791,7 @@ async function createTeacherPost(userId, payload) {
       {
         author_id: userId,
         author_role: 2,
-        type: Number(payload.type || 1),
+        type,
         course_id: course ? course.course_id : null,
         class_id: classItem ? String(classItem.class_id) : null,
         images,
@@ -791,7 +802,10 @@ async function createTeacherPost(userId, payload) {
       { transaction }
     );
 
-    const students = await consumeStudentsForPost(post, teacher, payload, transaction);
+    // 仅孩子作品允许发帖消课
+    const students = type === 2
+      ? await consumeStudentsForPost(post, teacher, payload, transaction)
+      : [];
 
     // 闭环：老师发帖标记并消课 → 通知被标记学生的家长（成长记录）
     if (students.length) {

@@ -122,6 +122,13 @@ final class ThemeActionSheet: UIViewController {
                 $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
                 $0.bottom.equalTo(cancelButton.snp.top).offset(-Theme.Spacing.m)
             }
+        } else {
+            // 无标题：操作项顶部收紧到卡片内边距，底部同样绑定取消按钮上方（避免与 safeArea 约束冲突导致按钮被压缩）
+            stack.snp.remakeConstraints {
+                $0.top.equalToSuperview().offset(Theme.Spacing.m)
+                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
+                $0.bottom.equalTo(cancelButton.snp.top).offset(-Theme.Spacing.m)
+            }
         }
     }
 
