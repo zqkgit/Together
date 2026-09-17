@@ -6,9 +6,11 @@ import {
   fetchStudioStudents,
   consumeStudentLessons,
   fetchStudentLessonLogs,
+  fetchStudioClasses,
   type StudentItem,
   type StudentBalance,
-  type StudentLessonLogItem
+  type StudentLessonLogItem,
+  type ClassItem
 } from "../../../services/studio";
 import { useAuthStore } from "../../../stores/auth";
 
@@ -18,6 +20,8 @@ const studioId = computed(() => authStore.account?.studio_id || "");
 const loading = ref(false);
 const q = ref("");
 const status = ref("");
+const classFilter = ref("");
+const classOptions = ref<ClassItem[]>([]);
 const students = ref<StudentItem[]>([]);
 
 // 详情
@@ -41,7 +45,8 @@ async function loadData() {
     const data = await fetchStudioStudents({
       studio_id: studioId.value,
       q: q.value.trim() || undefined,
-      status: status.value || undefined
+      status: status.value || undefined,
+      class_id: classFilter.value || undefined
     });
     students.value = data.list;
   } catch {
@@ -118,7 +123,15 @@ async function submitConsume() {
   }
 }
 
-onMounted(loadData);
+onMounted(async () => {
+  try {
+    const data = await fetchStudioClasses({ studio_id: studioId.value });
+    classOptions.value = data.list;
+  } catch {
+    // 忽略
+  }
+  loadData();
+});
 </script>
 
 <template>
@@ -127,6 +140,9 @@ onMounted(loadData);
       <template #header>
         <div class="panel-header">
           <div class="toolbar-left">
+            <el-select v-model="classFilter" placeholder="全部班级" clearable style="width: 160px" @change="loadData">
+              <el-option v-for="c in classOptions" :key="c.class_id" :label="c.name" :value="c.class_id" />
+            </el-select>
             <el-input
               v-model="q"
               placeholder="搜索学员昵称"
@@ -168,10 +184,14 @@ onMounted(loadData);
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="课时明细" min-width="220">
+        <el-table-column label="家长 / 报名时间" min-width="200">
           <template #default="{ row }">
-            <div v-for="b in row.balances" :key="b.balance_id" class="cell-sub">
-              {{ b.course_title }}：剩 {{ b.remaining_lessons }}/{{ b.total_lessons }} 节
+            <div class="cell-strong">
+              {{ row.balances?.[0]?.parent?.nickname || "-" }}
+              <span class="cell-sub">{{ row.balances?.[0]?.parent?.phone || "" }}</span>
+            </div>
+            <div class="cell-sub">
+              报名：{{ (row.balances?.map((b) => b.order_created_at).filter(Boolean).sort().shift() || "").slice(0, 10) || "-" }}
             </div>
           </template>
         </el-table-column>

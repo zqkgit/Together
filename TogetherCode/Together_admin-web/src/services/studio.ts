@@ -447,6 +447,8 @@ export interface StudentBalance {
   valid_from: string | null;
   valid_to: string | null;
   status: number;
+  parent: { user_id: string; phone: string; nickname: string } | null;
+  order_created_at: string | null;
 }
 
 export interface StudentItem {
@@ -463,6 +465,7 @@ export async function fetchStudioStudents(params: {
   studio_id: string;
   q?: string;
   status?: string;
+  class_id?: string;
 }): Promise<Paged<StudentItem>> {
   const response = await request.get("/studio/students", { params });
   return response.data;

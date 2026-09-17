@@ -11,7 +11,8 @@ const {
   Attendance,
   Class,
   TeacherProfile,
-  LeaveRequest
+  LeaveRequest,
+  User
 } = require("../models");
 const { generateId } = require("../utils/id");
 const { createNotification } = require("./messageService");
@@ -41,6 +42,22 @@ async function listStudioStudents(query = {}) {
     };
   }
 
+  let balanceWhere;
+  if (query.class_id) {
+    const classItem = await Class.findByPk(query.class_id, {
+      attributes: ["class_id", "course_id"]
+    });
+    if (!classItem) {
+      return { total: 0, list: [] };
+    }
+    balanceWhere = {
+      [Op.or]: [
+        { class_id: query.class_id },
+        { class_id: null, course_id: classItem.course_id }
+      ]
+    };
+  }
+
   const children = await Child.findAll({
     where,
     include: [
@@ -48,6 +65,7 @@ async function listStudioStudents(query = {}) {
         model: ChildCourseBalance,
         as: "balances",
         required: true,
+        where: balanceWhere,
         include: [
           {
             model: Order,
@@ -55,7 +73,14 @@ async function listStudioStudents(query = {}) {
             required: true,
             where: {
               studio_id: query.studio_id
-            }
+            },
+            include: [
+              {
+                model: User,
+                as: "user",
+                attributes: ["user_id", "phone", "nickname"]
+              }
+            ]
           },
           {
             model: Course,
@@ -79,6 +104,14 @@ async function listStudioStudents(query = {}) {
       refunded_lessons: balance.refunded_lessons,
       remaining_lessons: balance.remaining_lessons,
       valid_from: balance.valid_from,
+      parent: balance.order?.user
+        ? {
+            user_id: String(balance.order.user.user_id),
+            phone: balance.order.user.phone,
+            nickname: balance.order.user.nickname
+          }
+        : null,
+      order_created_at: balance.order ? balance.order.created_at : null,
       valid_to: balance.valid_to,
       status: balance.status
     }));
@@ -724,6 +757,7 @@ async function listStudentLessonLogs(childId, studioId, query = {}) {
         model: ChildCourseBalance,
         as: "balances",
         required: true,
+        where: query.class_id ? { class_id: query.class_id } : undefined,
         include: [
           {
             model: Order,
