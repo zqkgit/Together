@@ -196,6 +196,8 @@ final class TeacherMineViewController: BaseViewController, UITableViewDataSource
         switch item.title {
         case "我教的课程":
             navigationController?.pushViewController(MyTeachingCoursesViewController(), animated: true)
+        case "我的学生":
+            navigationController?.pushViewController(MyStudentsViewController(), animated: true)
         case "课表与排课":
             navigationController?.pushViewController(TeacherTimetableViewController(), animated: true)
         case "作品管理":

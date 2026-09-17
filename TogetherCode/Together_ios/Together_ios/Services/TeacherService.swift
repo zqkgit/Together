@@ -145,6 +145,102 @@ struct TeacherCourseList: Codable {
     let list: [TeacherCourseItem]?
 }
 
+// MARK: - 我的学生
+
+struct TeacherStudentClassSummary: Codable {
+    let class_id: String?
+    let name: String?
+}
+
+struct TeacherStudentCourse: Codable {
+    let course_id: String?
+    let title: String?
+    let class_id: String?
+    let class_name: String?
+    let remaining_lessons: Int?
+    let total_lessons: Int?
+
+    var remaining: Int { remaining_lessons ?? 0 }
+    var total: Int { total_lessons ?? 0 }
+}
+
+struct TeacherStudentRow: Codable {
+    let child_id: String?
+    let nickname: String?
+    let avatar: String?
+    let birthday: String?
+    let courses: [TeacherStudentCourse]?
+    let today_scheduled: Bool?
+    let leaving: Bool?
+
+    var name: String { nickname ?? "宝宝" }
+    var todayScheduled: Bool { today_scheduled ?? false }
+    var isLeaving: Bool { leaving ?? false }
+    var primaryCourse: TeacherStudentCourse? { courses?.first }
+    /// 任一门课剩余课时 ≤ 2 → 课时不足
+    var lowLessons: Bool {
+        guard let courses, !courses.isEmpty else { return false }
+        return courses.contains { $0.remaining <= 2 }
+    }
+    var ageText: String {
+        guard let birthday, birthday.count >= 10 else { return "" }
+        let year = Int(birthday.prefix(4)) ?? 0
+        let cal = Calendar.current
+        let currentYear = cal.component(.year, from: Date())
+        let age = max(currentYear - year, 0)
+        return age > 0 ? "\(age)岁" : ""
+    }
+}
+
+struct TeacherStudentListData: Codable {
+    let total: Int?
+    let classes: [TeacherStudentClassSummary]?
+    let list: [TeacherStudentRow]?
+}
+
+// MARK: - 请假
+
+struct TeacherLeaveChild: Codable {
+    let child_id: String?
+    let nickname: String?
+}
+
+struct TeacherLeaveCourse: Codable {
+    let course_id: String?
+    let title: String?
+}
+
+struct TeacherLeaveClass: Codable {
+    let class_id: String?
+    let name: String?
+    let course: TeacherLeaveCourse?
+}
+
+struct TeacherLeaveSchedule: Codable {
+    let lesson_date: String?
+    let start_time: String?
+    let end_time: String?
+}
+
+struct TeacherLeaveItem: Codable {
+    let leave_id: String?
+    let reason: String?
+    let status: Int?
+    let child: TeacherLeaveChild?
+    let `class`: TeacherLeaveClass?
+    let schedule: TeacherLeaveSchedule?
+
+    /// 卡片副标题：课程·班级·日期时间
+    var infoText: String {
+        var parts: [String] = []
+        if let title = `class`?.course?.title, !title.isEmpty { parts.append(title) }
+        if let name = `class`?.name, !name.isEmpty { parts.append(name) }
+        if let date = schedule?.lesson_date, !date.isEmpty { parts.append(date) }
+        if let t = schedule?.start_time, !t.isEmpty { parts.append(t) }
+        return parts.joined(separator: "·")
+    }
+}
+
 /// 老师端服务：工作台 / 点名消课（App 侧 /v1/teacher/*）
 enum TeacherService {
 
@@ -179,6 +275,57 @@ enum TeacherService {
             case .success(let json):
                 let data = JSONKit.decode(TeacherCourseList.self, from: json)
                 completion(.success(data?.list ?? []))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 我的学生：学生聚合（课程/剩余课时/今日上课/请假中）+ 班级列表
+    static func fetchStudents(completion: @escaping (Result<TeacherStudentListData, APIError>) -> Void) {
+        APIClient.shared.request("/teacher/students", method: .get) { result in
+            switch result {
+            case .success(let json):
+                let data = JSONKit.decode(TeacherStudentListData.self, from: json)
+                completion(.success(data ?? TeacherStudentListData(total: nil, classes: nil, list: nil)))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 待处理请假（status=0）
+    static func fetchPendingLeaves(completion: @escaping (Result<[TeacherLeaveItem], APIError>) -> Void) {
+        APIClient.shared.request(
+            "/teacher/leaves",
+            method: .get,
+            parameters: ["status": 0],
+            encoding: URLEncoding.queryString
+        ) { result in
+            switch result {
+            case .success(let json):
+                let list = JSONKit.decode([TeacherLeaveItem].self, from: json["list"]) ?? []
+                completion(.success(list))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 审批请假：action=agree 同意保留课时 / reject 婉拒
+    static func reviewLeave(
+        leaveId: String,
+        action: String,
+        completion: @escaping (Result<Void, APIError>) -> Void
+    ) {
+        APIClient.shared.request(
+            "/teacher/leaves/\(leaveId)",
+            method: .put,
+            parameters: ["action": action]
+        ) { result in
+            switch result {
+            case .success:
+                completion(.success(()))
             case .failure(let error):
                 completion(.failure(error))
             }

@@ -122,4 +122,30 @@ enum CourseService {
             }
         }
     }
+
+    /// 提交请假（家长端）
+    static func submitLeave(
+        classId: String,
+        childId: String,
+        scheduleId: String?,
+        reason: String,
+        completion: @escaping (Result<Void, APIError>) -> Void
+    ) {
+        var params: [String: Any] = [
+            "class_id": classId,
+            "child_id": childId,
+            "reason": reason
+        ]
+        if let scheduleId, !scheduleId.isEmpty {
+            params["schedule_id"] = scheduleId
+        }
+        APIClient.shared.request("/leave", method: .post, parameters: params) { result in
+            switch result {
+            case .success:
+                completion(.success(()))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
 }

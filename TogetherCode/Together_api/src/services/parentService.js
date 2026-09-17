@@ -9,7 +9,8 @@ const {
   Schedule,
   Class: ClassModel,
   TeacherProfile,
-  Attendance
+  Attendance,
+  LeaveRequest
 } = require("../models");
 
 // 订单状态：1 支付成功（与 orderService 一致）
@@ -622,6 +623,27 @@ async function getCourseSchedules(userId, query = {}) {
   const teacherItem = schedules.find((s) => s.teacher) || null;
   const studioItem = schedules.find((s) => s.studio) || null;
 
+  // 该生在此课程下已有的请假（按 schedule 聚合：0 无 / 1 待处理 / 2 已同意 / 3 已婉拒）
+  const scheduleIds = schedules.map((s) => String(s.schedule_id));
+  const leaveMap = new Map();
+  if (scheduleIds.length > 0) {
+    const leaves = await LeaveRequest.findAll({
+      where: {
+        child_id: child.child_id,
+        schedule_id: { [Op.in]: scheduleIds }
+      },
+      attributes: ["schedule_id", "status", "makeup_status"],
+      order: [["created_at", "DESC"]]
+    });
+    for (const leave of leaves) {
+      const key = String(leave.schedule_id);
+      // 同一节次多条取最新一条
+      if (!leaveMap.has(key)) {
+        leaveMap.set(key, Number(leave.status) === 1 ? 2 : Number(leave.status) === 2 ? 3 : 1);
+      }
+    }
+  }
+
   const list = schedules.map((schedule, index) => {
     const attendance = (schedule.attendanceRecords || []).find(
       (a) => String(a.child_id) === String(child.child_id)
@@ -633,6 +655,7 @@ async function getCourseSchedules(userId, query = {}) {
     const lessonNo = index + 1;
     return {
       schedule_id: String(schedule.schedule_id),
+      class_id: schedule.class_id ? String(schedule.class_id) : null,
       lesson_no: lessonNo,
       lesson_title:
         schedule.remark && String(schedule.remark).trim()
@@ -641,7 +664,9 @@ async function getCourseSchedules(userId, query = {}) {
       lesson_date: schedule.lesson_date,
       start_time: schedule.start_time,
       end_time: schedule.end_time,
-      status
+      status,
+      // 请假状态：0 无 / 1 待处理 / 2 已同意 / 3 已婉拒
+      leave_status: leaveMap.get(String(schedule.schedule_id)) || 0
     };
   });
 
@@ -651,6 +676,12 @@ async function getCourseSchedules(userId, query = {}) {
     course_id: courseId,
     course_title: balance.course ? balance.course.title : "-",
     course_cover: balance.course ? balance.course.cover : null,
+    // 班级：优先课包绑定班级，回退到该课程排课绑定的班级
+    class_id: balance.class_id
+      ? String(balance.class_id)
+      : schedules.find((s) => s.class_id)
+        ? String(schedules.find((s) => s.class_id).class_id)
+        : null,
     studio_name: studioItem?.studio ? studioItem.studio.name : null,
     teacher_name: teacherItem?.teacher ? teacherItem.teacher.real_name : null,
     total_lessons: Number(balance.total_lessons),

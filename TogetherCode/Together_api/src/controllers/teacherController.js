@@ -2,6 +2,7 @@ const { ok, fail } = require("../utils/response");
 const {
   listTeacherClasses,
   listTeacherCourses,
+  listTeacherStudents,
   getTeacherClassStudents,
   listTeacherTimetable,
   listTeacherLeaves,
@@ -42,6 +43,15 @@ async function getTeacherStudents(req, res) {
   } catch (error) {
     const status = /not found|does not belong/i.test(error.message) ? 400 : 500;
     return fail(res, status, status === 400 ? 40060 : 50000, error.message || "Internal server error");
+  }
+}
+
+async function getTeacherStudentsAll(req, res) {
+  try {
+    const data = await listTeacherStudents(req.user.userId);
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
   }
 }
 
@@ -173,6 +183,7 @@ module.exports = {
   getTeacherClasses,
   getTeacherCourses,
   getTeacherStudents,
+  getTeacherStudentsAll,
   getTeacherTimetable,
   getTeacherLeaves,
   putTeacherLeave,

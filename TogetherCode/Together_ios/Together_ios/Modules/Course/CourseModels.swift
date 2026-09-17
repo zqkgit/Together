@@ -210,6 +210,7 @@ struct NextLessonItem: Codable {
 
 struct CourseScheduleItem: Codable {
     let schedule_id: String
+    let class_id: String?
     let lesson_no: Int?
     let lesson_title: String?
     let lesson_date: String?
@@ -217,6 +218,8 @@ struct CourseScheduleItem: Codable {
     let end_time: String?
     /// 0 待上 / 1 已上 / 2 今天
     let status: Int?
+    /// 请假状态：0 无 / 1 待处理 / 2 已同意 / 3 已婉拒
+    let leave_status: Int?
 }
 
 // MARK: - 日期辅助
@@ -248,6 +251,7 @@ struct CourseScheduleSummary: Codable {
     let course_id: String?
     let course_title: String?
     let course_cover: String?
+    let class_id: String?
     let studio_name: String?
     let teacher_name: String?
     let total_lessons: Int?
@@ -257,7 +261,7 @@ struct CourseScheduleSummary: Codable {
 
     init() {
         child_id = nil; child_name = nil; course_id = nil; course_title = nil
-        course_cover = nil; studio_name = nil; teacher_name = nil
+        course_cover = nil; class_id = nil; studio_name = nil; teacher_name = nil
         total_lessons = nil; consumed_lessons = nil; remaining_lessons = nil; list = []
     }
 

@@ -122,7 +122,13 @@ function normalizeLeaveItem(item) {
     class: item.classItem
       ? {
           class_id: String(item.classItem.class_id),
-          name: item.classItem.name
+          name: item.classItem.name,
+          course: item.classItem.course
+            ? {
+                course_id: String(item.classItem.course.course_id),
+                title: item.classItem.course.title
+              }
+            : null
         }
       : null,
     schedule: item.schedule
@@ -595,6 +601,99 @@ async function listTeacherCourses(userId) {
   return { total: list.length, list };
 }
 
+async function listTeacherStudents(userId) {
+  const teacher = await ensureTeacherProfile(userId);
+  const classes = await Class.findAll({
+    where: { teacher_id: teacher.teacher_id },
+    include: [
+      {
+        model: Course,
+        as: "course",
+        attributes: ["course_id", "studio_id", "title", "total_lessons"]
+      }
+    ],
+    order: [["created_at", "DESC"]]
+  });
+
+  // 班级列表（筛选用）
+  const classSummary = classes.map((c) => ({
+    class_id: String(c.class_id),
+    name: c.name
+  }));
+
+  // 聚合学生（按课程花名册，child 去重；每 child 聚合其有效权益课程）
+  const childMap = new Map();
+  for (const cls of classes) {
+    if (!cls.course) continue;
+    const roster = await findRosterByCourse(cls.course.course_id, cls.course.studio_id);
+    for (const balance of roster) {
+      const childId = String(balance.child_id);
+      if (!childMap.has(childId)) {
+        childMap.set(childId, {
+          child_id: childId,
+          nickname: balance.child?.nickname || "宝宝",
+          avatar: balance.child?.avatar || null,
+          birthday: balance.child?.birthday || null,
+          courses: []
+        });
+      }
+      const entry = childMap.get(childId);
+      // 同一课程多个 balance 取剩余最大；不同课程各一条
+      const existing = entry.courses.find((c) => String(c.course_id) === String(cls.course.course_id));
+      const remaining = Number(balance.remaining_lessons || 0);
+      if (!existing) {
+        entry.courses.push({
+          course_id: String(cls.course.course_id),
+          title: cls.course.title,
+          class_id: String(cls.class_id),
+          class_name: cls.name,
+          remaining_lessons: remaining,
+          total_lessons: Number(cls.course.total_lessons || 0)
+        });
+      } else {
+        existing.remaining_lessons = Math.max(existing.remaining_lessons, remaining);
+      }
+    }
+  }
+
+  // 今日是否有排课 / 是否请假中（pending）
+  const today = localToday();
+  const childIds = [...childMap.keys()];
+  const todaySet = new Set();
+  const leavingSet = new Set();
+  if (childIds.length > 0) {
+    const todaySchedules = await Schedule.findAll({
+      where: { teacher_id: teacher.teacher_id, lesson_date: today },
+      include: [
+        { model: Course, as: "course", attributes: ["course_id", "studio_id"] }
+      ],
+      attributes: ["schedule_id", "course_id"]
+    });
+    for (const s of todaySchedules) {
+      if (!s.course) continue;
+      const roster = await findRosterByCourse(s.course_id, s.course.studio_id);
+      roster.forEach((b) => todaySet.add(String(b.child_id)));
+    }
+    const leaves = await LeaveRequest.findAll({
+      where: { child_id: { [Op.in]: childIds }, status: 0 },
+      attributes: ["child_id"]
+    });
+    leaves.forEach((l) => leavingSet.add(String(l.child_id)));
+  }
+
+  const list = [...childMap.values()].map((item) => ({
+    ...item,
+    today_scheduled: todaySet.has(item.child_id),
+    leaving: leavingSet.has(item.child_id)
+  }));
+
+  return {
+    total: list.length,
+    classes: classSummary,
+    list
+  };
+}
+
 async function getTeacherClassStudents(userId, classId, query = {}) {
   const teacher = await ensureTeacherProfile(userId);
   const classItem = await ensureTeacherClass(classId, teacher.teacher_id);
@@ -808,7 +907,10 @@ async function listTeacherLeaves(userId, query = {}) {
         where: {
           teacher_id: teacher.teacher_id
         },
-        attributes: ["class_id", "name"]
+        attributes: ["class_id", "name"],
+        include: [
+          { model: Course, as: "course", attributes: ["course_id", "title"] }
+        ]
       },
       { model: Child, as: "child", attributes: ["child_id", "nickname", "birthday"] },
       { model: User, as: "parent", attributes: ["user_id", "nickname", "phone"] },
@@ -1390,6 +1492,7 @@ async function undoTeacherPostConsumption(userId, postId, childIds) {
 module.exports = {
   listTeacherClasses,
   listTeacherCourses,
+  listTeacherStudents,
   getTeacherClassStudents,
   listTeacherTimetable,
   listTeacherLeaves,

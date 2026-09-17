@@ -18,6 +18,7 @@ const {
 const {
   getTeacherClasses,
   getTeacherCourses,
+  getTeacherStudentsAll,
   getTeacherStudents,
   getTeacherTimetable,
   getTeacherLeaves,
@@ -50,6 +51,7 @@ router.post("/schedules/:id/attendance", teacherScheduleAttendanceValidators, va
 router.post("/schedules/:id/attendance/undo", teacherScheduleAttendanceUndoValidators, validateRequest, postTeacherScheduleAttendanceUndo);
 router.get("/classes", getTeacherClasses);
 router.get("/courses", getTeacherCourses);
+router.get("/students", getTeacherStudentsAll);
 router.get("/classes/:id/students", teacherClassStudentsValidators, validateRequest, getTeacherStudents);
 router.get("/timetable", listTeacherTimetableValidators, validateRequest, getTeacherTimetable);
 router.get("/leaves", listTeacherLeavesValidators, validateRequest, getTeacherLeaves);
