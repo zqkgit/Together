@@ -8,6 +8,7 @@ import {
   createStudioSchedule,
   batchCreateStudioSchedules,
   fetchStudioTeachers,
+  fetchStudioCourses,
   fetchClassStudents,
   submitScheduleAttendance,
   type ScheduleItem,
@@ -90,8 +91,9 @@ async function loadData() {
 // ============ 新增排课 ============
 const createVisible = ref(false);
 const submitting = ref(false);
-const classes = ref<{ class_id: string; name: string; teacher_id: string | null; schedule_rule: { weekday: number[]; time: string } | null }[]>([]);
+const classes = ref<{ class_id: string; course_id: string; name: string; teacher_id: string | null; schedule_rule: { weekday: number[]; time: string } | null }[]>([]);
 const teachers = ref<TeacherStaffItem[]>([]);
+const courseLessonsMap = ref<Record<string, { lesson_no: number; title: string }[]>>({});
 const form = ref({
   studio_id: "",
   class_id: "",
@@ -101,6 +103,7 @@ const form = ref({
   start_time: "18:30",
   end_time: "20:00",
   location: "",
+  lesson_no: 1,
   remark: ""
 });
 
@@ -111,6 +114,9 @@ function applyClassTeacher(target: "form" | "batch") {
   // 排课老师固定为班级授课老师，不可更换
   model.teacher_id = teacher?.teacher_id || cls?.teacher_id || "";
   model.teacher_name = teacher?.real_name || "";
+  // 默认第 1 节课，自动带出对应课时标题
+  model.lesson_no = 1;
+  model.remark = courseLessonsMap.value[cls?.course_id || ""]?.[0]?.title || "";
   // 自动带入班级上课时段
   const ruleTime = cls?.schedule_rule?.time;
   if (ruleTime && ruleTime.includes("-")) {
@@ -119,6 +125,29 @@ function applyClassTeacher(target: "form" | "batch") {
       model.start_time = start.trim();
       model.end_time = end.trim();
     }
+  }
+}
+
+// 当前班级课程的总课次数（无课时标题时按课时数兜底）
+function currentLessonCount(classId: string): number {
+  const cls = classes.value.find((c) => c.class_id === classId);
+  const lessons = courseLessonsMap.value[cls?.course_id || ""];
+  if (lessons?.length) return lessons.length;
+  // 列表课程没带 lessons 时用班级课程时长兜底：默认 24
+  return 24;
+}
+
+function lessonTitleOf(classId: string, no: number): string {
+  const cls = classes.value.find((c) => c.class_id === classId);
+  return courseLessonsMap.value[cls?.course_id || ""]?.find((l) => l.lesson_no === no)?.title || "";
+}
+
+function onLessonNoChange(target: "form" | "batch") {
+  const model = target === "form" ? form.value : batchForm.value;
+  const cls = classes.value.find((c) => c.class_id === model.class_id);
+  const title = courseLessonsMap.value[cls?.course_id || ""]?.find((l) => l.lesson_no === model.lesson_no)?.title;
+  if (title) {
+    model.remark = title;
   }
 }
 
@@ -132,15 +161,20 @@ async function openCreate(date?: string) {
     start_time: "18:30",
     end_time: "20:00",
     location: "",
+    lesson_no: 1,
     remark: ""
   };
   try {
-    const [classData, teacherData] = await Promise.all([
+    const [classData, teacherData, courseData] = await Promise.all([
       fetchStudioClasses({ studio_id: studioId.value }),
-      fetchStudioTeachers()
+      fetchStudioTeachers(),
+      fetchStudioCourses({ studio_id: studioId.value })
     ]);
     classes.value = classData.list;
     teachers.value = teacherData.staff;
+    courseLessonsMap.value = Object.fromEntries(
+      courseData.list.map((c) => [c.course_id, (c.lessons || []).sort((a, b) => a.lesson_no - b.lesson_no)])
+    );
   } catch {
     classes.value = [];
     teachers.value = [];
@@ -189,6 +223,7 @@ const batchForm = ref({
   end_time: "20:00",
   location: "",
   remark: "",
+  lesson_no: 1,
   mode: "dates" as "dates" | "weekly",
   dates: [] as string[],
   weekdays: [] as number[],
@@ -215,6 +250,7 @@ async function openBatch() {
     end_time: "20:00",
     location: "",
     remark: "",
+    lesson_no: 1,
     mode: "dates",
     dates: [],
     weekdays: [],
@@ -224,10 +260,14 @@ async function openBatch() {
   try {
     const [classData, teacherData] = await Promise.all([
       fetchStudioClasses({ studio_id: studioId.value }),
-      fetchStudioTeachers()
+      fetchStudioTeachers(),
+      fetchStudioCourses({ studio_id: studioId.value })
     ]);
     classes.value = classData.list;
     teachers.value = teacherData.staff;
+    courseLessonsMap.value = Object.fromEntries(
+      courseData.list.map((c) => [c.course_id, (c.lessons || []).sort((a, b) => a.lesson_no - b.lesson_no)])
+    );
   } catch {
     classes.value = [];
     teachers.value = [];
@@ -405,6 +445,22 @@ onMounted(loadData);
             />
           </el-select>
         </el-form-item>
+        <el-form-item label="课次" required>
+          <el-select
+            v-model="form.lesson_no"
+            style="width: 100%"
+            placeholder="选择第几节课"
+            :disabled="!form.class_id"
+            @change="onLessonNoChange('form')"
+          >
+            <el-option
+              v-for="i in currentLessonCount(form.class_id)"
+              :key="i"
+              :label="`第${i}课${lessonTitleOf(form.class_id, i) ? ' · ' + lessonTitleOf(form.class_id, i) : ''}`"
+              :value="i"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item label="授课老师">
           <el-input
             v-model="form.teacher_name"
@@ -424,8 +480,8 @@ onMounted(loadData);
         <el-form-item label="上课地点">
           <el-input v-model="form.location" placeholder="如：3 号教室" />
         </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="form.remark" type="textarea" :rows="2" maxlength="255" />
+        <el-form-item label="课时标题">
+          <el-input v-model="form.remark" type="textarea" :rows="2" maxlength="255" placeholder="如：水彩第一课·认识三原色（家长端每节课显示此标题，不填显示第N课）" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -444,6 +500,22 @@ onMounted(loadData);
               :key="item.class_id"
               :label="item.name"
               :value="item.class_id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="课次" required>
+          <el-select
+            v-model="batchForm.lesson_no"
+            style="width: 100%"
+            placeholder="选择第几节课"
+            :disabled="!batchForm.class_id"
+            @change="onLessonNoChange('batch')"
+          >
+            <el-option
+              v-for="i in currentLessonCount(batchForm.class_id)"
+              :key="i"
+              :label="`第${i}课${lessonTitleOf(batchForm.class_id, i) ? ' · ' + lessonTitleOf(batchForm.class_id, i) : ''}`"
+              :value="i"
             />
           </el-select>
         </el-form-item>
@@ -504,8 +576,8 @@ onMounted(loadData);
         <el-form-item label="上课地点">
           <el-input v-model="batchForm.location" placeholder="如：3 号教室" />
         </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="batchForm.remark" type="textarea" :rows="2" maxlength="255" />
+        <el-form-item label="课时标题">
+          <el-input v-model="batchForm.remark" type="textarea" :rows="2" maxlength="255" placeholder="批量排课的课时标题（家长端每节课显示此标题，不填显示第N课）" />
         </el-form-item>
       </el-form>
       <template #footer>

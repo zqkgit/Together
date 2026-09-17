@@ -36,7 +36,8 @@ const form = ref<CoursePayload>({
   class_size: 8,
   distribute_rate: 0.1,
   validity_days: 180,
-  status: 1
+  status: 1,
+  lessons: []
 });
 
 const categoryLabel = (value: number) =>
@@ -87,7 +88,8 @@ function openCreate() {
     class_size: 8,
     distribute_rate: 0.1,
     validity_days: 180,
-    status: 1
+    status: 1,
+    lessons: Array.from({ length: 24 }, (_, i) => ({ lesson_no: i + 1, title: "" }))
   };
   editorVisible.value = true;
 }
@@ -108,9 +110,23 @@ async function openEdit(row: CourseItem) {
     class_size: row.class_size,
     distribute_rate: row.distribute_rate,
     validity_days: row.validity_days,
-    status: row.status
+    status: row.status,
+    lessons: row.lessons?.length
+      ? row.lessons.map((l) => ({ lesson_no: l.lesson_no, title: l.title }))
+      : Array.from({ length: row.total_lessons }, (_, i) => ({ lesson_no: i + 1, title: "" }))
   };
   editorVisible.value = true;
+}
+
+// 课时数变化 → 重建课时标题输入列表（保留已填内容）
+function syncLessonsCount() {
+  const total = Math.max(1, Number(form.value.total_lessons) || 1);
+  const next: { lesson_no: number; title: string }[] = [];
+  for (let i = 1; i <= total; i += 1) {
+    const existing = form.value.lessons?.find((l) => l.lesson_no === i);
+    next.push({ lesson_no: i, title: existing?.title ?? "" });
+  }
+  form.value.lessons = next;
 }
 
 function validateForm(): boolean {
@@ -146,7 +162,10 @@ async function submitCourse() {
       class_size: form.value.class_size,
       distribute_rate: form.value.distribute_rate,
       validity_days: form.value.validity_days,
-      status: form.value.status
+      status: form.value.status,
+      lessons: (form.value.lessons || [])
+        .filter((l) => l.title && l.title.trim())
+        .map((l) => ({ lesson_no: l.lesson_no, title: l.title.trim() }))
     };
     if (editorMode.value === "create") {
       await createCourse(payload);
@@ -291,7 +310,24 @@ onMounted(loadData);
           <el-input-number v-model="form.age_max" :min="1" :max="18" />
         </el-form-item>
         <el-form-item label="课时数" required>
-          <el-input-number v-model="form.total_lessons" :min="1" :max="200" />
+          <el-input-number v-model="form.total_lessons" :min="1" :max="200" @change="syncLessonsCount" />
+        </el-form-item>
+        <el-form-item label="课时标题">
+          <div class="lesson-list">
+            <div
+              v-for="(lesson, idx) in form.lessons || []"
+              :key="lesson.lesson_no"
+              class="lesson-row"
+            >
+              <span class="lesson-no">第{{ lesson.lesson_no }}课</span>
+              <el-input
+                v-model="lesson.title"
+                maxlength="120"
+                placeholder="填写该节课的标题（不填则家长端显示第N课）"
+              />
+              <span v-if="idx === 0" class="cell-sub">排课时自动带出</span>
+            </div>
+          </div>
         </el-form-item>
         <el-form-item label="单课时长" required>
           <el-input-number v-model="form.duration_min" :min="15" :step="15" />
@@ -334,6 +370,28 @@ onMounted(loadData);
 </template>
 
 <style scoped>
+.lesson-list {
+  width: 100%;
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lesson-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lesson-no {
+  flex-shrink: 0;
+  width: 64px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.lesson-row .el-input {
+  flex: 1;
+}
 .panel-header {
   display: flex;
   align-items: center;

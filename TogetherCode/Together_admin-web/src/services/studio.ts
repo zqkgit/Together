@@ -216,6 +216,7 @@ export interface CourseItem {
   studio: { studio_id: string; name: string; address: string; phone: string } | null;
   teacher: { teacher_id: string; real_name: string; intro: string; rating: number } | null;
   packages: CoursePackage[];
+  lessons?: { lesson_no: number; title: string }[];
 }
 
 export interface CoursePayload {

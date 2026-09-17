@@ -3,6 +3,7 @@ const {
   sequelize,
   Course,
   CoursePackage,
+  CourseLesson,
   Class,
   StudioProfile,
   TeacherProfile,
@@ -51,12 +52,47 @@ function normalizeCourseItem(course) {
       price: item.price,
       original_price: item.original_price,
       status: item.status
-    }))
+    })),
+    lessons: (course.lessons || [])
+      .slice()
+      .sort((a, b) => Number(a.lesson_no) - Number(b.lesson_no))
+      .map((item) => ({
+        lesson_no: Number(item.lesson_no),
+        title: item.title
+      }))
   };
 }
 
-async function ensureStudio(studioId, transaction) {
-  const studio = await StudioProfile.findByPk(studioId, { transaction });
+// 课时标题行：优先取 payload.lessons；缺省时按 total_lessons 生成「第N课」
+function buildLessonRows(payload, courseId) {
+  const total = Number(payload.total_lessons) || 0;
+  const rows = [];
+  if (Array.isArray(payload.lessons)) {
+    const valid = payload.lessons
+      .filter((item) => item && item.title && String(item.title).trim())
+      .map((item, index) => ({
+        lesson_id: generateId(),
+        course_id: courseId,
+        lesson_no: Number(item.lesson_no) || index + 1,
+        title: String(item.title).trim()
+      }));
+    for (const r of valid) {
+      rows.push(r);
+    }
+  } else {
+    for (let no = 1; no <= total; no += 1) {
+      rows.push({
+        lesson_id: generateId(),
+        course_id: courseId,
+        lesson_no: no,
+        title: `第${no}课`
+      });
+    }
+  }
+  return rows;
+}
+
+async function ensureStudio(studioId, transaction) {  const studio = await StudioProfile.findByPk(studioId, { transaction });
   if (!studio) {
     throw new Error("Studio not found");
   }
@@ -172,6 +208,13 @@ async function listStudioCourses(params = {}) {
         as: "packages",
         required: false,
         attributes: ["package_id", "name", "lessons", "price", "original_price", "status"]
+      },
+      {
+        model: CourseLesson,
+        as: "lessons",
+        required: false,
+        attributes: ["lesson_no", "title"],
+        order: [["lesson_no", "ASC"]]
       }
     ],
     order: [["created_at", "DESC"]]
@@ -195,6 +238,12 @@ async function getCourseDetail(courseId, options = {}) {
         attributes: ["package_id", "name", "lessons", "price", "original_price", "status"]
       },
       {
+        model: CourseLesson,
+        as: "lessons",
+        attributes: ["lesson_id", "lesson_no", "title"],
+        order: [["lesson_no", "ASC"]]
+      },
+      {
         model: Class,
         as: "classes",
         attributes: ["class_id", "name", "capacity", "enrolled", "start_date", "end_date", "schedule_rule"],
@@ -214,6 +263,13 @@ async function getCourseDetail(courseId, options = {}) {
   }
 
   const payload = normalizeCourseItem(row);
+  payload.lessons = (row.lessons || [])
+    .slice()
+    .sort((a, b) => Number(a.lesson_no) - Number(b.lesson_no))
+    .map((item) => ({
+      lesson_no: Number(item.lesson_no),
+      title: item.title
+    }));
   payload.classes = (row.classes || []).map((item) => ({
     class_id: String(item.class_id),
     name: item.name,
@@ -271,6 +327,12 @@ async function createCourse(payload) {
       );
     }
 
+    // 课时标题：lessons: [{lesson_no, title}]，缺省时按 total_lessons 生成「第N课」
+    const lessonRows = buildLessonRows(payload, course.course_id);
+    if (lessonRows.length > 0) {
+      await CourseLesson.bulkCreate(lessonRows, { transaction });
+    }
+
     return getCourseDetail(course.course_id, { transaction });
   });
 }
@@ -326,6 +388,18 @@ async function updateCourse(courseId, payload) {
           })),
           { transaction }
         );
+      }
+    }
+
+    // 课时标题：显式传了 lessons 才重建（避免 toggleStatus 等轻量更新覆盖标题）
+    if (Array.isArray(payload.lessons)) {
+      await CourseLesson.destroy({
+        where: { course_id: course.course_id },
+        transaction
+      });
+      const lessonRows = buildLessonRows(payload, course.course_id);
+      if (lessonRows.length > 0) {
+        await CourseLesson.bulkCreate(lessonRows, { transaction });
       }
     }
 
