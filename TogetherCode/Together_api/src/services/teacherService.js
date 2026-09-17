@@ -1005,12 +1005,23 @@ async function getTeacherWorkbench(userId) {
     });
   }
 
-  // 在读学生：老师名下班级 enrolled 求和
-  const classRows = await Class.findAll({
+  // 在读学生：老师名下班级对应课程的有效在读学生数（有效权益去重，兼容历史未绑班级数据）
+  const teacherClassRows = await Class.findAll({
     where: { teacher_id: teacher.teacher_id },
-    attributes: ["class_id", "enrolled"]
+    attributes: ["class_id", "course_id"]
   });
-  const activeStudents = classRows.reduce((sum, c) => sum + Number(c.enrolled || 0), 0);
+  const teacherCourseIds = teacherClassRows.map((c) => String(c.course_id));
+  let activeStudents = 0;
+  if (teacherCourseIds.length > 0) {
+    const activeBalances = await ChildCourseBalance.findAll({
+      where: {
+        course_id: { [Op.in]: teacherCourseIds },
+        status: { [Op.in]: [1, 2] }
+      },
+      attributes: ["child_id"]
+    });
+    activeStudents = new Set(activeBalances.map((b) => String(b.child_id))).size;
+  }
 
   // 本月出勤率：本月已消课人次 / 本月应到人次
   const monthStart = `${today.slice(0, 8)}01`;
