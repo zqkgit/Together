@@ -770,13 +770,20 @@ async function createTeacherPost(userId, payload) {
     const teacher = await ensureTeacherProfile(userId, transaction);
     const { course } = await resolvePostContext(teacher, payload, transaction);
 
+    const images = Array.isArray(payload.images) ? payload.images.slice(0, 9) : [];
+    // 作品帖必须至少一张图（平台内容规范，与家长发帖一致）
+    if (!images.length) {
+      return { error: { status: 400, code: 40060, message: "请至少上传一张作品图片" } };
+    }
+
     const post = await Post.create(
       {
         author_id: userId,
         author_role: 2,
         type: Number(payload.type || 1),
         course_id: course ? course.course_id : null,
-        images: payload.images || [],
+        class_id: classItem ? String(classItem.class_id) : null,
+        images,
         content: payload.content || null,
         visibility: payload.visibility !== undefined ? Number(payload.visibility) : 2,
         status: 1
@@ -854,6 +861,39 @@ async function markTeacherPostStudents(userId, postId, payload) {
 
     return normalizePost(post, students);
   });
+}
+
+/// 老师编辑自己的作品帖：仅作者本人可操作（改 content/images/topic/visibility；学生关联与消课不动，撤销走 undo）
+async function updateTeacherPost(userId, postId, payload) {
+  const post = await Post.findByPk(postId);
+  if (!post) return null;
+  if (String(post.author_id) !== String(userId) || Number(post.author_role) !== 2) {
+    return { error: { status: 403, code: 40003, message: "只能编辑自己的帖子" } };
+  }
+
+  const updates = {};
+  if (payload.content !== undefined) updates.content = String(payload.content).trim() || null;
+  // 编辑时可不传 images：保留原图；传了则必须至少一张
+  if (payload.images !== undefined) {
+    const images = Array.isArray(payload.images) ? payload.images.slice(0, 9) : [];
+    if (!images.length) {
+      return { error: { status: 400, code: 40060, message: "请至少上传一张作品图片" } };
+    }
+    updates.images = images;
+  }
+  if (payload.topic !== undefined) updates.topic = payload.topic ? String(payload.topic).trim().slice(0, 32) : null;
+  if (payload.visibility !== undefined) updates.visibility = Number(payload.visibility);
+  await post.update(updates);
+
+  const fresh = await Post.findByPk(postId, {
+    include: [
+      { model: User, as: "author", attributes: ["user_id", "nickname", "avatar", "current_role"] },
+      { model: Child, as: "child", attributes: ["child_id", "nickname", "avatar"] },
+      { model: Course, as: "course", attributes: ["course_id", "title", "studio_id", "price"] },
+      { model: PostStudent, as: "students", include: [{ model: Child, as: "child", attributes: ["child_id", "nickname", "avatar"] }] }
+    ]
+  });
+  return { data: normalizePost(fresh) };
 }
 
 // ===== 老师工作台 =====
@@ -1146,13 +1186,11 @@ async function undoTeacherPostConsumption(userId, postId, childIds) {
         },
         { transaction }
       );
-      await PostStudent.update(
-        { deducted: 0 },
-        {
-          where: { post_id: postId, child_id: childId, deducted: 1 },
-          transaction
-        }
-      );
+      // 撤销后该学生不再与帖子关联（删除关联记录，详情接口不再返回该学生）
+      await PostStudent.destroy({
+        where: { post_id: postId, child_id: childId, deducted: 1 },
+        transaction
+      });
       await log.destroy({ transaction });
 
       results.push({ child_id: String(childId), undone: true, remaining_lessons: remainingAfter });
@@ -1173,6 +1211,7 @@ module.exports = {
   listTeacherLeaves,
   reviewTeacherLeave,
   createTeacherPost,
+  updateTeacherPost,
   markTeacherPostStudents,
   getTeacherWorkbench,
   teacherAttendSchedule,

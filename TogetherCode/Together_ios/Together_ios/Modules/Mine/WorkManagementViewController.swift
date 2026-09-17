@@ -306,7 +306,7 @@ final class WorksManageCell: UICollectionViewCell {
         statusBadge.backgroundColor = item.isPublic ? Theme.Color.brand : Theme.Color.sub.withAlphaComponent(0.7)
 
         // 话题
-        if let topic = item.topic, !topic.isEmpty {
+        if let topic = item.safeTopic {
             topicLabel.text = "#\(topic)"
             topicLabel.isHidden = false
         } else {

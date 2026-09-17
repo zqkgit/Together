@@ -1,5 +1,5 @@
 const { Op } = require("sequelize");
-const { sequelize, Post, PostLike, PostComment, PostCommentLike, User, Child, Course, Favorite, PostStudent } = require("../models");
+const { sequelize, Post, PostLike, PostComment, PostCommentLike, User, Child, Course, Favorite, PostStudent, LessonLog, ChildCourseBalance, Order } = require("../models");
 const { generateId } = require("../utils/id");
 const { createNotification } = require("./messageService");
 
@@ -35,6 +35,7 @@ function normalizePostItem(post, viewerUserId = null, favoritePostIds = null) {
         }
       : null,
     course_id: post.course_id ? String(post.course_id) : null,
+    class_id: post.class_id ? String(post.class_id) : null,
     course: post.course
       ? {
           course_id: String(post.course.course_id),
@@ -61,6 +62,11 @@ function normalizePostItem(post, viewerUserId = null, favoritePostIds = null) {
     share_count: Number(post.share_count || 0),
     created_at: post.created_at
   };
+
+  // 当前查看者是否作者本人（编辑/删除入口判断，避免依赖客户端本地 userId）
+  if (viewerUserId) {
+    item.is_mine = String(post.author_id) === String(viewerUserId);
+  }
 
   if (viewerUserId && post.liked_by_viewer !== undefined) {
     item.is_liked = !!post.liked_by_viewer;
@@ -674,6 +680,97 @@ async function createParentPost(userId, payload) {
   return { data: normalizePostItem(post) };
 }
 
+/// 家长编辑自己的作品帖：仅作者本人可操作（content/images/topic/visibility/child/course）
+async function updatePost(userId, postId, payload) {
+  const post = await Post.findByPk(postId);
+  if (!post) return null;
+  if (String(post.author_id) !== String(userId)) {
+    return { error: { status: 403, code: 40003, message: "只能编辑自己的帖子" } };
+  }
+
+  const updates = {};
+  if (payload.content !== undefined) updates.content = String(payload.content).trim() || null;
+  // 编辑时可不传 images：保留原图；传了则必须至少一张
+  if (payload.images !== undefined) {
+    const images = Array.isArray(payload.images) ? payload.images.slice(0, 9) : [];
+    if (!images.length) {
+      return { error: { status: 400, code: 40060, message: "请至少上传一张作品图片" } };
+    }
+    updates.images = images;
+  }
+  if (payload.topic !== undefined) updates.topic = payload.topic ? String(payload.topic).trim().slice(0, 32) : null;
+  if (payload.visibility !== undefined) updates.visibility = Number(payload.visibility);
+  if (payload.child_id !== undefined) updates.child_id = payload.child_id || null;
+  if (payload.course_id !== undefined) updates.course_id = payload.course_id || null;
+  await post.update(updates);
+
+  const fresh = await Post.findByPk(postId, {
+    include: [
+      { model: User, as: "author", attributes: ["user_id", "nickname", "avatar", "current_role"] },
+      { model: Child, as: "child", attributes: ["child_id", "nickname", "avatar"] },
+      { model: Course, as: "course", attributes: ["course_id", "title", "studio_id", "price"] },
+      { model: PostStudent, as: "students", include: [{ model: Child, as: "child", attributes: ["child_id", "nickname", "avatar"] }] }
+    ]
+  });
+  return { data: normalizePostItem(fresh, userId) };
+}
+
+/// 删除帖子（家长/老师统一入口，仅作者本人）
+/// 老师帖：发帖消课（source=1）自动退课时；同时清理关联学生/评论/点赞/收藏
+async function deletePost(userId, postId) {
+  const post = await Post.findByPk(postId);
+  if (!post) return null;
+  if (String(post.author_id) !== String(userId)) {
+    return { error: { status: 403, code: 40003, message: "只能删除自己的帖子" } };
+  }
+
+  await sequelize.transaction(async (transaction) => {
+    // 1. 发帖消课（source=1）→ 退课时
+    const logs = await LessonLog.findAll({ where: { post_id: postId }, transaction });
+    for (const log of logs) {
+      if (Number(log.source) === 1) {
+        const delta = Math.abs(Number(log.delta || 1));
+        const order = await Order.findByPk(log.order_id, {
+          transaction,
+          lock: transaction.LOCK.UPDATE
+        });
+        const balance = await ChildCourseBalance.findOne({
+          where: { order_id: log.order_id, course_id: log.course_id, status: { [Op.in]: [1, 2] } },
+          transaction,
+          lock: transaction.LOCK.UPDATE
+        });
+        if (order && balance) {
+          const remainingAfter = Number(balance.remaining_lessons || 0) + delta;
+          await order.update(
+            { consumed_lessons: Math.max(Number(order.consumed_lessons || 0) - delta, 0) },
+            { transaction }
+          );
+          if (Number(order.status) === 2 && remainingAfter > 0) {
+            await order.update({ status: 1 }, { transaction });
+          }
+          await balance.update(
+            {
+              consumed_lessons: Math.max(Number(balance.consumed_lessons || 0) - delta, 0),
+              remaining_lessons: remainingAfter
+            },
+            { transaction }
+          );
+        }
+      }
+      await log.destroy({ transaction });
+    }
+    // 2. 清理关联数据
+    await PostStudent.destroy({ where: { post_id: postId }, transaction });
+    await PostComment.destroy({ where: { post_id: postId }, transaction });
+    await PostLike.destroy({ where: { post_id: postId }, transaction });
+    await Favorite.destroy({ where: { target_type: "post", target_id: postId }, transaction });
+    // 3. 删帖
+    await post.destroy({ transaction });
+  });
+
+  return { data: { post_id: String(postId) } };
+}
+
 module.exports = {
   getPostDetail,
   likePost,
@@ -687,6 +784,8 @@ module.exports = {
   listMyPosts,
   listChildFeed,
   createParentPost,
+  updatePost,
+  deletePost,
   likeComment,
   unlikeComment
 };

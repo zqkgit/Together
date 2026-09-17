@@ -28,6 +28,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.BIGINT,
         allowNull: true
       },
+      class_id: {
+        type: DataTypes.STRING(40),
+        allowNull: true
+      },
       images: {
         type: DataTypes.JSON,
         allowNull: true

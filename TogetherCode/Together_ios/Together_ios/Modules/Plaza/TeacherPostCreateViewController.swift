@@ -23,12 +23,56 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
             switch result {
             case .success(let list):
                 self.teacherClasses = list
+                // 编辑模式：回显帖子原班级/学生
+                if self.isEditingPost { self.applyPendingEditSelection() }
                 self.tableView.reloadData()
             case .failure(let error):
                 self.showToast(error.message)
             }
         }
         loadTopics(reloadSection: 4)
+    }
+
+    // MARK: - 编辑回显（帖子原班级/学生）
+
+    private var pendingEditClassId: String?
+    private var pendingEditCourseId: String?
+    private var pendingEditChildIds: [String] = []
+
+    override func applyEditingPost(_ post: PostItem) {
+        pendingEditClassId = post.class_id
+        pendingEditCourseId = post.course?.course_id
+        pendingEditChildIds = post.students?.map { $0.child_id } ?? []
+        if !teacherClasses.isEmpty {
+            applyPendingEditSelection()
+        }
+    }
+
+    /// 班级列表就绪后：优先按帖子 class_id 精确匹配，匹配不到按 course_id 兜底，再拉班级学生回显已关联学生
+    private func applyPendingEditSelection() {
+        var idx: Int?
+        if let classId = pendingEditClassId {
+            idx = teacherClasses.firstIndex(where: { $0.class_id == classId })
+        }
+        if idx == nil, let courseId = pendingEditCourseId {
+            idx = teacherClasses.firstIndex(where: { $0.course?.course_id == courseId })
+        }
+        guard let idx else { return }
+        selectedClass = teacherClasses[idx]
+        selectedStudentIds.removeAll()
+        classStudents = []
+        tableView.reloadData()
+        PostService.fetchTeacherClassStudents(classId: teacherClasses[idx].class_id) { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .success(let list):
+                self.classStudents = list
+                self.selectedStudentIds = Set(self.pendingEditChildIds)
+                self.tableView.reloadData()
+            case .failure(let error):
+                self.showToast(error.message)
+            }
+        }
     }
 
     private func loadClassStudents(classId: String) {
@@ -51,7 +95,13 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         switch section {
-        case 2, 3: return teacherClasses.isEmpty ? 0 : 1 // 课程·班级/消课卡片：无班级时用不到
+        case 2:
+            // 课程·班级卡：编辑/发布都显示（编辑回显帖子原班级）；无班级时用不到
+            return teacherClasses.isEmpty ? 0 : 1
+        case 3:
+            // 消课卡：仅发布时显示（"发布后同步消课"）；编辑无此语义
+            if isEditingPost { return 0 }
+            return teacherClasses.isEmpty ? 0 : 1
         default: return 1
         }
     }
@@ -71,6 +121,9 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
         case 0:
             let cell = tableView.dequeueReusableCell(withIdentifier: TextCell.reuseId, for: indexPath) as! TextCell
             cell.placeholder = "记录这节课的精彩瞬间，分享给家长…"
+            if let editingContent, !editingContent.isEmpty {
+                cell.setText(editingContent)
+            }
             return card(cell)
         case 1:
             let cell = tableView.dequeueReusableCell(withIdentifier: ImageGridCell.reuseId, for: indexPath) as! ImageGridCell
@@ -154,6 +207,19 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
     }
 
     override func publish(content: String, imageUrls: [String]) {
+        // 编辑模式：只更新正文/图片/话题/可见性（班级、学生、消课不变，撤销走 undo）
+        if let editingPostId {
+            PostService.updateTeacherPost(
+                postId: editingPostId,
+                content: content,
+                images: imageUrls,
+                topic: topic,
+                visibility: visibility
+            ) { [weak self] _, error in
+                self?.handlePublishSuccess(postId: nil, error: error)
+            }
+            return
+        }
         // 关联学生（家长可见/推送）与消课分离：选学生即关联；consume=true 才扣课时
         // 消课课次由后端按班级自动匹配（今天优先，无则最近一次）
         let students: [[String: Any]] = selectedStudentIds.map { ["child_id": $0, "count": 1] }

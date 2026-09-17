@@ -212,7 +212,9 @@ final class MineViewController: BaseViewController, UITableViewDataSource, UITab
             switch result {
             case .success(let json):
                 if let token = json["access_token"].string, !token.isEmpty {
-                    TokenManager.shared.save(token: token, userId: TokenManager.shared.userId ?? "", role: role)
+                    // 优先用后端返回的 user_id，避免旧空值覆盖（历史 bug）
+                    let uid = json["user"]["user_id"].string ?? TokenManager.shared.userId ?? ""
+                    TokenManager.shared.save(token: token, userId: uid, role: role)
                 }
                 self.showToast("已切换身份")
                 NotificationCenter.default.post(name: .userRoleDidChange, object: nil)

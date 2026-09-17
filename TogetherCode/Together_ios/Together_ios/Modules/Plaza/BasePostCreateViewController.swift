@@ -2,6 +2,7 @@ import UIKit
 import SnapKit
 import HXPhotoPicker
 import SwiftyJSON
+import Kingfisher
 
 /// 发布动态公共基类（家长 / 老师两端复用）
 /// 公共：导航（发布动态 + × 关闭）、底部发布栏、正文输入、图片九宫格、话题、谁可以看、卡片样式、选择器弹窗
@@ -16,6 +17,23 @@ class BasePostCreateViewController: BaseViewController, UITableViewDataSource, U
     var visibility = 2 // 2 公开 / 1 仅好友
     var topics: [String] = []
 
+    // MARK: - 编辑模式（非 nil = 编辑自己的帖子）
+
+    /// 编辑中的帖子 id（nil = 新建）
+    var editingPostId: String?
+    /// 编辑帖子作者角色（1 家长 / 2 老师），决定保存接口
+    var editingRole: Int?
+    /// 回填的正文（cell 创建时写入 TextCell）
+    var editingContent: String?
+    /// 是否编辑模式
+    var isEditingPost: Bool { editingPostId != nil }
+
+    convenience init(postId: String, role: Int) {
+        self.init(nibName: nil, bundle: nil)
+        editingPostId = postId
+        editingRole = role
+    }
+
     // MARK: - UI
 
     let tableView = UITableView(frame: .zero, style: .plain)
@@ -27,12 +45,16 @@ class BasePostCreateViewController: BaseViewController, UITableViewDataSource, U
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+        if let editingPostId {
+            loadEditingPost(editingPostId)
+        }
+        // 发布/编辑都要加载基础数据（孩子/班级/话题等），编辑时用于回显
         loadFormData()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        configureImmersiveNav(title: "发布动态")
+        configureImmersiveNav(title: isEditingPost ? "编辑动态" : "发布动态")
         // PR 图：右上角 × 关闭（无返回箭头）
         navigationItem.leftBarButtonItem = nil
         navigationItem.hidesBackButton = true
@@ -46,6 +68,48 @@ class BasePostCreateViewController: BaseViewController, UITableViewDataSource, U
         closeButton.snp.makeConstraints { $0.width.height.equalTo(38) }
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: closeButton)
     }
+
+    /// 编辑模式回显：拉详情 → 回填正文/话题/可见性/图片，子类再回填自己的字段
+    private func loadEditingPost(_ postId: String) {
+        showLoading()
+        PostService.fetchDetail(postId: postId) { [weak self] post, error in
+            guard let self else { return }
+            self.hideLoading()
+            if let error {
+                self.showToast(error)
+                return
+            }
+            guard let post else { return }
+            self.editingContent = post.bodyText
+            self.topic = post.safeTopic ?? ""
+            self.visibility = post.visibility ?? 2
+            // 图片回显：下载已有图片 URL 到 images（发布时统一重新上传）
+            let urls = post.images ?? []
+            if !urls.isEmpty {
+                self.images = []
+                let group = DispatchGroup()
+                for urlString in urls {
+                    group.enter()
+                    // 相对路径（/uploads/...）拼后端地址
+                    guard let url = URL(string: urlString.resolvedImageURL) else { group.leave(); continue }
+                    KingfisherManager.shared.retrieveImage(with: url) { result in
+                        if case .success(let value) = result {
+                            self.images.append(value.image)
+                        }
+                        group.leave()
+                    }
+                }
+                group.notify(queue: .main) {
+                    self.tableView.reloadData()
+                }
+            }
+            self.applyEditingPost(post)
+            self.tableView.reloadData()
+        }
+    }
+
+    /// 子类编辑回显扩展点（回填孩子/课程/班级等）
+    func applyEditingPost(_ post: PostItem) {}
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
@@ -85,6 +149,7 @@ class BasePostCreateViewController: BaseViewController, UITableViewDataSource, U
         publishButton.layer.cornerRadius = 22
         publishButton.clipsToBounds = true
         publishButton.addTarget(self, action: #selector(didTapPublish), for: .touchUpInside)
+        publishButton.setTitle(isEditingPost ? "保存" : "发布动态", for: .normal)
         bottomBar.addSubview(publishButton)
         publishButton.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.m)
@@ -178,11 +243,17 @@ class BasePostCreateViewController: BaseViewController, UITableViewDataSource, U
         let cell = UITableViewCell(style: .default, reuseIdentifier: "topicTag")
         cell.backgroundColor = Theme.Color.surface
         cell.selectionStyle = .none
+        // 编辑回显：当前话题未在热榜时置顶展示，且默认选中
+        var optionTags = topics.map { "#\($0)" }
+        let currentTag = topic.isEmpty ? nil : "#\(topic)"
+        if let currentTag, !optionTags.contains(currentTag) {
+            optionTags.insert(currentTag, at: 0)
+        }
         _ = embedTagView(
             in: cell,
             title: "选择话题",
-            options: topics.map { "#\($0)" },
-            selected: [],
+            options: optionTags,
+            selected: currentTag.map { [$0] } ?? [],
             multiple: false
         ) { [weak self] tags in
             self?.topic = tags.first?.replacingOccurrences(of: "#", with: "") ?? ""
@@ -290,7 +361,8 @@ class BasePostCreateViewController: BaseViewController, UITableViewDataSource, U
 
     @objc func didTapPublish() {
         view.endEditing(true)
-        guard !images.isEmpty else {
+        // 编辑模式允许无图保存（保留后端原图），发布必须至少一张
+        guard !images.isEmpty || isEditingPost else {
             showToast("请至少上传一张作品图片")
             return
         }
@@ -304,6 +376,11 @@ class BasePostCreateViewController: BaseViewController, UITableViewDataSource, U
 
     private func uploadAndPublish(content: String) {
         let datas = images.compactMap { $0.jpegData(compressionQuality: 0.8) }
+        // 编辑模式图片回显失败/未改动时：不重新上传，保留后端原图
+        if datas.isEmpty && isEditingPost {
+            publish(content: content, imageUrls: [])
+            return
+        }
         APIClient.shared.upload(files: datas, folder: "post") { [weak self] result in
             guard let self else { return }
             switch result {
@@ -322,9 +399,21 @@ class BasePostCreateViewController: BaseViewController, UITableViewDataSource, U
         }
     }
 
-    /// 发布成功统一处理
+    /// 发布/编辑成功统一处理
     func handlePublishSuccess(postId: String?, error: String?) {
         hideLoading()
+        if isEditingPost {
+            if error == nil {
+                showToast("编辑成功")
+                NotificationCenter.default.post(name: .postPublished, object: nil)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    self.dismiss(animated: true)
+                }
+            } else {
+                showToast(error ?? "编辑失败")
+            }
+            return
+        }
         if let postId, !postId.isEmpty {
             showToast("发布成功")
             NotificationCenter.default.post(name: .postPublished, object: nil)
@@ -512,6 +601,13 @@ final class TextCell: UITableViewCell, UITextViewDelegate {
     var maxLength = 100
 
     var text: String { textView.text }
+
+    /// 回填正文（编辑模式），同步更新占位/计数
+    func setText(_ newText: String) {
+        textView.text = newText
+        placeholderLabel.isHidden = !newText.isEmpty
+        countLabel.text = "\(newText.count)/\(maxLength)"
+    }
 
     private let textView = UITextView()
     private let placeholderLabel = UILabel()

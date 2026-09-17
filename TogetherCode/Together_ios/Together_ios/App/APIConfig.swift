@@ -31,4 +31,16 @@ enum APIConfig {
     static var baseURL: String {
         AppEnvironment.current.baseURL + apiPrefix
     }
+
+    /// 图片等静态资源根地址（无 /v1 前缀）
+    static var imageBaseURL: String {
+        AppEnvironment.current.baseURL
+    }
+}
+
+/// 相对路径图片 URL（后端上传返回 /uploads/...）统一转绝对地址
+extension String {
+    var resolvedImageURL: String {
+        hasPrefix("http") ? self : APIConfig.imageBaseURL + self
+    }
 }

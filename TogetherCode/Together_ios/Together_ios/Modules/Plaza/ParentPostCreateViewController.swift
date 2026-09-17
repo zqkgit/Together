@@ -21,6 +21,8 @@ final class ParentPostCreateViewController: BasePostCreateViewController {
             case .success(let list):
                 self.childList = list
                 if self.selectedChildId == nil { self.selectedChildId = list.first?.child_id }
+                // 编辑模式：用帖子原孩子/课程覆盖默认选择
+                if self.isEditingPost { self.applyPendingEditSelection() }
                 self.tableView.reloadData()
             case .failure(let error):
                 self.showToast(error.message)
@@ -55,6 +57,9 @@ final class ParentPostCreateViewController: BasePostCreateViewController {
         case 0:
             let cell = tableView.dequeueReusableCell(withIdentifier: TextCell.reuseId, for: indexPath) as! TextCell
             cell.placeholder = "分享孩子的成长瞬间，老师和其他家长都能看到并点赞。"
+            if let editingContent, !editingContent.isEmpty {
+                cell.setText(editingContent)
+            }
             return card(cell)
         case 1:
             let cell = tableView.dequeueReusableCell(withIdentifier: ImageGridCell.reuseId, for: indexPath) as! ImageGridCell
@@ -138,6 +143,20 @@ final class ParentPostCreateViewController: BasePostCreateViewController {
     }
 
     override func publish(content: String, imageUrls: [String]) {
+        if let editingPostId {
+            PostService.updatePost(
+                postId: editingPostId,
+                content: content,
+                images: imageUrls,
+                childId: selectedChildId ?? "",
+                courseId: selectedParentCourseId(),
+                topic: topic,
+                visibility: visibility
+            ) { [weak self] _, error in
+                self?.handlePublishSuccess(postId: nil, error: error)
+            }
+            return
+        }
         PostService.createPost(
             content: content,
             images: imageUrls,
@@ -148,6 +167,33 @@ final class ParentPostCreateViewController: BasePostCreateViewController {
         ) { [weak self] postId, error in
             self?.handlePublishSuccess(postId: postId, error: error)
         }
+    }
+
+    // MARK: - 编辑回显（帖子原孩子/课程）
+
+    private var pendingEditChildId: String?
+    private var pendingEditCourseId: String?
+
+    override func applyEditingPost(_ post: PostItem) {
+        pendingEditChildId = post.child?.child_id
+        pendingEditCourseId = post.course?.course_id
+        if !childList.isEmpty {
+            applyPendingEditSelection()
+        }
+    }
+
+    /// 孩子/课程列表就绪后应用编辑选择（覆盖默认第一个孩子）
+    private func applyPendingEditSelection() {
+        guard let childId = pendingEditChildId,
+              let idx = childList.firstIndex(where: { $0.child_id == childId }) else { return }
+        selectedChildId = childId
+        if let courseId = pendingEditCourseId {
+            let child = childList[idx]
+            if let cIdx = child.balances?.firstIndex(where: { $0.course_id == courseId }) {
+                selectedParentCourseIndex = cIdx
+            }
+        }
+        tableView.reloadData()
     }
 
     // MARK: - 关联课程

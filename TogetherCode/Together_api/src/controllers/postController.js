@@ -13,7 +13,9 @@ const {
   listPlaza,
   listMyPosts,
   listChildFeed,
-  createParentPost
+  createParentPost,
+  updatePost,
+  deletePost: deletePostService
 } = require("../services/postService");
 
 async function getPost(req, res) {
@@ -186,6 +188,36 @@ async function postParentPost(req, res) {
   }
 }
 
+async function putPost(req, res) {
+  try {
+    const result = await updatePost(req.user.userId, req.params.id, req.body);
+    if (!result) {
+      return fail(res, 404, 40400, "帖子不存在");
+    }
+    if (result.error) {
+      return fail(res, result.error.status, result.error.code, result.error.message);
+    }
+    return ok(res, result.data, "编辑成功");
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+async function deletePost(req, res) {
+  try {
+    const result = await deletePostService(req.user.userId, req.params.id);
+    if (!result) {
+      return fail(res, 404, 40400, "帖子不存在");
+    }
+    if (result.error) {
+      return fail(res, result.error.status, result.error.code, result.error.message);
+    }
+    return ok(res, result.data, "删除成功");
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   getPost,
   putPostLike,
@@ -200,5 +232,7 @@ module.exports = {
   getPlaza,
   getMyPosts,
   getChildFeed,
-  postParentPost
+  postParentPost,
+  putPost,
+  deletePost
 };

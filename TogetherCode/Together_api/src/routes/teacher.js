@@ -22,6 +22,7 @@ const {
   getTeacherLeaves,
   putTeacherLeave,
   postTeacherPost,
+  putTeacherPost,
   postTeacherPostStudents,
   getTeacherWorkbenchHandler,
   postTeacherScheduleAttendance,
@@ -50,6 +51,7 @@ router.get("/timetable", listTeacherTimetableValidators, validateRequest, getTea
 router.get("/leaves", listTeacherLeavesValidators, validateRequest, getTeacherLeaves);
 router.put("/leaves/:id", handleTeacherLeaveValidators, validateRequest, putTeacherLeave);
 router.post("/posts", createTeacherPostValidators, validateRequest, postTeacherPost);
+router.put("/posts/:id", putTeacherPost);
 router.post("/posts/:id/students", markTeacherPostStudentsValidators, validateRequest, postTeacherPostStudents);
 router.post("/posts/:id/students/undo", teacherPostStudentsUndoValidators, validateRequest, postTeacherPostStudentsUndo);
 router.post("/apply-studio", postStudioCooperation);

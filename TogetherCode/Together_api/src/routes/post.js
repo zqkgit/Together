@@ -14,7 +14,9 @@ const {
   getPlaza,
   getMyPosts,
   getChildFeed,
-  postParentPost
+  postParentPost,
+  putPost,
+  deletePost
 } = require("../controllers/postController");
 
 const router = express.Router();
@@ -31,6 +33,8 @@ router.get("/:id/comments", requireAuthOptional, getPostComments);
 
 // 以下需登录
 router.post("/", requireAuth, postParentPost);
+router.put("/:id", requireAuth, putPost);
+router.delete("/:id", requireAuth, deletePost);
 router.post("/:id/like", requireAuth, putPostLike);
 router.delete("/:id/like", requireAuth, deletePostLike);
 router.post("/:id/comments", requireAuth, postPostComment);

@@ -16,13 +16,25 @@ final class PostDetailViewController: BaseViewController {
     /// 回复目标的层级（0 根评论 / 1 一级回复 / 2 二级回复）
     private var replyingLevel = 0
 
-    private lazy var tableView = UITableView(frame: .zero, style: .plain)
-    private let headerView = PostHeaderView()
+    private lazy var tableView = UITableView(frame: .zero, style: .grouped)
     private let bottomBar = PostBottomBar()
     /// 键盘 accessory 输入条（键盘顶部显示）
     private let keyboardView = CommentKeyboardView()
     /// 隐藏输入框：承载 inputAccessoryView，becomeFirstResponder 时弹出键盘
     private let hiddenInput = UITextField()
+
+    /// 当前可见分组（按帖子内容动态决定）
+    private var sections: [PostDetailSection] {
+        guard let post else { return [.comments] }
+        var s: [PostDetailSection] = []
+        if !(post.images?.isEmpty ?? true) { s.append(.gallery) }
+        s.append(.author)
+        s.append(.content)
+        if let course = post.course, !(course.title ?? "").isEmpty { s.append(.course) }
+        if !post.studentList.isEmpty { s.append(.students) }
+        s.append(.comments)
+        return s
+    }
 
     init(postId: String) {
         self.postId = postId
@@ -38,11 +50,23 @@ final class PostDetailViewController: BaseViewController {
         setupTableView()
         loadDetail()
         loadComments()
-            }
+    }
+
+    @objc private func handlePostPublished() {
+        loadDetail()
+        loadComments()
+    }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         configureImmersiveNav(titleColor: .white, backBackground: UIColor.black.withAlphaComponent(0.28), backTint: .white)
+        // 编辑/删除保存后刷新详情（随页面生命周期注册/移除）
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handlePostPublished),
+            name: .postPublished,
+            object: nil
+        )
     }
 
     override var preferredStatusBarStyle: UIStatusBarStyle { .lightContent }
@@ -50,6 +74,7 @@ final class PostDetailViewController: BaseViewController {
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         restoreSystemNav()
+        NotificationCenter.default.removeObserver(self, name: .postPublished, object: nil)
     }
 
     private func setupTableView() {
@@ -58,25 +83,16 @@ final class PostDetailViewController: BaseViewController {
         tableView.showsVerticalScrollIndicator = false
         // 导航栏隐藏后，header 图片要顶到状态栏后面（避免顶部白条）
         tableView.contentInsetAdjustmentBehavior = .never
+        tableView.estimatedRowHeight = 120
+        tableView.rowHeight = UITableView.automaticDimension
         tableView.register(CommentCell.self, forCellReuseIdentifier: "CommentCell")
+        tableView.register(PostGalleryCell.self, forCellReuseIdentifier: "PostGalleryCell")
+        tableView.register(PostAuthorCell.self, forCellReuseIdentifier: "PostAuthorCell")
+        tableView.register(PostContentCell.self, forCellReuseIdentifier: "PostContentCell")
+        tableView.register(PostCourseCell.self, forCellReuseIdentifier: "PostCourseCell")
+        tableView.register(PostStudentCell.self, forCellReuseIdentifier: "PostStudentCell")
         tableView.dataSource = self
         tableView.delegate = self
-
-        headerView.onFollow = { [weak self] in self?.toggleFollow() }
-        headerView.onEnroll = { [weak self] in
-            guard let self, let courseId = self.post?.course?.course_id else { return }
-            let enroll = CourseEnrollViewController(courseId: courseId)
-            self.navigationController?.pushViewController(enroll, animated: true)
-        }
-        headerView.onTapImage = { [weak self] index in
-            guard let self, let images = self.post?.images, !images.isEmpty else { return }
-            let preview = ImagePreviewViewController(images: images, startIndex: index)
-            self.present(preview, animated: true)
-        }
-        headerView.onUndoStudent = { [weak self] student in
-            self?.confirmUndoStudent(student)
-        }
-        tableView.tableHeaderView = headerView
 
         view.addSubview(tableView)
         tableView.snp.makeConstraints {
@@ -114,10 +130,87 @@ final class PostDetailViewController: BaseViewController {
                 return
             }
             self.post = post
-            self.headerView.configure(post: post)
-            self.layoutHeader()
+            self.tableView.reloadData()
             self.bottomBar.configure(post: post)
+            self.updateEditNavItem()
         }
+    }
+
+    /// 作者本人（后端 is_mine 判断）右上角单个「更多」→ 弹出 编辑/删除 菜单
+    private func updateEditNavItem() {
+        guard let post, post.is_mine == true else {
+            navigationItem.rightBarButtonItem = nil
+            return
+        }
+        let moreButton = UIButton(type: .system)
+        moreButton.setImage(UIImage(systemName: "ellipsis"), for: .normal)
+        moreButton.tintColor = .white
+        moreButton.backgroundColor = UIColor.black.withAlphaComponent(0.28)
+        moreButton.layer.cornerRadius = 19
+        moreButton.clipsToBounds = true
+        moreButton.addTarget(self, action: #selector(didTapMorePost), for: .touchUpInside)
+        moreButton.snp.makeConstraints { $0.width.height.equalTo(38) }
+        navigationItem.rightBarButtonItem = UIBarButtonItem(customView: moreButton)
+    }
+
+    @objc private func didTapMorePost() {
+        guard post != nil else { return }
+        let sheet = ThemeActionSheet(
+            title: nil,
+            actions: [("编辑作品", false), ("删除作品", true)]
+        )
+        sheet.onSelect = { [weak self] index in
+            guard let self else { return }
+            // 等菜单 dismiss 完成后再 present 编辑页/删除弹框
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                if index == 0 {
+                    self.didTapEditPost()
+                } else if index == 1 {
+                    self.didTapDeletePost()
+                }
+            }
+        }
+        present(sheet, animated: false)
+    }
+
+    @objc private func didTapDeletePost() {
+        guard let post else { return }
+        ThemeAlertView.show(
+            title: "删除作品",
+            message: "删除后不可恢复，确定删除这篇作品吗？",
+            confirmTitle: "删除",
+            onConfirm: { [weak self] in
+                guard let self else { return }
+                self.showLoading()
+                PostService.deletePost(postId: post.post_id) { [weak self] error in
+                    guard let self else { return }
+                    self.hideLoading()
+                    if let error {
+                        self.showToast(error)
+                        return
+                    }
+                    self.showToast("删除成功")
+                    NotificationCenter.default.post(name: .postPublished, object: nil)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                        self.navigationController?.popViewController(animated: true)
+                    }
+                }
+            }
+        )
+    }
+
+    @objc private func didTapEditPost() {
+        guard let post else { return }
+        let role = post.author?.role ?? 1
+        let editor: BasePostCreateViewController
+        if role == 2 {
+            editor = TeacherPostCreateViewController(postId: post.post_id, role: 2)
+        } else {
+            editor = ParentPostCreateViewController(postId: post.post_id, role: 1)
+        }
+        let nav = UINavigationController(rootViewController: editor)
+        nav.modalPresentationStyle = .fullScreen
+        present(nav, animated: true)
     }
 
     private func loadComments() {
@@ -159,16 +252,6 @@ final class PostDetailViewController: BaseViewController {
             }
         }
         commentRows = rows
-    }
-
-    private func layoutHeader() {
-        guard let header = tableView.tableHeaderView else { return }
-        let width = view.bounds.width
-        let size = header.systemLayoutSizeFitting(
-            CGSize(width: width, height: UIView.layoutFittingCompressedSize.height)
-        )
-        header.frame = CGRect(x: 0, y: 0, width: width, height: size.height)
-        tableView.tableHeaderView = header
     }
 
     // MARK: - 交互
@@ -282,7 +365,7 @@ final class PostDetailViewController: BaseViewController {
             }
             post.is_following = target
             self.post = post
-            self.headerView.setFollowing(target)
+            self.tableView.reloadData()
             self.showToast(target ? "已关注" : "已取消关注")
         }
     }
@@ -334,28 +417,88 @@ final class PostDetailViewController: BaseViewController {
 // MARK: - UITableView
 
 extension PostDetailViewController: UITableViewDataSource, UITableViewDelegate {
+    func numberOfSections(in tableView: UITableView) -> Int {
+        sections.count
+    }
+
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        commentRows.count
+        let sec = sections[section]
+        return sec == .comments ? commentRows.count : 1
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "CommentCell", for: indexPath) as! CommentCell
-        let row = commentRows[indexPath.row]
-        let isOwn = row.comment.user?.user_id == TokenManager.shared.userId
-        cell.configure(comment: row.comment, level: row.level, replyToName: row.replyToName, isOwn: isOwn)
-        cell.onLike = { [weak self, weak cell] in
-            guard let self, let cell else { return }
-            self.toggleCommentLike(index: indexPath.row, cell: cell)
+        let sec = sections[indexPath.section]
+        switch sec {
+        case .gallery:
+            let cell = tableView.dequeueReusableCell(withIdentifier: "PostGalleryCell", for: indexPath) as! PostGalleryCell
+            cell.configure(images: post?.images ?? [])
+            cell.onTapImage = { [weak self] index in
+                guard let self, let images = self.post?.images, !images.isEmpty else { return }
+                let preview = ImagePreviewViewController(images: images, startIndex: index)
+                self.present(preview, animated: true)
+            }
+            return cell
+        case .author:
+            let cell = tableView.dequeueReusableCell(withIdentifier: "PostAuthorCell", for: indexPath) as! PostAuthorCell
+            // 无图帖为第一组时，顶部留出沉浸返回按钮的位置
+            let topInset: CGFloat = sections.first == .gallery ? Theme.Spacing.m : 44
+            cell.configure(post: post, topInset: topInset)
+            cell.onFollow = { [weak self] in self?.toggleFollow() }
+            return cell
+        case .content:
+            let cell = tableView.dequeueReusableCell(withIdentifier: "PostContentCell", for: indexPath) as! PostContentCell
+            cell.configure(post: post)
+            return cell
+        case .course:
+            let cell = tableView.dequeueReusableCell(withIdentifier: "PostCourseCell", for: indexPath) as! PostCourseCell
+            cell.configure(post: post)
+            cell.onEnroll = { [weak self] in
+                guard let self, let courseId = self.post?.course?.course_id else { return }
+                let enroll = CourseEnrollViewController(courseId: courseId)
+                self.navigationController?.pushViewController(enroll, animated: true)
+            }
+            return cell
+        case .students:
+            let cell = tableView.dequeueReusableCell(withIdentifier: "PostStudentCell", for: indexPath) as! PostStudentCell
+            let isAuthor = TokenManager.shared.userId == post?.author?.user_id
+            let isTeacher = post?.author?.role == 2
+            cell.configure(students: post?.studentList ?? [], canUndo: isAuthor && isTeacher)
+            cell.onUndoStudent = { [weak self] student in self?.confirmUndoStudent(student) }
+            return cell
+        case .comments:
+            let cell = tableView.dequeueReusableCell(withIdentifier: "CommentCell", for: indexPath) as! CommentCell
+            let row = commentRows[indexPath.row]
+            let isOwn = row.comment.user?.user_id == TokenManager.shared.userId
+            cell.configure(comment: row.comment, level: row.level, replyToName: row.replyToName, isOwn: isOwn)
+            cell.onLike = { [weak self, weak cell] in
+                guard let self, let cell else { return }
+                self.toggleCommentLike(index: indexPath.row, cell: cell)
+            }
+            cell.onReply = { [weak self] in
+                guard let self else { return }
+                self.startReply(to: self.commentRows[indexPath.row])
+            }
+            cell.onDelete = { [weak self] in
+                guard let self else { return }
+                self.confirmDeleteComment(at: indexPath.row)
+            }
+            return cell
         }
-        cell.onReply = { [weak self] in
-            guard let self else { return }
-            self.startReply(to: self.commentRows[indexPath.row])
+    }
+
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        sections[indexPath.section] == .gallery ? 400 : UITableView.automaticDimension
+    }
+
+    func tableView(_ tableView: UITableView, estimatedHeightForRowAt indexPath: IndexPath) -> CGFloat {
+        switch sections[indexPath.section] {
+        case .gallery: return 400
+        case .author: return 68
+        case .content: return 96
+        case .course: return 104
+        case .students: return 120
+        case .comments: return 60
         }
-        cell.onDelete = { [weak self] in
-            guard let self else { return }
-            self.confirmDeleteComment(at: indexPath.row)
-        }
-        return cell
     }
 
     /// 删除自己的评论：确认弹窗 → 调接口 → 移除本地数据
@@ -390,6 +533,7 @@ extension PostDetailViewController: UITableViewDataSource, UITableViewDelegate {
     }
 
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+        guard sections[section].showsHeader else { return nil }
         let label = UILabel()
         label.font = .appSection(14)
         label.textColor = Theme.Color.ink
@@ -404,371 +548,12 @@ extension PostDetailViewController: UITableViewDataSource, UITableViewDelegate {
         return wrap
     }
 
-    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat { 36 }
-}
-
-// MARK: - 帖子头部（渐变 + 作者 + 内容 + 大图 + 课程卡）
-
-final class PostHeaderView: UIView {
-
-    var onFollow: (() -> Void)?
-    var onEnroll: (() -> Void)?
-    var onTapImage: ((Int) -> Void)?
-    var onUndoStudent: ((PostItem.PostStudentItem) -> Void)?
-
-    // 顶部图片轮播（可横滑 + 点击全屏预览）
-    private let carouselView = ImageCarouselView()
-    // 发帖人信息（白底）
-    private let avatarView = AvatarPlaceholderView(name: "?", size: 44)
-    private let nameLabel = UILabel()
-    private let roleBadge = UILabel()
-    private let timeLabel = UILabel()
-    private let followButton = UIButton(type: .system)
-    // 内容
-    private let titleLabel = UILabel()
-    private let bodyLabel = UILabel()
-    private let topicLabel = UILabel()
-    // 课程卡
-    private let courseCard = UIView()
-    private let courseTitle = UILabel()
-    private let coursePrice = UILabel()
-    private let enrollButton = UIButton(type: .system)
-    // 关联学生卡（老师帖 + 有学生）
-    private let studentCard = UIView()
-    private let studentTitle = UILabel()
-    private var studentRowViews: [PostStudentRowView] = []
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        backgroundColor = Theme.Color.bg
-        setupCarousel()
-        setupAuthorRow()
-        setupContent()
-        setupCourseCard()
-        setupStudentCard()
+    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+        sections[section].showsHeader ? 36 : 0.001
     }
 
-    /// 关联学生卡片（课程卡下方）：标题 + 学生行（已消课可点撤销）
-    private func setupStudentCard() {
-        studentCard.backgroundColor = Theme.Color.surface
-        studentCard.layer.cornerRadius = Theme.Radius.card
-        studentCard.layer.borderWidth = 1
-        studentCard.layer.borderColor = Theme.Color.line.cgColor
-        addSubview(studentCard)
-        studentCard.snp.makeConstraints {
-            $0.top.equalTo(courseCard.snp.bottom).offset(Theme.Spacing.l)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
-        }
-
-        studentTitle.font = .appSection(13)
-        studentTitle.textColor = Theme.Color.sub
-        studentTitle.text = "已关联学生"
-        studentCard.addSubview(studentTitle)
-        studentTitle.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(Theme.Spacing.m)
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
-        }
-    }
-
-    /// 重建学生行（数据变化时调用）
-    private func rebuildStudentRows(_ students: [PostItem.PostStudentItem]) {
-        studentRowViews.forEach { $0.removeFromSuperview() }
-        studentRowViews = []
-
-        var previous: UIView = studentTitle
-        for student in students {
-            let row = PostStudentRowView()
-            row.onTap = { [weak self] in self?.onUndoStudent?(student) }
-            studentCard.addSubview(row)
-            row.snp.makeConstraints {
-                $0.top.equalTo(previous.snp.bottom).offset(Theme.Spacing.s)
-                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
-                $0.height.equalTo(40)
-            }
-            studentRowViews.append(row)
-            previous = row
-        }
-        if let last = studentRowViews.last {
-            last.snp.makeConstraints { $0.bottom.equalToSuperview().offset(-Theme.Spacing.m) }
-        } else {
-            studentTitle.snp.makeConstraints { $0.bottom.equalToSuperview().offset(-Theme.Spacing.m) }
-        }
-    }
-
-    /// 关联学生单行：头像 + 昵称 + 已消课/未消课
-    private final class PostStudentRowView: UIView {
-        var onTap: (() -> Void)?
-        private let avatarView = AvatarPlaceholderView(name: "?", size: 28)
-        private let nameLabel = UILabel()
-        private let statusLabel = UILabel()
-
-        override init(frame: CGRect) {
-            super.init(frame: frame)
-            avatarView.isUserInteractionEnabled = false
-            addSubview(avatarView)
-            avatarView.snp.makeConstraints {
-                $0.leading.centerY.equalToSuperview()
-                $0.width.height.equalTo(28)
-            }
-
-            nameLabel.font = .appBody(14)
-            nameLabel.textColor = Theme.Color.ink
-            addSubview(nameLabel)
-            nameLabel.snp.makeConstraints {
-                $0.leading.equalTo(avatarView.snp.trailing).offset(Theme.Spacing.s)
-                $0.centerY.equalToSuperview()
-            }
-
-            statusLabel.font = .appLabel(11)
-            statusLabel.textAlignment = .center
-            statusLabel.layer.cornerRadius = 8
-            statusLabel.clipsToBounds = true
-            addSubview(statusLabel)
-            statusLabel.snp.makeConstraints {
-                $0.centerY.trailing.equalToSuperview()
-                $0.height.equalTo(17)
-                $0.width.greaterThanOrEqualTo(44)
-            }
-
-            let tap = UITapGestureRecognizer(target: self, action: #selector(didTap))
-            addGestureRecognizer(tap)
-        }
-
-        required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
-        @objc private func didTap() { onTap?() }
-
-        func configure(student: PostItem.PostStudentItem) {
-            avatarView.update(name: student.nickname ?? "宝宝")
-            nameLabel.text = student.nickname ?? "宝宝"
-            let consumed = student.deducted == true
-            statusLabel.text = consumed ? "已消课" : "未消课"
-            statusLabel.textColor = consumed ? Theme.Color.brand : Theme.Color.sub
-            statusLabel.backgroundColor = consumed ? Theme.Color.brandSoft : Theme.Color.bg
-        }
-    }
-
-    /// 顶部图片数组轮播（400pt），返回按钮浮在图片左上角
-    private func setupCarousel() {
-        carouselView.onTapImage = { [weak self] index in self?.onTapImage?(index) }
-        addSubview(carouselView)
-        carouselView.snp.makeConstraints {
-            $0.top.leading.trailing.equalToSuperview()
-            $0.height.equalTo(400)
-        }
-    }
-
-    /// 发帖人信息行（白底，图片下方）
-    private func setupAuthorRow() {
-        addSubview(avatarView)
-        avatarView.snp.makeConstraints {
-            $0.top.equalTo(carouselView.snp.bottom).offset(Theme.Spacing.m)
-            $0.leading.equalToSuperview().inset(Theme.Spacing.m)
-            $0.width.height.equalTo(44)
-        }
-
-        nameLabel.font = .appSection(15)
-        nameLabel.textColor = Theme.Color.ink
-        addSubview(nameLabel)
-        nameLabel.snp.makeConstraints {
-            $0.top.equalTo(avatarView.snp.top)
-            $0.leading.equalTo(avatarView.snp.trailing).offset(Theme.Spacing.s)
-        }
-        nameLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        nameLabel.lineBreakMode = .byTruncatingTail
-
-        roleBadge.font = .appLabel(10)
-        roleBadge.textColor = Theme.Color.brand
-        roleBadge.textAlignment = .center
-        roleBadge.backgroundColor = Theme.Color.brandSoft
-        roleBadge.layer.cornerRadius = 8
-        roleBadge.clipsToBounds = true
-        addSubview(roleBadge)
-        roleBadge.snp.makeConstraints {
-            $0.centerY.equalTo(nameLabel)
-            $0.leading.equalTo(nameLabel.snp.trailing).offset(6)
-            $0.height.equalTo(16)
-            $0.width.greaterThanOrEqualTo(34)
-        }
-
-        timeLabel.font = .appLabel(11)
-        timeLabel.textColor = Theme.Color.muted
-        addSubview(timeLabel)
-        timeLabel.snp.makeConstraints {
-            $0.top.equalTo(nameLabel.snp.bottom).offset(3)
-            $0.leading.equalTo(nameLabel)
-        }
-
-        followButton.setTitle("+ 关注", for: .normal)
-        followButton.setTitleColor(Theme.Color.brand, for: .normal)
-        followButton.titleLabel?.font = .appLabel(12)
-        followButton.backgroundColor = Theme.Color.brandSoft
-        followButton.layer.cornerRadius = 13
-        followButton.contentEdgeInsets = UIEdgeInsets(top: 5, left: 10, bottom: 5, right: 10)
-        followButton.addTarget(self, action: #selector(didTapFollow), for: .touchUpInside)
-        addSubview(followButton)
-        followButton.snp.makeConstraints {
-            $0.centerY.equalTo(avatarView)
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.m)
-        }
-    }
-
-    private func setupContent() {
-        titleLabel.font = .appTitle(20)
-        titleLabel.textColor = Theme.Color.ink
-        titleLabel.numberOfLines = 0
-        addSubview(titleLabel)
-        titleLabel.snp.makeConstraints {
-            $0.top.equalTo(avatarView.snp.bottom).offset(Theme.Spacing.l)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
-        }
-
-        bodyLabel.font = .appBody(14)
-        bodyLabel.textColor = Theme.Color.sub
-        bodyLabel.numberOfLines = 0
-        addSubview(bodyLabel)
-        bodyLabel.snp.makeConstraints {
-            $0.top.equalTo(titleLabel.snp.bottom).offset(Theme.Spacing.s)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
-        }
-
-        topicLabel.font = .appLabel(12)
-        topicLabel.textColor = Theme.Color.brand
-        topicLabel.backgroundColor = Theme.Color.brandSoft
-        topicLabel.layer.cornerRadius = 11
-        topicLabel.clipsToBounds = true
-        topicLabel.textAlignment = .center
-        addSubview(topicLabel)
-        topicLabel.snp.makeConstraints {
-            $0.top.equalTo(bodyLabel.snp.bottom).offset(Theme.Spacing.s)
-            $0.leading.equalToSuperview().inset(Theme.Spacing.m)
-            $0.height.equalTo(22)
-            $0.width.greaterThanOrEqualTo(52)
-        }
-    }
-
-    private func setupCourseCard() {
-        courseCard.backgroundColor = Theme.Color.surface
-        courseCard.layer.cornerRadius = Theme.Radius.card
-        courseCard.layer.borderWidth = 1
-        courseCard.layer.borderColor = Theme.Color.line.cgColor
-        addSubview(courseCard)
-        courseCard.snp.makeConstraints {
-            $0.top.equalTo(topicLabel.snp.bottom).offset(Theme.Spacing.l)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
-            $0.bottom.equalToSuperview().inset(Theme.Spacing.m)
-            $0.height.equalTo(76)
-        }
-
-        courseTitle.font = .appBody(14)
-        courseTitle.textColor = Theme.Color.ink
-        courseTitle.numberOfLines = 1
-        courseCard.addSubview(courseTitle)
-        courseTitle.snp.makeConstraints {
-            $0.top.leading.equalToSuperview().inset(Theme.Spacing.m)
-            $0.trailing.lessThanOrEqualToSuperview().inset(88)
-        }
-
-        coursePrice.font = .appBody(13)
-        coursePrice.textColor = Theme.Color.clay
-        courseCard.addSubview(coursePrice)
-        coursePrice.snp.makeConstraints {
-            $0.top.equalTo(courseTitle.snp.bottom).offset(4)
-            $0.leading.equalTo(courseTitle)
-        }
-
-        enrollButton.setTitle("去报名", for: .normal)
-        enrollButton.setTitleColor(.white, for: .normal)
-        enrollButton.titleLabel?.font = .appLabel(13)
-        enrollButton.backgroundColor = Theme.Color.brand
-        enrollButton.layer.cornerRadius = Theme.Radius.button
-        enrollButton.addTarget(self, action: #selector(didTapEnroll), for: .touchUpInside)
-        courseCard.addSubview(enrollButton)
-        enrollButton.snp.makeConstraints {
-            $0.centerY.equalToSuperview()
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.m)
-            $0.width.equalTo(72)
-            $0.height.equalTo(34)
-        }
-    }
-
-    func configure(post: PostItem?) {
-        guard let post else { return }
-
-        // 图片数组轮播
-        carouselView.configure(images: post.images ?? [])
-
-        avatarView.update(name: post.authorName)
-        nameLabel.text = post.authorName
-        roleBadge.text = post.roleText
-        roleBadge.isHidden = post.roleText.isEmpty
-        timeLabel.text = "\(post.created_at?.shortRelativeTime ?? "")·广场"
-        setFollowing(post.is_following ?? false)
-
-        // 标题 + 正文：content 首行加粗为标题，其余为正文
-        let content = post.bodyText
-        let lines = content.split(separator: "\n", omittingEmptySubsequences: true)
-        if lines.count > 1 {
-            titleLabel.text = String(lines[0])
-            bodyLabel.text = lines.dropFirst().joined(separator: "\n")
-            bodyLabel.isHidden = false
-        } else {
-            titleLabel.text = content.isEmpty ? "作品分享" : content
-            bodyLabel.isHidden = true
-        }
-
-        if let topic = post.topic, !topic.isEmpty {
-            topicLabel.text = "#\(topic)"
-            topicLabel.isHidden = false
-        } else {
-            topicLabel.isHidden = true
-        }
-
-        // 课程卡
-        if let course = post.course, !(course.title ?? "").isEmpty {
-            courseCard.isHidden = false
-            courseTitle.text = course.title
-            if let price = course.price, price > 0 {
-                coursePrice.text = "¥\(String(format: "%.2f", Double(price) / 100)) 元"
-            } else {
-                coursePrice.text = "价格咨询"
-            }
-        } else {
-            courseCard.isHidden = true
-        }
-
-        // 关联学生卡（老师帖 + 有学生时展示；有学生必有课程上下文）
-        let students = post.studentList
-        NSLog("[PostDetail] students count=\(students.count) decoded=\(post.students?.count ?? -1)")
-        if !students.isEmpty {
-            studentCard.isHidden = false
-            rebuildStudentRows(students)
-        } else {
-            studentCard.isHidden = true
-            studentRowViews.forEach { $0.removeFromSuperview() }
-            studentRowViews = []
-        }
-    }
-
-    /// 关注状态刷新（"+ 关注" ↔ "已关注"）
-    func setFollowing(_ following: Bool) {
-        if following {
-            followButton.setTitle("已关注", for: .normal)
-            followButton.setTitleColor(Theme.Color.sub, for: .normal)
-            followButton.backgroundColor = UIColor.white.withAlphaComponent(0.2)
-            followButton.layer.borderWidth = 0.5
-            followButton.layer.borderColor = Theme.Color.line.cgColor
-        } else {
-            followButton.setTitle("+ 关注", for: .normal)
-            followButton.setTitleColor(Theme.Color.brand, for: .normal)
-            followButton.backgroundColor = Theme.Color.brandSoft
-            followButton.layer.borderWidth = 0
-        }
-    }
-
-    @objc private func didTapFollow() { onFollow?() }
-    @objc private func didTapEnroll() { onEnroll?() }
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? { nil }
+    func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat { 0.001 }
 }
 
 // MARK: - 评论 cell

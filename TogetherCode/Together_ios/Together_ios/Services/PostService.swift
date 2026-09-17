@@ -434,4 +434,75 @@ extension PostService {
             }
         }
     }
+
+    /// 编辑家长作品帖（仅作者本人）
+    static func updatePost(
+        postId: String,
+        content: String,
+        images: [String]?,
+        childId: String,
+        courseId: String? = nil,
+        topic: String = "",
+        visibility: Int = 2,
+        completion: @escaping (String?, String?) -> Void
+    ) {
+        var params: [String: Any] = [
+            "content": content,
+            "child_id": childId,
+            "visibility": visibility
+        ]
+        if let images, !images.isEmpty { params["images"] = images }
+        if let courseId, !courseId.isEmpty { params["course_id"] = courseId }
+        if !topic.isEmpty { params["topic"] = topic }
+
+        APIClient.shared.request("/posts/\(postId)", method: .put, parameters: params) { result in
+            switch result {
+            case .success:
+                completion(nil, nil)
+            case .failure(let error):
+                completion(nil, error.message)
+            }
+        }
+    }
+
+    /// 编辑老师作品帖（仅作者本人；学生关联与消课不动，撤销走 undo）
+    static func updateTeacherPost(
+        postId: String,
+        content: String,
+        images: [String]?,
+        topic: String = "",
+        visibility: Int = 2,
+        completion: @escaping (String?, String?) -> Void
+    ) {
+        var params: [String: Any] = [
+            "content": content,
+            "visibility": visibility
+        ]
+        if let images, !images.isEmpty { params["images"] = images }
+        if !topic.isEmpty { params["topic"] = topic }
+
+        APIClient.shared.request("/teacher/posts/\(postId)", method: .put, parameters: params) { result in
+            switch result {
+            case .success:
+                completion(nil, nil)
+            case .failure(let error):
+                completion(nil, error.message)
+            }
+        }
+    }
+
+    /// 删除帖子（家长/老师统一；老师帖自动退消课课时）
+    static func deletePost(
+        postId: String,
+        completion: @escaping (String?) -> Void
+    ) {
+        APIClient.shared.request("/posts/\(postId)", method: .delete, parameters: nil) { result in
+            switch result {
+            case .success:
+                completion(nil)
+            case .failure(let error):
+                completion(error.message)
+            }
+        }
+    }
 }

@@ -6,6 +6,7 @@ const {
   listTeacherLeaves,
   reviewTeacherLeave,
   createTeacherPost,
+  updateTeacherPost,
   markTeacherPostStudents,
   getTeacherWorkbench,
   teacherAttendSchedule,
@@ -77,6 +78,21 @@ async function postTeacherPost(req, res) {
   }
 }
 
+async function putTeacherPost(req, res) {
+  try {
+    const result = await updateTeacherPost(req.user.userId, req.params.id, req.body);
+    if (!result) {
+      return fail(res, 404, 40463, "帖子不存在");
+    }
+    if (result.error) {
+      return fail(res, result.error.status, result.error.code, result.error.message);
+    }
+    return ok(res, result.data, "编辑成功");
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 async function postTeacherPostStudents(req, res) {
   try {
     const data = await markTeacherPostStudents(req.user.userId, req.params.id, req.body);
@@ -140,6 +156,7 @@ module.exports = {
   getTeacherLeaves,
   putTeacherLeave,
   postTeacherPost,
+  putTeacherPost,
   postTeacherPostStudents,
   getTeacherWorkbenchHandler,
   postTeacherScheduleAttendance,

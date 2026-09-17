@@ -238,10 +238,12 @@ struct PostItem: Codable {
     var is_following: Bool?
     let child: PostChild?
     let course: PostCourse?
+    let class_id: String?    // 老师帖关联班级（编辑回显用）
     let students: [PostStudentItem]?
     let created_at: String?
     let visibility: Int? // 2 公开 / 1 仅好友
     let status: Int?     // 1 已通过 / 0 待审核 / -1 已驳回
+    let is_mine: Bool?   // 当前查看者是否作者本人（后端计算，不依赖本地 userId）
 
     struct PostAuthor: Codable {
         let user_id: String
@@ -278,6 +280,12 @@ struct PostItem: Codable {
     var roleText: String { author_role_text ?? "" }
     var bodyText: String { content ?? "" }
     var imageList: [String] { images ?? [] }
+    /// 安全话题：过滤后端可能写入的 "null"/"nil" 字符串
+    var safeTopic: String? {
+        guard let t = topic, !t.isEmpty,
+              t.lowercased() != "null", t.lowercased() != "nil" else { return nil }
+        return t
+    }
     var likeText: String { "\(like_count ?? 0)" }
     var commentText: String { "\(comment_count ?? 0)" }
     /// 是否公开（2=公开 / 1=仅好友）
