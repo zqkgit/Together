@@ -155,6 +155,18 @@ enum CourseService {
         let schedule_id: String?
         let child_id: String?
         let status: Int?
+        /// 补课状态：0=待补课(已安排/未安排) 1=已完成 2=已放弃
+        let makeup_status: Int?
+        /// 补课排课信息
+        let makeup_schedule: MakeupSchedule?
+
+        struct MakeupSchedule: Codable {
+            let schedule_id: String?
+            let lesson_date: String?
+            let start_time: String?
+            let end_time: String?
+            let location: String?
+        }
     }
 
     /// 我的请假列表

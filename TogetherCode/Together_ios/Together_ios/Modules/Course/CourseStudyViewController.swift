@@ -123,6 +123,7 @@ extension CourseStudyViewController: UITableViewDataSource, UITableViewDelegate 
                 item,
                 leaveId: leave?.leave_id,
                 leaveStatus: leave?.status.map { $0 + 1 },
+                makeupText: Self.makeupText(for: leave),
                 onLeave: { [weak self] in
                     self?.askLeave(item)
                 },
@@ -135,6 +136,26 @@ extension CourseStudyViewController: UITableViewDataSource, UITableViewDelegate 
     }
 
     // MARK: - 请假
+
+    /// 已同意请假单的补课展示文本（仅审批通过后可能安排补课）
+    private static func makeupText(for leave: CourseService.MyLeaveItem?) -> String? {
+        guard let leave, leave.status == 1 else { return nil }
+        let makeupStatus = leave.makeup_status ?? 0
+        if makeupStatus == 1 {
+            return "补课已完成 · 课时已消耗"
+        }
+        if makeupStatus == 2 {
+            return "已放弃补课"
+        }
+        // 0 = 已安排待补课：有补课排课才展示
+        guard let ms = leave.makeup_schedule, let date = ms.lesson_date else { return nil }
+        let time = [ms.start_time, ms.end_time].compactMap { $0 }.joined(separator: "-")
+        let loc = ms.location ?? ""
+        var text = "补课：\(date.mmddText)"
+        if !time.isEmpty { text += " \(time)" }
+        if !loc.isEmpty { text += " · \(loc)" }
+        return text
+    }
 
     private func askLeave(_ item: CourseScheduleItem) {
         // 优先取该课次所属班级，回退课程课包班级
@@ -215,9 +236,12 @@ final class CourseStudyCell: UITableViewCell {
     private let leaveButton = UIButton(type: .system)
     private let subtitleLabel = UILabel()
     private let timeLabel = UILabel()
+    private let makeupLabel = UILabel()
     private let statusButton = UIButton(type: .system)
     private var subtitleLeadingTitle: Constraint?
     private var subtitleLeadingLeave: Constraint?
+    private var subtitleBottom: Constraint?
+    private var makeupBottom: Constraint?
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -266,13 +290,27 @@ final class CourseStudyCell: UITableViewCell {
         card.addSubview(subtitleLabel)
         subtitleLabel.snp.makeConstraints { make in
             make.top.equalTo(titleLabel.snp.bottom).offset(5)
-            make.bottom.equalToSuperview().inset(Theme.Spacing.l)
+            subtitleBottom = make.bottom.equalToSuperview().inset(Theme.Spacing.l).constraint
             // 日期默认从标题列开始；显示请假按钮时切到按钮右侧
             subtitleLeadingTitle = make.leading.equalTo(titleLabel).constraint
             subtitleLeadingLeave = make.leading.equalTo(leaveButton.snp.trailing).offset(Theme.Spacing.s).constraint
         }
         // 两个 leading 互斥：默认只激活标题对齐，避免约束冲突崩溃
         subtitleLeadingLeave?.deactivate()
+
+        // 第三行：补课信息（仅已请假且有补课安排时显示，其余情况隐藏并恢复 subtitle 贴底）
+        makeupLabel.font = .appLabel(12)
+        makeupLabel.textColor = Theme.Color.clay
+        makeupLabel.numberOfLines = 1
+        makeupLabel.lineBreakMode = .byTruncatingTail
+        card.addSubview(makeupLabel)
+        makeupLabel.snp.makeConstraints { make in
+            make.top.equalTo(subtitleLabel.snp.bottom).offset(4)
+            make.leading.equalTo(titleLabel)
+            make.trailing.lessThanOrEqualToSuperview().inset(92)
+            makeupBottom = make.bottom.equalToSuperview().inset(Theme.Spacing.l).constraint
+        }
+        makeupBottom?.deactivate()
         leaveButton.snp.makeConstraints {
             $0.centerY.equalTo(subtitleLabel)
         }
@@ -309,6 +347,11 @@ final class CourseStudyCell: UITableViewCell {
         titleLabel.text = summary?.course_title ?? fallbackTitle
         subtitleLabel.text = summary?.studioTeacherText
         timeLabel.text = nil
+        // 头部无补课信息：隐藏补课行并恢复 subtitle 贴底
+        makeupLabel.text = nil
+        makeupLabel.isHidden = true
+        makeupBottom?.deactivate()
+        subtitleBottom?.activate()
         statusButton.isHidden = false
         statusButton.isUserInteractionEnabled = false
         leaveButton.isHidden = true
@@ -335,6 +378,7 @@ final class CourseStudyCell: UITableViewCell {
         _ item: CourseScheduleItem,
         leaveId: String? = nil,
         leaveStatus: Int? = nil,
+        makeupText: String? = nil,
         onLeave: (() -> Void)? = nil,
         onCancelLeave: (() -> Void)? = nil
     ) {
@@ -405,6 +449,19 @@ final class CourseStudyCell: UITableViewCell {
         }
         self.onLeave = canLeave ? onLeave : nil
         self.onCancelLeave = canCancel ? onCancelLeave : nil
+
+        // 补课信息行：已请假（同意）且有补课内容时显示，卡片高度自适应
+        if let makeupText, !makeupText.isEmpty {
+            makeupLabel.text = makeupText
+            makeupLabel.isHidden = false
+            subtitleBottom?.deactivate()
+            makeupBottom?.activate()
+        } else {
+            makeupLabel.text = nil
+            makeupLabel.isHidden = true
+            makeupBottom?.deactivate()
+            subtitleBottom?.activate()
+        }
 
         titleLabel.snp.updateConstraints {
             $0.trailing.lessThanOrEqualToSuperview().inset(84)
