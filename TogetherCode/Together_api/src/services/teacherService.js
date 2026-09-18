@@ -17,8 +17,8 @@ const {
   Attendance
 } = require("../models");
 const { createNotification } = require("./messageService");
-const { applyLessonConsumption, attendSchedule } = require("./studentService");
-const { reviewLeaveRequest } = require("./leaveService");
+const { applyLessonConsumption, attendSchedule, resetMakeupStatus } = require("./studentService");
+const { reviewLeaveRequest, bindMakeupSchedule } = require("./leaveService");
 
 function getWeekRange(week) {
   if (week) {
@@ -139,6 +139,15 @@ function normalizeLeaveItem(item) {
           end_time: item.schedule.end_time,
           location: item.schedule.location
         }
+      : null,
+    makeup_schedule: item.makeupSchedule
+      ? {
+          schedule_id: String(item.makeupSchedule.schedule_id),
+          lesson_date: item.makeupSchedule.lesson_date,
+          start_time: item.makeupSchedule.start_time,
+          end_time: item.makeupSchedule.end_time,
+          location: item.makeupSchedule.location
+        }
       : null
   };
 }
@@ -256,7 +265,8 @@ async function findRosterByCourse(courseId, studioId, transaction) {
         as: "order",
         required: true,
         where: {
-          studio_id: studioId
+          studio_id: studioId,
+          status: 1
         },
         attributes: ["order_id", "status", "created_at"]
       }
@@ -557,6 +567,8 @@ async function listTeacherCourses(userId) {
   }
 
   const list = [];
+  const studios = await StudioProfile.findAll({ attributes: ["studio_id", "name"] });
+  const studioMap = new Map(studios.map((st) => [String(st.studio_id), st.name]));
   for (const { course, classes: clsList } of courseMap.values()) {
     // 课程级在读学生（有效权益去重）
     const roster = await findRosterByCourse(course.course_id, course.studio_id);
@@ -589,6 +601,7 @@ async function listTeacherCourses(userId) {
 
     list.push({
       course_id: String(course.course_id),
+      studio_name: studioMap.get(String(course.studio_id)) || null,
       title: course.title,
       total_lessons: total,
       consumed_lessons: consumed,
@@ -601,7 +614,7 @@ async function listTeacherCourses(userId) {
   return { total: list.length, list };
 }
 
-async function listTeacherStudents(userId) {
+async function listTeacherStudents(userId, query = {}) {
   const teacher = await ensureTeacherProfile(userId);
   const classes = await Class.findAll({
     where: { teacher_id: teacher.teacher_id },
@@ -615,15 +628,22 @@ async function listTeacherStudents(userId) {
     order: [["created_at", "DESC"]]
   });
 
-  // 班级列表（筛选用）
+  // 班级列表（筛选用，带工作室名区分多工作室同名班）
+  const classStudios = await StudioProfile.findAll({ attributes: ["studio_id", "name"] });
+  const classStudioMap = new Map(classStudios.map((st) => [String(st.studio_id), st.name]));
   const classSummary = classes.map((c) => ({
     class_id: String(c.class_id),
-    name: c.name
+    name: c.name,
+    studio_name: (c.course && classStudioMap.get(String(c.course.studio_id))) || null
   }));
 
   // 聚合学生（按课程花名册，child 去重；每 child 聚合其有效权益课程）
+  // 按班级切换时只聚合该班学生（每班学生少，按班请求更轻）；班级列表始终全量供筛选
+  const targetClasses = query.class_id
+    ? classes.filter((c) => String(c.class_id) === String(query.class_id))
+    : classes;
   const childMap = new Map();
-  for (const cls of classes) {
+  for (const cls of targetClasses) {
     if (!cls.course) continue;
     const roster = await findRosterByCourse(cls.course.course_id, cls.course.studio_id);
     for (const balance of roster) {
@@ -788,6 +808,8 @@ async function listTeacherTimetable(userId, query = {}) {
     ]
   });
 
+  const studioRows = await StudioProfile.findAll({ attributes: ["studio_id", "name"] });
+  const studioMap = new Map(studioRows.map((st) => [String(st.studio_id), st.name]));
   const scheduleIds = schedules.map((item) => item.schedule_id);
   const scheduleLogs = scheduleIds.length
     ? await LessonLog.findAll({
@@ -855,6 +877,7 @@ async function listTeacherTimetable(userId, query = {}) {
       schedule_id: String(schedule.schedule_id),
       class_id: String(schedule.class_id),
       course_id: String(schedule.course_id),
+      studio_name: (schedule.course && studioMap.get(String(schedule.course.studio_id))) || null,
       lesson_date: schedule.lesson_date,
       start_time: schedule.start_time,
       end_time: schedule.end_time,
@@ -924,6 +947,11 @@ async function listTeacherLeaves(userId, query = {}) {
         model: Schedule,
         as: "schedule",
         attributes: ["schedule_id", "lesson_date", "start_time", "end_time", "location"]
+      },
+      {
+        model: Schedule,
+        as: "makeupSchedule",
+        attributes: ["schedule_id", "lesson_date", "start_time", "end_time", "location"]
       }
     ],
     order: [["created_at", "DESC"]]
@@ -956,6 +984,101 @@ async function reviewTeacherLeave(userId, leaveId, payload) {
   }
 
   return reviewLeaveRequest(leaveId, payload);
+}
+
+/**
+ * 老师安排 / 放弃补课：仅本人带班班级的已同意请假单可操作
+ * payload.makeup_schedule_id = 安排补课；payload.action = "abandon" = 放弃补课
+ */
+async function arrangeTeacherMakeup(userId, leaveId, payload) {
+  const teacher = await ensureTeacherProfile(userId);
+  const leave = await LeaveRequest.findByPk(leaveId, {
+    include: [
+      {
+        model: Class,
+        as: "classItem",
+        attributes: ["class_id", "teacher_id"]
+      }
+    ]
+  });
+
+  if (!leave) {
+    return null;
+  }
+
+  if (String(leave.classItem?.teacher_id || "") !== String(teacher.teacher_id)) {
+    throw new Error("Leave request does not belong to teacher");
+  }
+
+  return bindMakeupSchedule(leaveId, payload);
+}
+
+/**
+ * 补课候选课次：同班级、在原请假课次之后、未被用作补课且未消课的排课
+ */
+async function listTeacherMakeupCandidates(userId, leaveId) {
+  const teacher = await ensureTeacherProfile(userId);
+  const leave = await LeaveRequest.findByPk(leaveId, {
+    include: [
+      { model: Class, as: "classItem", attributes: ["class_id", "teacher_id"] },
+      {
+        model: Schedule,
+        as: "schedule",
+        attributes: ["schedule_id", "lesson_date", "start_time", "end_time"]
+      }
+    ]
+  });
+
+  if (!leave) {
+    return null;
+  }
+
+  if (String(leave.classItem?.teacher_id || "") !== String(teacher.teacher_id)) {
+    throw new Error("Leave request does not belong to teacher");
+  }
+
+  const leaveDate = leave.schedule?.lesson_date || "";
+  const leaveStart = leave.schedule?.start_time || "";
+  const afterWhere = leaveDate
+    ? {
+        [Op.or]: [
+          { lesson_date: { [Op.gt]: leaveDate } },
+          { lesson_date: leaveDate, start_time: { [Op.gt]: leaveStart } }
+        ]
+      }
+    : {};
+
+  const rows = await Schedule.findAll({
+    where: {
+      class_id: leave.class_id,
+      is_makeup: { [Op.ne]: true },
+      ...afterWhere
+    },
+    order: [
+      ["lesson_date", "ASC"],
+      ["start_time", "ASC"]
+    ]
+  });
+
+  const scheduleIds = rows.map((s) => s.schedule_id);
+  const consumedRows = scheduleIds.length
+    ? await Attendance.findAll({
+        where: { schedule_id: { [Op.in]: scheduleIds }, status: 1 },
+        attributes: ["schedule_id"]
+      })
+    : [];
+  const consumedSet = new Set(consumedRows.map((c) => String(c.schedule_id)));
+
+  return rows
+    .filter((s) => !consumedSet.has(String(s.schedule_id)))
+    .map((s) => ({
+      schedule_id: String(s.schedule_id),
+      lesson_date: s.lesson_date,
+      start_time: s.start_time,
+      end_time: s.end_time,
+      location: s.location,
+      remark: s.remark
+    }));
 }
 
 async function createTeacherPost(userId, payload) {
@@ -1346,7 +1469,7 @@ async function teacherAttendSchedule(userId, scheduleId, payload) {
 
 async function teacherUndoAttendance(userId, scheduleId, childIds) {
   const teacher = await ensureTeacherProfile(userId);
-  const schedule = await Schedule.findByPk(scheduleId, { attributes: ["schedule_id", "teacher_id"] });
+  const schedule = await Schedule.findByPk(scheduleId, { attributes: ["schedule_id", "teacher_id", "is_makeup"] });
   if (!schedule || String(schedule.teacher_id) !== String(teacher.teacher_id)) {
     throw new Error("Schedule does not belong to teacher");
   }
@@ -1415,6 +1538,11 @@ async function teacherUndoAttendance(userId, scheduleId, childIds) {
         });
       }
       await log.destroy({ transaction });
+
+      // 补课排课撤销出勤 → 对应请假单补课状态回退为待补
+      if (schedule.is_makeup) {
+        await resetMakeupStatus(schedule, childId, transaction);
+      }
 
       results.push({ child_id: String(childId), undone: true, remaining_lessons: remainingAfter });
     }
@@ -1504,6 +1632,8 @@ module.exports = {
   listTeacherTimetable,
   listTeacherLeaves,
   reviewTeacherLeave,
+  arrangeTeacherMakeup,
+  listTeacherMakeupCandidates,
   createTeacherPost,
   updateTeacherPost,
   markTeacherPostStudents,

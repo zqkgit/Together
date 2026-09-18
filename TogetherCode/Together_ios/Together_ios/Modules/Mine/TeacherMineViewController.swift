@@ -16,6 +16,7 @@ final class TeacherMineViewController: BaseViewController, UITableViewDataSource
     private let menuItems: [MenuItem] = [
         MenuItem(icon: "book.closed.fill", title: "我教的课程"),
         MenuItem(icon: "person.3.fill", title: "我的学生"),
+        MenuItem(icon: "checkmark.seal.fill", title: "请假审批"),
         MenuItem(icon: "calendar", title: "课表与排课"),
         MenuItem(icon: "photo.on.rectangle.angled", title: "作品管理"),
         MenuItem(icon: "yensign.circle", title: "收益中心"),
@@ -201,6 +202,8 @@ final class TeacherMineViewController: BaseViewController, UITableViewDataSource
             navigationController?.pushViewController(MyTeachingCoursesViewController(), animated: true)
         case "我的学生":
             navigationController?.pushViewController(MyStudentsViewController(), animated: true)
+        case "请假审批":
+            navigationController?.pushViewController(LeaveApprovalViewController(), animated: true)
         case "课表与排课":
             navigationController?.pushViewController(TeacherTimetableViewController(), animated: true)
         case "作品管理":

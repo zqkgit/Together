@@ -6,6 +6,8 @@ const {
   teacherClassStudentsValidators,
   listTeacherLeavesValidators,
   handleTeacherLeaveValidators,
+  handleTeacherMakeupValidators,
+  teacherLeaveIdValidators,
   createTeacherPostValidators,
   markTeacherPostStudentsValidators,
   teacherScheduleAttendanceValidators,
@@ -23,6 +25,8 @@ const {
   getTeacherTimetable,
   getTeacherLeaves,
   putTeacherLeave,
+  putTeacherMakeup,
+  getTeacherMakeupCandidates,
   postTeacherPost,
   putTeacherPost,
   postTeacherPostStudents,
@@ -56,6 +60,8 @@ router.get("/classes/:id/students", teacherClassStudentsValidators, validateRequ
 router.get("/timetable", listTeacherTimetableValidators, validateRequest, getTeacherTimetable);
 router.get("/leaves", listTeacherLeavesValidators, validateRequest, getTeacherLeaves);
 router.put("/leaves/:id", handleTeacherLeaveValidators, validateRequest, putTeacherLeave);
+router.put("/leaves/:id/makeup", handleTeacherMakeupValidators, validateRequest, putTeacherMakeup);
+router.get("/leaves/:id/makeup-candidates", teacherLeaveIdValidators, validateRequest, getTeacherMakeupCandidates);
 router.post("/posts", createTeacherPostValidators, validateRequest, postTeacherPost);
 router.put("/posts/:id", putTeacherPost);
 router.post("/posts/:id/students", markTeacherPostStudentsValidators, validateRequest, postTeacherPostStudents);

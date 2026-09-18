@@ -612,6 +612,39 @@ async function attendSchedule(scheduleId, payload) {
         throw new Error("Invalid attendance status");
       }
 
+      // 班级归属强校验：消课/请假扣课时必须落在排课所属班级+课程的有效订单上（防跨班消课）
+      if (status === 1 || status === 3) {
+        let order = null;
+        if (item.order_id) {
+          order = await Order.findByPk(item.order_id, {
+            transaction,
+            lock: transaction.LOCK.UPDATE
+          });
+          if (
+            !order ||
+            String(order.class_id || "") !== String(schedule.class_id || "") ||
+            String(order.course_id || "") !== String(schedule.course_id || "")
+          ) {
+            throw new Error("Student order does not belong to this class");
+          }
+        } else {
+          order = await Order.findOne({
+            where: {
+              child_id: item.child_id,
+              class_id: schedule.class_id,
+              course_id: schedule.course_id,
+              status: [1, 3]
+            },
+            transaction,
+            lock: transaction.LOCK.UPDATE
+          });
+          if (!order) {
+            throw new Error("Student has no active order in this class");
+          }
+          item.order_id = order.order_id;
+        }
+      }
+
       const existingAttendance = await Attendance.findOne({
         where: {
           schedule_id: schedule.schedule_id,
@@ -830,5 +863,6 @@ module.exports = {
   listClassStudents,
   attendSchedule,
   applyLessonConsumption,
+  resetMakeupStatus,
   listStudentLessonLogs
 };

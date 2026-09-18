@@ -338,7 +338,8 @@ final class TimetableDayCell: UITableViewCell {
 
         let location = item.location ?? "教室"
         let studentCount = item.student_count ?? 0
-        metaLabel.text = "\(location) · \(studentCount)名学生"
+        let studio = (item.studio_name?.isEmpty == false) ? "\(item.studio_name!) · " : ""
+        metaLabel.text = "\(studio)\(location) · \(studentCount)名学生"
 
         // 消课状态
         let statusText = item.consumeText ?? "待消课"

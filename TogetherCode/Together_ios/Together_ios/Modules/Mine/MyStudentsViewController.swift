@@ -1,15 +1,14 @@
 import UIKit
 import SnapKit
 
-/// 我的学生：班级筛选 + 待处理请假卡 + 学生列表（参考 PR：#myStudents）
+/// 我的学生：班级筛选 + 学生列表（参考 PR：#myStudents；请假审批已拆分为 LeaveApprovalViewController）
 final class MyStudentsViewController: BaseViewController, UITableViewDataSource, UITableViewDelegate {
 
     private let tableView = UITableView(frame: .zero, style: .grouped)
     private let classChipRow = TagChipRow(chips: ["全部班级"])
 
     private var classes: [TeacherStudentClassSummary] = []
-    private var allStudents: [TeacherStudentRow] = []
-    private var leaves: [TeacherLeaveItem] = []
+    private var students: [TeacherStudentRow] = []
     private var selectedClassIndex = 0
     private var loading = false
 
@@ -24,7 +23,7 @@ final class MyStudentsViewController: BaseViewController, UITableViewDataSource,
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         configureImmersiveNav(title: "我的学生")
-        if !allStudents.isEmpty { loadData() }
+        if !students.isEmpty { loadData(classId: selectedClassId) }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -43,16 +42,11 @@ final class MyStudentsViewController: BaseViewController, UITableViewDataSource,
         }
 
         classChipRow.onSelect = { [weak self] index in
-            self?.selectedClassIndex = index
-            self?.tableView.reloadData()
+            guard let self else { return }
+            self.selectedClassIndex = index
+            self.loadData(classId: self.selectedClassId)
         }
         filterWrap.addSubview(classChipRow)
-        classChipRow.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(Theme.Spacing.s)
-            $0.leading.trailing.equalToSuperview()
-            $0.height.equalTo(34)
-        }
-
         classChipRow.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.s)
             $0.leading.trailing.equalToSuperview()
@@ -63,7 +57,6 @@ final class MyStudentsViewController: BaseViewController, UITableViewDataSource,
         tableView.backgroundColor = Theme.Color.bg
         tableView.separatorStyle = .none
         tableView.showsVerticalScrollIndicator = false
-        tableView.register(LeaveRequestCell.self, forCellReuseIdentifier: LeaveRequestCell.reuseID)
         tableView.register(StudentRowCell.self, forCellReuseIdentifier: StudentRowCell.reuseID)
         tableView.dataSource = self
         tableView.delegate = self
@@ -76,222 +69,44 @@ final class MyStudentsViewController: BaseViewController, UITableViewDataSource,
         }
     }
 
-    private func loadData() {
-        guard !loading else { return }
-        loading = true
-        let group = DispatchGroup()
-        var studentsData: TeacherStudentListData?
-        var leaveData: [TeacherLeaveItem] = []
-
-        group.enter()
-        TeacherService.fetchStudents { result in
-            defer { group.leave() }
-            if case .success(let data) = result { studentsData = data }
-        }
-        group.enter()
-        TeacherService.fetchPendingLeaves { result in
-            defer { group.leave() }
-            if case .success(let list) = result { leaveData = list }
-        }
-        group.notify(queue: .main) { [weak self] in
-            guard let self else { return }
-            self.loading = false
-            self.classes = studentsData?.classes ?? []
-            self.allStudents = studentsData?.list ?? []
-            self.leaves = leaveData
-            var classChips = ["全部班级"]
-            classChips += self.classes.map { $0.name ?? "班级" }
-            self.classChipRow.update(chips: classChips, selectedIndex: self.selectedClassIndex)
-            self.tableView.reloadData()
-        }
+    private var selectedClassId: String? {
+        guard selectedClassIndex > 0, selectedClassIndex - 1 < classes.count else { return nil }
+        return classes[selectedClassIndex - 1].class_id
     }
 
-    // MARK: - 过滤
-
-    private var filteredStudents: [TeacherStudentRow] {
-        var list = allStudents
-        if selectedClassIndex > 0 {
-            let classId = classes[selectedClassIndex - 1].class_id
-            list = list.filter { $0.primaryCourse?.class_id == classId }
+    private func loadData(classId: String? = nil) {
+        guard !loading else { return }
+        loading = true
+        TeacherService.fetchStudents(classId: classId) { [weak self] result in
+            guard let self else { return }
+            self.loading = false
+            switch result {
+            case .success(let data):
+                self.classes = data.classes ?? []
+                self.students = data.list ?? []
+                var classChips = ["全部班级"]
+                classChips += self.classes.map { $0.displayName }
+                self.classChipRow.update(chips: classChips, selectedIndex: self.selectedClassIndex)
+                self.tableView.reloadData()
+            case .failure(let error):
+                self.showToast(error.message ?? "加载失败")
+            }
         }
-        return list
     }
 
     // MARK: - TableView
 
-    func numberOfSections(in tableView: UITableView) -> Int { 2 }
+    func numberOfSections(in tableView: UITableView) -> Int { 1 }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        section == 0 ? leaves.count : filteredStudents.count
-    }
-
-    func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
-        guard section == 0, !leaves.isEmpty else { return nil }
-        let label = UILabel()
-        label.font = .appSection(14)
-        label.textColor = Theme.Color.ink
-        label.text = "请假申请"
-        label.frame = CGRect(x: Theme.Spacing.l, y: 8, width: 300, height: 24)
-        let wrap = UIView()
-        wrap.backgroundColor = .clear
-        wrap.addSubview(label)
-        return wrap
-    }
-
-    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
-        section == 0 && !leaves.isEmpty ? 40 : (section == 1 ? 8 : 0)
+        students.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        if indexPath.section == 0 {
-            let cell = tableView.dequeueReusableCell(withIdentifier: LeaveRequestCell.reuseID, for: indexPath) as! LeaveRequestCell
-            let leave = leaves[indexPath.row]
-            cell.configure(leave)
-            cell.onAgree = { [weak self] in self?.review(leave, action: "agree", title: "同意请假", message: "同意后该节次保留课时，不再消课。") }
-            cell.onReject = { [weak self] in self?.review(leave, action: "reject", title: "婉拒请假", message: "婉拒后该节次按正常出勤处理（如需消课请到课表操作）。") }
-            return cell
-        }
         let cell = tableView.dequeueReusableCell(withIdentifier: StudentRowCell.reuseID, for: indexPath) as! StudentRowCell
-        cell.configure(filteredStudents[indexPath.row])
+        cell.configure(students[indexPath.row])
         return cell
     }
-
-    // MARK: - 审批
-
-    private func review(_ leave: TeacherLeaveItem, action: String, title: String, message: String) {
-        ThemeAlertView.show(
-            title: title,
-            message: message,
-            confirmTitle: "确认",
-            onConfirm: { [weak self] in
-                guard let self, let leaveId = leave.leave_id else { return }
-                self.showLoading()
-                TeacherService.reviewLeave(leaveId: leaveId, action: action) { [weak self] result in
-                    guard let self else { return }
-                    self.hideLoading()
-                    switch result {
-                    case .success:
-                        self.showToast(action == "agree" ? "已同意，课时保留" : "已婉拒")
-                        self.loadData()
-                    case .failure(let error):
-                        self.showToast(error.message ?? "操作失败")
-                    }
-                }
-            }
-        )
-    }
-}
-
-// MARK: - 请假申请卡
-
-final class LeaveRequestCell: UITableViewCell {
-
-    static let reuseID = "LeaveRequestCell"
-    var onAgree: (() -> Void)?
-    var onReject: (() -> Void)?
-
-    private let container = UIView()
-    private let titleLabel = UILabel()
-    private let infoLabel = UILabel()
-    private let reasonLabel = UILabel()
-    private let rejectButton = UIButton(type: .system)
-    private let agreeButton = UIButton(type: .system)
-
-    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
-        super.init(style: style, reuseIdentifier: reuseIdentifier)
-        backgroundColor = Theme.Color.bg
-        selectionStyle = .none
-
-        container.backgroundColor = Theme.Color.surface
-        container.layer.cornerRadius = Theme.Radius.card
-        container.layer.borderWidth = 1
-        container.layer.borderColor = Theme.Color.warnTint.cgColor
-        contentView.addSubview(container)
-        container.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(4)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
-            $0.bottom.equalToSuperview().inset(4)
-        }
-
-        titleLabel.font = .appBody(14)
-        titleLabel.textColor = Theme.Color.ink
-        container.addSubview(titleLabel)
-        titleLabel.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(Theme.Spacing.m)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
-        }
-
-        infoLabel.font = .appBody(12)
-        infoLabel.textColor = Theme.Color.muted
-        infoLabel.numberOfLines = 2
-        container.addSubview(infoLabel)
-        infoLabel.snp.makeConstraints {
-            $0.top.equalTo(titleLabel.snp.bottom).offset(4)
-            $0.leading.trailing.equalTo(titleLabel)
-        }
-
-        reasonLabel.font = .appBody(13)
-        reasonLabel.textColor = Theme.Color.ink
-        reasonLabel.numberOfLines = 3
-        container.addSubview(reasonLabel)
-        reasonLabel.snp.makeConstraints {
-            $0.top.equalTo(infoLabel.snp.bottom).offset(6)
-            $0.leading.trailing.equalTo(titleLabel)
-        }
-
-        let divider = UIView()
-        divider.backgroundColor = Theme.Color.line
-        container.addSubview(divider)
-        divider.snp.makeConstraints {
-            $0.top.equalTo(reasonLabel.snp.bottom).offset(Theme.Spacing.m)
-            $0.leading.trailing.equalTo(titleLabel)
-            $0.height.equalTo(0.5)
-        }
-
-        rejectButton.setTitle("婉拒并私聊", for: .normal)
-        rejectButton.titleLabel?.font = .appBody(13)
-        rejectButton.setTitleColor(Theme.Color.clay, for: .normal)
-        rejectButton.layer.borderWidth = 1
-        rejectButton.layer.borderColor = Theme.Color.line.cgColor
-        rejectButton.layer.cornerRadius = 17
-        rejectButton.addTarget(self, action: #selector(didTapReject), for: .touchUpInside)
-
-        agreeButton.setTitle("同意·课时保留", for: .normal)
-        agreeButton.titleLabel?.font = .appBody(13)
-        agreeButton.setTitleColor(.white, for: .normal)
-        agreeButton.backgroundColor = Theme.Color.brand
-        agreeButton.layer.cornerRadius = 17
-        agreeButton.addTarget(self, action: #selector(didTapAgree), for: .touchUpInside)
-
-        container.addSubview(rejectButton)
-        container.addSubview(agreeButton)
-        rejectButton.snp.makeConstraints {
-            $0.top.equalTo(divider.snp.bottom).offset(Theme.Spacing.m)
-            $0.leading.equalTo(titleLabel)
-            $0.width.equalTo(120)
-            $0.height.equalTo(34)
-            $0.bottom.equalToSuperview().inset(Theme.Spacing.m)
-        }
-        agreeButton.snp.makeConstraints {
-            $0.top.equalTo(rejectButton)
-            $0.leading.equalTo(rejectButton.snp.trailing).offset(Theme.Spacing.m)
-            $0.width.equalTo(rejectButton)
-            $0.height.equalTo(rejectButton)
-        }
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    func configure(_ leave: TeacherLeaveItem) {
-        titleLabel.text = "\(leave.child?.nickname ?? "孩子") 家长申请请假"
-        infoLabel.text = leave.infoText
-        reasonLabel.text = "“\(leave.reason ?? "")”"
-    }
-
-    @objc private func didTapReject() { onReject?() }
-    @objc private func didTapAgree() { onAgree?() }
 }
 
 // MARK: - 学生行

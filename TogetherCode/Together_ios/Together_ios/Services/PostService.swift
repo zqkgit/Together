@@ -301,6 +301,7 @@ struct TeacherStudentItem: Codable {
 /// 老师排课（课次）
 struct TeacherTimetableItem: Codable {
     let schedule_id: String
+    let studio_name: String?
     let lesson_date: String?
     let start_time: String?
     let end_time: String?

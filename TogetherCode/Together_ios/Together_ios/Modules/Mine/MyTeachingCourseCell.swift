@@ -45,6 +45,7 @@ final class MyTeachingCourseCell: UITableViewCell {
 
         classLabel.font = .appBody(13)
         classLabel.textColor = Theme.Color.muted
+        classLabel.numberOfLines = 2
         container.addSubview(classLabel)
         classLabel.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(6)

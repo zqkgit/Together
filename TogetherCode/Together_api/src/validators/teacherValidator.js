@@ -22,6 +22,20 @@ const handleTeacherLeaveValidators = [
   body("note").optional({ values: "falsy" }).isString().isLength({ max: 255 })
 ];
 
+const teacherLeaveIdValidators = [
+  param("id").isString().notEmpty().withMessage("leave id is required")
+];
+
+// 安排补课（makeup_schedule_id）或放弃补课（action=abandon）
+const handleTeacherMakeupValidators = [
+  param("id").isString().notEmpty().withMessage("leave id is required"),
+  body("action").optional().isIn(["abandon"]).withMessage("action is invalid"),
+  body("makeup_schedule_id")
+    .optional({ values: "falsy" })
+    .isString()
+    .withMessage("makeup_schedule_id is required when arranging")
+];
+
 const createTeacherPostValidators = [
   // 老师支持纯分享帖：course_id 可选；有 students（关联学生）时必须有课程上下文
   body("course_id")
@@ -84,6 +98,8 @@ module.exports = {
   teacherClassStudentsValidators,
   listTeacherLeavesValidators,
   handleTeacherLeaveValidators,
+  handleTeacherMakeupValidators,
+  teacherLeaveIdValidators,
   createTeacherPostValidators,
   markTeacherPostStudentsValidators,
   teacherScheduleAttendanceValidators,

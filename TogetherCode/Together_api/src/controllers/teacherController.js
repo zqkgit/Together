@@ -14,7 +14,9 @@ const {
   getTeacherMine,
   teacherAttendSchedule,
   teacherUndoAttendance,
-  undoTeacherPostConsumption
+  undoTeacherPostConsumption,
+  arrangeTeacherMakeup,
+  listTeacherMakeupCandidates
 } = require("../services/teacherService");
 
 async function getTeacherClasses(req, res) {
@@ -48,7 +50,7 @@ async function getTeacherStudents(req, res) {
 
 async function getTeacherStudentsAll(req, res) {
   try {
-    const data = await listTeacherStudents(req.user.userId);
+    const data = await listTeacherStudents(req.user.userId, req.query);
     return ok(res, data);
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");
@@ -86,6 +88,36 @@ async function putTeacherLeave(req, res) {
   } catch (error) {
     const status = /does not belong|already handled|already consumed|not found/i.test(error.message) ? 400 : 500;
     return fail(res, status, status === 400 ? 40061 : 50000, error.message || "Internal server error");
+  }
+}
+
+// GET /teacher/leaves/:id/makeup-candidates · 补课候选课次
+async function getTeacherMakeupCandidates(req, res) {
+  try {
+    const data = await listTeacherMakeupCandidates(req.user.userId, req.params.id);
+    if (data === null) {
+      return fail(res, 404, 40464, "Leave request not found");
+    }
+    return ok(res, { list: data }, "makeup candidates");
+  } catch (error) {
+    const status = /does not belong|not found/i.test(error.message) ? 400 : 500;
+    return fail(res, status, status === 400 ? 40065 : 50000, error.message || "Internal server error");
+  }
+}
+
+// PUT /teacher/leaves/:id/makeup · 老师安排补课 / 放弃补课
+async function putTeacherMakeup(req, res) {
+  try {
+    const data = await arrangeTeacherMakeup(req.user.userId, req.params.id, req.body);
+    if (!data) {
+      return fail(res, 404, 40463, "Leave request not found");
+    }
+
+    const isAbandon = req.body.action === "abandon";
+    return ok(res, data, isAbandon ? "makeup abandoned" : "makeup arranged");
+  } catch (error) {
+    const status = /does not belong|not approved|not found|already|missing|completed|canceled|later/i.test(error.message) ? 400 : 500;
+    return fail(res, status, status === 400 ? 40062 : 50000, error.message || "Internal server error");
   }
 }
 
@@ -187,6 +219,8 @@ module.exports = {
   getTeacherTimetable,
   getTeacherLeaves,
   putTeacherLeave,
+  putTeacherMakeup,
+  getTeacherMakeupCandidates,
   postTeacherPost,
   putTeacherPost,
   postTeacherPostStudents,

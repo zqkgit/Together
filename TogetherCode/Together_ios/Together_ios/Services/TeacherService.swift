@@ -126,6 +126,7 @@ struct TeacherCourseClassItem: Codable {
 
 struct TeacherCourseItem: Codable {
     let course_id: String?
+    let studio_name: String?
     let title: String?
     let total_lessons: Int?
     let consumed_lessons: Int?
@@ -137,10 +138,11 @@ struct TeacherCourseItem: Codable {
     var consumed: Int { consumed_lessons ?? 0 }
     var progressValue: Int { progress ?? 0 }
     var studentCount: Int { student_count ?? 0 }
-    /// 班级文案：朵朵班8人·芽芽班6人
+    /// 归属文案：工作室 · 班级（工作室-课程-班级三要素）
     var classText: String {
-        guard let classes, !classes.isEmpty else { return "暂无班级" }
-        return classes.map { "\($0.name ?? "")\($0.studentCount)人" }.joined(separator: "·")
+        let studio = (studio_name?.isEmpty == false) ? "\(studio_name!) · " : ""
+        guard let classes, !classes.isEmpty else { return studio + "暂无班级" }
+        return studio + classes.map { "\($0.name ?? "")\($0.studentCount)人" }.joined(separator: "·")
     }
 }
 
@@ -154,6 +156,13 @@ struct TeacherCourseList: Codable {
 struct TeacherStudentClassSummary: Codable {
     let class_id: String?
     let name: String?
+    let studio_name: String?
+
+    /// 筛选展示：工作室·班级（多工作室同名班可区分）
+    var displayName: String {
+        let studio = (studio_name?.isEmpty == false) ? "\(studio_name!)·" : ""
+        return studio + (name ?? "班级")
+    }
 }
 
 struct TeacherStudentCourse: Codable {
@@ -224,6 +233,7 @@ struct TeacherLeaveSchedule: Codable {
     let lesson_date: String?
     let start_time: String?
     let end_time: String?
+    let location: String?
 }
 
 struct TeacherLeaveItem: Codable {
@@ -233,6 +243,9 @@ struct TeacherLeaveItem: Codable {
     let child: TeacherLeaveChild?
     let `class`: TeacherLeaveClass?
     let schedule: TeacherLeaveSchedule?
+    let makeup_status: Int?
+    let makeup_schedule_id: String?
+    let makeup_schedule: TeacherLeaveSchedule?
 
     /// 卡片副标题：课程·班级·日期时间
     var infoText: String {
@@ -242,6 +255,52 @@ struct TeacherLeaveItem: Codable {
         if let date = schedule?.lesson_date, !date.isEmpty { parts.append(date) }
         if let t = schedule?.start_time, !t.isEmpty { parts.append(t) }
         return parts.joined(separator: "·")
+    }
+
+    /// 是否有已安排的补课（待补）
+    var hasPendingMakeup: Bool {
+        (makeup_status ?? 0) == 0 && makeup_schedule_id != nil
+    }
+
+    /// 补课状态行文案
+    var makeupText: String? {
+        switch makeup_status {
+        case 1:
+            return "补课已完成 · 课时已消耗"
+        case 2:
+            return "已放弃补课"
+        case 0:
+            if let ms = makeup_schedule {
+                var parts = ["补课：\(ms.lesson_date ?? "") \(ms.start_time ?? "")-\(ms.end_time ?? "")"]
+                if let loc = ms.location, !loc.isEmpty { parts.append(loc) }
+                return parts.joined(separator: " · ")
+            }
+            return "未安排补课"
+        default:
+            return nil
+        }
+    }
+
+    /// 是否需要「安排补课」入口（未安排 / 已放弃）
+    var canArrangeMakeup: Bool {
+        !hasPendingMakeup && (makeup_status ?? 0) != 1
+    }
+}
+
+/// 补课候选课次
+struct TeacherMakeupCandidate: Codable {
+    let schedule_id: String?
+    let lesson_date: String?
+    let start_time: String?
+    let end_time: String?
+    let location: String?
+    let remark: String?
+
+    /// 展示文案：10-19 18:30-20:00 · 3号教室
+    var displayText: String {
+        var parts = ["\(lesson_date ?? "") \(start_time ?? "")-\(end_time ?? "")"]
+        if let loc = location, !loc.isEmpty { parts.append(loc) }
+        return parts.joined(separator: " · ")
     }
 }
 
@@ -286,8 +345,18 @@ enum TeacherService {
     }
 
     /// 我的学生：学生聚合（课程/剩余课时/今日上课/请假中）+ 班级列表
-    static func fetchStudents(completion: @escaping (Result<TeacherStudentListData, APIError>) -> Void) {
-        APIClient.shared.request("/teacher/students", method: .get) { result in
+    static func fetchStudents(
+        classId: String? = nil,
+        completion: @escaping (Result<TeacherStudentListData, APIError>) -> Void
+    ) {
+        var parameters: [String: Any] = [:]
+        if let classId { parameters["class_id"] = classId }
+        APIClient.shared.request(
+            "/teacher/students",
+            method: .get,
+            parameters: parameters,
+            encoding: URLEncoding.queryString
+        ) { result in
             switch result {
             case .success(let json):
                 let data = JSONKit.decode(TeacherStudentListData.self, from: json)
@@ -310,6 +379,70 @@ enum TeacherService {
             case .success(let json):
                 let list = JSONKit.decode([TeacherLeaveItem].self, from: json["list"]) ?? []
                 completion(.success(list))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 已同意请假（status=1，用于补课管理）
+    static func fetchApprovedLeaves(completion: @escaping (Result<[TeacherLeaveItem], APIError>) -> Void) {
+        APIClient.shared.request(
+            "/teacher/leaves",
+            method: .get,
+            parameters: ["status": 1],
+            encoding: URLEncoding.queryString
+        ) { result in
+            switch result {
+            case .success(let json):
+                let list = JSONKit.decode([TeacherLeaveItem].self, from: json["list"]) ?? []
+                completion(.success(list))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 补课候选课次（同班级、原课次之后、未消课）
+    static func fetchMakeupCandidates(
+        leaveId: String,
+        completion: @escaping (Result<[TeacherMakeupCandidate], APIError>) -> Void
+    ) {
+        APIClient.shared.request(
+            "/teacher/leaves/\(leaveId)/makeup-candidates",
+            method: .get
+        ) { result in
+            switch result {
+            case .success(let json):
+                let list = JSONKit.decode([TeacherMakeupCandidate].self, from: json["list"]) ?? []
+                completion(.success(list))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 安排补课 / 放弃补课
+    static func updateMakeup(
+        leaveId: String,
+        makeupScheduleId: String? = nil,
+        abandon: Bool = false,
+        completion: @escaping (Result<Void, APIError>) -> Void
+    ) {
+        var parameters: [String: Any] = [:]
+        if abandon {
+            parameters["action"] = "abandon"
+        } else if let makeupScheduleId {
+            parameters["makeup_schedule_id"] = makeupScheduleId
+        }
+        APIClient.shared.request(
+            "/teacher/leaves/\(leaveId)/makeup",
+            method: .put,
+            parameters: parameters
+        ) { result in
+            switch result {
+            case .success:
+                completion(.success(()))
             case .failure(let error):
                 completion(.failure(error))
             }
