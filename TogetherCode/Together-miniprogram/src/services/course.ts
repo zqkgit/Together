@@ -61,3 +61,99 @@ export function listCourses(params: {
 export function getCourseDetail(id: string): Promise<CourseItem> {
   return request({ url: `/courses/${id}`, method: "GET" });
 }
+
+// MARK: - 我的课程（已报名）
+
+export interface MyCourseItem {
+  child_id: string;
+  child_name: string;
+  course_id: string;
+  course_title: string;
+  course_cover: string | null;
+  studio_name: string;
+  teacher_name: string;
+  total_lessons: number;
+  consumed_lessons: number;
+  remaining_lessons: number;
+  percent: number;
+  status: number;
+  status_text: string;
+  next_lesson: {
+    schedule_id: string;
+    lesson_date: string;
+    start_time: string;
+    end_time: string;
+  } | null;
+}
+
+export interface CourseScheduleItem {
+  schedule_id: string;
+  class_id: string;
+  lesson_no: number;
+  lesson_title: string;
+  lesson_date: string;
+  start_time: string;
+  end_time: string;
+  /** 0 待上 / 1 已上 / 2 今天 */
+  status: number;
+  /** 0 无 / 1 待处理 / 2 已同意 / 3 已婉拒 / 4 已取消 */
+  leave_status: number;
+}
+
+export interface CourseScheduleSummary {
+  child_id: string;
+  child_name: string;
+  course_id: string;
+  course_title: string;
+  course_cover: string | null;
+  class_id: string;
+  studio_name: string;
+  teacher_name: string;
+  total_lessons: number;
+  consumed_lessons: number;
+  remaining_lessons: number;
+  list: CourseScheduleItem[];
+}
+
+export function listMyCourses(childId?: string): Promise<{
+  children: Array<{ child_id: string; child_name: string }>;
+  list: MyCourseItem[];
+}> {
+  const query = childId ? `?child_id=${encodeURIComponent(childId)}` : "";
+  return request({ url: `/parent/my-courses${query}`, method: "GET" });
+}
+
+export function getCourseSchedules(params: {
+  child_id: string;
+  course_id: string;
+}): Promise<CourseScheduleSummary> {
+  const query = `?child_id=${encodeURIComponent(params.child_id)}&course_id=${encodeURIComponent(params.course_id)}`;
+  return request({ url: `/parent/course-schedules${query}`, method: "GET" });
+}
+
+// MARK: - 请假（家长端）
+
+export interface MyLeaveItem {
+  leave_id: string;
+  schedule_id: string;
+  child_id: string;
+  /** 0 待审批 / 1 已同意 / 2 已婉拒 / 3 已取消 */
+  status: number;
+}
+
+export function listMyLeaves(): Promise<{ list: MyLeaveItem[] }> {
+  return request({ url: "/leave?page=1&page_size=50", method: "GET" });
+}
+
+export function submitLeave(params: {
+  class_id: string;
+  child_id: string;
+  schedule_id?: string;
+  reason: string;
+}): Promise<any> {
+  return request({ url: "/leave", method: "POST", data: params });
+}
+
+export function cancelLeave(leaveId: string): Promise<any> {
+  return request({ url: `/leave/${leaveId}/cancel`, method: "PUT", data: {} });
+}

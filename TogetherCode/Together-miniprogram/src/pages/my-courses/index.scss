@@ -1,0 +1,112 @@
+@use '../../styles/variables.scss' as *;
+.my-courses {
+  min-height: 100vh;
+  padding-bottom: 48rpx;
+  background: $color-bg;
+}
+
+.child-scroll {
+  white-space: nowrap;
+  padding: 20rpx 0 8rpx;
+}
+
+.child-row {
+  display: inline-flex;
+  gap: 16rpx;
+  padding: 0 24rpx;
+}
+
+.child-chip {
+  display: inline-block;
+  padding: 10rpx 30rpx;
+  background: #fff;
+  border-radius: $radius-round;
+  font-size: $font-size-md;
+  color: #5a544b;
+}
+
+.child-active {
+  background: $color-primary;
+  color: #fff;
+}
+
+.state-tip {
+  padding: 120rpx 40rpx;
+  text-align: center;
+  color: #b5aea3;
+  font-size: $font-size-md;
+}
+
+.course-list {
+  padding: 16rpx 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.course-card {
+  display: flex;
+  gap: 20rpx;
+  background: #fff;
+  border-radius: $radius-lg;
+  padding: 20rpx;
+}
+
+.course-cover {
+  width: 200rpx;
+  height: 160rpx;
+  border-radius: $radius-md;
+  background: #eae4d8;
+  flex-shrink: 0;
+}
+
+.course-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.course-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: $color-text;
+}
+
+.course-sub {
+  margin-top: 6rpx;
+  font-size: $font-size-sm;
+  color: #8a8378;
+}
+
+.progress-row {
+  margin-top: 12rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progress-text {
+  font-size: $font-size-xs;
+  color: $color-primary;
+}
+
+.progress-track {
+  margin-top: 8rpx;
+  height: 8rpx;
+  border-radius: $radius-round;
+  background: #efe9dd;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: $radius-round;
+  background: $color-primary;
+}
+
+.next-lesson {
+  margin-top: 10rpx;
+  font-size: $font-size-xs;
+  color: #b5aea3;
+}
