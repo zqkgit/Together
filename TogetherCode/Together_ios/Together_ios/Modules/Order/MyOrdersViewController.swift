@@ -35,6 +35,7 @@ final class MyOrdersViewController: BaseViewController {
     private var orders: [OrderItem] = []
     private var currentTab: Tab = .all
     private let emptyView = EmptyStateView()
+    private var countdownTimer: Timer?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -46,6 +47,38 @@ final class MyOrdersViewController: BaseViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         loadData()
+        startCountdown()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        countdownTimer?.invalidate()
+        countdownTimer = nil
+    }
+
+    // MARK: - 支付倒计时（待支付 cell 每秒刷新）
+
+    private func startCountdown() {
+        countdownTimer?.invalidate()
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            self?.tickCountdown()
+        }
+    }
+
+    private func tickCountdown() {
+        var needReload = false
+        for cell in tableView.visibleCells {
+            if let orderCell = cell as? OrderCell {
+                orderCell.refreshCountdownIfNeeded()
+                if orderCell.isExpiredNow {
+                    needReload = true
+                }
+            }
+        }
+        // 有订单倒计时归零 → 刷新列表（后端定时任务会置为已取消）
+        if needReload {
+            loadData()
+        }
     }
 
     private func setupUI() {
@@ -210,6 +243,27 @@ final class OrderCell: UITableViewCell {
 
     var onAction: ((Action) -> Void)?
 
+    private var order: OrderItem?
+
+    /// 当前订单是否已超过支付截止时间（供列表秒级检查）
+    var isExpiredNow: Bool {
+        guard let order, order.statusValue == .pending,
+              let deadline = order.payExpireDate else { return false }
+        return deadline.timeIntervalSinceNow <= 0
+    }
+
+    /// 待支付倒计时：由列表 Timer 每秒调用刷新状态文案
+    func refreshCountdownIfNeeded() {
+        guard let order, order.statusValue == .pending else { return }
+        if isExpiredNow {
+            statusLabel.text = "已超时"
+            statusLabel.textColor = Theme.Color.sub
+        } else {
+            statusLabel.text = order.payCountdownText
+            statusLabel.textColor = UIColor.systemOrange
+        }
+    }
+
     private let card = UIView()
     private let orderNoLabel = UILabel()
     private let statusLabel = UILabel()
@@ -267,10 +321,14 @@ final class OrderCell: UITableViewCell {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     func configure(_ order: OrderItem) {
+        self.order = order
         orderNoLabel.text = "订单号\(order.order_no ?? "-")"
         if order.refundStatusValue != .none {
             statusLabel.text = order.refundStatusValue.text
             statusLabel.textColor = Theme.Color.brand
+        } else if order.statusValue == .pending {
+            statusLabel.text = order.payCountdownText
+            statusLabel.textColor = UIColor.systemOrange
         } else {
             statusLabel.text = order.statusValue.text
             statusLabel.textColor = statusColor(order.statusValue)

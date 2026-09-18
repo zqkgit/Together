@@ -75,6 +75,16 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: 5.0
       },
+      default_validity_days: {
+        type: DataTypes.SMALLINT,
+        allowNull: false,
+        defaultValue: 7
+      },
+      payment_expire_hours: {
+        type: DataTypes.SMALLINT,
+        allowNull: false,
+        defaultValue: 24
+      },
       plan_tier: {
         type: DataTypes.SMALLINT,
         allowNull: false,

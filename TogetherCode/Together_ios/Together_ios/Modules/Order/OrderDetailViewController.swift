@@ -17,6 +17,8 @@ final class OrderDetailViewController: BaseViewController {
     private var courseRow: RowType?
     private var orderInfoRows: [RowType] = []
     private var progressRows: [RowType] = []
+    private var countdownTimer: Timer?
+    private var orderIsExpired = false
 
     fileprivate enum RowType {
         case status(title: String, desc: String)
@@ -36,6 +38,17 @@ final class OrderDetailViewController: BaseViewController {
         setupBottomBar()
         setupTableView()
         loadData()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        startCountdownIfNeeded()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        countdownTimer?.invalidate()
+        countdownTimer = nil
     }
 
     // MARK: - UI
@@ -105,6 +118,7 @@ final class OrderDetailViewController: BaseViewController {
             switch result {
             case .success(let order):
                 self.order = order
+                self.orderIsExpired = false
                 self.render(order)
             case .failure(let error):
                 self.showToast(error.message ?? "加载失败")
@@ -137,7 +151,7 @@ final class OrderDetailViewController: BaseViewController {
                 statusDesc = "已完成\(order.consumed_lessons ?? 0)/\(order.total_lessons ?? 0)节 · 剩余课时可申请退款"
             case .pending:
                 statusTitle = "待支付"
-                statusDesc = "订单待支付，请尽快完成支付"
+                statusDesc = orderIsExpired ? "支付超时，订单已取消" : order.payCountdownText
             case .cancelled:
                 statusTitle = "已取消"
                 statusDesc = "订单已取消"
@@ -168,6 +182,36 @@ final class OrderDetailViewController: BaseViewController {
 
         tableView.reloadData()
         updateBottomBar(order)
+        startCountdownIfNeeded()
+    }
+
+    // MARK: - 支付倒计时
+
+    private func startCountdownIfNeeded() {
+        guard let order, order.statusValue == .pending, !orderIsExpired,
+              let deadline = order.payExpireDate, deadline.timeIntervalSinceNow > 0 else {
+            return
+        }
+        countdownTimer?.invalidate()
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            self?.tickCountdown()
+        }
+    }
+
+    private func tickCountdown() {
+        guard let order else { return }
+        if let deadline = order.payExpireDate, deadline.timeIntervalSinceNow <= 0 {
+            countdownTimer?.invalidate()
+            countdownTimer = nil
+            orderIsExpired = true
+            statusRow = .status(title: "待支付", desc: "支付超时，订单已取消")
+            tableView.reloadData()
+            updateBottomBar(order)
+            showToast("支付超时，订单已取消")
+            return
+        }
+        statusRow = .status(title: "待支付", desc: order.payCountdownText)
+        tableView.reloadRows(at: [IndexPath(row: 0, section: 0)], with: .none)
     }
 
     private func updateBottomBar(_ order: OrderItem) {
@@ -188,15 +232,22 @@ final class OrderDetailViewController: BaseViewController {
         }
         switch order.statusValue {
         case .pending:
-            secondaryButton.setTitle("取消", for: .normal)
+            secondaryButton.setTitle(orderIsExpired ? "刷新" : "取消", for: .normal)
+            primaryButton.setTitle(orderIsExpired ? "订单已取消" : "去支付", for: .normal)
+            primaryButton.isEnabled = !orderIsExpired
             primaryButton.setTitle("去支付", for: .normal)
             primaryButton.isEnabled = true
             secondaryButton.isHidden = false
         case .enrolled, .completed, .refunded:
-            secondaryButton.setTitle("申请退款", for: .normal)
             primaryButton.setTitle("去学习", for: .normal)
             primaryButton.isEnabled = true
-            secondaryButton.isHidden = false
+            // 退款有效期：后端按 订单时间 + 课程有效期天数 返回 can_apply_refund，超期隐藏申请退款
+            if order.can_apply_refund == true {
+                secondaryButton.setTitle("申请退款", for: .normal)
+                secondaryButton.isHidden = false
+            } else {
+                secondaryButton.isHidden = true
+            }
         case .cancelled:
             primaryButton.setTitle("重新报名", for: .normal)
             primaryButton.isEnabled = false

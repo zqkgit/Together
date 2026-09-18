@@ -154,6 +154,8 @@ export interface StudioProfileInfo {
   permit: string | null;
   photos: string[];
   settle_rate: number;
+  default_validity_days: number;
+  payment_expire_hours: number;
   plan_tier: number;
   status: number;
   banned_at: string | null;

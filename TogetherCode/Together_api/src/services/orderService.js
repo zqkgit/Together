@@ -83,9 +83,13 @@ function formatOrder(order) {
       ? {
           course_id: String(order.course.course_id),
           title: order.course.title,
-          cover: order.course.cover
+          cover: order.course.cover,
+          validity_days: order.course.validity_days
         }
       : null,
+    pay_expire_at: payExpireAt(order),
+    refund_expire_at: refundExpireAt(order),
+    can_apply_refund: canApplyRefund(order, refund_status, activeRefund),
     package: order.coursePackage
       ? {
           package_id: String(order.coursePackage.package_id),
@@ -130,8 +134,8 @@ async function getOrderWithDetails(orderId, options = {}) {
     transaction: options.transaction,
     include: [
       { model: Child, as: "child", attributes: ["child_id", "nickname", "birthday"] },
-      { model: StudioProfile, as: "studio", attributes: ["studio_id", "name"] },
-      { model: Course, as: "course", attributes: ["course_id", "title", "cover"] },
+      { model: StudioProfile, as: "studio", attributes: ["studio_id", "name", "payment_expire_hours"] },
+      { model: Course, as: "course", attributes: ["course_id", "title", "cover", "validity_days"] },
       { model: CoursePackage, as: "coursePackage", attributes: ["package_id", "name", "lessons"] },
       { model: OrderItem, as: "items", attributes: ["item_id", "course_title", "package_name", "lessons", "unit_price", "total_price"] },
       { model: Payment, as: "payments", attributes: ["payment_id", "payment_no", "channel", "amount", "status", "paid_at"] },
@@ -410,8 +414,8 @@ async function listOrders(userId, query = {}) {
     where,
     include: [
       { model: Child, as: "child", attributes: ["child_id", "nickname", "birthday"] },
-      { model: StudioProfile, as: "studio", attributes: ["studio_id", "name"] },
-      { model: Course, as: "course", attributes: ["course_id", "title", "cover"] },
+      { model: StudioProfile, as: "studio", attributes: ["studio_id", "name", "payment_expire_hours"] },
+      { model: Course, as: "course", attributes: ["course_id", "title", "cover", "validity_days"] },
       { model: CoursePackage, as: "coursePackage", attributes: ["package_id", "name", "lessons"] },
       { model: OrderItem, as: "items", attributes: ["item_id", "course_title", "package_name", "lessons", "unit_price", "total_price"] },
       { model: Payment, as: "payments", attributes: ["payment_id", "payment_no", "channel", "amount", "status", "paid_at"] },
@@ -459,6 +463,47 @@ async function cancelOrder(userId, orderId) {
 
 const REFUND_STATUS_TEXT = { 0: "申请中", 1: "打款中", 2: "已驳回", 3: "已退款到账" };
 
+// 支付截止时间：待支付订单 = 订单创建时间 + 工作室支付超时小时数（默认 24h）
+function payExpireAt(order) {
+  if (Number(order.status) !== 0 || !order.created_at) {
+    return null;
+  }
+  const hours = Number(order.studio?.payment_expire_hours || 24);
+  const expireAt = new Date(order.created_at);
+  expireAt.setHours(expireAt.getHours() + hours);
+  return expireAt.toISOString();
+}
+
+// 退款有效期：订单创建时间 + 课程有效期天数（课程创建时快照工作室默认，默认 7 天）
+function refundExpireAt(order) {
+  const days = Number(order.course?.validity_days || 0);
+  if (!days || !order.created_at) {
+    return null;
+  }
+  const expireAt = new Date(order.created_at);
+  expireAt.setDate(expireAt.getDate() + days);
+  return expireAt.toISOString();
+}
+
+// 是否可申请退款：已支付/已报名 + 无进行中退款 + 有余课 + 未超过退款有效期
+function canApplyRefund(order, refundStatus, activeRefund) {
+  if (![1, 3].includes(Number(order.status))) {
+    return false;
+  }
+  if (activeRefund) {
+    return false;
+  }
+  const remaining = Number(order.balance?.remaining_lessons ?? 0);
+  if (remaining <= 0) {
+    return false;
+  }
+  const expireAt = refundExpireAt(order);
+  if (expireAt) {
+    return new Date(expireAt) > new Date();
+  }
+  return true;
+}
+
 function refundStatusText(status) {
   return REFUND_STATUS_TEXT[Number(status)] || "未知";
 }
@@ -479,8 +524,8 @@ async function listMyRefunds(userId, query = {}) {
         required: true,
         include: [
           { model: Child, as: "child", attributes: ["child_id", "nickname"] },
-          { model: StudioProfile, as: "studio", attributes: ["studio_id", "name"] },
-          { model: Course, as: "course", attributes: ["course_id", "title", "cover"] },
+          { model: StudioProfile, as: "studio", attributes: ["studio_id", "name", "payment_expire_hours"] },
+          { model: Course, as: "course", attributes: ["course_id", "title", "cover", "validity_days"] },
           { model: ChildCourseBalance, as: "balance", attributes: ["balance_id", "total_lessons", "consumed_lessons", "refunded_lessons", "remaining_lessons"] }
         ]
       }
@@ -519,8 +564,8 @@ async function getRefundDetail(userId, refundId) {
         required: true,
         include: [
           { model: Child, as: "child", attributes: ["child_id", "nickname"] },
-          { model: StudioProfile, as: "studio", attributes: ["studio_id", "name"] },
-          { model: Course, as: "course", attributes: ["course_id", "title", "cover"] },
+          { model: StudioProfile, as: "studio", attributes: ["studio_id", "name", "payment_expire_hours"] },
+          { model: Course, as: "course", attributes: ["course_id", "title", "cover", "validity_days"] },
           { model: ChildCourseBalance, as: "balance", attributes: ["balance_id", "total_lessons", "consumed_lessons", "refunded_lessons", "remaining_lessons", "valid_to"] }
         ]
       }
@@ -563,6 +608,28 @@ async function getRefundDetail(userId, refundId) {
   };
 }
 
+// 支付超时自动取消：待支付订单超过工作室设置的小时数（默认 24h）自动置为已取消
+async function autoCancelExpiredOrders() {
+  const expired = await Order.findAll({
+    where: {
+      status: 0,
+      created_at: { [Op.lt]: new Date(Date.now() - 24 * 3600 * 1000) }
+    },
+    include: [{ model: StudioProfile, as: "studio", attributes: ["studio_id", "payment_expire_hours"] }]
+  });
+  let count = 0;
+  for (const order of expired) {
+    const hours = Number(order.studio?.payment_expire_hours || 24);
+    const deadline = new Date(order.created_at);
+    deadline.setHours(deadline.getHours() + hours);
+    if (deadline <= new Date() && Number(order.status) === 0) {
+      await order.update({ status: 2, cancel_reason: "支付超时自动取消" });
+      count += 1;
+    }
+  }
+  return count;
+}
+
 async function createRefund(userId, orderId, payload) {
   return sequelize.transaction(async (transaction) => {
     const order = await Order.findOne({
@@ -570,6 +637,7 @@ async function createRefund(userId, orderId, payload) {
         order_id: orderId,
         user_id: userId
       },
+      include: [{ model: Course, as: "course", attributes: ["course_id", "validity_days"] }],
       transaction,
       lock: transaction.LOCK.UPDATE
     });
@@ -580,6 +648,12 @@ async function createRefund(userId, orderId, payload) {
 
     if (![1, 3].includes(Number(order.status))) {
       throw new Error("Order is not refundable");
+    }
+
+    // 退款有效期：订单创建时间 + 课程有效期天数，超过不可申请
+    const expireAt = refundExpireAt(order);
+    if (expireAt && new Date(expireAt) <= new Date()) {
+      throw new Error("Refund window expired");
     }
 
     const existingPending = await Refund.findOne({
@@ -648,6 +722,7 @@ module.exports = {
   listOrders,
   getOrderDetail,
   createRefund,
+  autoCancelExpiredOrders,
   listMyRefunds,
   getRefundDetail,
   formatOrder,

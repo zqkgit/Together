@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Taro from "@tarojs/taro";
 import { View, Text, Image } from "@tarojs/components";
-import { getOrderDetail, payOrder, type OrderItem } from "../../services/order";
+import { getOrderDetail, payOrder, payCountdownText, type OrderItem } from "../../services/order";
 import { fenToYuan } from "../../services/course";
 import "./index.scss";
 
@@ -12,16 +12,21 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<OrderItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
+  const [now, setNow] = useState(Date.now());
+  const [expired, setExpired] = useState(false);
 
   useEffect(() => {
     const id = Taro.getCurrentInstance().router?.params?.id;
     if (id) load(id);
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
   const load = async (id: string) => {
     try {
       const data = await getOrderDetail(id);
       setOrder(data);
+      setExpired(false);
     } catch {
       // 拦截器已提示
     } finally {
@@ -71,12 +76,20 @@ export default function OrderDetailPage() {
       : refundStatus === 3
         ? "退款申请未通过，如有疑问请联系机构"
         : order?.status === 0
-          ? "请尽快完成支付，锁定课时"
+          ? payCountdownText(order, now)
           : order?.status === 1
             ? "课时已到账，可在「我的孩子」中查看"
             : order?.status === 3
               ? "本订单已退款"
               : "";
+
+  useEffect(() => {
+    if (order?.status === 0 && order.pay_expire_at && new Date(order.pay_expire_at).getTime() <= now && !expired) {
+      setExpired(true);
+      Taro.showToast({ title: "支付超时，订单已取消", icon: "none" });
+      load(order.order_id);
+    }
+  }, [now]);
 
   if (loading) {
     return <View className="empty-tip">加载中...</View>;
@@ -151,7 +164,7 @@ export default function OrderDetailPage() {
           <View className="btn-primary action-btn" onClick={goRefund}>再次申请退款</View>
         </View>
       )}
-      {order.status === 1 && refundStatus === 0 && (
+      {order.status === 1 && refundStatus === 0 && order.can_apply_refund !== false && (
         <View className="action-bar">
           <View className="btn-primary action-btn" onClick={goRefund}>申请退款</View>
         </View>

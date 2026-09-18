@@ -19,6 +19,8 @@ function normalizeStudioProfile(studio) {
     permit: studio.permit,
     photos: studio.photos || [],
     settle_rate: Number(studio.settle_rate),
+    default_validity_days: Number(studio.default_validity_days ?? 7),
+    payment_expire_hours: Number(studio.payment_expire_hours ?? 24),
     plan_tier: studio.plan_tier,
     status: studio.status,
     banned_at: studio.banned_at,
@@ -82,7 +84,15 @@ async function updateStudioProfile(studioId, payload) {
       license: payload.license ?? studio.license,
       legal_id: payload.legal_id ?? studio.legal_id,
       permit: payload.permit ?? studio.permit,
-      photos: payload.photos ?? studio.photos
+      photos: payload.photos ?? studio.photos,
+      default_validity_days:
+        payload.default_validity_days != null
+          ? Math.max(1, Math.min(365, Number(payload.default_validity_days)))
+          : studio.default_validity_days,
+      payment_expire_hours:
+        payload.payment_expire_hours != null
+          ? Math.max(1, Math.min(720, Number(payload.payment_expire_hours)))
+          : studio.payment_expire_hours
     }
   );
 

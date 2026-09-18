@@ -19,8 +19,29 @@ export interface OrderItem {
   // 订单层退款聚合状态：0 无 / 1 退款中 / 2 已退款 / 3 已驳回
   refund_status?: number;
   refund_status_text?: string;
+  can_apply_refund?: boolean;
+  pay_expire_at?: string;
   refunds?: Array<{ refund_id: string; amount: number; status: number }>;
   balance?: { remaining_lessons: number; valid_to: string | null };
+}
+
+// 支付倒计时文案（待支付订单）：剩余不足 1 小时显示 mm:ss，否则 HH:mm:ss；已超时显示取消文案
+export function payCountdownText(order: OrderItem, now: number): string {
+  if (order.status !== 0 || !order.pay_expire_at) {
+    return "待支付";
+  }
+  const remain = new Date(order.pay_expire_at).getTime() - now;
+  if (remain <= 0) {
+    return "支付超时 · 订单已取消";
+  }
+  const total = Math.floor(remain / 1000);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return h > 0
+    ? `支付剩余 ${pad(h)}:${pad(m)}:${pad(s)}`
+    : `支付剩余 ${pad(m)}:${pad(s)}`;
 }
 
 export function createOrder(payload: {

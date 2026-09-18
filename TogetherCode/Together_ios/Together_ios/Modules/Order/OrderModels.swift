@@ -53,6 +53,9 @@ struct OrderItem: Codable {
     let refund_amount: Int?
     let refund_status: Int?
     let refund_status_text: String?
+    let can_apply_refund: Bool?
+    let refund_expire_at: String?
+    let pay_expire_at: String?
     let pay_channel: String?
     let paid_at: String?
     let created_at: String?
@@ -69,6 +72,32 @@ struct OrderItem: Codable {
 
     /// 是否存在进行中退款（退款中 → 订单按钮/状态展示切换）
     var hasActiveRefund: Bool { refundStatusValue == .processing }
+
+    /// 支付截止时间（待支付订单，来自后端 pay_expire_at）
+    var payExpireDate: Date? {
+        guard let raw = pay_expire_at, !raw.isEmpty else { return nil }
+        let withFrac = ISO8601DateFormatter()
+        withFrac.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = withFrac.date(from: raw) { return date }
+        let plain = ISO8601DateFormatter()
+        plain.formatOptions = [.withInternetDateTime]
+        return plain.date(from: raw)
+    }
+
+    /// 支付倒计时文案：剩余不足 1 小时显示 mm:ss，否则 HH:mm:ss；已超时显示取消文案
+    var payCountdownText: String {
+        guard let deadline = payExpireDate else { return "待支付" }
+        let remain = deadline.timeIntervalSinceNow
+        if remain <= 0 { return "支付超时 · 订单已取消" }
+        let total = Int(remain)
+        let h = total / 3600
+        let m = (total % 3600) / 60
+        let s = total % 60
+        if h > 0 {
+            return String(format: "支付剩余 %02d:%02d:%02d", h, m, s)
+        }
+        return String(format: "支付剩余 %02d:%02d", m, s)
+    }
 
     /// 最近一笔退款单（详情页跳转退款进度用）
     var latestRefundId: String? {

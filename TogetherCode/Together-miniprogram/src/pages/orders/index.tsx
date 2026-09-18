@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Taro from "@tarojs/taro";
 import { View, Text, Image } from "@tarojs/components";
-import { listOrders, fenToYuan, type OrderItem } from "../../services/order";
+import { listOrders, fenToYuan, payCountdownText, type OrderItem } from "../../services/order";
 import "./index.scss";
 
 const STATUS_TEXT: Record<number, string> = {
@@ -18,10 +18,29 @@ export default function OrdersPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [now, setNow] = useState(Date.now());
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadData();
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
   }, []);
+
+  // 待支付订单倒计时归零 → 刷新列表（后端定时任务会置为已取消）
+  useEffect(() => {
+    if (refreshing) return;
+    const hasExpired = orders.some(
+      (o) => o.status === 0 && o.pay_expire_at && new Date(o.pay_expire_at).getTime() <= now
+    );
+    if (hasExpired) {
+      setRefreshing(true);
+      setTimeout(() => {
+        loadData();
+        setRefreshing(false);
+      }, 500);
+    }
+  }, [now]);
 
   const loadData = async () => {
     setLoading(true);
@@ -71,7 +90,7 @@ export default function OrdersPage() {
           <View key={order.order_id} className="order-card card" onClick={() => goDetail(order.order_id)}>
             <View className="order-head">
               <Text className="order-no">{order.order_no}</Text>
-              <Text className="order-status">{order.refund_status ? REFUND_TEXT[order.refund_status] : STATUS_TEXT[order.status] || order.status_text}</Text>
+              <Text className="order-status">{order.refund_status ? REFUND_TEXT[order.refund_status] : order.status === 0 ? payCountdownText(order, now) : STATUS_TEXT[order.status] || order.status_text}</Text>
             </View>
             <View className="order-main">
               <Image className="order-cover" src={order.course?.cover || ""} mode="aspectFill" />

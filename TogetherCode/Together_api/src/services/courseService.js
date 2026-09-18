@@ -289,6 +289,13 @@ async function createCourse(payload) {
     await ensureStudio(payload.studio_id, transaction);
     await ensureTeacher(payload.teacher_id, payload.studio_id, transaction);
 
+    // 退款/课程有效期：未传时取工作室默认（工作室设置，默认 7 天）
+    let validityDays = payload.validity_days;
+    if (!validityDays) {
+      const studio = await StudioProfile.findByPk(payload.studio_id, { transaction });
+      validityDays = studio?.default_validity_days || 7;
+    }
+
     const course = await Course.create(
       {
         course_id: generateId(),
@@ -305,7 +312,7 @@ async function createCourse(payload) {
         price: Number(payload.price),
         class_size: Number(payload.class_size || 12),
         distribute_rate: payload.distribute_rate ? Number(payload.distribute_rate) : 0.08,
-        validity_days: payload.validity_days || null,
+        validity_days: Number(validityDays) || null,
         status: payload.status !== undefined ? Number(payload.status) : 0
       },
       { transaction }

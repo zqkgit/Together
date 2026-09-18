@@ -14,7 +14,9 @@ const form = ref({
   hours: "",
   type_tags: "",
   license: "",
-  permit: ""
+  permit: "",
+  default_validity_days: 7,
+  payment_expire_hours: 24
 });
 
 async function loadData() {
@@ -30,7 +32,9 @@ async function loadData() {
       hours: p.hours || "",
       type_tags: (p.type_tags || []).join("、"),
       license: p.license || "",
-      permit: p.permit || ""
+      permit: p.permit || "",
+      default_validity_days: p.default_validity_days ?? 7,
+      payment_expire_hours: p.payment_expire_hours ?? 24
     };
   } catch {
     // 忽略
@@ -56,7 +60,9 @@ async function save() {
         ? form.value.type_tags.split(/[、,，]/).map((s) => s.trim()).filter(Boolean)
         : [],
       license: form.value.license.trim() || undefined,
-      permit: form.value.permit.trim() || undefined
+      permit: form.value.permit.trim() || undefined,
+      default_validity_days: Number(form.value.default_validity_days) || 7,
+      payment_expire_hours: Number(form.value.payment_expire_hours) || 24
     });
     ElMessage.success("工作室资料已保存");
   } catch {
@@ -110,6 +116,14 @@ onMounted(loadData);
         <el-form-item label="营业时间">
           <el-input v-model="form.hours" placeholder="如：周一至周日 09:00-21:00" maxlength="120" />
         </el-form-item>
+        <el-form-item label="退款有效期">
+          <el-input-number v-model="form.default_validity_days" :min="1" :max="365" />
+          <span class="form-tip">天（学员购买后超过该天数不可再申请退款，创建课程时带入，默认 7 天）</span>
+        </el-form-item>
+        <el-form-item label="支付超时">
+          <el-input-number v-model="form.payment_expire_hours" :min="1" :max="720" />
+          <span class="form-tip">小时（待支付订单超过该时间自动取消，默认 24 小时）</span>
+        </el-form-item>
         <el-form-item label="课程类型">
           <el-input v-model="form.type_tags" placeholder="多个用顿号分隔，如：美术、书法" />
         </el-form-item>
@@ -141,6 +155,12 @@ onMounted(loadData);
 }
 
 .profile-form {
-  max-width: 720px;
+  max-width: 860px;
+}
+
+.form-tip {
+  margin-left: 12px;
+  color: #999;
+  font-size: 12px;
 }
 </style>
