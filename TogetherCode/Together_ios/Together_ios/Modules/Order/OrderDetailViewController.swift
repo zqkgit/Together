@@ -267,13 +267,11 @@ final class OrderDetailViewController: BaseViewController {
                 onConfirm: { [weak self] in self?.cancelOrder(orderId) }
             )
         case .enrolled, .completed, .refunded:
-            ThemeAlertView.show(
-                title: "申请退款",
-                message: "退还将按剩余课时计算，确定申请吗？",
-                confirmTitle: "申请退款",
-                cancelTitle: "再想想",
-                onConfirm: { [weak self] in self?.requestRefund(orderId) }
-            )
+            // 申请退款走表单页（对齐小程序：课时 + 原因），提交成功后刷新详情
+            let vc = OrderRefundViewController(order: order) { [weak self] in
+                self?.loadData()
+            }
+            navigationController?.pushViewController(vc, animated: true)
         case .cancelled:
             break
         }
