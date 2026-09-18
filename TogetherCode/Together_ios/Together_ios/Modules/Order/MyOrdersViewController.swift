@@ -31,7 +31,7 @@ final class MyOrdersViewController: BaseViewController {
     }
 
     private let tableView = UITableView(frame: .zero, style: .plain)
-    private var tabBar: TabBarView!
+    private var chipRow: TagChipRow?
     private var orders: [OrderItem] = []
     private var currentTab: Tab = .all
     private let emptyView = EmptyStateView()
@@ -51,19 +51,20 @@ final class MyOrdersViewController: BaseViewController {
     private func setupUI() {
         view.backgroundColor = Theme.Color.bg
 
-        // Tab 固定在导航下方
-        tabBar = TabBarView(titles: Tab.allCases.map(\.title))
-        tabBar.onSelect = { [weak self] index in
+        // 筛选条固定在导航下方（对齐我的课程 chipRow）
+        let chipRow = TagChipRow(chips: Tab.allCases.map(\.title))
+        chipRow.onSelect = { [weak self] index in
             guard let self, let tab = Tab(rawValue: index) else { return }
             self.currentTab = tab
             self.loadData()
         }
-        view.addSubview(tabBar)
-        tabBar.snp.makeConstraints {
-            $0.top.equalTo(view.safeAreaLayoutGuide).offset(Theme.Spacing.s)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
-            $0.height.equalTo(44)
+        view.addSubview(chipRow)
+        chipRow.snp.makeConstraints {
+            $0.top.equalTo(view.safeAreaLayoutGuide).offset(Theme.Spacing.m)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
+            $0.height.equalTo(34)
         }
+        self.chipRow = chipRow
 
         tableView.backgroundColor = .clear
         tableView.separatorStyle = .none
@@ -77,7 +78,7 @@ final class MyOrdersViewController: BaseViewController {
         }
         view.addSubview(tableView)
         tableView.snp.makeConstraints {
-            $0.top.equalTo(tabBar.snp.bottom).offset(Theme.Spacing.s)
+            $0.top.equalTo(chipRow.snp.bottom).offset(Theme.Spacing.s)
             $0.leading.trailing.bottom.equalTo(view.safeAreaLayoutGuide)
         }
 
