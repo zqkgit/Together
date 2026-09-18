@@ -5,6 +5,7 @@ const {
   listTeacherStudents,
   getTeacherClassStudents,
   listTeacherTimetable,
+  listTeacherReviews,
   listTeacherLeaves,
   reviewTeacherLeave,
   createTeacherPost,
@@ -51,6 +52,15 @@ async function getTeacherStudents(req, res) {
 async function getTeacherStudentsAll(req, res) {
   try {
     const data = await listTeacherStudents(req.user.userId, req.query);
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+async function getTeacherReviews(req, res) {
+  try {
+    const data = await listTeacherReviews(req.user.userId, req.query);
     return ok(res, data);
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");
@@ -217,6 +227,7 @@ module.exports = {
   getTeacherStudents,
   getTeacherStudentsAll,
   getTeacherTimetable,
+  getTeacherReviews,
   getTeacherLeaves,
   putTeacherLeave,
   putTeacherMakeup,

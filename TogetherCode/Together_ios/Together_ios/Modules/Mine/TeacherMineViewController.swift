@@ -210,6 +210,8 @@ final class TeacherMineViewController: BaseViewController, UITableViewDataSource
             navigationController?.pushViewController(WorkManagementViewController(), animated: true)
         case "收益中心":
             navigationController?.pushViewController(WalletViewController(), animated: true)
+        case "评价与口碑":
+            navigationController?.pushViewController(ReputationViewController(), animated: true)
         case "设置":
             openSettings()
         default:

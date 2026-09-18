@@ -211,6 +211,43 @@ struct TeacherStudentListData: Codable {
     let list: [TeacherStudentRow]?
 }
 
+struct TeacherReviewData: Codable {
+    let total: Int?
+    let average: Double?
+    let rating_distribution: [String: Int]?
+    let list: [TeacherReviewItem]?
+}
+
+struct TeacherReviewItem: Codable {
+    let review_id: String?
+    let rating: Int?
+    let content: String?
+    let created_at: String?
+    let user: TeacherReviewUser?
+    let course: TeacherReviewCourse?
+
+    var starsText: String {
+        let r = max(0, min(5, rating ?? 0))
+        return String(repeating: "★", count: r) + String(repeating: "☆", count: 5 - r)
+    }
+
+    var timeText: String {
+        guard let created_at, created_at.count >= 10 else { return "" }
+        return String(created_at.prefix(10))
+    }
+}
+
+struct TeacherReviewUser: Codable {
+    let user_id: String?
+    let nickname: String?
+    let avatar: String?
+}
+
+struct TeacherReviewCourse: Codable {
+    let course_id: String?
+    let title: String?
+}
+
 // MARK: - 请假
 
 struct TeacherLeaveChild: Codable {
@@ -371,6 +408,18 @@ enum TeacherService {
     }
 
     /// 待处理请假（status=0）
+    static func fetchTeacherReviews(completion: @escaping (Result<TeacherReviewData, APIError>) -> Void) {
+        APIClient.shared.request("/teacher/reviews", method: .get) { result in
+            switch result {
+            case .success(let json):
+                let data = JSONKit.decode(TeacherReviewData.self, from: json)
+                completion(.success(data ?? TeacherReviewData(total: nil, average: nil, rating_distribution: nil, list: nil)))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
     static func fetchPendingLeaves(
         studioId: String? = nil,
         completion: @escaping (Result<[TeacherLeaveItem], APIError>) -> Void

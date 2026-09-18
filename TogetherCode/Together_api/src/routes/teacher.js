@@ -23,6 +23,7 @@ const {
   getTeacherStudentsAll,
   getTeacherStudents,
   getTeacherTimetable,
+  getTeacherReviews,
   getTeacherLeaves,
   putTeacherLeave,
   putTeacherMakeup,
@@ -58,6 +59,7 @@ router.get("/courses", getTeacherCourses);
 router.get("/students", getTeacherStudentsAll);
 router.get("/classes/:id/students", teacherClassStudentsValidators, validateRequest, getTeacherStudents);
 router.get("/timetable", listTeacherTimetableValidators, validateRequest, getTeacherTimetable);
+router.get("/reviews", getTeacherReviews);
 router.get("/leaves", listTeacherLeavesValidators, validateRequest, getTeacherLeaves);
 router.put("/leaves/:id", handleTeacherLeaveValidators, validateRequest, putTeacherLeave);
 router.put("/leaves/:id/makeup", handleTeacherMakeupValidators, validateRequest, putTeacherMakeup);

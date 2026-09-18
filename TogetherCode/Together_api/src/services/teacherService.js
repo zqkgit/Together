@@ -14,7 +14,8 @@ const {
   Post,
   PostStudent,
   LessonLog,
-  Attendance
+  Attendance,
+  CourseReview
 } = require("../models");
 const { createNotification } = require("./messageService");
 const { applyLessonConsumption, attendSchedule, resetMakeupStatus } = require("./studentService");
@@ -1634,6 +1635,77 @@ async function undoTeacherPostConsumption(userId, postId, childIds) {
   });
 }
 
+async function listTeacherReviews(userId, query = {}) {
+  const teacher = await ensureTeacherProfile(userId);
+  // 老师名下班级 → 课程
+  const classes = await Class.findAll({
+    where: { teacher_id: teacher.teacher_id },
+    include: [{ model: Course, as: "course", attributes: ["course_id"] }]
+  });
+  const courseIds = [...new Set(
+    classes.map((c) => c.course && String(c.course.course_id)).filter(Boolean)
+  )];
+  if (courseIds.length === 0) {
+    return { total: 0, average: 0, rating_distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, list: [] };
+  }
+
+  const page = Math.max(1, Number(query.page) || 1);
+  const size = Math.min(Number(query.page_size) || 10, 30);
+  const where = { course_id: { [Op.in]: courseIds }, status: 1 };
+
+  const { count, rows } = await CourseReview.findAndCountAll({
+    where,
+    include: [
+      { model: User, as: "user", attributes: ["user_id", "nickname", "avatar"] },
+      { model: Course, as: "course", attributes: ["course_id", "title"] }
+    ],
+    order: [["created_at", "DESC"]],
+    offset: (page - 1) * size,
+    limit: size
+  });
+
+  // 评分分布
+  const dist = await CourseReview.findAll({
+    where,
+    attributes: ["rating"],
+    raw: true
+  });
+  const ratingCount = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  let sum = 0;
+  dist.forEach((r) => {
+    const key = String(r.rating);
+    if (ratingCount[key] !== undefined) {
+      ratingCount[key] += 1;
+      sum += Number(r.rating);
+    }
+  });
+
+  return {
+    total: count,
+    average: count ? Number((sum / count).toFixed(1)) : 0,
+    rating_distribution: ratingCount,
+    list: rows.map((r) => ({
+      review_id: String(r.review_id),
+      rating: r.rating,
+      content: r.content,
+      created_at: r.created_at,
+      user: r.user
+        ? {
+            user_id: String(r.user.user_id),
+            nickname: r.user.nickname,
+            avatar: r.user.avatar
+          }
+        : null,
+      course: r.course
+        ? {
+            course_id: String(r.course.course_id),
+            title: r.course.title
+          }
+        : null
+    }))
+  };
+}
+
 module.exports = {
   listTeacherClasses,
   listTeacherCourses,
@@ -1641,6 +1713,7 @@ module.exports = {
   getTeacherClassStudents,
   listTeacherTimetable,
   listTeacherLeaves,
+  listTeacherReviews,
   reviewTeacherLeave,
   arrangeTeacherMakeup,
   listTeacherMakeupCandidates,
