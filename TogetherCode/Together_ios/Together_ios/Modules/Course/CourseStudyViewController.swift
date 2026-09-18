@@ -1,5 +1,6 @@
 import UIKit
 import SnapKit
+import ESPullToRefresh
 
 /// 课程学习（课时进度详情）
 /// PR 设计：课程头（名称/机构·老师/已学节数）+ 课时列表（第X课·名称 + 日期 + 时间 + 已上/今天/待上）
@@ -12,6 +13,8 @@ final class CourseStudyViewController: BaseViewController {
     private let tableView = UITableView(frame: .zero, style: .plain)
     private var summary: CourseScheduleSummary?
     private var schedules: [CourseScheduleItem] = []
+    /// schedule_id -> 我的请假单（用于撤销）
+    private var leaveMap: [String: CourseService.MyLeaveItem] = [:]
     private let emptyView = EmptyStateView()
 
     init(childId: String, courseId: String, courseTitle: String) {
@@ -38,6 +41,10 @@ final class CourseStudyViewController: BaseViewController {
         tableView.register(CourseStudyCell.self, forCellReuseIdentifier: "CourseStudyCell")
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 84
+        // 与我的课程/广场一致：品牌下拉刷新
+        tableView.es.addPullToRefresh(animator: BrandRefreshHeader()) { [weak self] in
+            self?.loadData()
+        }
         view.addSubview(tableView)
         tableView.snp.makeConstraints { $0.edges.equalTo(view.safeAreaLayoutGuide) }
 
@@ -64,6 +71,33 @@ final class CourseStudyViewController: BaseViewController {
                     self?.loadData()
                 })
             }
+            self.tableView.es.stopPullToRefresh()
+        }
+
+        // 并行拉取我的请假单：用于撤销待审批请假
+        CourseService.fetchMyLeaves { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .success(let items):
+                var map: [String: CourseService.MyLeaveItem] = [:]
+                // 状态优先级：0待审批 > 1已同意 > 2已婉拒 > 3已取消
+                let rank: [Int] = [0, 1, 2, 3]
+                for item in items {
+                    guard let sid = item.schedule_id, !sid.isEmpty else { continue }
+                    // 只保留当前孩子（同一课次多孩子共享 schedule_id）
+                    if let itemChild = item.child_id, itemChild != childId { continue }
+                    if let old = map[sid] {
+                        let oldRank = rank.firstIndex(of: old.status ?? 9) ?? 9
+                        let newRank = rank.firstIndex(of: item.status ?? 9) ?? 9
+                        if newRank >= oldRank { continue }
+                    }
+                    map[sid] = item
+                }
+                self.leaveMap = map
+                self.tableView.reloadData()
+            case .failure:
+                break // 请假列表拉取失败不影响课时展示
+            }
         }
     }
 }
@@ -84,9 +118,18 @@ extension CourseStudyViewController: UITableViewDataSource, UITableViewDelegate 
             cell.configureHeader(summary, fallbackTitle: initialTitle)
         } else {
             let item = schedules[indexPath.row]
-            cell.configure(item) { [weak self] in
-                self?.askLeave(item)
-            }
+            let leave = leaveMap[item.schedule_id ?? ""]
+            cell.configure(
+                item,
+                leaveId: leave?.leave_id,
+                leaveStatus: leave?.status.map { $0 + 1 },
+                onLeave: { [weak self] in
+                    self?.askLeave(item)
+                },
+                onCancelLeave: { [weak self] in
+                    self?.cancelLeave(item, leaveId: leave?.leave_id)
+                }
+            )
         }
         return cell
     }
@@ -125,6 +168,34 @@ extension CourseStudyViewController: UITableViewDataSource, UITableViewDelegate 
                 self.loadData()
             case .failure(let error):
                 self.showToast(error.message ?? "提交失败")
+            }
+        }
+    }
+
+    /// 撤销待审批请假
+    private func cancelLeave(_ item: CourseScheduleItem, leaveId: String?) {
+        guard let leaveId, !leaveId.isEmpty else {
+            showToast("未找到请假记录")
+            return
+        }
+        ThemeAlertView.show(
+            title: "撤销请假",
+            message: "确定撤销这条请假申请吗？撤销后老师不再审批。",
+            confirmTitle: "撤销",
+            cancelTitle: "再想想"
+        ) { [weak self] in
+            guard let self else { return }
+            self.showLoading()
+            CourseService.cancelLeave(leaveId: leaveId) { [weak self] result in
+                guard let self else { return }
+                self.hideLoading()
+                switch result {
+                case .success:
+                    self.showToast("请假已撤销")
+                    self.loadData()
+                case .failure(let error):
+                    self.showToast(error.message ?? "撤销失败")
+                }
             }
         }
     }
@@ -260,7 +331,13 @@ final class CourseStudyCell: UITableViewCell {
     }
 
     /// 课时：第X课·名称 + 日期时间 + 右侧状态（可请假时左侧显示「请假」按钮）
-    func configure(_ item: CourseScheduleItem, onLeave: (() -> Void)? = nil) {
+    func configure(
+        _ item: CourseScheduleItem,
+        leaveId: String? = nil,
+        leaveStatus: Int? = nil,
+        onLeave: (() -> Void)? = nil,
+        onCancelLeave: (() -> Void)? = nil
+    ) {
         titleLabel.font = .appSection(15)
         let no = item.lesson_no ?? 0
         titleLabel.text = "第\(no)课·\(item.lesson_title ?? "课程")"
@@ -271,7 +348,7 @@ final class CourseStudyCell: UITableViewCell {
             $0.width.equalTo(48)
         }
 
-        let leaveStatus = item.leave_status ?? 0
+        let leaveStatus = leaveStatus ?? item.leave_status ?? 0
         // 请假中 / 已请假：右侧展示状态，不显示请假入口
         if leaveStatus == 1 {
             statusButton.setTitle("请假中", for: .normal)
@@ -301,13 +378,25 @@ final class CourseStudyCell: UITableViewCell {
             statusButton.isUserInteractionEnabled = false
         }
 
-        // 请假入口：待上/今天 且未请假（含婉拒）→ 左侧显示
-        let canLeave = (item.status == 0 || item.status == 2) && (leaveStatus == 0 || leaveStatus == 3)
-        leaveButton.isHidden = !canLeave
-        leaveButton.snp.updateConstraints {
-            $0.width.equalTo(canLeave ? 44 : 0)
+        // 左侧操作按钮：
+        // 1) 待审批请假 → 撤销请假
+        // 2) 待上/今天 且未请假（含婉拒）→ 请假
+        let canCancel = leaveStatus == 1 && leaveId != nil && !leaveId!.isEmpty
+        let canLeave = !canCancel && (item.status == 0 || item.status == 2) && (leaveStatus == 0 || leaveStatus == 3 || leaveStatus == 4)
+        if canCancel {
+            leaveButton.setTitle("撤销请假", for: .normal)
+            leaveButton.setTitleColor(Theme.Color.clay, for: .normal)
+            leaveButton.backgroundColor = Theme.Color.warnTint
+        } else if canLeave {
+            leaveButton.setTitle("请假", for: .normal)
+            leaveButton.setTitleColor(Theme.Color.clay, for: .normal)
+            leaveButton.backgroundColor = Theme.Color.warnTint
         }
-        if canLeave {
+        leaveButton.isHidden = !(canCancel || canLeave)
+        leaveButton.snp.updateConstraints {
+            $0.width.equalTo(canCancel || canLeave ? 64 : 0)
+        }
+        if canCancel || canLeave {
             subtitleLeadingTitle?.deactivate()
             subtitleLeadingLeave?.activate()
         } else {
@@ -315,6 +404,7 @@ final class CourseStudyCell: UITableViewCell {
             subtitleLeadingTitle?.activate()
         }
         self.onLeave = canLeave ? onLeave : nil
+        self.onCancelLeave = canCancel ? onCancelLeave : nil
 
         titleLabel.snp.updateConstraints {
             $0.trailing.lessThanOrEqualToSuperview().inset(84)
@@ -322,6 +412,13 @@ final class CourseStudyCell: UITableViewCell {
     }
 
     private var onLeave: (() -> Void)?
+    private var onCancelLeave: (() -> Void)?
 
-    @objc private func didTapLeave() { onLeave?() }
+    @objc private func didTapLeave() {
+        if onCancelLeave != nil {
+            onCancelLeave?()
+        } else {
+            onLeave?()
+        }
+    }
 }

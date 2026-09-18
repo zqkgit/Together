@@ -218,7 +218,7 @@ struct CourseScheduleItem: Codable {
     let end_time: String?
     /// 0 待上 / 1 已上 / 2 今天
     let status: Int?
-    /// 请假状态：0 无 / 1 待处理 / 2 已同意 / 3 已婉拒
+    /// 请假状态：0 无 / 1 待处理 / 2 已同意 / 3 已婉拒 / 4 已取消
     let leave_status: Int?
 }
 

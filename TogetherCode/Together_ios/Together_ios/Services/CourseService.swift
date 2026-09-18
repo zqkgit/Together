@@ -148,4 +148,46 @@ enum CourseService {
             }
         }
     }
+
+    /// 我的请假单（家长端）
+    struct MyLeaveItem: Codable {
+        let leave_id: String?
+        let schedule_id: String?
+        let child_id: String?
+        let status: Int?
+    }
+
+    /// 我的请假列表
+    static func fetchMyLeaves(completion: @escaping (Result<[MyLeaveItem], APIError>) -> Void) {
+        APIClient.shared.request(
+            "/leave",
+            method: .get,
+            parameters: ["page": 1, "page_size": 50],
+            encoding: URLEncoding.default
+        ) { result in
+            switch result {
+            case .success(let json):
+                let list = JSONKit.decode([MyLeaveItem].self, from: json["list"]) ?? []
+                completion(.success(list))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 撤销请假（仅待审批可撤销）
+    static func cancelLeave(leaveId: String, completion: @escaping (Result<Void, APIError>) -> Void) {
+        APIClient.shared.request(
+            "/leave/\(leaveId)/cancel",
+            method: .put,
+            parameters: [:]
+        ) { result in
+            switch result {
+            case .success:
+                completion(.success(()))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
 }

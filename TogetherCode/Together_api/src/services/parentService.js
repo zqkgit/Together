@@ -630,7 +630,9 @@ async function getCourseSchedules(userId, query = {}) {
     const leaves = await LeaveRequest.findAll({
       where: {
         child_id: child.child_id,
-        schedule_id: { [Op.in]: scheduleIds }
+        schedule_id: { [Op.in]: scheduleIds },
+        // 已取消(3)不算请假，撤销后可重新请假
+        status: { [Op.ne]: 3 }
       },
       attributes: ["schedule_id", "status", "makeup_status"],
       order: [["created_at", "DESC"]]

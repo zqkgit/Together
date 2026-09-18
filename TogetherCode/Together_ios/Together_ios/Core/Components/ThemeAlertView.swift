@@ -21,8 +21,8 @@ final class ThemeAlertView: UIView {
         message: String? = nil,
         confirmTitle: String = "确定",
         cancelTitle: String = "取消",
-        onConfirm: (() -> Void)? = nil,
-        onCancel: (() -> Void)? = nil
+        onCancel: (() -> Void)? = nil,
+        onConfirm: (() -> Void)? = nil
     ) -> ThemeAlertView {
         let alert = ThemeAlertView()
         alert.configure(
