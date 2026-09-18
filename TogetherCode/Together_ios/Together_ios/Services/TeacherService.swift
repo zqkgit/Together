@@ -240,6 +240,8 @@ struct TeacherLeaveItem: Codable {
     let leave_id: String?
     let reason: String?
     let status: Int?
+    let studio_id: String?
+    let studio_name: String?
     let child: TeacherLeaveChild?
     let `class`: TeacherLeaveClass?
     let schedule: TeacherLeaveSchedule?
@@ -247,9 +249,10 @@ struct TeacherLeaveItem: Codable {
     let makeup_schedule_id: String?
     let makeup_schedule: TeacherLeaveSchedule?
 
-    /// 卡片副标题：课程·班级·日期时间
+    /// 卡片副标题：工作室·课程·班级·日期时间
     var infoText: String {
         var parts: [String] = []
+        if let studio = studio_name, !studio.isEmpty { parts.append(studio) }
         if let title = `class`?.course?.title, !title.isEmpty { parts.append(title) }
         if let name = `class`?.name, !name.isEmpty { parts.append(name) }
         if let date = schedule?.lesson_date, !date.isEmpty { parts.append(date) }
@@ -368,11 +371,16 @@ enum TeacherService {
     }
 
     /// 待处理请假（status=0）
-    static func fetchPendingLeaves(completion: @escaping (Result<[TeacherLeaveItem], APIError>) -> Void) {
+    static func fetchPendingLeaves(
+        studioId: String? = nil,
+        completion: @escaping (Result<[TeacherLeaveItem], APIError>) -> Void
+    ) {
+        var parameters: [String: Any] = ["status": 0]
+        if let studioId { parameters["studio_id"] = studioId }
         APIClient.shared.request(
             "/teacher/leaves",
             method: .get,
-            parameters: ["status": 0],
+            parameters: parameters,
             encoding: URLEncoding.queryString
         ) { result in
             switch result {
@@ -386,11 +394,16 @@ enum TeacherService {
     }
 
     /// 已同意请假（status=1，用于补课管理）
-    static func fetchApprovedLeaves(completion: @escaping (Result<[TeacherLeaveItem], APIError>) -> Void) {
+    static func fetchApprovedLeaves(
+        studioId: String? = nil,
+        completion: @escaping (Result<[TeacherLeaveItem], APIError>) -> Void
+    ) {
+        var parameters: [String: Any] = ["status": 1]
+        if let studioId { parameters["studio_id"] = studioId }
         APIClient.shared.request(
             "/teacher/leaves",
             method: .get,
-            parameters: ["status": 1],
+            parameters: parameters,
             encoding: URLEncoding.queryString
         ) { result in
             switch result {

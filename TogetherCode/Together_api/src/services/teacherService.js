@@ -926,6 +926,12 @@ async function listTeacherLeaves(userId, query = {}) {
     where.schedule_id = query.schedule_id;
   }
 
+  const classIncludeWhere = { teacher_id: teacher.teacher_id };
+  const courseInclude = { model: Course, as: "course", attributes: ["course_id", "title", "studio_id"] };
+  if (query.studio_id) {
+    courseInclude.where = { studio_id: query.studio_id };
+  }
+
   const rows = await LeaveRequest.findAll({
     where,
     include: [
@@ -933,13 +939,9 @@ async function listTeacherLeaves(userId, query = {}) {
         model: Class,
         as: "classItem",
         required: true,
-        where: {
-          teacher_id: teacher.teacher_id
-        },
+        where: classIncludeWhere,
         attributes: ["class_id", "name"],
-        include: [
-          { model: Course, as: "course", attributes: ["course_id", "title"] }
-        ]
+        include: [courseInclude]
       },
       { model: Child, as: "child", attributes: ["child_id", "nickname", "birthday"] },
       { model: User, as: "parent", attributes: ["user_id", "nickname", "phone"] },
@@ -957,9 +959,17 @@ async function listTeacherLeaves(userId, query = {}) {
     order: [["created_at", "DESC"]]
   });
 
+  const studioRows = await StudioProfile.findAll({ attributes: ["studio_id", "name"] });
+  const studioMap = new Map(studioRows.map((st) => [String(st.studio_id), st.name]));
   return {
     total: rows.length,
-    list: rows.map(normalizeLeaveItem)
+    list: rows.map((row) => {
+      const item = normalizeLeaveItem(row);
+      const studioId = row.classItem?.course?.studio_id;
+      item.studio_id = studioId ? String(studioId) : null;
+      item.studio_name = studioId ? studioMap.get(String(studioId)) || null : null;
+      return item;
+    })
   };
 }
 

@@ -8,6 +8,8 @@ final class LeaveApprovalViewController: BaseViewController, UITableViewDataSour
 
     private var leaves: [TeacherLeaveItem] = []
     private var approvedLeaves: [TeacherLeaveItem] = []
+    private var studioOptions: [(id: String, name: String)] = []
+    private let studioChipRow = TagChipRow(chips: ["全部工作室"])
     private var loading = false
 
     override func viewDidLoad() {
@@ -30,6 +32,28 @@ final class LeaveApprovalViewController: BaseViewController, UITableViewDataSour
     }
 
     private func setupUI() {
+        // 工作室筛选（固定在导航下）
+        let filterWrap = UIView()
+        filterWrap.backgroundColor = Theme.Color.bg
+        view.addSubview(filterWrap)
+        filterWrap.snp.makeConstraints {
+            $0.top.equalTo(view.safeAreaLayoutGuide)
+            $0.leading.trailing.equalToSuperview()
+        }
+
+        studioChipRow.onSelect = { [weak self] index in
+            guard let self else { return }
+            self.loadData(studioId: self.selectedStudioId(at: index))
+        }
+        filterWrap.addSubview(studioChipRow)
+        studioChipRow.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(Theme.Spacing.s)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.m)
+            $0.trailing.equalToSuperview()
+            $0.height.equalTo(34)
+            $0.bottom.equalToSuperview().inset(Theme.Spacing.xs)
+        }
+
         tableView.backgroundColor = Theme.Color.bg
         tableView.separatorStyle = .none
         tableView.showsVerticalScrollIndicator = false
@@ -41,11 +65,17 @@ final class LeaveApprovalViewController: BaseViewController, UITableViewDataSour
         tableView.rowHeight = UITableView.automaticDimension
         view.addSubview(tableView)
         tableView.snp.makeConstraints {
-            $0.edges.equalToSuperview()
+            $0.top.equalTo(filterWrap.snp.bottom)
+            $0.leading.trailing.bottom.equalToSuperview()
         }
     }
 
-    private func loadData() {
+    private func selectedStudioId(at index: Int) -> String? {
+        guard index > 0, index - 1 < studioOptions.count else { return nil }
+        return studioOptions[index - 1].id
+    }
+
+    private func loadData(studioId: String? = nil) {
         guard !loading else { return }
         loading = true
         let group = DispatchGroup()
@@ -53,12 +83,12 @@ final class LeaveApprovalViewController: BaseViewController, UITableViewDataSour
         var approvedData: [TeacherLeaveItem] = []
 
         group.enter()
-        TeacherService.fetchPendingLeaves { result in
+        TeacherService.fetchPendingLeaves(studioId: studioId) { result in
             defer { group.leave() }
             if case .success(let list) = result { leaveData = list }
         }
         group.enter()
-        TeacherService.fetchApprovedLeaves { result in
+        TeacherService.fetchApprovedLeaves(studioId: studioId) { result in
             defer { group.leave() }
             if case .success(let list) = result { approvedData = list }
         }
@@ -67,6 +97,20 @@ final class LeaveApprovalViewController: BaseViewController, UITableViewDataSour
             self.loading = false
             self.leaves = leaveData
             self.approvedLeaves = approvedData
+            if studioId == nil {
+                // 全量时构建工作室筛选 chips（按出现顺序去重）
+                var seen: [(id: String, name: String)] = []
+                for item in leaveData + approvedData {
+                    guard let sid = item.studio_id, let studio = item.studio_name,
+                          !studio.isEmpty,
+                          !seen.contains(where: { $0.name == studio }) else { continue }
+                    seen.append((id: sid, name: studio))
+                }
+                self.studioOptions = seen
+                var chips = ["全部工作室"]
+                chips += seen.map { $0.name }
+                self.studioChipRow.update(chips: chips, selectedIndex: 0)
+            }
             self.tableView.reloadData()
         }
     }

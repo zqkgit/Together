@@ -13,7 +13,8 @@ const teacherClassStudentsValidators = [
 const listTeacherLeavesValidators = [
   query("status").optional({ values: "falsy" }).isInt({ min: 0, max: 2 }),
   query("class_id").optional({ values: "falsy" }).isString(),
-  query("schedule_id").optional({ values: "falsy" }).isString()
+  query("schedule_id").optional({ values: "falsy" }).isString(),
+  query("studio_id").optional({ values: "falsy" }).isString()
 ];
 
 const handleTeacherLeaveValidators = [

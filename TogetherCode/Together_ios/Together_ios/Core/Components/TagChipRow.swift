@@ -67,10 +67,14 @@ final class TagChipRow: UIView {
         guard index >= 0, index < buttons.count else { return }
         selectedIndex = index
         applySelection()
-        // 滚动到选中项可见
+        // 标准滚动策略：选中项居中，越界收敛到首尾
+        // 内容不满一屏不滚动；点第一个贴左、点最后一个贴右（与 JXCategoryView 等成熟控件一致）
+        scrollView.layoutIfNeeded()
         let btn = buttons[index]
-        let target = CGPoint(x: btn.frame.midX - scrollView.bounds.width / 2, y: 0)
-        scrollView.setContentOffset(CGPoint(x: max(0, target.x), y: 0), animated: true)
+        let targetX = btn.frame.midX - scrollView.bounds.width / 2
+        let maxOffset = max(0, scrollView.contentSize.width - scrollView.bounds.width)
+        let clampedX = min(max(0, targetX), maxOffset)
+        scrollView.setContentOffset(CGPoint(x: clampedX, y: 0), animated: true)
     }
 
     private func applySelection() {

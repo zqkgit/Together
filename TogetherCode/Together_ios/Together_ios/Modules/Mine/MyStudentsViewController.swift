@@ -49,9 +49,10 @@ final class MyStudentsViewController: BaseViewController, UITableViewDataSource,
         filterWrap.addSubview(classChipRow)
         classChipRow.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.s)
-            $0.leading.trailing.equalToSuperview()
+            $0.leading.equalToSuperview().offset(Theme.Spacing.m)
+            $0.trailing.equalToSuperview()
             $0.height.equalTo(34)
-            $0.bottom.equalToSuperview().inset(Theme.Spacing.s)
+            $0.bottom.equalToSuperview().inset(Theme.Spacing.xs)
         }
 
         tableView.backgroundColor = Theme.Color.bg
@@ -97,6 +98,15 @@ final class MyStudentsViewController: BaseViewController, UITableViewDataSource,
     // MARK: - TableView
 
     func numberOfSections(in tableView: UITableView) -> Int { 1 }
+
+    // grouped 风格默认会给顶部留约 35pt section 间距，这里压掉，让列表紧贴筛选区
+    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+        CGFloat.leastNonzeroMagnitude
+    }
+
+    func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+        UIView(frame: .zero)
+    }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         students.count
