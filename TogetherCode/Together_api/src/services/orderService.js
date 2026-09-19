@@ -485,12 +485,12 @@ function refundExpireAt(order) {
   return expireAt.toISOString();
 }
 
-// 是否可申请退款：已支付/已报名 + 无进行中退款 + 有余课 + 未超过退款有效期
+// 是否可申请退款：仅已支付 + 无进行中/已退款 + 有余课 + 未超过退款有效期（已驳回可再次申请）
 function canApplyRefund(order, refundStatus, activeRefund) {
-  if (![1, 3].includes(Number(order.status))) {
+  if (Number(order.status) !== 1) {
     return false;
   }
-  if (activeRefund) {
+  if (activeRefund || [1, 2].includes(Number(refundStatus))) {
     return false;
   }
   const remaining = Number(order.balance?.remaining_lessons ?? 0);

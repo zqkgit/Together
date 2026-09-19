@@ -12,7 +12,7 @@ import {
 } from "../../../services/studio";
 
 const loading = ref(false);
-const activeTab = ref("applications");
+const activeTab = ref("staff");
 const status = ref<number | "">(0);
 const applications = ref<TeacherApplicationItem[]>([]);
 const staff = ref<TeacherStaffItem[]>([]);
@@ -105,15 +105,65 @@ async function onRelease(row: TeacherStaffItem) {
       <template #header>
         <div class="panel-header">
           <el-radio-group :model-value="activeTab" @change="(v: string | number) => { activeTab = v as string; onTabChange(); }">
-            <el-radio-button value="applications">合作申请（{{ applications.length }}）</el-radio-button>
             <el-radio-button value="staff">在职老师（{{ staff.length }}）</el-radio-button>
+            <el-radio-button value="applications">合作申请（{{ applications.length }}）</el-radio-button>
           </el-radio-group>
           <el-button :icon="Refresh" @click="loadData">刷新</el-button>
         </div>
       </template>
 
+      <!-- 在职老师 -->
+      <template v-if="activeTab === 'staff'">
+        <el-table :data="staff" row-key="teacher_id">
+          <el-table-column label="老师" min-width="150">
+            <template #default="{ row }">
+              <span class="cell-strong">{{ row.real_name }}</span>
+              <div class="cell-sub">{{ row.phone }}</div>
+            </template>
+          </el-table-column>
+          <el-table-column label="擅长方向" min-width="160">
+            <template #default="{ row }">
+              <el-tag
+                v-for="subject in row.subjects"
+                :key="subject"
+                size="small"
+                effect="plain"
+                class="subject-tag"
+              >
+                {{ subject }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="years" label="教龄" width="80" align="center">
+            <template #default="{ row }">{{ row.years }} 年</template>
+          </el-table-column>
+          <el-table-column label="证书" width="140">
+            <template #default="{ row }">
+              <el-tag :type="row.cert_status === 1 ? 'success' : 'info'" effect="light" size="small">
+                {{ row.cert_status === 1 ? "已认证" : "未认证" }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="rating" label="评分" width="80" align="center">
+            <template #default="{ row }">{{ Number(row.rating).toFixed(1) }}</template>
+          </el-table-column>
+          <el-table-column prop="student_count" label="学员数" width="80" align="center" />
+          <el-table-column label="加入时间" width="110">
+            <template #default="{ row }">
+              <span v-if="row.bound_at" class="cell-sub">{{ fmtDate(row.bound_at) }}</span>
+              <span v-else class="cell-sub">-</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="120" fixed="right">
+            <template #default="{ row }">
+              <el-button text type="danger" @click="onRelease(row)">解除合作</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+        <div v-if="!loading && staff.length === 0" class="empty-tip">暂无在职老师</div>
+      </template>
       <!-- 合作申请 -->
-      <template v-if="activeTab === 'applications'">
+      <template v-else>
         <div class="filter-row">
           <el-radio-group :model-value="status" size="small" @change="(v: string | number) => { status = v as number; loadData(); }">
             <el-radio-button :value="0">待处理</el-radio-button>
@@ -175,56 +225,6 @@ async function onRelease(row: TeacherStaffItem) {
         </div>
       </template>
 
-      <!-- 在职老师 -->
-      <template v-else>
-        <el-table :data="staff" row-key="teacher_id">
-          <el-table-column label="老师" min-width="150">
-            <template #default="{ row }">
-              <span class="cell-strong">{{ row.real_name }}</span>
-              <div class="cell-sub">{{ row.phone }}</div>
-            </template>
-          </el-table-column>
-          <el-table-column label="擅长方向" min-width="160">
-            <template #default="{ row }">
-              <el-tag
-                v-for="subject in row.subjects"
-                :key="subject"
-                size="small"
-                effect="plain"
-                class="subject-tag"
-              >
-                {{ subject }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="years" label="教龄" width="80" align="center">
-            <template #default="{ row }">{{ row.years }} 年</template>
-          </el-table-column>
-          <el-table-column label="证书" width="140">
-            <template #default="{ row }">
-              <el-tag :type="row.cert_status === 1 ? 'success' : 'info'" effect="light" size="small">
-                {{ row.cert_status === 1 ? "已认证" : "未认证" }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="rating" label="评分" width="80" align="center">
-            <template #default="{ row }">{{ Number(row.rating).toFixed(1) }}</template>
-          </el-table-column>
-          <el-table-column prop="student_count" label="学员数" width="80" align="center" />
-          <el-table-column label="加入时间" width="110">
-            <template #default="{ row }">
-              <span v-if="row.bound_at" class="cell-sub">{{ fmtDate(row.bound_at) }}</span>
-              <span v-else class="cell-sub">-</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="120" fixed="right">
-            <template #default="{ row }">
-              <el-button text type="danger" @click="onRelease(row)">解除合作</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-        <div v-if="!loading && staff.length === 0" class="empty-tip">暂无在职老师</div>
-      </template>
     </el-card>
 
     <!-- 审批对话框 -->
