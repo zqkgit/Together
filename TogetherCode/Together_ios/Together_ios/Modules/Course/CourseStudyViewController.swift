@@ -178,7 +178,7 @@ extension CourseStudyViewController: UITableViewDataSource, UITableViewDelegate 
         CourseService.submitLeave(
             classId: classId,
             childId: childId,
-            scheduleId: item.schedule_id,
+            scheduleId: item.schedule_id ?? "",
             reason: reason
         ) { [weak self] result in
             guard let self else { return }
@@ -229,6 +229,7 @@ final class CourseStudyCell: UITableViewCell {
     enum Style {
         case header
         case lesson
+        case pending
     }
 
     private let card = UIView()
@@ -242,6 +243,7 @@ final class CourseStudyCell: UITableViewCell {
     private var subtitleLeadingLeave: Constraint?
     private var subtitleBottom: Constraint?
     private var makeupBottom: Constraint?
+    private var dashLayer: CAShapeLayer?
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -251,6 +253,8 @@ final class CourseStudyCell: UITableViewCell {
         contentView.addSubview(card)
         card.backgroundColor = Theme.Color.surface
         card.layer.cornerRadius = Theme.Radius.card
+        card.layer.borderWidth = 0
+        card.layer.borderColor = nil
         card.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.xs)
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
@@ -343,6 +347,7 @@ final class CourseStudyCell: UITableViewCell {
 
     /// 头部：课程名 + 机构·老师 + 已学节数
     func configureHeader(_ summary: CourseScheduleSummary?, fallbackTitle: String) {
+        clearPendingDash()
         titleLabel.font = .appSection(18)
         titleLabel.text = summary?.course_title ?? fallbackTitle
         subtitleLabel.text = summary?.studioTeacherText
@@ -382,8 +387,47 @@ final class CourseStudyCell: UITableViewCell {
         onLeave: (() -> Void)? = nil,
         onCancelLeave: (() -> Void)? = nil
     ) {
+        clearPendingDash()
         titleLabel.font = .appSection(15)
         let no = item.lesson_no ?? 0
+        titleLabel.textColor = Theme.Color.ink
+        // 待排课课时（status=3）：灰色虚线卡，仅显示课序号 + 待排课
+        if item.status == 3 {
+            let title = item.lesson_title ?? ""
+            if !title.isEmpty && title != "第\(no)课" {
+                titleLabel.text = "第\(no)课·\(title)"
+            } else {
+                titleLabel.text = "第\(no)课"
+            }
+            titleLabel.textColor = Theme.Color.sub
+            subtitleLabel.text = "待排课"
+            subtitleLabel.textColor = Theme.Color.sub
+            timeLabel.text = nil
+            statusButton.isHidden = true
+            leaveButton.isHidden = true
+            leaveButton.snp.updateConstraints { $0.width.equalTo(0) }
+            subtitleLeadingLeave?.deactivate()
+            subtitleLeadingTitle?.activate()
+            makeupLabel.text = nil
+            makeupLabel.isHidden = true
+            makeupBottom?.deactivate()
+            subtitleBottom?.activate()
+            titleLabel.snp.updateConstraints { $0.trailing.lessThanOrEqualToSuperview().inset(84) }
+            card.layer.borderWidth = 1
+            card.layer.borderColor = Theme.Color.line.cgColor
+            let dash = CAShapeLayer()
+            dash.strokeColor = Theme.Color.line.cgColor
+            dash.lineWidth = 1
+            dash.lineDashPattern = [4, 4]
+            dash.fillColor = nil
+            dash.frame = card.bounds
+            dash.path = UIBezierPath(roundedRect: card.bounds, cornerRadius: Theme.Radius.card).cgPath
+            card.layer.addSublayer(dash)
+            dashLayer = dash
+            self.onLeave = nil
+            self.onCancelLeave = nil
+            return
+        }
         titleLabel.text = "第\(no)课·\(item.lesson_title ?? "课程")"
         subtitleLabel.text = item.lesson_date?.mmddText
         timeLabel.text = item.start_time ?? ""
@@ -465,6 +509,54 @@ final class CourseStudyCell: UITableViewCell {
 
         titleLabel.snp.updateConstraints {
             $0.trailing.lessThanOrEqualToSuperview().inset(84)
+        }
+    }
+
+    /// 待排课占位卡：灰色虚线卡片，提示还有 N 节未安排
+    func configurePending(_ count: Int) {
+        clearPendingDash()
+        titleLabel.font = .appSection(15)
+        titleLabel.text = "还有 \(count) 节课待安排"
+        titleLabel.textColor = Theme.Color.sub
+        subtitleLabel.text = "工作室排课后会显示在这里"
+        subtitleLabel.textColor = Theme.Color.sub
+        timeLabel.text = nil
+        statusButton.isHidden = true
+        leaveButton.isHidden = true
+        leaveButton.snp.updateConstraints { $0.width.equalTo(0) }
+        subtitleLeadingLeave?.deactivate()
+        subtitleLeadingTitle?.activate()
+        makeupLabel.text = nil
+        makeupLabel.isHidden = true
+        makeupBottom?.deactivate()
+        subtitleBottom?.activate()
+        titleLabel.snp.updateConstraints { $0.trailing.lessThanOrEqualToSuperview().inset(84) }
+
+        card.layer.borderWidth = 1
+        card.layer.borderColor = Theme.Color.line.cgColor
+        let dash = CAShapeLayer()
+        dash.strokeColor = Theme.Color.line.cgColor
+        dash.lineWidth = 1
+        dash.lineDashPattern = [4, 4]
+        dash.fillColor = nil
+        dash.frame = card.bounds
+        dash.path = UIBezierPath(roundedRect: card.bounds, cornerRadius: Theme.Radius.card).cgPath
+        card.layer.addSublayer(dash)
+        dashLayer = dash
+    }
+
+    private func clearPendingDash() {
+        dashLayer?.removeFromSuperlayer()
+        dashLayer = nil
+        card.layer.borderWidth = 0
+        card.layer.borderColor = nil
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        if let dash = dashLayer {
+            dash.frame = card.bounds
+            dash.path = UIBezierPath(roundedRect: card.bounds, cornerRadius: Theme.Radius.card).cgPath
         }
     }
 

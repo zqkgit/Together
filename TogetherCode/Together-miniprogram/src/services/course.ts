@@ -112,6 +112,8 @@ export interface CourseScheduleSummary {
   total_lessons: number;
   consumed_lessons: number;
   remaining_lessons: number;
+  scheduled_count?: number;
+  pending_lessons?: number;
   list: CourseScheduleItem[];
 }
 

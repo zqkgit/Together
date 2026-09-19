@@ -209,7 +209,7 @@ struct NextLessonItem: Codable {
 // MARK: - 课时进度（课程详情）
 
 struct CourseScheduleItem: Codable {
-    let schedule_id: String
+    let schedule_id: String?
     let class_id: String?
     let lesson_no: Int?
     let lesson_title: String?
@@ -257,12 +257,15 @@ struct CourseScheduleSummary: Codable {
     let total_lessons: Int?
     let consumed_lessons: Int?
     let remaining_lessons: Int?
+    let scheduled_count: Int?
+    let pending_lessons: Int?
     let list: [CourseScheduleItem]?
 
     init() {
         child_id = nil; child_name = nil; course_id = nil; course_title = nil
         course_cover = nil; class_id = nil; studio_name = nil; teacher_name = nil
-        total_lessons = nil; consumed_lessons = nil; remaining_lessons = nil; list = []
+        total_lessons = nil; consumed_lessons = nil; remaining_lessons = nil
+        scheduled_count = nil; pending_lessons = nil; list = []
     }
 
     /// 机构 · 老师

@@ -229,3 +229,14 @@
 .sheet-disabled {
   opacity: 0.6;
 }
+
+.pending-card {
+  border: 1px dashed #c9c0b2;
+  background: #faf8f4;
+}
+.pending-card .lesson-name {
+  color: #9c948a;
+}
+.pending-card .lesson-date {
+  color: #9c948a;
+}

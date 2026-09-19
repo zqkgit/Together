@@ -10,7 +10,8 @@ const {
   Class: ClassModel,
   TeacherProfile,
   Attendance,
-  LeaveRequest
+  LeaveRequest,
+  CourseLesson
 } = require("../models");
 
 // 订单状态：1 支付成功（与 orderService 一致）
@@ -593,7 +594,14 @@ async function getCourseSchedules(userId, query = {}) {
       course_id: courseId,
       status: { [Op.in]: [1, 2] }
     },
-    include: [{ model: Course, as: "course", attributes: ["course_id", "title", "cover"] }]
+    include: [
+      {
+        model: Course,
+        as: "course",
+        attributes: ["course_id", "title", "cover"],
+        include: [{ model: CourseLesson, as: "lessons", attributes: ["lesson_no", "title"] }]
+      }
+    ]
   });
   if (!balance) {
     return { error: { status: 404, message: "未找到该课程课包" } };
@@ -646,7 +654,35 @@ async function getCourseSchedules(userId, query = {}) {
     }
   }
 
-  const list = schedules.map((schedule, index) => {
+  // 课时标题：优先课程课时名（CourseLesson），无则“第N课”
+  const lessonTitles = (balance.course?.lessons || [])
+    .filter((l) => l && String(l.title || "").trim())
+    .reduce((map, l) => {
+      map[Number(l.lesson_no)] = String(l.title).trim();
+      return map;
+    }, {});
+  const lessonTitleOf = (no) => lessonTitles[no] || `第${no}课`;
+
+  // 全量课时列表：课时固定 = total_lessons，已排课的绑定排课信息，未排课的显示“待排课”（status=3）
+  const total = Number(balance.total_lessons) || 0;
+  const list = [];
+  for (let i = 0; i < total; i++) {
+    const lessonNo = i + 1;
+    const schedule = schedules[i];
+    if (!schedule) {
+      list.push({
+        schedule_id: null,
+        class_id: null,
+        lesson_no: lessonNo,
+        lesson_title: lessonTitleOf(lessonNo),
+        lesson_date: null,
+        start_time: null,
+        end_time: null,
+        status: 3,
+        leave_status: 0
+      });
+      continue;
+    }
     const attendance = (schedule.attendanceRecords || []).find(
       (a) => String(a.child_id) === String(child.child_id)
     );
@@ -654,23 +690,22 @@ async function getCourseSchedules(userId, query = {}) {
     const isToday = String(schedule.lesson_date) === todayStr;
     // 0 待上 / 1 已上 / 2 今天（未出勤）
     const status = attended ? 1 : isToday ? 2 : 0;
-    const lessonNo = index + 1;
-    return {
+    list.push({
       schedule_id: String(schedule.schedule_id),
       class_id: schedule.class_id ? String(schedule.class_id) : null,
       lesson_no: lessonNo,
       lesson_title:
         schedule.remark && String(schedule.remark).trim()
           ? String(schedule.remark).trim()
-          : `第${lessonNo}课`,
+          : lessonTitleOf(lessonNo),
       lesson_date: schedule.lesson_date,
       start_time: schedule.start_time,
       end_time: schedule.end_time,
       status,
       // 请假状态：0 无 / 1 待处理 / 2 已同意 / 3 已婉拒
       leave_status: leaveMap.get(String(schedule.schedule_id)) || 0
-    };
-  });
+    });
+  }
 
   return {
     child_id: String(child.child_id),
@@ -689,6 +724,9 @@ async function getCourseSchedules(userId, query = {}) {
     total_lessons: Number(balance.total_lessons),
     consumed_lessons: Number(balance.consumed_lessons),
     remaining_lessons: Number(balance.remaining_lessons),
+    // 已排课次 / 待排课节数（total - 已排，供前端展示“还有 X 节待安排”）
+    scheduled_count: schedules.length,
+    pending_lessons: Math.max(Number(balance.total_lessons) - schedules.length, 0),
     list
   };
 }

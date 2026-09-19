@@ -153,6 +153,7 @@ export default function CourseStudyPage() {
     const ls = leaveStatusOf(s);
     if (ls === 1) return { text: "请假中", cls: "pill-leave" };
     if (ls === 2) return { text: "已请假", cls: "pill-approved" };
+    if (s.status === 3) return { text: "待排课", cls: "pill-pending" };
     if (s.status === 1) return { text: "已上", cls: "pill-approved" };
     if (s.status === 2) return { text: "今天", cls: "pill-today" };
     return { text: "待上", cls: "pill-pending" };
@@ -165,6 +166,7 @@ export default function CourseStudyPage() {
     if (ls === 1 && leave) {
       return { type: "cancel" as const, text: "撤销请假" };
     }
+    if (s.status === 3) return null;
     const canLeave = (s.status === 0 || s.status === 2) && (ls === 0 || ls === 3 || ls === 4);
     if (canLeave) return { type: "leave" as const, text: "请假" };
     return null;
@@ -196,11 +198,16 @@ export default function CourseStudyPage() {
               const pill = pillOf(s);
               const action = actionOf(s);
               const leave = leaveMap[s.schedule_id];
+              const pending = s.status === 3;
               return (
-                <View key={s.schedule_id} className="lesson-card">
+                <View key={s.schedule_id || `pending-${s.lesson_no}`} className={`lesson-card${pending ? " pending-card" : ""}`}>
                   <View className="lesson-main">
                     <Text className="lesson-name" numberOfLines={1}>
-                      第{s.lesson_no || "-"}课·{s.lesson_title || "未命名课次"}
+                      {pending
+                        ? s.lesson_title && s.lesson_title !== `第${s.lesson_no}课`
+                          ? `第${s.lesson_no || "-"}课·${s.lesson_title}`
+                          : `第${s.lesson_no || "-"}课`
+                        : `第${s.lesson_no || "-"}课·${s.lesson_title || "未命名课次"}`}
                     </Text>
                     <View className="lesson-row">
                       {action && (
@@ -214,11 +221,17 @@ export default function CourseStudyPage() {
                           {action.text}
                         </Text>
                       )}
-                      <Text className="lesson-date">{mmdd(s.lesson_date)} {weekdayText(s.lesson_date)}</Text>
-                      <Text className="lesson-time">
-                        {s.start_time || ""}
-                        {s.end_time ? `-${s.end_time}` : ""}
-                      </Text>
+                      {pending ? (
+                        <Text className="lesson-date">待排课</Text>
+                      ) : (
+                        <>
+                          <Text className="lesson-date">{mmdd(s.lesson_date)} {weekdayText(s.lesson_date)}</Text>
+                          <Text className="lesson-time">
+                            {s.start_time || ""}
+                            {s.end_time ? `-${s.end_time}` : ""}
+                          </Text>
+                        </>
+                      )}
                     </View>
                   </View>
                   <Text className={`pill ${pill.cls}`}>{pill.text}</Text>
