@@ -68,6 +68,9 @@ PODS:
   - MBProgressHUD (1.2.0)
   - SnapKit (5.7.1)
   - SwiftyJSON (5.0.2)
+  - UMCommon (7.6.7):
+    - UMDevice
+  - UMDevice (3.6.0)
 
 DEPENDENCIES:
   - Alamofire (~> 5.9)
@@ -79,6 +82,7 @@ DEPENDENCIES:
   - MBProgressHUD (~> 1.2)
   - SnapKit (~> 5.7)
   - SwiftyJSON (~> 5.0)
+  - UMCommon (~> 7.6.7)
 
 SPEC REPOS:
   https://mirrors.tuna.tsinghua.edu.cn/git/CocoaPods/Specs.git:
@@ -94,6 +98,8 @@ SPEC REPOS:
     - MBProgressHUD
     - SnapKit
     - SwiftyJSON
+    - UMCommon
+    - UMDevice
 
 SPEC CHECKSUMS:
   Alamofire: 400275dd1c6d87d95a041861d2a59da4b520a203
@@ -108,7 +114,9 @@ SPEC CHECKSUMS:
   MBProgressHUD: 3ee5efcc380f6a79a7cc9b363dd669c5e1ae7406
   SnapKit: d612e99e678a2d3b95bf60b0705ed0a35c03484a
   SwiftyJSON: f5b1bf1cd8dd53cd25887ac0eabcfd92301c6a5a
+  UMCommon: 52e6de716b16e9ea2167971ef013385254ea2d3a
+  UMDevice: 20b7b3c37a36b2c5c7ca8b5a54386ff9ed2b3b19
 
-PODFILE CHECKSUM: 0ebe863764d9c9123a465af8936ea8c470989e9a
+PODFILE CHECKSUM: f43b32f3e4e9ab3b1c03d845e3b94f497e9460ff
 
 COCOAPODS: 1.16.2

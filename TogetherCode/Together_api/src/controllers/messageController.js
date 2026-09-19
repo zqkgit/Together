@@ -9,7 +9,8 @@ const {
   listNotifications,
   markNotificationRead,
   markAllNotificationsRead,
-  registerDevice
+  registerDevice,
+  unbindDevice
 } = require("../services/messageService");
 
 async function getConversations(req, res) {
@@ -97,6 +98,19 @@ async function postDevice(req, res) {
   }
 }
 
+// DELETE /v1/message/devices · 解绑设备（退出登录）
+async function postUnbindDevice(req, res) {
+  try {
+    const result = await unbindDevice(req.user.userId, req.body);
+    if (result.error) {
+      return fail(res, result.error.status, result.error.code, result.error.message);
+    }
+    return ok(res, result.data, "设备已解绑");
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 // GET /v1/ws/token · 签发 5 分钟短时效 WS 连接令牌
 async function getWsToken(req, res) {
   try {
@@ -128,5 +142,6 @@ module.exports = {
   putNotificationRead,
   putNotificationsReadAll,
   postDevice,
+  postUnbindDevice,
   getWsToken
 };

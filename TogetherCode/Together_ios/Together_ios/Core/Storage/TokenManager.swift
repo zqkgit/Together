@@ -68,6 +68,10 @@ final class TokenManager {
                 defaults.set(data, forKey: Keys.userInfo)
             }
         }
+        // 登录/注册成功：上报极光设备（未配置 AppKey 或模拟器无 registrationID 时静默跳过）
+        PushManager.shared.reportDevice()
+        // 统计：登录成功
+        AnalyticsManager.shared.event("user_login")
     }
 
     /// 更新角色
@@ -75,8 +79,10 @@ final class TokenManager {
         defaults.set(role, forKey: Keys.userRole)
     }
 
-    /// 退出登录：清空全部登录态
+    /// 退出登录：先解绑极光设备，再清空登录态
     func clear() {
+        // 解绑极光推送（内部先捕获 token 再发请求；未配置/无 registrationID 时静默跳过）
+        PushManager.shared.unbindDevice()
         keychainDelete(Keys.accessToken)
         defaults.removeObject(forKey: Keys.userId)
         defaults.removeObject(forKey: Keys.userRole)

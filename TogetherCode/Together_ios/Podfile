@@ -1,4 +1,4 @@
-# 艺启 iOS 依赖管理（清华 TUNA CocoaPods 镜像源）
+# 艺启 iOS 依赖管理（清华 TUNA CocoaPods 镜像源；极光 JPush 改用 Swift Package Manager 集成）
 source 'https://mirrors.tuna.tsinghua.edu.cn/git/CocoaPods/Specs.git'
 
 platform :ios, '15.0'
@@ -24,6 +24,8 @@ target 'Together_ios' do
   pod 'IQKeyboardManagerSwift', '~> 7.0'
   # 相册选择（添加孩子自定义头像等场景）
   pod 'HXPhotoPicker', '5.0.5'
+  # 友盟统计（AppKey 未配置时自动跳过初始化）
+  pod 'UMCommon', '~> 7.6.7'
 end
 
 # 统一所有 pod 的 iOS 最低版本，避免三方库 availability 过低报错

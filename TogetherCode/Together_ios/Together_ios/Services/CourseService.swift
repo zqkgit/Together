@@ -52,6 +52,8 @@ enum CourseService {
             case .success(let json):
                 // json 已是 data 层（APIClient 已解包）
                 let orderId = json["order_id"].string
+                // 统计：下单成功
+                AnalyticsManager.shared.event("order_create", params: ["course_id": courseId])
                 completion(orderId, nil)
             case .failure(let error):
                 completion(nil, error.message)

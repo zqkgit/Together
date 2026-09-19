@@ -14,7 +14,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         configureGlobalNavAppearance()
+        // 极光推送（AppKey 未配置时自动跳过）
+        PushManager.shared.setup(launchOptions: launchOptions)
+        // 友盟统计（AppKey 未配置时自动跳过）
+        AnalyticsManager.shared.setup()
         return true
+    }
+
+    /// APNs 注册成功 → 转发 deviceToken 给极光
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        PushManager.shared.handleDeviceToken(deviceToken)
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        // 静默（模拟器/未配置时常见），不影响主流程
     }
 
     /// 全局导航栏统一外观：不透明白底 + 无分隔线。

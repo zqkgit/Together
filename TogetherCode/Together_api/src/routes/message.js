@@ -9,6 +9,7 @@ const {
   putNotificationRead,
   putNotificationsReadAll,
   postDevice,
+  postUnbindDevice,
   getWsToken
 } = require("../controllers/messageController");
 
@@ -29,6 +30,7 @@ router.put("/notifications/read-all", putNotificationsReadAll);
 
 // 极光设备上报 + WS 连接令牌
 router.post("/devices", postDevice);
+router.delete("/devices", postUnbindDevice);
 router.get("/ws/token", getWsToken);
 
 module.exports = router;

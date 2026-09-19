@@ -437,6 +437,27 @@ async function registerDevice(userId, payload) {
   return { data: { device_id: String(device.device_id), registered: true } };
 }
 
+/**
+ * 解绑设备（退出登录）：仅解绑当前用户绑定的 registration_id，置 status=0（软删，重新登录可复用）
+ */
+async function unbindDevice(userId, payload) {
+  const registrationId = String(payload.registration_id || "").trim();
+  if (!registrationId) {
+    return { error: { status: 400, code: 40093, message: "registration_id 不能为空" } };
+  }
+
+  const existing = await UserDevice.findOne({ where: { registration_id: registrationId } });
+  if (!existing) {
+    return { data: { unbound: false } };
+  }
+  if (String(existing.user_id) !== String(userId)) {
+    return { error: { status: 403, code: 40300, message: "无权解绑该设备" } };
+  }
+
+  await existing.update({ status: 0 });
+  return { data: { unbound: true } };
+}
+
 module.exports = {
   listConversations,
   createConversation,
@@ -446,5 +467,6 @@ module.exports = {
   markNotificationRead,
   markAllNotificationsRead,
   createNotification,
-  registerDevice
+  registerDevice,
+  unbindDevice
 };

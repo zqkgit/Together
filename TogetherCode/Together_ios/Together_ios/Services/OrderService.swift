@@ -47,6 +47,8 @@ enum OrderService {
         APIClient.shared.request("/orders/\(orderId)/cancel", method: .post) { result in
             switch result {
             case .success:
+                // 统计：取消订单
+                AnalyticsManager.shared.event("order_cancel")
                 completion(.success(()))
             case .failure(let error):
                 completion(.failure(error))
@@ -70,6 +72,8 @@ extension OrderService {
         ) { result in
             switch result {
             case .success:
+                // 统计：支付成功
+                AnalyticsManager.shared.event("order_pay_success", params: ["channel": channel])
                 completion(.success(()))
             case .failure(let error):
                 completion(.failure(error))
@@ -118,6 +122,8 @@ extension OrderService {
         ) { result in
             switch result {
             case .success:
+                // 统计：申请退款
+                AnalyticsManager.shared.event("refund_apply", params: ["lessons": lessons])
                 completion(.success(()))
             case .failure(let error):
                 completion(.failure(error))

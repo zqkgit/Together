@@ -419,6 +419,10 @@ class BasePostCreateViewController: BaseViewController, UITableViewDataSource, U
     /// 发布/编辑成功统一处理
     func handlePublishSuccess(postId: String?, error: String?) {
         hideLoading()
+        // 统计：发布/编辑成功（家长孩子作品/动态 + 老师动态/作品统一入口）
+        if error == nil {
+            AnalyticsManager.shared.event("post_publish", params: ["is_edit": isEditingPost])
+        }
         if isEditingPost {
             if error == nil {
                 showToast("编辑成功")

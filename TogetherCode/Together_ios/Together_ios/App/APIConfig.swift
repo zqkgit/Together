@@ -36,6 +36,27 @@ enum APIConfig {
     static var imageBaseURL: String {
         AppEnvironment.current.baseURL
     }
+
+    // MARK: - 极光推送
+
+    /// 极光 AppKey（极光控制台获取；留空则跳过极光初始化，App 内消息仍走 WebSocket/轮询）
+    /// TODO: 上线前填入真实 AppKey 与 masterSecret（后端 env JPUSH_APP_KEY / JPUSH_MASTER_SECRET）
+    static let jpushAppKey = ""
+
+    /// 渠道标识（极光后台统计用，与发布渠道一致即可）
+    static let jpushChannel = "App Store"
+
+    /// 是否生产环境推送（发布时改为 true，对应极光「生产证书」）
+    static let jpushIsProduction = false
+
+    // MARK: - 友盟统计
+
+    /// 友盟 U-App AppKey（友盟+控制台创建应用后获取；留空则跳过统计初始化）
+    /// TODO: 上线前填入真实 AppKey
+    static let umengAppKey = ""
+
+    /// 渠道标识（与极光共用渠道命名即可）
+    static let umengChannel = "App Store"
 }
 
 /// 相对路径图片 URL（后端上传返回 /uploads/...）统一转绝对地址
