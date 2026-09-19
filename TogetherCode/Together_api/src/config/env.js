@@ -53,5 +53,10 @@ module.exports = {
     payMchId: process.env.WX_PAY_MCH_ID || "",
     payKey: process.env.WX_PAY_KEY || "",
     payNotifyUrl: process.env.WX_PAY_NOTIFY_URL || ""
+  },
+  // 接口加密：生产开启后，POST/PUT/DELETE 请求体与响应 data 走 AES-GCM（会话密钥由 RSA-OAEP 传输）
+  apiEncrypt: {
+    enabled: process.env.API_ENCRYPT_ENABLED === "true",
+    privateKey: process.env.API_ENCRYPT_PRIVATE_KEY || ""
   }
 };

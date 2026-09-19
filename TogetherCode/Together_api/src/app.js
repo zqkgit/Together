@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 const env = require("./config/env");
+const encryptMiddleware = require("./middlewares/encrypt");
 const apiRoutes = require("./routes");
 const adminRoutes = require("./routes/admin");
 const studioRoutes = require("./routes/studio");
@@ -12,6 +13,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan(env.nodeEnv === "production" ? "combined" : "dev"));
+// 接口加密（API_ENCRYPT_ENABLED=true 时生效）
+app.use(encryptMiddleware);
 
 app.get("/", (_req, res) => {
   res.json({

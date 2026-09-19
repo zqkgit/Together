@@ -57,6 +57,14 @@ enum APIConfig {
 
     /// 渠道标识（与极光共用渠道命名即可）
     static let umengChannel = "App Store"
+
+    // MARK: - 接口加密（RSA-OAEP 传会话密钥 + AES-256-GCM）
+
+    /// 是否启用接口加密（与后端 API_ENCRYPT_ENABLED 保持一致；上线开启，开发联调可关）
+    static let apiEncryptEnabled = false
+
+    /// 后端 RSA 公钥（DER SPKI，base64）——由后端 config/api_enc_public.der 导出
+    static let apiEncryptPublicKey = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoAgbPsM0kaTfV0JdccSz/KYu78D21rD9o1cWSRUVQX8KvxnweWZ74f0ALoxBA9v9wyL30y/SRJBJmn/CBX83oeP+/zMre7E2KamNV+Gj47q/1DmQBsNrVAKRIE1ON1lX/TCJr2XGIF5LoM6pLobLTOoLNg/Xk6qUUpGEHTjCrDoOW3+0OGouWvC9UjhTMDhJwu9quWgLRq1frZL0PzyJpXBZtFTRwVVNo4jQpeisS5LzdviU2NuTxtQ/eIUHAf3pktqxxRYYUOaEqYJP8EE/j07X6y4IOSlLg5xYxbUQ2xN15mo8CYNAYd1HMRqAXz8X7lGfhyDmarNTos37jQeFAQIDAQAB"
 }
 
 /// 相对路径图片 URL（后端上传返回 /uploads/...）统一转绝对地址

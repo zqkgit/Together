@@ -35,10 +35,25 @@ final class APIClient {
             headers.add(name: "Authorization", value: "Bearer \(token)")
         }
 
-        session.request(url, method: method, parameters: parameters, encoding: encoding, headers: headers)
+        // 接口加密：生成会话密钥 + 加密请求体 + 附加加密头（响应在 handle 里解密）
+        var encSession: APICrypto.Session?
+        var encParameters = parameters
+        if APIConfig.apiEncryptEnabled, let session = APICrypto.makeSession() {
+            encSession = session
+            headers.add(name: "X-Enc-Key", value: session.encKey)
+            headers.add(name: "X-Enc-Nonce", value: session.nonce)
+            headers.add(name: "X-Enc-Timestamp", value: session.timestamp)
+            // 仅写方法加密 body（GET 参数在 query，保持明文；服务端同样只解写方法 body）
+            let isWrite = [.post, .put, .patch, .delete].contains(method)
+            if isWrite, let parameters, let encrypted = APICrypto.encryptBody(parameters, session: session) {
+                encParameters = encrypted
+            }
+        }
+
+        session.request(url, method: method, parameters: encParameters, encoding: encoding, headers: headers)
             .validate(statusCode: 200..<600)
             .responseData { [weak self] response in
-                self?.handle(response: response, completion: completion)
+                self?.handle(response: response, session: encSession, completion: completion)
             }
     }
 
@@ -62,13 +77,13 @@ final class APIClient {
         }, to: url, method: .post, headers: headers)
         .validate(statusCode: 200..<600)
         .responseData { [weak self] response in
-            self?.handle(response: response, completion: completion)
+            self?.handle(response: response, session: nil, completion: completion)
         }
     }
 
     // MARK: - 统一响应解析
 
-    private func handle(response: AFDataResponse<Data>, completion: @escaping Completion) {
+    private func handle(response: AFDataResponse<Data>, session: APICrypto.Session?, completion: @escaping Completion) {
         switch response.result {
         case .success(let data):
             guard let json = try? JSON(data: data) else {
@@ -77,7 +92,17 @@ final class APIClient {
             }
             let code = json["code"].intValue
             if code == 0 {
-                completion(.success(json["data"]))
+                var payload = json["data"]
+                // 响应加密：data 为 {"ct","tag","nonce"} 密文，用本次会话密钥解密
+                if json["enc"].boolValue, let session, let dict = payload.dictionaryObject {
+                    if let decrypted = APICrypto.decryptData(dict, session: session) {
+                        payload = decrypted
+                    } else {
+                        completion(.failure(.parse))
+                        return
+                    }
+                }
+                completion(.success(payload))
             } else if code == 401 {
                 // 登录态失效：清空并通知
                 TokenManager.shared.clear()
