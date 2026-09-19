@@ -89,7 +89,7 @@ export interface StudentLessonLogItem {
 
 export async function fetchStudentLessonLogs(
   childId: string,
-  params: { limit?: number } = {}
+  params: { limit?: number; course_id?: string } = {}
 ): Promise<{ child_id: string; nickname: string; total: number; list: StudentLessonLogItem[] }> {
   const response = await request.get(`/studio/students/${childId}/logs`, { params });
   return response.data;
@@ -238,6 +238,7 @@ export interface CoursePayload {
   validity_days?: number;
   status?: number;
   packages?: CoursePackage[];
+  lessons?: Array<{ lesson_id?: string; title: string; lesson_no: number; duration?: number }>;
 }
 
 export async function fetchStudioCourses(params: {

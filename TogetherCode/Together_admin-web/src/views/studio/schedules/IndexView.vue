@@ -259,7 +259,7 @@ async function openBatch() {
     end_date: ""
   };
   try {
-    const [classData, teacherData] = await Promise.all([
+    const [classData, teacherData, courseData] = await Promise.all([
       fetchStudioClasses({ studio_id: studioId.value }),
       fetchStudioTeachers(),
       fetchStudioCourses({ studio_id: studioId.value })
@@ -389,7 +389,10 @@ async function doLeaveReview(agree: boolean) {
 }
 
 async function submitAttendance() {
-  const selected = attendanceStudents.value.filter((s) => [1, 4].includes(attendanceSelections.value[s.child_id]));
+  const selected = attendanceStudents.value.filter((s) => {
+    const v = attendanceSelections.value[s.child_id];
+    return v === 1 || v === 4;
+  });
   if (selected.length === 0) {
     ElMessage.warning("请选择出勤学员");
     return;
@@ -401,7 +404,7 @@ async function submitAttendance() {
       selected.map((s) => ({
         child_id: s.child_id,
         order_id: s.order_id,
-        status: attendanceSelections.value[s.child_id]
+        status: attendanceSelections.value[s.child_id]!
       })),
       attendanceNote.value.trim() || undefined
     );

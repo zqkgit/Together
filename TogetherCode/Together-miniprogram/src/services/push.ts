@@ -13,7 +13,7 @@ export async function requestSubscribe(tplKey: "orderPaid" | "lessonRemind" | "r
   if (!Taro.requestSubscribeMessage) return false;
 
   try {
-    const res = await Taro.requestSubscribeMessage({ tmplIds: [tplId] });
+    const res = await (Taro.requestSubscribeMessage as any)({ tmplIds: [tplId] });
     return res[tplId] === "accept";
   } catch {
     return false;

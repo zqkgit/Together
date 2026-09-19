@@ -22,5 +22,11 @@ export const APP_CONFIG = {
   },
 
   // 站内信 WebSocket（极光/自建 WS 二选一；未配置时退回轮询）
-  WS_URL: ""
+  WS_URL: "",
+
+  // 接口加密（与后端 API_ENCRYPT_ENABLED 保持一致；上线开 true，开发联调可关）
+  API_ENCRYPT_ENABLED: true,
+
+  // 后端 RSA 公钥（DER SPKI，base64）——由后端 config/api_enc_public.der 导出
+  API_ENCRYPT_PUBLIC_KEY: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoAgbPsM0kaTfV0JdccSz/KYu78D21rD9o1cWSRUVQX8KvxnweWZ74f0ALoxBA9v9wyL30y/SRJBJmn/CBX83oeP+/zMre7E2KamNV+Gj47q/1DmQBsNrVAKRIE1ON1lX/TCJr2XGIF5LoM6pLobLTOoLNg/Xk6qUUpGEHTjCrDoOW3+0OGouWvC9UjhTMDhJwu9quWgLRq1frZL0PzyJpXBZtFTRwVVNo4jQpeisS5LzdviU2NuTxtQ/eIUHAf3pktqxxRYYUOaEqYJP8EE/j07X6y4IOSlLg5xYxbUQ2xN15mo8CYNAYd1HMRqAXz8X7lGfhyDmarNTos37jQeFAQIDAQAB"
 };

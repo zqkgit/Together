@@ -64,6 +64,17 @@ enum APICrypto {
         ]
     }
 
+    /// 响应 data 可能为字符串（后端 JSON.stringify 后返回）或对象，统一取出 payload 字典
+    static func payloadDict(from json: JSON) -> [String: Any]? {
+        if let dict = json.dictionaryObject { return dict }
+        if let str = json.string,
+           let data = str.data(using: .utf8),
+           let dict = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] {
+            return dict
+        }
+        return nil
+    }
+
     /// AES-256-GCM 解密服务端响应 data
     static func decryptData(_ payload: [String: Any], session: Session) -> JSON? {
         guard let ctB64 = payload["ct"] as? String,

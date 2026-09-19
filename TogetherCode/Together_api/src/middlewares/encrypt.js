@@ -66,7 +66,13 @@ function isWriteMethod(method) {
 
 function shouldSkip(req) {
   const p = req.path || req.url;
-  return SKIP_PATHS.some((s) => p === s || p.startsWith(s));
+  // 兼容带 apiPrefix 的路径（如 /v1/upload、/v1/ws/xxx、/v1/health）
+  return (
+    p === "/upload" ||
+    p.startsWith("/upload") ||
+    p.includes("/ws") ||
+    p.endsWith("/health")
+  );
 }
 
 /** 校验重放 nonce（Redis SETNX 去重，5 分钟） */

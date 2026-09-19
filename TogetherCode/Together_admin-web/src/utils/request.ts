@@ -1,5 +1,6 @@
 import axios from "axios";
 import { ElMessage } from "element-plus";
+import { encryptRequest, decryptResponse } from "./crypto";
 
 const TOKEN_KEY = "together_admin_access_token";
 
@@ -8,12 +9,13 @@ const request = axios.create({
   timeout: 10000
 });
 
-request.interceptors.request.use((config) => {
+request.interceptors.request.use(async (config) => {
   const token = localStorage.getItem(TOKEN_KEY);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  return config;
+  // 接口加密（VITE_API_ENCRYPT_ENABLED=true 时生效）
+  return encryptRequest(config);
 });
 
 function redirectToLogin() {
@@ -26,7 +28,11 @@ function redirectToLogin() {
 }
 
 request.interceptors.response.use(
-  (response) => response.data,
+  async (response) => {
+    // 接口加密：解密 code===0 的 data
+    const decrypted = await decryptResponse(response);
+    return decrypted.data;
+  },
   (error) => {
     const status = error?.response?.status;
     const body = error?.response?.data || {};

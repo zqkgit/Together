@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { ElMessage } from "element-plus";
 import { Refresh, Search } from "@element-plus/icons-vue";
 import {
   fetchStudioStudents,
@@ -158,7 +157,7 @@ onMounted(async () => {
               <span class="cell-sub">{{ row.balances?.[0]?.parent?.phone || "" }}</span>
             </div>
             <div class="cell-sub">
-              报名：{{ (row.balances?.map((b) => b.order_created_at).filter(Boolean).sort().shift() || "").slice(0, 10) || "-" }}
+              报名：{{ (row.balances?.map((b: any) => b.order_created_at).filter(Boolean).sort().shift() || "").slice(0, 10) || "-" }}
             </div>
           </template>
         </el-table-column>

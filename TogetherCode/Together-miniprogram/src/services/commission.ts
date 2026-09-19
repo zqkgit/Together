@@ -5,6 +5,8 @@ export interface CommissionSummary {
   available_balance: number;
   pending_amount: number;
   withdrawn_amount: number;
+  /** 可提现余额（别名，兼容后端返回） */
+  withdrawable?: number;
 }
 
 export interface CommissionRecord {

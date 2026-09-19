@@ -93,8 +93,8 @@ final class APIClient {
             let code = json["code"].intValue
             if code == 0 {
                 var payload = json["data"]
-                // 响应加密：data 为 {"ct","tag","nonce"} 密文，用本次会话密钥解密
-                if json["enc"].boolValue, let session, let dict = payload.dictionaryObject {
+                // 响应加密：data 为 JSON 字符串 {"ct","tag","nonce"}，用本次会话密钥解密
+                if json["enc"].boolValue, let session, let dict = APICrypto.payloadDict(from: payload) {
                     if let decrypted = APICrypto.decryptData(dict, session: session) {
                         payload = decrypted
                     } else {
