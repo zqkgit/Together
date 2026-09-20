@@ -19,6 +19,11 @@ final class PlazaViewController: BaseViewController {
     private var hasMore = true
     private var isLoading = false
     private var currentTopic = ""
+    /// 排序：最新 / 热门 / 附近（按距离）
+    private let sortChips = TagChipRow(chips: ["最新", "热门", "附近"])
+    private var currentSort = "latest"
+    private var currentLat: Double?
+    private var currentLng: Double?
 
     private var footerSpinner: UIActivityIndicatorView?
 
@@ -130,7 +135,7 @@ final class PlazaViewController: BaseViewController {
         isLoading = true
         footerSpinner?.startAnimating()
 
-        PostService.fetchPlaza(page: page + 1, size: pageSize, sort: "latest", topic: currentTopic) { [weak self] list, hasMore, error in
+        PostService.fetchPlaza(page: page + 1, size: pageSize, sort: currentSort, topic: currentTopic, lat: currentLat, lng: currentLng) { [weak self] list, hasMore, error in
             guard let self else { return }
             self.isLoading = false
             self.footerSpinner?.stopAnimating()

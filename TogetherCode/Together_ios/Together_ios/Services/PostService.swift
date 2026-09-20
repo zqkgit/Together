@@ -12,9 +12,12 @@ enum PostService {
     ///   - sort: latest（推荐/最新）/ hot（热门）
     ///   - topic: 话题（传空 = 全部）
     static func fetchPlaza(page: Int, size: Int, sort: String, topic: String = "",
+                           lat: Double? = nil, lng: Double? = nil,
                            completion: @escaping ([PostItem]?, Bool, String?) -> Void) {
         var params: [String: Any] = ["page": page, "size": size, "sort": sort]
         if !topic.isEmpty { params["topic"] = topic }
+        if let lat { params["lat"] = lat }
+        if let lng { params["lng"] = lng }
         APIClient.shared.request(
             "/posts/plaza",
             method: .get,
@@ -399,6 +402,9 @@ extension PostService {
         topic: String = "",
         visibility: Int = 2,
         type: Int = 1,
+        latitude: Double? = nil,
+        longitude: Double? = nil,
+        locationName: String? = nil,
         completion: @escaping (String?, String?) -> Void
     ) {
         var params: [String: Any] = [
@@ -410,6 +416,9 @@ extension PostService {
         ]
         if let courseId, !courseId.isEmpty { params["course_id"] = courseId }
         if !topic.isEmpty { params["topic"] = topic }
+        if let latitude { params["latitude"] = latitude }
+        if let longitude { params["longitude"] = longitude }
+        if let locationName, !locationName.isEmpty { params["location_name"] = locationName }
 
         APIClient.shared.request("/posts", method: .post, parameters: params) { result in
             switch result {
@@ -433,6 +442,9 @@ extension PostService {
         topic: String = "",
         visibility: Int = 2,
         type: Int = 2,
+        latitude: Double? = nil,
+        longitude: Double? = nil,
+        locationName: String? = nil,
         completion: @escaping (String?, String?) -> Void
     ) {
         var params: [String: Any] = [
@@ -447,6 +459,9 @@ extension PostService {
         if let scheduleId, !scheduleId.isEmpty { params["schedule_id"] = scheduleId }
         if !students.isEmpty { params["students"] = students }
         if !topic.isEmpty { params["topic"] = topic }
+        if let latitude { params["latitude"] = latitude }
+        if let longitude { params["longitude"] = longitude }
+        if let locationName, !locationName.isEmpty { params["location_name"] = locationName }
 
         APIClient.shared.request("/teacher/posts", method: .post, parameters: params) { result in
             switch result {
@@ -467,6 +482,10 @@ extension PostService {
         courseId: String? = nil,
         topic: String = "",
         visibility: Int = 2,
+        latitude: Double? = nil,
+        longitude: Double? = nil,
+        locationName: String? = nil,
+        clearLocation: Bool = false,
         completion: @escaping (String?, String?) -> Void
     ) {
         var params: [String: Any] = [
@@ -477,6 +496,10 @@ extension PostService {
         if let images, !images.isEmpty { params["images"] = images }
         if let courseId, !courseId.isEmpty { params["course_id"] = courseId }
         if !topic.isEmpty { params["topic"] = topic }
+        if let latitude { params["latitude"] = latitude }
+        if let longitude { params["longitude"] = longitude }
+        if let locationName, !locationName.isEmpty { params["location_name"] = locationName }
+        if clearLocation { params["clear_location"] = true }
 
         APIClient.shared.request("/posts/\(postId)", method: .put, parameters: params) { result in
             switch result {
@@ -495,6 +518,10 @@ extension PostService {
         images: [String]?,
         topic: String = "",
         visibility: Int = 2,
+        latitude: Double? = nil,
+        longitude: Double? = nil,
+        locationName: String? = nil,
+        clearLocation: Bool = false,
         completion: @escaping (String?, String?) -> Void
     ) {
         var params: [String: Any] = [
@@ -503,6 +530,10 @@ extension PostService {
         ]
         if let images, !images.isEmpty { params["images"] = images }
         if !topic.isEmpty { params["topic"] = topic }
+        if let latitude { params["latitude"] = latitude }
+        if let longitude { params["longitude"] = longitude }
+        if let locationName, !locationName.isEmpty { params["location_name"] = locationName }
+        if clearLocation { params["clear_location"] = true }
 
         APIClient.shared.request("/teacher/posts/\(postId)", method: .put, parameters: params) { result in
             switch result {

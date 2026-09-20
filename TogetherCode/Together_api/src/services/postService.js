@@ -19,6 +19,56 @@ function normalizeAuthor(author) {
   };
 }
 
+/**
+ * 从发帖 payload 提取选填位置（经纬度 + 地点名）。
+ * 经纬度范围非法或缺失时整体忽略，不报错，保证选填语义。
+ */
+function pickLocation(payload) {
+  const lat = Number(payload.latitude);
+  const lng = Number(payload.longitude);
+  const valid =
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    lng >= -180 &&
+    lng <= 180;
+  if (!valid) {
+    return { latitude: null, longitude: null, location_name: null };
+  }
+  const name = String(payload.location_name || "").trim().slice(0, 128) || null;
+  return { latitude: lat, longitude: lng, location_name: name };
+}
+
+/**
+ * 解析 viewer 经纬度（来自 query.lat / query.lng），用于距离排序与距离回传。
+ * 非法坐标返回 null（调用方退化为最新/热门排序）。
+ */
+function getGeoContext(query) {
+  const lat = Number(query.lat);
+  const lng = Number(query.lng);
+  if (
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    lng >= -180 &&
+    lng <= 180
+  ) {
+    return { lat, lng };
+  }
+  return null;
+}
+
+/** haversine 距离（公里），地球半径 6371km；lat/lng 已校验为有限浮点，可安全内联 */
+function haversineDistance(lat, lng) {
+  const latN = Number(lat);
+  const lngN = Number(lng);
+  return sequelize.literal(
+    `6371 * ACOS(COS(RADIANS(${latN})) * COS(RADIANS(latitude)) * COS(RADIANS(longitude) - RADIANS(${lngN})) + SIN(RADIANS(${latN})) * SIN(RADIANS(latitude)))`
+  );
+}
+
 function normalizePostItem(post, viewerUserId = null, favoritePostIds = null) {
   const item = {
     post_id: String(post.post_id),
@@ -49,6 +99,22 @@ function normalizePostItem(post, viewerUserId = null, favoritePostIds = null) {
     topic: post.topic || null,
     visibility: post.visibility,
     status: post.status,
+    // 选填位置；无坐标时为 null
+    location:
+      post.latitude !== null && post.latitude !== undefined && post.longitude !== null && post.longitude !== undefined
+        ? {
+            latitude: Number(post.latitude),
+            longitude: Number(post.longitude),
+            name: post.location_name || null
+          }
+        : null,
+    // 仅当请求携带 viewer 经纬度（haversine 计算）时存在；无坐标帖为 null
+    distance_km:
+      post.dataValues && post.dataValues.distance_km !== undefined
+        ? post.dataValues.distance_km === null || post.dataValues.distance_km === undefined
+          ? null
+          : Number(post.dataValues.distance_km)
+        : undefined,
     students: Array.isArray(post.students)
       ? post.students.map((s) => ({
           child_id: String(s.child_id),
@@ -490,19 +556,35 @@ async function deletePostComment(userId, commentId) {
 async function listFeed(viewerUserId = null, query = {}) {
   const page = Math.max(1, Number(query.page) || 1);
   const size = Math.min(Number(query.size) || 20, 50);
+  const geo = getGeoContext(query);
+  const sort = query.sort === "near" && geo ? "near" : "latest";
 
-  const { rows, count } = await Post.findAndCountAll({
-    where: PUBLIC_WHERE,
+  const order =
+    sort === "near"
+      ? [[sequelize.literal("distance_km"), "ASC"]]
+      : [["created_at", "DESC"]];
+
+  const where = { ...PUBLIC_WHERE };
+  if (sort === "near") where.latitude = { [Op.ne]: null };
+
+  const findOptions = {
+    where,
     include: postInclude(viewerUserId),
-    order: [["created_at", "DESC"]],
+    order,
     offset: (page - 1) * size,
     limit: size
-  });
+  };
+  if (geo) {
+    findOptions.attributes = { include: [[haversineDistance(geo.lat, geo.lng), "distance_km"]] };
+  }
+
+  const { rows, count } = await Post.findAndCountAll(findOptions);
 
   return {
     total: count,
     page,
     size,
+    sort,
     list: rows.map((row) => normalizePostItem(row, viewerUserId))
   };
 }
@@ -513,11 +595,14 @@ async function listFeed(viewerUserId = null, query = {}) {
 async function listPlaza(query = {}) {
   const page = Math.max(1, Number(query.page) || 1);
   const size = Math.min(Number(query.size) || 20, 50);
-  const sort = query.sort === "hot" ? "hot" : "latest";
+  const geo = getGeoContext(query);
+  const sort = query.sort === "hot" ? "hot" : query.sort === "near" && geo ? "near" : "latest";
   const topic = String(query.topic || "").trim();
 
   const order =
-    sort === "hot"
+    sort === "near"
+      ? [[sequelize.literal("distance_km"), "ASC"]]
+      : sort === "hot"
       ? [
           ["like_count", "DESC"],
           ["comment_count", "DESC"],
@@ -527,14 +612,21 @@ async function listPlaza(query = {}) {
 
   const where = { ...PUBLIC_WHERE };
   if (topic) where.topic = topic;
+  // 附近模式仅列带位置的帖
+  if (sort === "near") where.latitude = { [Op.ne]: null };
 
-  const { rows, count } = await Post.findAndCountAll({
+  const findOptions = {
     where,
     include: postInclude(),
     order,
     offset: (page - 1) * size,
     limit: size
-  });
+  };
+  if (geo) {
+    findOptions.attributes = { include: [[haversineDistance(geo.lat, geo.lng), "distance_km"]] };
+  }
+
+  const { rows, count } = await Post.findAndCountAll(findOptions);
 
   return {
     total: count,
@@ -661,7 +753,8 @@ async function createParentPost(userId, payload) {
     topic,
     content: content || null,
     visibility: payload.visibility !== undefined ? Number(payload.visibility) : 2,
-    status: 1
+    status: 1,
+    ...pickLocation(payload)
   });
 
   const post = await Post.findByPk(created.post_id, {
@@ -704,6 +797,21 @@ async function updatePost(userId, postId, payload) {
   if (payload.visibility !== undefined) updates.visibility = Number(payload.visibility);
   if (payload.child_id !== undefined) updates.child_id = payload.child_id || null;
   if (payload.course_id !== undefined) updates.course_id = payload.course_id || null;
+  // 位置（选填）：clear_location=true 显式清除；否则仅当传了 location 字段才更新，缺省保留原值
+  if (payload.clear_location) {
+    updates.latitude = null;
+    updates.longitude = null;
+    updates.location_name = null;
+  } else if (
+    payload.latitude !== undefined ||
+    payload.longitude !== undefined ||
+    payload.location_name !== undefined
+  ) {
+    const loc = pickLocation(payload);
+    updates.latitude = loc.latitude;
+    updates.longitude = loc.longitude;
+    updates.location_name = loc.location_name;
+  }
   await post.update(updates);
 
   const fresh = await Post.findByPk(postId, {

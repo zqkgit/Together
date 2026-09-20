@@ -57,6 +57,10 @@ const createTeacherPostValidators = [
   body("images.*").optional().isString(),
   body("visibility").optional({ values: "falsy" }).isInt({ min: 1, max: 2 }),
   body("type").optional({ values: "falsy" }).isInt({ min: 1, max: 5 }),
+  // 选填位置（经纬度 + 地点名），供广场按距离推荐
+  body("latitude").optional({ values: "falsy" }).isFloat({ min: -90, max: 90 }).withMessage("latitude 需在 -90~90 之间"),
+  body("longitude").optional({ values: "falsy" }).isFloat({ min: -180, max: 180 }).withMessage("longitude 需在 -180~180 之间"),
+  body("location_name").optional({ values: "falsy" }).isString().isLength({ max: 128 }).withMessage("location_name 过长"),
   body("students").optional().isArray({ min: 1 }).withMessage("students must be a non-empty array"),
   body("students.*.child_id").optional().isString().notEmpty().withMessage("child_id is required"),
   body("students.*.count").optional({ values: "falsy" }).isInt({ min: 1, max: 5 }),

@@ -92,7 +92,7 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
 
     // MARK: - TableView
 
-    override func numberOfSections(in tableView: UITableView) -> Int { 6 }
+    override func numberOfSections(in tableView: UITableView) -> Int { 7 }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         switch section {
@@ -195,6 +195,8 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
         view.endEditing(true)
         if indexPath.section == 2 {
             presentClassPicker()
+        } else if indexPath.section == 5 {
+            didTapLocationSection()
         }
     }
 
@@ -216,7 +218,11 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
                 content: content,
                 images: imageUrls,
                 topic: topic,
-                visibility: visibility
+                visibility: visibility,
+                latitude: selectedLocation?.latitude,
+                longitude: selectedLocation?.longitude,
+                locationName: selectedLocation?.name,
+                clearLocation: selectedLocation == nil
             ) { [weak self] _, error in
                 self?.handlePublishSuccess(postId: nil, error: error)
             }
@@ -229,7 +235,10 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
                 images: imageUrls,
                 topic: topic,
                 visibility: visibility,
-                type: 1
+                type: 1,
+                latitude: selectedLocation?.latitude,
+                longitude: selectedLocation?.longitude,
+                locationName: selectedLocation?.name
             ) { [weak self] postId, error in
                 self?.handlePublishSuccess(postId: postId, error: error)
             }
@@ -248,7 +257,10 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
             consume: consumeEnabled,
             topic: topic,
             visibility: visibility,
-            type: 2
+            type: 2,
+            latitude: selectedLocation?.latitude,
+            longitude: selectedLocation?.longitude,
+            locationName: selectedLocation?.name
         ) { [weak self] postId, error in
             self?.handlePublishSuccess(postId: postId, error: error)
         }

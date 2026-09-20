@@ -64,6 +64,21 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: 0
       },
+      latitude: {
+        type: DataTypes.DECIMAL(10, 8),
+        allowNull: true,
+        comment: "纬度（-90~90），发帖选点选填"
+      },
+      longitude: {
+        type: DataTypes.DECIMAL(11, 8),
+        allowNull: true,
+        comment: "经度（-180~180），发帖选点选填"
+      },
+      location_name: {
+        type: DataTypes.STRING(128),
+        allowNull: true,
+        comment: "地点名（反地理编码），选填"
+      },
       status: {
         type: DataTypes.SMALLINT,
         allowNull: false,

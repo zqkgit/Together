@@ -154,6 +154,8 @@ function normalizeLeaveItem(item) {
 }
 
 function normalizePost(post, students = []) {
+  const hasLocation =
+    post.latitude !== null && post.latitude !== undefined && post.longitude !== null && post.longitude !== undefined;
   return {
     post_id: String(post.post_id),
     author_id: String(post.author_id),
@@ -167,8 +169,27 @@ function normalizePost(post, students = []) {
     status: post.status,
     created_at: post.created_at,
     updated_at: post.updated_at,
+    location: hasLocation
+      ? { latitude: Number(post.latitude), longitude: Number(post.longitude), name: post.location_name || null }
+      : null,
     students
   };
+}
+
+/**
+ * 从发帖 payload 提取选填位置（经纬度 + 地点名）。
+ * 经纬度范围非法或缺失时整体忽略，保证选填语义。
+ */
+function pickLocation(payload) {
+  const lat = Number(payload.latitude);
+  const lng = Number(payload.longitude);
+  const valid =
+    Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+  if (!valid) {
+    return { latitude: null, longitude: null, location_name: null };
+  }
+  const name = String(payload.location_name || "").trim().slice(0, 128) || null;
+  return { latitude: lat, longitude: lng, location_name: name };
 }
 
 async function ensureTeacherProfile(userId, transaction) {
@@ -1124,7 +1145,8 @@ async function createTeacherPost(userId, payload) {
         images,
         content: payload.content || null,
         visibility: payload.visibility !== undefined ? Number(payload.visibility) : 2,
-        status: 1
+        status: 1,
+        ...pickLocation(payload)
       },
       { transaction }
     );
@@ -1224,6 +1246,21 @@ async function updateTeacherPost(userId, postId, payload) {
   }
   if (payload.topic !== undefined) updates.topic = payload.topic ? String(payload.topic).trim().slice(0, 32) : null;
   if (payload.visibility !== undefined) updates.visibility = Number(payload.visibility);
+  // 位置（选填）：clear_location=true 显式清除；否则仅当传了 location 字段才更新，缺省保留原值
+  if (payload.clear_location) {
+    updates.latitude = null;
+    updates.longitude = null;
+    updates.location_name = null;
+  } else if (
+    payload.latitude !== undefined ||
+    payload.longitude !== undefined ||
+    payload.location_name !== undefined
+  ) {
+    const loc = pickLocation(payload);
+    updates.latitude = loc.latitude;
+    updates.longitude = loc.longitude;
+    updates.location_name = loc.location_name;
+  }
   await post.update(updates);
 
   const fresh = await Post.findByPk(postId, {

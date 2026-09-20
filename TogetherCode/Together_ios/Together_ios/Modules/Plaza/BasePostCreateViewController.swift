@@ -17,6 +17,9 @@ class BasePostCreateViewController: BaseViewController, UITableViewDataSource, U
     var visibility = 2 // 2 公开 / 1 仅好友
     var topics: [String] = []
 
+    /// 已选位置（发帖选点；nil = 不显示位置）
+    var selectedLocation: PostLocation?
+
     // MARK: - 编辑模式（非 nil = 编辑自己的帖子）
 
     /// 编辑中的帖子 id（nil = 新建）
@@ -342,6 +345,59 @@ class BasePostCreateViewController: BaseViewController, UITableViewDataSource, U
             x += w + gap
         }
         return rows * lineHeight + (rows - 1) * gap
+    }
+
+    // MARK: - 位置（选填）
+
+    /// 位置选择行（未选 = 添加位置；已选 = 地点名）
+    func locationCell(_ tableView: UITableView, indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: PickerCell.reuseId, for: indexPath) as! PickerCell
+        if let loc = selectedLocation {
+            cell.title = "位置"
+            cell.detail = loc.name ?? ""
+        } else {
+            cell.title = "添加位置"
+            cell.detail = ""
+        }
+        return cell
+    }
+
+    /// 点击位置行：未选直接选点；已选弹「重新选择 / 不显示位置」
+    func didTapLocationSection() {
+        if selectedLocation != nil {
+            let sheet = ThemeActionSheet(title: nil, actions: [("重新选择", false), ("不显示位置", true)])
+            sheet.onSelect = { [weak self] index in
+                guard let self else { return }
+                if index == 0 {
+                    self.openLocationPicker()
+                } else {
+                    self.selectedLocation = nil
+                    self.tableView.reloadData()
+                }
+            }
+            present(sheet, animated: false)
+        } else {
+            openLocationPicker()
+        }
+    }
+
+    /// 打开选点页（Apple 原生 MKMapView + 反地理编码）
+    func openLocationPicker() {
+        let picker = LocationPickerViewController()
+        if let loc = selectedLocation {
+            picker.initialLocation = loc
+        }
+        picker.onSelect = { [weak self] lat, lng, name in
+            self?.selectedLocation = PostLocation(latitude: lat, longitude: lng, name: name)
+            self?.tableView.reloadData()
+        }
+        navigationController?.pushViewController(picker, animated: true)
+    }
+
+    /// 位置参数（发布时并入请求体；未选返回空）
+    func locationParams() -> [String: Any] {
+        guard let loc = selectedLocation else { return [:] }
+        return ["latitude": loc.latitude, "longitude": loc.longitude, "location_name": loc.name]
     }
 
     // MARK: - 图片

@@ -33,7 +33,7 @@ final class ParentPostCreateViewController: BasePostCreateViewController {
 
     // MARK: - TableView
 
-    override func numberOfSections(in tableView: UITableView) -> Int { 6 }
+    override func numberOfSections(in tableView: UITableView) -> Int { 7 }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         switch section {
@@ -151,7 +151,11 @@ final class ParentPostCreateViewController: BasePostCreateViewController {
                 childId: selectedChildId ?? "",
                 courseId: selectedParentCourseId(),
                 topic: topic,
-                visibility: visibility
+                visibility: visibility,
+                latitude: selectedLocation?.latitude,
+                longitude: selectedLocation?.longitude,
+                locationName: selectedLocation?.name,
+                clearLocation: selectedLocation == nil
             ) { [weak self] _, error in
                 self?.handlePublishSuccess(postId: nil, error: error)
             }
@@ -165,7 +169,10 @@ final class ParentPostCreateViewController: BasePostCreateViewController {
             topic: topic,
             visibility: visibility,
             // 关联课程 = 孩子作品；纯分享 = 动态
-            type: selectedParentCourseId() != nil ? 2 : 1
+            type: selectedParentCourseId() != nil ? 2 : 1,
+            latitude: selectedLocation?.latitude,
+            longitude: selectedLocation?.longitude,
+            locationName: selectedLocation?.name
         ) { [weak self] postId, error in
             self?.handlePublishSuccess(postId: postId, error: error)
         }

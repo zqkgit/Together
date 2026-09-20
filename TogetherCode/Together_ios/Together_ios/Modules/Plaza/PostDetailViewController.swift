@@ -30,6 +30,7 @@ final class PostDetailViewController: BaseViewController {
         if !(post.images?.isEmpty ?? true) { s.append(.gallery) }
         s.append(.author)
         s.append(.content)
+        if post.location != nil { s.append(.location) }
         if let course = post.course, !(course.title ?? "").isEmpty { s.append(.course) }
         if !post.studentList.isEmpty { s.append(.students) }
         s.append(.comments)
@@ -94,6 +95,7 @@ final class PostDetailViewController: BaseViewController {
         tableView.register(PostContentCell.self, forCellReuseIdentifier: "PostContentCell")
         tableView.register(PostCourseCell.self, forCellReuseIdentifier: "PostCourseCell")
         tableView.register(PostStudentCell.self, forCellReuseIdentifier: "PostStudentCell")
+        tableView.register(PostLocationCell.self, forCellReuseIdentifier: "PostLocationCell")
         tableView.dataSource = self
         tableView.delegate = self
 
@@ -470,6 +472,10 @@ extension PostDetailViewController: UITableViewDataSource, UITableViewDelegate {
             cell.configure(students: post?.studentList ?? [], canUndo: isAuthor && isTeacher)
             cell.onUndoStudent = { [weak self] student in self?.confirmUndoStudent(student) }
             return cell
+        case .location:
+            let cell = tableView.dequeueReusableCell(withIdentifier: "PostLocationCell", for: indexPath) as! PostLocationCell
+            cell.configure(name: post?.location?.name ?? "", distance: post?.distanceText)
+            return cell
         case .comments:
             let cell = tableView.dequeueReusableCell(withIdentifier: "CommentCell", for: indexPath) as! CommentCell
             let row = commentRows[indexPath.row]
@@ -502,6 +508,7 @@ extension PostDetailViewController: UITableViewDataSource, UITableViewDelegate {
         case .content: return 96
         case .course: return 104
         case .students: return 120
+        case .location: return 56
         case .comments: return 60
         }
     }

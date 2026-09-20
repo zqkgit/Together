@@ -10,6 +10,7 @@ enum PostDetailSection: Int, CaseIterable {
     case content   // 标题 / 正文 / 话题
     case course    // 关联课程卡（有关联课程才显示）
     case students  // 已关联学生（老师帖 + 有学生才显示）
+    case location  // 发帖位置（有位置才显示）
     case comments  // 评论（唯一多行分组）
 
     /// 是否渲染 section header
@@ -442,5 +443,67 @@ final class PostStudentRowView: UIView {
         isAccessibilityElement = true
         accessibilityLabel = "学生 \(nameLabel.text ?? "") \(statusLabel.text ?? "")"
         accessibilityTraits = .button
+    }
+}
+
+// MARK: - 位置分组
+
+/// 发帖位置行：地点名（+ 附近模式下的距离）
+final class PostLocationCell: UITableViewCell {
+    private let card = UIView()
+    private let iconLabel = UILabel()
+    private let nameLabel = UILabel()
+    private let distanceLabel = UILabel()
+
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        backgroundColor = .clear
+        contentView.backgroundColor = .clear
+        selectionStyle = .none
+
+        card.backgroundColor = Theme.Color.surface
+        card.layer.cornerRadius = Theme.Radius.card
+        card.layer.borderWidth = 1
+        card.layer.borderColor = Theme.Color.line.cgColor
+        contentView.addSubview(card)
+        card.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(Theme.Spacing.m)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
+            $0.bottom.equalToSuperview().offset(-Theme.Spacing.m)
+        }
+
+        iconLabel.text = "位置"
+        iconLabel.font = .appLabel(12)
+        iconLabel.textColor = Theme.Color.sub
+        card.addSubview(iconLabel)
+        iconLabel.snp.makeConstraints {
+            $0.centerY.equalToSuperview()
+            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+        }
+
+        nameLabel.font = .appBody(14)
+        nameLabel.textColor = Theme.Color.ink
+        card.addSubview(nameLabel)
+        nameLabel.snp.makeConstraints {
+            $0.centerY.equalToSuperview()
+            $0.leading.equalTo(iconLabel.snp.trailing).offset(Theme.Spacing.s)
+            $0.trailing.lessThanOrEqualTo(distanceLabel.snp.leading).offset(-Theme.Spacing.s)
+        }
+
+        distanceLabel.font = .appLabel(12)
+        distanceLabel.textColor = Theme.Color.brand
+        card.addSubview(distanceLabel)
+        distanceLabel.snp.makeConstraints {
+            $0.centerY.equalToSuperview()
+            $0.trailing.equalToSuperview().offset(-Theme.Spacing.l)
+        }
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    func configure(name: String, distance: String?) {
+        nameLabel.text = name.isEmpty ? "未知位置" : name
+        distanceLabel.text = distance.map { "· \($0)" } ?? ""
+        distanceLabel.isHidden = distance == nil
     }
 }

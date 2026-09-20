@@ -84,7 +84,11 @@ final class WorkCardView: UIView {
 
     func configure(item: PostItem) {
         titleLabel.text = item.content?.isEmpty == false ? item.content : "作品分享"
-        authorLabel.text = item.authorName
+        var authorText = item.authorName
+        if let distance = item.distanceText {
+            authorText += " · \(distance)"
+        }
+        authorLabel.text = authorText
         likeLabel.text = "♥ \(item.like_count ?? 0)"
         if let course = item.course?.title, !course.isEmpty {
             courseLabel.text = "关联课程·\(course)"

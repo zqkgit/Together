@@ -223,6 +223,13 @@ struct FavoriteItem: Codable {
     var timeText: String { created_at?.shortRelativeTime ?? "" }
 }
 
+/// 发帖选点（经纬度 + 地点名）；后端 normalize 返回 { latitude, longitude, name }，name 可能为空
+struct PostLocation: Codable {
+    let latitude: Double
+    let longitude: Double
+    let name: String?
+}
+
 struct PostItem: Codable {
     let post_id: String
     let type: Int          // 1 动态 / 2 孩子作品
@@ -246,6 +253,8 @@ struct PostItem: Codable {
     let visibility: Int? // 2 公开 / 1 仅好友
     let status: Int?     // 1 已通过 / 0 待审核 / -1 已驳回
     let is_mine: Bool?   // 当前查看者是否作者本人（后端计算，不依赖本地 userId）
+    let location: PostLocation?     // 发帖选点（经纬度 + 地点名）
+    let distance_km: Double?        // 与查看者距离（km，仅附近排序返回）
 
     struct PostAuthor: Codable {
         let user_id: String
@@ -316,6 +325,15 @@ struct PostItem: Codable {
 
     /// 相对时间「刚刚 / N分钟前 / 今天 09:28 / N天前 / 日期」
     var timeText: String { created_at?.shortRelativeTime ?? "" }
+
+    /// 距离文案（基于 distance_km）：<1km 显示「Xm」，否则「X.Xkm」
+    var distanceText: String? {
+        guard let km = distance_km, km >= 0 else { return nil }
+        if km < 1 {
+            return "\(max(0, Int((km * 1000).rounded())))m"
+        }
+        return String(format: "%.1fkm", km)
+    }
 }
 
 // MARK: - 相对时间（共享）

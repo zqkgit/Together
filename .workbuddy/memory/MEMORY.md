@@ -73,7 +73,26 @@ Together/                      # 仓库根（git main，远程 origin/main）
 - 字段对齐：iOS 提交字段与 `ROLE_META.studio.fields` 完全一致（name/city/address/contact_name/phone/business_type/teacher_count/license/permit/intro/photos/cover）
 - ⚠️ 已知缺陷：`MineViewController/StudioMineViewController` 在 `getRoleApplyStatus` 返回 `approved` 时无专属分支，会落入 default 重开空白表单而非引导进入工作室端；`uploadPhotosIfNeeded` 失败时静默返回空数组，提交被"请至少上传1张照片"拦截却无真实错误原因
 
-## 七、注意
+## 七、帖子位置与距离推荐（2026-09-20 新增，后台先行）
+
+- **背景**：App 需封装"选择地点"功能（发帖选点 + 按距离推荐）。本期先落地后台，App 端后续。
+- **数据模型**：`posts` 表新增 `latitude` DECIMAL(10,8)、`longitude` DECIMAL(11,8)、`location_name` VARCHAR(128)，均 NULL（选填）。migration：`20260920170000-add-post-location.js`，容器启动自动跑。
+- **写入位置**：`postService.createParentPost` 与 `teacherService.createTeacherPost` 的 `Post.create` 均接 `latitude/longitude/location_name`；`pickLocation()` 做范围校验（lat∈[-90,90]、lng∈[-180,180]），非法则整体忽略为 NULL，保证选填语义。
+- **校验**：`teacherValidator.createTeacherPostValidators` 增加 `latitude/longitude`（可选浮点范围）、`location_name`（可选≤128 字符）；家长帖 `POST /v1/posts` 无 validator，body 直接透传。
+- **距离排序**：`listPlaza` 与 `listFeed` 支持 `sort=near` + query `lat/lng`；用 haversine（地球半径 6371km，`attributes.include` 注入计算列 `distance_km`）按距离升序；`near` 模式 `WHERE latitude IS NOT NULL` 仅列带位置帖；无经纬度时 `near` 退化为 `latest`。
+- **返回**：`normalizePostItem` / `teacherService.normalizePost` 均输出 `location {latitude,longitude,name}`（无坐标 null）与 `distance_km`（仅请求带 viewer 坐标时存在，纯数字 km 或 null）。
+- **App 端已完成（2026-09-20 续，与后台闭环）**：
+  - 定位封装 `Services/LocationManager.swift`（WhenInUse 授权 + 异步取坐标 + lastLocation 缓存）
+  - 选点页 `Modules/Plaza/LocationPickerViewController.swift`（MKMapView 点图落点 + CLGeocoder 反地理编码出地点名）
+  - 模型 `HomeModels.swift`：`PostLocation` 结构 + `PostItem.location/distance_km` + `distanceText`（<1km 显 Xm，否则 X.Xkm）
+  - 发帖基类 `BasePostCreateViewController`：selectedLocation 属性 + 位置 section（选填，已选可"不显示位置"清除）；Parent/Teacher 发帖页透传位置（含编辑回显）
+  - `PostService`：createPost/createTeacherPost/updatePost/updateTeacherPost/fetchPlaza 全加位置参数；fetchPlaza 传 lat/lng
+  - 广场 `PlazaViewController`：排序 chips（最新/热门/附近），near 模式先取用户坐标再 reload（未授权 toast 退最新）
+  - 展示：`WorkCardView` 作者行拼距离；`PostDetailViewController` 详情新增 location section（有位置才显示）
+  - `Info.plist` 加 `NSLocationWhenInUseUsageDescription`；工程用 Xcode 16 PBXFileSystemSynchronizedRootGroup，新 swift 自动纳编无需改 pbxproj
+
+## 八、注意
 
 - git 提交信息统一为 "update"，无常规 commit 规范
 - `TogetherCode/Together_api/.DS_Store`、`node_modules` 等已在 .gitignore
+- 沙箱无 docker，后端改动仅做 `node --check` 语法校验；真实验证需本地 `docker compose up -d --build` 起容器（自动跑 migration）
