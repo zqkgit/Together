@@ -63,31 +63,26 @@ function normalizeCourseItem(course) {
   };
 }
 
-// 课时标题行：优先取 payload.lessons；缺省时按 total_lessons 生成「第N课」
+// 课时标题行：按 total_lessons 补全为完整课时（每课一行）。
+// 传了 lessons 时逐课取标题（空标题兜底「第N课」），保证课时列表与课时数一致，供详情/排课展示。
 function buildLessonRows(payload, courseId) {
   const total = Number(payload.total_lessons) || 0;
   const rows = [];
+  const byNo = {};
   if (Array.isArray(payload.lessons)) {
-    const valid = payload.lessons
-      .filter((item) => item && item.title && String(item.title).trim())
-      .map((item, index) => ({
-        lesson_id: generateId(),
-        course_id: courseId,
-        lesson_no: Number(item.lesson_no) || index + 1,
-        title: String(item.title).trim()
-      }));
-    for (const r of valid) {
-      rows.push(r);
-    }
-  } else {
-    for (let no = 1; no <= total; no += 1) {
-      rows.push({
-        lesson_id: generateId(),
-        course_id: courseId,
-        lesson_no: no,
-        title: `第${no}课`
-      });
-    }
+    payload.lessons.forEach((item, index) => {
+      if (!item) return;
+      const no = Number(item.lesson_no) || index + 1;
+      byNo[no] = String(item.title || "").trim();
+    });
+  }
+  for (let no = 1; no <= total; no += 1) {
+    rows.push({
+      lesson_id: generateId(),
+      course_id: courseId,
+      lesson_no: no,
+      title: byNo[no] || `第${no}课`
+    });
   }
   return rows;
 }

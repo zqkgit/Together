@@ -237,6 +237,22 @@ export default function CourseDetailPage() {
             </View>
           )}
 
+          {course.lessons && course.lessons.length > 0 && (
+            <View className="card">
+              <View className="section-label">课时安排</View>
+              <View className="lesson-list">
+                {course.lessons.map((l) => (
+                  <View className="lesson-row" key={l.lesson_no}>
+                    <View className="lesson-dot" />
+                    <Text className="lesson-title">
+                      {l.lesson_no}. {l.title}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
           <View className="card">
             <View className="section-label">课程评价</View>
             {reviews && reviews.rating_count > 0 && (

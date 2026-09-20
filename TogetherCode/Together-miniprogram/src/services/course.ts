@@ -28,6 +28,7 @@ export interface CourseItem {
   studio: { studio_id: string; name: string; address: string; phone: string } | null;
   teacher: { teacher_id: string; real_name: string; intro: string | null; rating: number } | null;
   packages: CoursePackage[];
+  lessons?: Array<{ lesson_no: number; title: string }>;
   classes?: Array<{
     class_id: string;
     name: string;

@@ -52,6 +52,44 @@ enum Theme {
         /// 老师回复标签紫
         static let violet = UIColor(hex: 0x7C3AED)
         static let violetTint = UIColor(hex: 0xF5F3FF)
+
+        // MARK: - 随机色（柔和色板，适合头像底、标签底）
+
+        /// 柔和预设色板（主色 + 浅色成对）
+        private static let palette: [(main: UIColor, soft: UIColor)] = [
+            (UIColor(hex: 0x2F5D45), UIColor(hex: 0xE8F0EA)), // 品牌绿
+            (UIColor(hex: 0x3A6B96), UIColor(hex: 0xE7EFF7)), // 蓝
+            (UIColor(hex: 0x7C3AED), UIColor(hex: 0xF5F3FF)), // 紫
+            (UIColor(hex: 0xC15F2C), UIColor(hex: 0xFAEDE5)), // 陶橙
+            (UIColor(hex: 0xA87A3E), UIColor(hex: 0xF6EEDF)), // 木色
+            (UIColor(hex: 0xB03A2B), UIColor(hex: 0xFAE8E4)), // 砖红
+            (UIColor(hex: 0x3D8B5F), UIColor(hex: 0xE9F1EA)), // 草绿
+            (UIColor(hex: 0x9B59B6), UIColor(hex: 0xF3ECF9)), // 紫罗兰
+            (UIColor(hex: 0x2E86AB), UIColor(hex: 0xE4F0F6)), // 湖蓝
+            (UIColor(hex: 0xD98E32), UIColor(hex: 0xFBF1E0)), // 琥珀
+            (UIColor(hex: 0x5B6B8C), UIColor(hex: 0xECEFF4)), // 靛灰
+            (UIColor(hex: 0xC0507B), UIColor(hex: 0xFAEAF1))  // 玫红
+        ]
+
+        /// 每次调用随机返回一个柔和主色
+        static func random() -> UIColor {
+            palette[Int.random(in: 0..<palette.count)].main
+        }
+
+        /// 随机主色 + 对应浅色（如头像底/文字色）
+        static func randomPair() -> (main: UIColor, soft: UIColor) {
+            palette[Int.random(in: 0..<palette.count)]
+        }
+
+        /// 按字符串稳定取色（同一字符串永远得到同一颜色，适合头像/昵称底色）
+        static func color(forSeed seed: String) -> UIColor {
+            palette[abs(seed.hashValue) % palette.count].main
+        }
+
+        /// 按字符串稳定取色（主色 + 浅色）
+        static func colorPair(forSeed seed: String) -> (main: UIColor, soft: UIColor) {
+            palette[abs(seed.hashValue) % palette.count]
+        }
     }
 
     // MARK: - 圆角

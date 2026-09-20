@@ -138,6 +138,14 @@ function validateForm(): boolean {
     ElMessage.warning("课时数必须大于 0");
     return false;
   }
+  // 课时标题必填：课程详情 / 排课 / 学习页都要展示课时标题
+  const emptyLesson = (form.value.lessons || []).find(
+    (l) => !l.title || !String(l.title).trim()
+  );
+  if (emptyLesson) {
+    ElMessage.warning(`请填写第 ${emptyLesson.lesson_no} 课的课时标题`);
+    return false;
+  }
   if (!form.value.price || form.value.price < 1) {
     ElMessage.warning("参考价格必须大于 0");
     return false;
@@ -312,7 +320,7 @@ onMounted(loadData);
         <el-form-item label="课时数" required>
           <el-input-number v-model="form.total_lessons" :min="1" :max="200" @change="syncLessonsCount" />
         </el-form-item>
-        <el-form-item label="课时标题">
+        <el-form-item label="课时标题" required>
           <div class="lesson-list">
             <div
               v-for="(lesson, idx) in form.lessons || []"
@@ -323,7 +331,7 @@ onMounted(loadData);
               <el-input
                 v-model="lesson.title"
                 maxlength="120"
-                placeholder="填写该节课的标题（不填则家长端显示第N课）"
+                placeholder="请填写该节课的标题（课程详情/排课/学习页展示）"
               />
               <span v-if="idx === 0" class="cell-sub">排课时自动带出</span>
             </div>

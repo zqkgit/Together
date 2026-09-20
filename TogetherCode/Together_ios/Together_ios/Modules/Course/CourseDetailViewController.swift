@@ -48,7 +48,9 @@ final class CourseDetailViewController: BaseViewController {
         tableView.separatorStyle = .none
         tableView.showsVerticalScrollIndicator = false
         tableView.alwaysBounceVertical = true
-        tableView.estimatedRowHeight = 120
+        tableView.estimatedRowHeight = 60
+        tableView.estimatedSectionHeaderHeight = 0
+        tableView.estimatedSectionFooterHeight = 0
         tableView.rowHeight = UITableView.automaticDimension
         tableView.dataSource = self
         tableView.delegate = self
@@ -56,6 +58,7 @@ final class CourseDetailViewController: BaseViewController {
         tableView.register(CourseDetailInfoCell.self, forCellReuseIdentifier: CourseDetailInfoCell.reuseID)
         tableView.register(CourseDetailCardCell.self, forCellReuseIdentifier: CourseDetailCardCell.reuseID)
         tableView.register(CourseIntroCell.self, forCellReuseIdentifier: CourseIntroCell.reuseID)
+        tableView.register(CourseLessonsCell.self, forCellReuseIdentifier: CourseLessonsCell.reuseID)
         tableView.register(CourseReviewCell.self, forCellReuseIdentifier: CourseReviewCell.reuseID)
 
         view.addSubview(tableView)
@@ -158,6 +161,7 @@ extension CourseDetailViewController {
         case info
         case institution
         case intro
+        case lessons
         case reviews
     }
 
@@ -166,6 +170,7 @@ extension CourseDetailViewController {
         var result: [Section] = [.cover, .info]
         if course.studio != nil || teacherVisible { result.append(.institution) }
         if let intro = course.intro, !intro.isEmpty { result.append(.intro) }
+        if course.lessonTitles != nil { result.append(.lessons) }
         result.append(.reviews)
         return result
     }
@@ -193,7 +198,7 @@ extension CourseDetailViewController: UITableViewDataSource, UITableViewDelegate
         case .cover: return 12
         case .reviews:
             return (reviewSummary?.total ?? 0) > 0 ? 150 : 48
-        default: return 24
+        default: return 12
         }
     }
 
@@ -206,6 +211,8 @@ extension CourseDetailViewController: UITableViewDataSource, UITableViewDelegate
     }
 
     func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat { 0.01 }
+
+    func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? { UIView() }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         switch sections[indexPath.section] {
@@ -224,6 +231,10 @@ extension CourseDetailViewController: UITableViewDataSource, UITableViewDelegate
         case .intro:
             let cell = tableView.dequeueReusableCell(withIdentifier: CourseIntroCell.reuseID, for: indexPath) as! CourseIntroCell
             cell.configure(course: course)
+            return cell
+        case .lessons:
+            let cell = tableView.dequeueReusableCell(withIdentifier: CourseLessonsCell.reuseID, for: indexPath) as! CourseLessonsCell
+            cell.configure(titles: course?.lessonTitles ?? [])
             return cell
         case .reviews:
             if reviews.isEmpty {
@@ -289,10 +300,9 @@ final class CourseCoverCell: UITableViewCell {
         coverView.layer.cornerRadius = Theme.Radius.card
         contentView.addSubview(coverView)
         coverView.snp.makeConstraints {
-            $0.top.equalToSuperview()
+            $0.top.bottom.equalToSuperview()
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
-            $0.bottom.equalToSuperview()
-            $0.height.equalTo(coverView.snp.width).multipliedBy(0.78)
+            $0.height.equalTo(coverView.snp.width).multipliedBy(0.78).priority(.high)
         }
     }
 
@@ -435,6 +445,84 @@ final class CourseIntroCell: UITableViewCell {
         introLabel.text = course?.intro
     }
 
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        introLabel.preferredMaxLayoutWidth = bounds.width - 16 * 2 - 16 * 2
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+}
+
+// MARK: - 课时安排
+
+final class CourseLessonsCell: UITableViewCell {
+    static let reuseID = "CourseLessonsCell"
+
+    private let cardView = UIView()
+    private let titleLabel = UILabel()
+    private let stack = UIStackView()
+
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        selectionStyle = .none
+        backgroundColor = .clear
+        contentView.backgroundColor = .clear
+
+        cardView.backgroundColor = Theme.Color.surface
+        cardView.layer.cornerRadius = Theme.Radius.card
+        cardView.clipsToBounds = true
+        contentView.addSubview(cardView)
+        cardView.snp.makeConstraints {
+            $0.top.bottom.equalToSuperview()
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
+        }
+
+        titleLabel.font = .appTitle(15)
+        titleLabel.textColor = Theme.Color.ink
+        titleLabel.text = "课时安排"
+        cardView.addSubview(titleLabel)
+        titleLabel.snp.makeConstraints {
+            $0.top.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+        }
+
+        stack.axis = .vertical
+        stack.spacing = 8
+        cardView.addSubview(stack)
+        stack.snp.makeConstraints {
+            $0.top.equalTo(titleLabel.snp.bottom).offset(Theme.Spacing.s)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
+        }
+    }
+
+    func configure(titles: [String]) {
+        stack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        for text in titles {
+            let row = UIView()
+            let dot = UIView()
+            dot.backgroundColor = Theme.Color.brand
+            dot.layer.cornerRadius = 3
+            row.addSubview(dot)
+            dot.snp.makeConstraints {
+                $0.leading.equalToSuperview()
+                $0.centerY.equalToSuperview()
+                $0.width.height.equalTo(6)
+            }
+
+            let label = UILabel()
+            label.font = .appBody(14)
+            label.textColor = Theme.Color.sub
+            label.numberOfLines = 0
+            row.addSubview(label)
+            label.snp.makeConstraints {
+                $0.leading.equalTo(dot.snp.trailing).offset(8)
+                $0.top.trailing.bottom.equalToSuperview()
+            }
+            label.text = text
+            stack.addArrangedSubview(row)
+        }
+    }
+
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 }
 
@@ -507,6 +595,11 @@ final class CourseReviewCell: UITableViewCell {
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
         }
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        contentLabel.preferredMaxLayoutWidth = bounds.width - 16 * 2 - 16 * 2 - 32 - 8
     }
 
     func configure(review: CourseReviewItem) {
@@ -635,7 +728,6 @@ final class CourseDetailCardCell: UITableViewCell {
 
     private func makeRow(icon: String?, title: String, subtitle: String?) -> UIView {
         let row = UIView()
-        row.snp.makeConstraints { $0.height.equalTo(62) }
 
         let iconView = UIImageView()
         iconView.image = icon.flatMap { UIImage(systemName: $0) }
@@ -643,7 +735,9 @@ final class CourseDetailCardCell: UITableViewCell {
         iconView.contentMode = .scaleAspectFit
         row.addSubview(iconView)
         iconView.snp.makeConstraints {
-            $0.leading.centerY.equalToSuperview()
+            $0.leading.equalToSuperview()
+            $0.top.equalToSuperview().offset(21)
+            $0.bottom.equalToSuperview().inset(21)
             $0.width.height.equalTo(20)
         }
 
@@ -654,7 +748,7 @@ final class CourseDetailCardCell: UITableViewCell {
         row.addSubview(titleLabel)
         titleLabel.snp.makeConstraints {
             $0.leading.equalTo(iconView.snp.trailing).offset(Theme.Spacing.m)
-            $0.centerY.equalToSuperview()
+            $0.centerY.equalTo(iconView)
         }
 
         let subtitleLabel = UILabel()
@@ -665,7 +759,8 @@ final class CourseDetailCardCell: UITableViewCell {
         row.addSubview(subtitleLabel)
         subtitleLabel.snp.makeConstraints {
             $0.leading.greaterThanOrEqualTo(titleLabel.snp.trailing).offset(Theme.Spacing.m)
-            $0.trailing.centerY.equalToSuperview()
+            $0.trailing.equalToSuperview()
+            $0.centerY.equalTo(iconView)
         }
 
         titleLabel.text = title

@@ -21,6 +21,15 @@ struct CourseDetail: Codable {
     let teacher: CourseDetailTeacher?
     let packages: [PackageItem]?
     let classes: [CourseClassItem]?
+    let lessons: [CourseLesson]?
+
+    /// 课时标题行文案「1. xxx」；无课时数据返回 nil
+    var lessonTitles: [String]? {
+        guard let lessons, !lessons.isEmpty else { return nil }
+        return lessons
+            .sorted { ($0.lesson_no ?? 0) < ($1.lesson_no ?? 0) }
+            .map { "\($0.lesson_no ?? 0). \($0.title ?? "第\($0.lesson_no ?? 0)课")" }
+    }
 
     /// 价格文案「¥1280」；无价格「价格咨询」
     var priceText: String {
@@ -90,6 +99,12 @@ struct CourseStudio: Codable {
     let name: String?
     let address: String?
     let phone: String?
+}
+
+struct CourseLesson: Codable {
+    let lesson_id: String?
+    let lesson_no: Int?
+    let title: String?
 }
 
 struct CourseDetailTeacher: Codable {
