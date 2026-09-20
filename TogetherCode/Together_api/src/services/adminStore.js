@@ -331,6 +331,13 @@ async function reviewStudioApplication(reviewId, payload, operator = {}) {
         lock: transaction.LOCK.UPDATE
       });
 
+      // 师资数量由「实际合作老师」统计（teacher_studio_bindings 在职绑定），不再信任入驻表单自填
+      const studioId = studio ? studio.studio_id : generateId();
+      const [{ total: boundTotal } = { total: 0 }] = await sequelize.query(
+        `SELECT COUNT(*) AS total FROM teacher_studio_bindings WHERE studio_id = ? AND status = 1`,
+        { replacements: [studioId], type: QueryTypes.SELECT, transaction }
+      );
+
       const studioPayload = {
         name: application.name,
         cover: application.cover || null,
@@ -340,7 +347,9 @@ async function reviewStudioApplication(reviewId, payload, operator = {}) {
         contact_name: application.contact_name || null,
         phone: application.phone || null,
         business_type: application.business_type || null,
-        teacher_count: application.teacher_count ?? null,
+        // 营业类型标签：写入 type_tags 数组，供工作室主页标签展示（与 Web 端标签库对齐）
+        type_tags: application.business_type ? [application.business_type] : [],
+        teacher_count: Number(boundTotal) || 0,
         license: application.license || null,
         permit: application.permit || null,
         photos: application.photos || [],
@@ -352,7 +361,7 @@ async function reviewStudioApplication(reviewId, payload, operator = {}) {
       if (!studio) {
         studio = await StudioProfile.create(
           {
-            studio_id: generateId(),
+            studio_id: studioId,
             user_id: application.user_id,
             ...studioPayload
           },

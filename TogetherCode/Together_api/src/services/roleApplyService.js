@@ -14,7 +14,8 @@ const ROLE_META = {
     model: StudioApplication,
     profileModel: StudioProfile,
     required: ["name"],
-    fields: ["name", "cover", "intro", "city", "address", "contact_name", "phone", "business_type", "teacher_count", "license", "permit", "photos"],
+    // 师资数量（teacher_count）不再由入驻表单自填，改由审核通过时按实际合作老师数统计
+    fields: ["name", "cover", "intro", "city", "address", "contact_name", "phone", "business_type", "license", "permit", "photos"],
     label: "工作室入驻"
   }
 };

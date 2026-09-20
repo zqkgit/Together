@@ -12,6 +12,21 @@ const { generateId } = require("../utils/id");
 const { createNotification } = require("./messageService");
 
 /**
+ * 重新统计工作室「在职合作老师」数量并写回 studio_profiles.teacher_count。
+ * 师资数量不再由入驻表单自填，而是按 teacher_studio_bindings 实际绑定数统计。
+ */
+async function recomputeStudioTeacherCount(studioId, transaction) {
+  const [{ total } = { total: 0 }] = await sequelize.query(
+    `SELECT COUNT(*) AS total FROM teacher_studio_bindings WHERE studio_id = ? AND status = 1`,
+    { replacements: [studioId], type: sequelize.QueryTypes.SELECT, transaction }
+  );
+  await StudioProfile.update(
+    { teacher_count: Number(total) || 0 },
+    { where: { studio_id: studioId }, transaction }
+  );
+}
+
+/**
  * 工作室教师管理：
  * - applications：本工作室收到的老师合作申请（TeacherApplication）
  * - staff：本工作室在职老师（TeacherProfile 经 TeacherStudioBinding 绑定）
@@ -187,6 +202,8 @@ async function reviewTeacherApplication(studioId, applicationId, payload, operat
     if (!profile.studio_id) {
       await profile.update({ studio_id: studioId }, { transaction });
     }
+    // 合作老师数随绑定变化重新统计
+    await recomputeStudioTeacherCount(studioId, transaction);
 
     // 开通老师角色（App 端 role=2 登录可用老师接口）
     const [roleRow] = await UserRole.findOrCreate({
@@ -264,6 +281,8 @@ async function releaseTeacher(studioId, teacherId, payload = {}) {
       },
       { transaction }
     );
+    // 合作老师数随解绑变化重新统计
+    await recomputeStudioTeacherCount(studioId, transaction);
 
     const profile = await TeacherProfile.findOne({
       where: { teacher_id: teacherId },
@@ -331,6 +350,8 @@ async function inviteTeacher(studioId, payload = {}) {
     if (!profile.studio_id) {
       await profile.update({ studio_id: studioId }, { transaction });
     }
+    // 合作老师数随绑定变化重新统计
+    await recomputeStudioTeacherCount(studioId, transaction);
 
     const studio = await StudioProfile.findByPk(studioId, {
       attributes: ["studio_id", "name"]

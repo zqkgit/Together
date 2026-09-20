@@ -6,8 +6,9 @@ import Kingfisher
 
 /// 工作室入驻认证页（平台认证）
 /// 字段（对齐 PRD #studioAuth）：
-/// 基本信息：工作室名称（必填）/ 城市区域 / 详细地址 / 联系人 / 手机号 / 营业类型 / 师资数量 / 简介
+/// 基本信息：工作室名称（必填）/ 城市区域 / 详细地址 / 联系人 / 手机号 / 营业类型（来自 Web 端标签库的工作室标签）/ 简介
 /// 资质场地：营业执照号（必填）/ 是否有办学许可 / 场地照片（多图，OSS 数组）
+/// 师资数量不再由用户填写，由后端按「实际合作老师数」统计（teacher_studio_bindings 在职绑定）
 /// 状态：表单（unauth / rejected 可重提，被驳回自动回显上次提交内容）→ 提交后审核中（pending）
 final class StudioAuthViewController: BaseViewController {
 
@@ -22,11 +23,10 @@ final class StudioAuthViewController: BaseViewController {
     private let addressField = UITextField()
     private let contactField = UITextField()
     private let phoneField = UITextField()
-    private let typeTagView = TagSelectView(
-        options: ["艺术培训", "书法书院", "综合美育"],
-        selected: []
-    )
-    private let teacherCountField = UITextField()
+    /// 营业类型：选项来自 Web 端「标签管理 · 工作室」标签库（GET /v1/tags?scope=1）
+    /// 视图在拿到标签后于 showFormView 内创建（TagSelectView 选项初始化后不可变）
+    private var typeTagView: TagSelectView!
+    private var studioTagNames: [String] = []
     private let introTextView = UITextView()
     private let introCountLabel = UILabel()
 
@@ -71,7 +71,25 @@ final class StudioAuthViewController: BaseViewController {
         if initialStatus == "pending" {
             showPendingView()
         } else {
-            showFormView()
+            loadStudioTagsThenShowForm()
+        }
+    }
+
+    /// 先拉取 Web 端「工作室标签」库，再渲染表单（营业类型选项依赖该数据）
+    private func loadStudioTagsThenShowForm() {
+        showLoading("加载中...")
+        TagService.fetchTags(scope: .studio) { [weak self] result in
+            guard let self else { return }
+            self.hideLoading()
+            switch result {
+            case .success(let tags):
+                // 按后台 sort 升序展示
+                self.studioTagNames = tags.sorted { $0.sort < $1.sort }.map { $0.name }
+            case .failure:
+                // 标签加载失败不阻断表单；营业类型为必选项，未选会由提交校验拦截
+                self.studioTagNames = []
+            }
+            self.showFormView()
         }
     }
 
@@ -169,13 +187,14 @@ final class StudioAuthViewController: BaseViewController {
         anchor = addField("联系人", placeholder: "如：王校长", card: infoCard, top: anchor.snp.bottom, field: contactField)
         anchor = addField("联系手机号", placeholder: "用于审核与经营通知", card: infoCard, top: anchor.snp.bottom, field: phoneField, keyboard: .phonePad)
 
-        // 营业类型
+        // 营业类型（来自 Web 端标签库的工作室标签，动态加载）
         let typeTitle = makeFieldTitle("营业类型")
         infoCard.addSubview(typeTitle)
         typeTitle.snp.makeConstraints {
             $0.top.equalTo(anchor.snp.bottom).offset(Theme.Spacing.l)
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
         }
+        typeTagView = TagSelectView(options: studioTagNames, selected: [])
         typeTagView.allowsMultipleSelection = false
         infoCard.addSubview(typeTagView)
         typeTagView.snp.makeConstraints {
@@ -183,10 +202,6 @@ final class StudioAuthViewController: BaseViewController {
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
         }
         anchor = typeTagView
-
-        // 师资数量
-        teacherCountField.keyboardType = .numberPad
-        anchor = addField("师资数量", placeholder: "如：8（位专职老师）", card: infoCard, top: anchor.snp.bottom, field: teacherCountField, keyboard: .numberPad, divider: false)
 
         // 简介
         let introTitle = makeFieldTitle("工作室简介")
@@ -347,11 +362,6 @@ final class StudioAuthViewController: BaseViewController {
         phoneField.text = a["phone"].string
         if let bt = a["business_type"].string, !bt.isEmpty {
             typeTagView.setSelected([bt])
-        }
-        if let tc = a["teacher_count"].int {
-            teacherCountField.text = "\(tc)"
-        } else if let tc = a["teacher_count"].string, !tc.isEmpty {
-            teacherCountField.text = tc
         }
         licenseField.text = a["license"].string
         if let permit = a["permit"].string, !permit.isEmpty {
@@ -556,9 +566,6 @@ final class StudioAuthViewController: BaseViewController {
                 "intro": intro,
                 "photos": urls
             ]
-            if let tc = Int(teacherCountField.text?.trimmingCharacters(in: .whitespaces) ?? "") {
-                payload["teacher_count"] = tc
-            }
             if let cover = urls.first { payload["cover"] = cover }
 
             AuthService.submitRoleApply(role: "studio", payload: payload) { result in
