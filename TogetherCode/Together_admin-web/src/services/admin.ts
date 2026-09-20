@@ -138,8 +138,12 @@ export interface ReviewDetail {
   name: string;
   cover: string | null;
   intro: string | null;
+  city: string | null;
   address: string | null;
+  contact_name: string | null;
   phone: string | null;
+  business_type: string | null;
+  teacher_count: number | null;
   license: string | null;
   permit: string | null;
   photos: string[];

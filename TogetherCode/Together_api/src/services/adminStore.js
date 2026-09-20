@@ -4,6 +4,7 @@ const {
   StudioApplication,
   Settlement,
   User,
+  UserRole,
   Order,
   Course,
   Child
@@ -282,8 +283,12 @@ async function getStudioReviewDetail(reviewId) {
     name: row.name,
     cover: row.cover,
     intro: row.intro,
+    city: row.city,
     address: row.address,
+    contact_name: row.contact_name,
     phone: row.phone,
+    business_type: row.business_type,
+    teacher_count: row.teacher_count,
     license: row.license,
     permit: row.permit,
     photos: row.photos || [],
@@ -330,8 +335,12 @@ async function reviewStudioApplication(reviewId, payload, operator = {}) {
         name: application.name,
         cover: application.cover || null,
         intro: application.intro || null,
+        city: application.city || null,
         address: application.address || null,
+        contact_name: application.contact_name || null,
         phone: application.phone || null,
+        business_type: application.business_type || null,
+        teacher_count: application.teacher_count ?? null,
         license: application.license || null,
         permit: application.permit || null,
         photos: application.photos || [],
@@ -352,6 +361,19 @@ async function reviewStudioApplication(reviewId, payload, operator = {}) {
       } else {
         await studio.update(studioPayload, { transaction });
       }
+
+      // 开通「工作室」角色（切换身份依赖 user_roles 记录）
+      await UserRole.findOrCreate({
+        where: { user_id: application.user_id, role: 3 },
+        defaults: {
+          id: generateId(),
+          user_id: application.user_id,
+          role: 3,
+          ref_id: studio.studio_id,
+          verified: true
+        },
+        transaction
+      });
 
       await application.update(
         {

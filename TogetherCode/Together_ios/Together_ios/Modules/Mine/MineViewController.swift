@@ -196,12 +196,16 @@ final class MineViewController: BaseViewController, UITableViewDataSource, UITab
                     }
                     self.navigationController?.pushViewController(vc, animated: true)
                 } else {
-                    // 工作室认证占位（后续接入 StudioAuthViewController）
-                    if status == "pending" {
-                        self.showToast("工作室认证审核中，请等待平台审核")
-                    } else {
-                        self.showToast("「工作室」认证功能开发中")
+                    let vc: StudioAuthViewController
+                    switch status {
+                    case "pending":
+                        vc = StudioAuthViewController(status: "pending")
+                    case "rejected":
+                        vc = StudioAuthViewController(status: "rejected", reason: reason, apply: apply)
+                    default:
+                        vc = StudioAuthViewController(apply: apply)
                     }
+                    self.navigationController?.pushViewController(vc, animated: true)
                 }
             case .failure(let error):
                 self.showToast(error.message ?? "查询认证状态失败")

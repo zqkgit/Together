@@ -254,8 +254,14 @@ onMounted(loadData);
               {{ detail.applicant?.nickname || "-" }}
               <span class="cell-sub">（{{ detail.applicant?.phone || "-" }}）</span>
             </el-descriptions-item>
-            <el-descriptions-item label="经营地址">{{ detail.address || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="所在城市">{{ detail.city || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="详细地址">{{ detail.address || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="联系人">{{ detail.contact_name || "-" }}</el-descriptions-item>
             <el-descriptions-item label="联系电话">{{ detail.phone || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="营业类型">{{ detail.business_type || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="师资数量">
+              {{ detail.teacher_count != null ? detail.teacher_count + " 位专职老师" : "-" }}
+            </el-descriptions-item>
             <el-descriptions-item label="机构简介">
               <div class="intro-text">{{ detail.intro || "-" }}</div>
             </el-descriptions-item>

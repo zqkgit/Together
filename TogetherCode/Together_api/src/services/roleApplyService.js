@@ -14,7 +14,7 @@ const ROLE_META = {
     model: StudioApplication,
     profileModel: StudioProfile,
     required: ["name"],
-    fields: ["name", "cover", "intro", "address", "phone", "license", "permit", "photos"],
+    fields: ["name", "cover", "intro", "city", "address", "contact_name", "phone", "business_type", "teacher_count", "license", "permit", "photos"],
     label: "工作室入驻"
   }
 };

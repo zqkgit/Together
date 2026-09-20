@@ -152,11 +152,16 @@ final class TeacherMineViewController: BaseViewController, UITableViewDataSource
                     }
                     self.navigationController?.pushViewController(vc, animated: true)
                 } else {
-                    if status == "pending" {
-                        self.showToast("工作室认证审核中，请等待平台审核")
-                    } else {
-                        self.showToast("「工作室」认证功能开发中")
+                    let vc: StudioAuthViewController
+                    switch status {
+                    case "pending":
+                        vc = StudioAuthViewController(status: "pending")
+                    case "rejected":
+                        vc = StudioAuthViewController(status: "rejected", reason: reason, apply: apply)
+                    default:
+                        vc = StudioAuthViewController(apply: apply)
                     }
+                    self.navigationController?.pushViewController(vc, animated: true)
                 }
             case .failure(let error):
                 self.showToast(error.message ?? "查询认证状态失败")

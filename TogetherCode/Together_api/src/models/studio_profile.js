@@ -65,6 +65,22 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.JSON,
         allowNull: true
       },
+      city: {
+        type: DataTypes.STRING(120),
+        allowNull: true
+      },
+      business_type: {
+        type: DataTypes.STRING(60),
+        allowNull: true
+      },
+      teacher_count: {
+        type: DataTypes.SMALLINT,
+        allowNull: true
+      },
+      contact_name: {
+        type: DataTypes.STRING(60),
+        allowNull: true
+      },
       settle_rate: {
         type: DataTypes.DECIMAL(4, 2),
         allowNull: false,
