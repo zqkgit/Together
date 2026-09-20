@@ -16,8 +16,8 @@ final class PhoneLoginViewController: BaseViewController {
     private weak var passwordRow: UIView!
     private let sendCodeButton = UIButton(type: .system)
     private let loginButton = UIButton(type: .system)
-    private let codeSegment = UIButton(type: .system)
-    private let passwordSegment = UIButton(type: .system)
+    private let codeSegment = UIButton(type: .custom)
+    private let passwordSegment = UIButton(type: .custom)
 
     /// 验证码倒计时
     private var countdown = 0
@@ -96,19 +96,15 @@ final class PhoneLoginViewController: BaseViewController {
         let segmentRow = UIView()
         codeSegment.setTitle("验证码登录", for: .normal)
         codeSegment.setTitleColor(Theme.Color.ink, for: .normal)
-        codeSegment.setTitleColor(.red, for: .selected)
+        codeSegment.setTitleColor(Theme.Color.brand, for: .selected)
         codeSegment.titleLabel?.font = .appBody(14)
-        codeSegment.layer.cornerRadius = 999
-        codeSegment.layer.masksToBounds = true
         codeSegment.tag = 0
         codeSegment.addTarget(self, action: #selector(didTapSegment(_:)), for: .touchUpInside)
 
         passwordSegment.setTitle("密码登录", for: .normal)
         passwordSegment.setTitleColor(Theme.Color.ink, for: .normal)
-        passwordSegment.setTitleColor(.red, for: .selected)
+        passwordSegment.setTitleColor(Theme.Color.brand, for: .selected)
         passwordSegment.titleLabel?.font = .appBody(14)
-        passwordSegment.layer.cornerRadius = 999
-        passwordSegment.layer.masksToBounds = true
         passwordSegment.tag = 1
         passwordSegment.addTarget(self, action: #selector(didTapSegment(_:)), for: .touchUpInside)
         segmentRow.addSubview(codeSegment)
@@ -273,9 +269,7 @@ final class PhoneLoginViewController: BaseViewController {
 
     private func segmentRowStyle(_ button: UIButton, selected: Bool) {
         button.isSelected = selected
-        button.backgroundColor = selected ? Theme.Color.brand : Theme.Color.surfaceAlt
-        button.layer.borderWidth = selected ? 0 : 1
-        button.layer.borderColor = Theme.Color.line.cgColor
+        button.backgroundColor = .clear
     }
 
     // MARK: - Actions
