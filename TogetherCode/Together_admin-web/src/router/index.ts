@@ -56,6 +56,12 @@ const router = createRouter({
           meta: { title: "结算分账", requiresAuth: true, scopes: ["platform"] }
         },
         {
+          path: "/admin-reviews",
+          name: "admin-reviews",
+          component: () => import("../views/admin-reviews/IndexView.vue"),
+          meta: { title: "评价管理", requiresAuth: true, scopes: ["platform"] }
+        },
+        {
           path: "/admin-reports",
           name: "admin-reports",
           component: () => import("../views/admin-reports/IndexView.vue"),
@@ -120,6 +126,12 @@ const router = createRouter({
           name: "studio-courses",
           component: () => import("../views/studio/courses/IndexView.vue"),
           meta: { title: "课程管理", requiresAuth: true, scopes: ["studio"] }
+        },
+        {
+          path: "/studio-reviews",
+          name: "studio-reviews",
+          component: () => import("../views/studio-reviews/IndexView.vue"),
+          meta: { title: "评价管理", requiresAuth: true, scopes: ["studio"] }
         },
         {
           path: "/studio-classes",

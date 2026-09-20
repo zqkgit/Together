@@ -176,3 +176,25 @@ struct CommissionPage {
     let total: Int
     let list: [CommissionRecordItem]
 }
+
+
+// MARK: - 我的评价
+
+extension MineService {
+    /// 我的评价列表（分页）
+    static func fetchMyReviews(
+        page: Int,
+        completion: @escaping ([MyReviewItem]?, Bool, String?) -> Void
+    ) {
+        APIClient.shared.request("/reviews/mine?page=\(page)&page_size=10", method: .get) { result in
+            switch result {
+            case .success(let json):
+                let items = JSONKit.decodeList([MyReviewItem].self, from: json["list"])
+                let total = json["total"].intValue
+                completion(items, (page * 10) < total, nil)
+            case .failure(let error):
+                completion(nil, false, error.message)
+            }
+        }
+    }
+}

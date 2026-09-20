@@ -122,4 +122,5 @@ extension Notification.Name {
     static let userProfileUpdated = Notification.Name("userProfileUpdated")
     static let messageUnreadChanged = Notification.Name("messageUnreadChanged")
     static let userRoleDidChange = Notification.Name("userRoleDidChange")
+    static let reviewsDidChange = Notification.Name("reviewsDidChange")
 }

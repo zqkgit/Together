@@ -9,6 +9,7 @@ final class CourseDetailViewController: BaseViewController {
     private let courseId: String
     private var course: CourseDetail?
     private var reviews: [CourseReviewItem] = []
+    private var reviewSummary: CourseReviewSummary?
 
     private lazy var tableView = UITableView(frame: .zero, style: .plain)
     private let bottomBar = UIView()
@@ -59,7 +60,8 @@ final class CourseDetailViewController: BaseViewController {
 
         view.addSubview(tableView)
         tableView.snp.makeConstraints {
-            $0.top.leading.trailing.equalToSuperview()
+            $0.top.equalTo(view.safeAreaLayoutGuide)
+            $0.leading.trailing.equalToSuperview()
             $0.bottom.equalTo(bottomBar.snp.top)
         }
     }
@@ -77,19 +79,18 @@ final class CourseDetailViewController: BaseViewController {
 
         priceLabel.font = .appTitle(18)
         priceLabel.textColor = Theme.Color.clay
+        bottomBar.addSubview(enrollButton)
         bottomBar.addSubview(priceLabel)
         priceLabel.snp.makeConstraints {
             $0.leading.equalToSuperview().inset(Theme.Spacing.l)
-            $0.centerY.equalToSuperview()
+            $0.centerY.equalTo(enrollButton.snp.centerY)
         }
 
         enrollButton.setTitle("立即报名", for: .normal)
         enrollButton.setTitleColor(.white, for: .normal)
         enrollButton.titleLabel?.font = .appLabel(16)
         enrollButton.backgroundColor = Theme.Color.brand
-        enrollButton.layer.cornerRadius = Theme.Radius.button
         enrollButton.addTarget(self, action: #selector(didTapEnroll), for: .touchUpInside)
-        bottomBar.addSubview(enrollButton)
         enrollButton.snp.makeConstraints {
             $0.trailing.equalToSuperview().inset(Theme.Spacing.m)
             $0.top.equalToSuperview().inset(10)
@@ -97,6 +98,9 @@ final class CourseDetailViewController: BaseViewController {
             $0.width.equalTo(140)
             $0.height.equalTo(46)
         }
+        // 半圆：圆角 = 高度一半
+        enrollButton.layer.cornerRadius = 23
+        enrollButton.clipsToBounds = true
     }
 
     // MARK: - Data
@@ -114,8 +118,9 @@ final class CourseDetailViewController: BaseViewController {
         }
 
         group.enter()
-        CourseService.fetchReviews(courseId: courseId) { [weak self] reviews, _ in
+        CourseService.fetchReviews(courseId: courseId) { [weak self] reviews, summary, _ in
             self?.reviews = reviews
+            self?.reviewSummary = summary
             group.leave()
         }
 
@@ -161,7 +166,7 @@ extension CourseDetailViewController {
         var result: [Section] = [.cover, .info]
         if course.studio != nil || teacherVisible { result.append(.institution) }
         if let intro = course.intro, !intro.isEmpty { result.append(.intro) }
-        if !reviews.isEmpty { result.append(.reviews) }
+        result.append(.reviews)
         return result
     }
 
@@ -178,14 +183,27 @@ extension CourseDetailViewController: UITableViewDataSource, UITableViewDelegate
     func numberOfSections(in tableView: UITableView) -> Int { sections.count }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        sections[section] == .reviews ? min(reviews.count, 2) : 1
+        guard sections[section] == .reviews else { return 1 }
+        if reviews.isEmpty { return 1 }
+        return min(reviews.count, 2) + (reviews.count > 2 ? 1 : 0)
     }
 
     func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
-        sections[section] == .cover ? 12 : 24
+        switch sections[section] {
+        case .cover: return 12
+        case .reviews:
+            return (reviewSummary?.total ?? 0) > 0 ? 150 : 48
+        default: return 24
+        }
     }
 
-    func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? { UIView() }
+    func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+        guard sections[section] == .reviews else { return UIView() }
+        let header = CourseReviewHeaderView()
+        header.configure(summary: reviewSummary)
+        header.onWrite = { [weak self] in self?.openReviewCompose() }
+        return header
+    }
 
     func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat { 0.01 }
 
@@ -208,10 +226,47 @@ extension CourseDetailViewController: UITableViewDataSource, UITableViewDelegate
             cell.configure(course: course)
             return cell
         case .reviews:
-            let cell = tableView.dequeueReusableCell(withIdentifier: CourseReviewCell.reuseID, for: indexPath) as! CourseReviewCell
-            cell.configure(review: reviews[indexPath.row])
+            if reviews.isEmpty {
+                let cell = UITableViewCell(style: .default, reuseIdentifier: "reviewEmpty")
+                cell.selectionStyle = .none
+                cell.backgroundColor = .clear
+                cell.textLabel?.text = "暂无评价，快来写下第一条吧"
+                cell.textLabel?.textColor = Theme.Color.muted
+                cell.textLabel?.font = .appBody(14)
+                cell.textLabel?.textAlignment = .center
+                return cell
+            }
+            if indexPath.row < min(reviews.count, 2) {
+                let cell = tableView.dequeueReusableCell(withIdentifier: CourseReviewCell.reuseID, for: indexPath) as! CourseReviewCell
+                cell.configure(review: reviews[indexPath.row])
+                return cell
+            }
+            let cell = UITableViewCell(style: .default, reuseIdentifier: "reviewMore")
+            cell.selectionStyle = .none
+            cell.backgroundColor = .clear
+            cell.textLabel?.text = "查看全部 \(reviews.count) 条评价 ›"
+            cell.textLabel?.textColor = Theme.Color.sub
+            cell.textLabel?.font = .appBody(14)
+            cell.textLabel?.textAlignment = .center
             return cell
         }
+    }
+
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        guard sections[indexPath.section] == .reviews,
+              indexPath.row >= min(reviews.count, 2) else { return }
+        let vc = CourseReviewsViewController(courseId: courseId)
+        navigationController?.pushViewController(vc, animated: true)
+    }
+
+    private func openReviewCompose() {
+        guard TokenManager.shared.isLoggedIn else {
+            showToast("请先登录")
+            return
+        }
+        let title = course?.title ?? ""
+        let vc = ReviewComposeViewController(courseId: courseId, courseTitle: title)
+        navigationController?.pushViewController(vc, animated: true)
     }
 }
 
@@ -389,11 +444,13 @@ final class CourseReviewCell: UITableViewCell {
     static let reuseID = "CourseReviewCell"
 
     private let cardView = UIView()
-    private let headerStack = UIStackView()
     private let avatarView = UIImageView()
     private let nameLabel = UILabel()
     private let timeLabel = UILabel()
+    private let bodyStack = UIStackView()
     private let contentLabel = UILabel()
+    private let studioReplyView = ReviewReplyView(tag: "工作室", tagColor: Theme.Color.info, tintColor: Theme.Color.infoTint)
+    private let teacherReplyView = ReviewReplyView(tag: "老师", tagColor: Theme.Color.violet, tintColor: Theme.Color.violetTint)
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -425,7 +482,7 @@ final class CourseReviewCell: UITableViewCell {
         cardView.addSubview(nameLabel)
         nameLabel.snp.makeConstraints {
             $0.leading.equalTo(avatarView.snp.trailing).offset(Theme.Spacing.s)
-            $0.centerY.equalTo(avatarView).offset(-8)
+            $0.top.equalTo(avatarView)
         }
 
         timeLabel.font = .appLabel(11)
@@ -433,14 +490,19 @@ final class CourseReviewCell: UITableViewCell {
         cardView.addSubview(timeLabel)
         timeLabel.snp.makeConstraints {
             $0.leading.equalTo(nameLabel)
-            $0.centerY.equalTo(avatarView).offset(8)
+            $0.bottom.equalTo(avatarView)
         }
 
         contentLabel.font = .appBody(14)
         contentLabel.textColor = Theme.Color.ink
         contentLabel.numberOfLines = 0
-        cardView.addSubview(contentLabel)
-        contentLabel.snp.makeConstraints {
+        bodyStack.axis = .vertical
+        bodyStack.spacing = 8
+        bodyStack.addArrangedSubview(contentLabel)
+        bodyStack.addArrangedSubview(studioReplyView)
+        bodyStack.addArrangedSubview(teacherReplyView)
+        cardView.addSubview(bodyStack)
+        bodyStack.snp.makeConstraints {
             $0.top.equalTo(avatarView.snp.bottom).offset(Theme.Spacing.s)
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
@@ -451,12 +513,58 @@ final class CourseReviewCell: UITableViewCell {
         nameLabel.text = review.authorName
         timeLabel.text = review.timeText
         contentLabel.text = review.content
+        studioReplyView.isHidden = (review.reply_content ?? "").isEmpty
+        studioReplyView.set(text: review.reply_content)
+        teacherReplyView.isHidden = (review.teacher_reply_content ?? "").isEmpty
+        teacherReplyView.set(text: review.teacher_reply_content)
         if let avatar = review.avatar, let url = URL(string: avatar) {
             avatarView.kf.setImage(with: url, placeholder: UIImage(systemName: "person.fill"))
         } else {
             avatarView.image = UIImage(systemName: "person.fill")
             avatarView.tintColor = Theme.Color.muted
         }
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+}
+
+/// 评价回复条（工作室蓝 / 老师紫）
+final class ReviewReplyView: UIView {
+
+    private let tagLabel = UILabel()
+    private let textLabel = UILabel()
+
+    init(tag: String, tagColor: UIColor, tintColor: UIColor) {
+        super.init(frame: .zero)
+        backgroundColor = tintColor
+        layer.cornerRadius = 6
+        clipsToBounds = true
+
+        tagLabel.text = tag
+        tagLabel.font = .appLabel(10)
+        tagLabel.textColor = tagColor
+        tagLabel.textAlignment = .center
+        addSubview(tagLabel)
+        tagLabel.snp.makeConstraints {
+            $0.leading.equalToSuperview().offset(8)
+            $0.centerY.equalToSuperview()
+            $0.width.equalTo(34)
+        }
+
+        textLabel.font = .appLabel(12)
+        textLabel.textColor = Theme.Color.sub
+        textLabel.numberOfLines = 0
+        addSubview(textLabel)
+        textLabel.snp.makeConstraints {
+            $0.leading.equalTo(tagLabel.snp.trailing).offset(6)
+            $0.trailing.equalToSuperview().offset(-8)
+            $0.top.equalToSuperview().offset(6)
+            $0.bottom.equalToSuperview().offset(-6)
+        }
+    }
+
+    func set(text: String?) {
+        textLabel.text = text
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -563,6 +671,142 @@ final class CourseDetailCardCell: UITableViewCell {
         titleLabel.text = title
         subtitleLabel.text = subtitle
         return row
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+}
+
+
+/// 家长评价区头部：标题 + 写评价 + 评分分布条（对齐小程序课程详情）
+final class CourseReviewHeaderView: UIView {
+
+    var onWrite: (() -> Void)?
+
+    private let titleLabel = UILabel()
+    private let countLabel = UILabel()
+    private let writeButton = UIButton(type: .system)
+    private let distStack = UIStackView()
+    private var fillViews: [Int: UIView] = [:]
+    private var numLabels: [Int: UILabel] = [:]
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = .clear
+
+        titleLabel.text = "家长评价"
+        titleLabel.font = .appTitle(16)
+        titleLabel.textColor = Theme.Color.ink
+        addSubview(titleLabel)
+        titleLabel.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(Theme.Spacing.m)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.m)
+        }
+
+        countLabel.font = .appLabel(12)
+        countLabel.textColor = Theme.Color.muted
+        addSubview(countLabel)
+        countLabel.snp.makeConstraints {
+            $0.leading.equalTo(titleLabel.snp.trailing).offset(Theme.Spacing.s)
+            $0.bottom.equalTo(titleLabel).offset(-2)
+        }
+
+        writeButton.setTitle("写评价", for: .normal)
+        writeButton.setTitleColor(Theme.Color.brand, for: .normal)
+        writeButton.titleLabel?.font = .appLabel(13)
+        writeButton.backgroundColor = Theme.Color.brandSoft
+        writeButton.layer.cornerRadius = 6
+        writeButton.contentEdgeInsets = UIEdgeInsets(top: 4, left: 10, bottom: 4, right: 10)
+        writeButton.addTarget(self, action: #selector(didTapWrite), for: .touchUpInside)
+        addSubview(writeButton)
+        writeButton.snp.makeConstraints {
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.m)
+            $0.centerY.equalTo(titleLabel)
+        }
+
+        distStack.axis = .vertical
+        distStack.spacing = 4
+        addSubview(distStack)
+        distStack.snp.makeConstraints {
+            $0.top.equalTo(titleLabel.snp.bottom).offset(Theme.Spacing.s)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
+        }
+
+        for star in stride(from: 5, through: 1, by: -1) {
+            let row = makeDistRow(star: star)
+            distStack.addArrangedSubview(row)
+        }
+    }
+
+    private func makeDistRow(star: Int) -> UIView {
+        let row = UIView()
+        row.snp.makeConstraints { $0.height.equalTo(14) }
+
+        let label = UILabel()
+        label.text = "\(star)★"
+        label.font = .appLabel(10)
+        label.textColor = Theme.Color.muted
+        row.addSubview(label)
+        label.snp.makeConstraints {
+            $0.leading.equalToSuperview()
+            $0.centerY.equalToSuperview()
+            $0.width.equalTo(26)
+        }
+
+        let track = UIView()
+        track.backgroundColor = Theme.Color.surfaceAlt
+        track.layer.cornerRadius = 3
+        track.clipsToBounds = true
+        row.addSubview(track)
+        track.snp.makeConstraints {
+            $0.leading.equalTo(label.snp.trailing).offset(4)
+            $0.centerY.equalToSuperview()
+            $0.height.equalTo(6)
+            $0.trailing.equalToSuperview().offset(-30)
+        }
+
+        let fill = UIView()
+        fill.backgroundColor = Theme.Color.clay
+        fill.layer.cornerRadius = 3
+        track.addSubview(fill)
+        fill.snp.makeConstraints {
+            $0.leading.top.bottom.equalToSuperview()
+            $0.width.equalTo(0)
+        }
+        fill.tag = star
+        fillViews[star] = fill
+
+        let numLabel = UILabel()
+        numLabel.font = .appLabel(10)
+        numLabel.textColor = Theme.Color.muted
+        row.addSubview(numLabel)
+        numLabel.snp.makeConstraints {
+            $0.leading.equalTo(track.snp.trailing).offset(4)
+            $0.centerY.equalToSuperview()
+            $0.trailing.lessThanOrEqualToSuperview()
+        }
+        numLabels[star] = numLabel
+        return row
+    }
+
+    func configure(summary: CourseReviewSummary?) {
+        let total = summary?.total ?? 0
+        countLabel.text = "\(total) 条"
+        distStack.isHidden = total <= 0
+        for star in 1...5 {
+            let count = summary?.count(of: star) ?? 0
+            let ratio = total > 0 ? CGFloat(count) / CGFloat(total) : 0
+            if let fill = fillViews[star] {
+                fill.snp.remakeConstraints {
+                    $0.leading.top.bottom.equalToSuperview()
+                    $0.width.equalTo(fill.superview!.snp.width).multipliedBy(ratio)
+                }
+            }
+            numLabels[star]?.text = "\(count)"
+        }
+    }
+
+    @objc private func didTapWrite() {
+        onWrite?()
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }

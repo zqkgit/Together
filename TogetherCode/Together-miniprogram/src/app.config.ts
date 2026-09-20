@@ -20,6 +20,7 @@ export default defineAppConfig({
     "pages/studios/index",
     "pages/favorites/index",
     "pages/my-posts/index",
+    "pages/my-reviews/index",
     "pages/announcements/index",
     "pages/announcement-detail/index",
     "pages/refunds/index",

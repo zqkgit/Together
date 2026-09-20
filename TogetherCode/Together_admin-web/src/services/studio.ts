@@ -728,3 +728,43 @@ export async function fetchStudioReport(): Promise<StudioReportData> {
   const response = await request.get("/studio/reports");
   return response.data;
 }
+
+// ============ 课程评价（A1 口碑） ============
+
+export interface StudioReviewItem {
+  review_id: string;
+  rating: number;
+  content: string | null;
+  images: string[];
+  reply_content: string | null;
+  reply_at: string | null;
+  teacher_reply_content: string | null;
+  teacher_reply_at: string | null;
+  status: number;
+  user: { user_id: string; nickname: string; avatar: string | null } | null;
+  course: {
+    course_id: string;
+    title: string;
+    cover: string | null;
+    teacher_name: string | null;
+  } | null;
+  created_at: string;
+}
+
+export async function fetchStudioReviews(params: {
+  rating?: number | "";
+  replied?: string;
+  page?: number;
+  page_size?: number;
+} = {}): Promise<PagedList<StudioReviewItem>> {
+  const response = await request.get("/studio/reviews", { params });
+  return response.data;
+}
+
+export async function replyStudioReview(
+  reviewId: string,
+  payload: { role: "studio" | "teacher"; teacher_id?: string; content: string }
+): Promise<StudioReviewItem> {
+  const response = await request.put(`/studio/reviews/${reviewId}/reply`, payload);
+  return response.data;
+}

@@ -5,6 +5,8 @@ const { requireAuth } = require("../middlewares/auth");
 const {
   getCourseReviews,
   postCourseReview,
+  getMyCourseReviews,
+  putMyCourseReview,
   postFavorite,
   deleteFavorite,
   getFavorites,
@@ -52,6 +54,10 @@ const deleteFavoriteValidators = [
 // 课程评价（挂在 /v1/courses/:id 之后需独立路由：/v1/reviews/courses/:id/reviews 简化 —— 见 index.js 挂载说明）
 router.get("/courses/:id/reviews", validateRequest, getCourseReviews);
 router.post("/courses/:id/reviews", requireAuth, reviewValidators, validateRequest, postCourseReview);
+
+// 我的评价 / 编辑我的评价（仅待审核或驳回可改）
+router.get("/reviews/mine", requireAuth, validateRequest, getMyCourseReviews);
+router.put("/reviews/:id", requireAuth, reviewValidators, validateRequest, putMyCourseReview);
 
 // 收藏
 router.post("/favorites", requireAuth, favoriteValidators, validateRequest, postFavorite);

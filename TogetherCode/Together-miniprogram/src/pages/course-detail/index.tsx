@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Taro, { useRouter, useShareAppMessage } from "@tarojs/taro";
-import { View, Text, Image, Button, Input, Textarea } from "@tarojs/components";
+import { View, Text, Image, Button, Textarea } from "@tarojs/components";
 import { getCourseDetail, fenToYuan } from "../../services/course";
 import { createDistributionLink } from "../../services/distribution";
 import { uploadImages } from "../../services/upload";
@@ -104,7 +104,7 @@ export default function CourseDetailPage() {
         content: reviewContent.trim(),
         images: reviewImages.length ? reviewImages : undefined
       });
-      Taro.showToast({ title: "评价成功", icon: "success" });
+      Taro.showToast({ title: "已提交，等待平台审核", icon: "success" });
       setShowReviewForm(false);
       setReviewContent("");
       setReviewRating(5);
@@ -262,7 +262,7 @@ export default function CourseDetailPage() {
                 </View>
               </View>
             )}
-            {reviews?.list?.length > 0 ? (
+            {reviews && reviews.list && reviews.list.length > 0 ? (
               <View className="review-list">
                 {reviews.list.map((r) => (
                   <View key={r.review_id} className="review-item">
@@ -272,6 +272,18 @@ export default function CourseDetailPage() {
                       <Text className="review-time">{String(r.created_at || "").slice(0, 10)}</Text>
                     </View>
                     {r.content && <View className="review-content">{r.content}</View>}
+                    {r.reply_content && (
+                      <View className="review-reply">
+                        <Text className="review-reply-tag">工作室</Text>
+                        <Text className="review-reply-text">{r.reply_content}</Text>
+                      </View>
+                    )}
+                    {r.teacher_reply_content && (
+                      <View className="review-reply">
+                        <Text className="review-reply-tag teacher">老师</Text>
+                        <Text className="review-reply-text">{r.teacher_reply_content}</Text>
+                      </View>
+                    )}
                     {Array.isArray(r.images) && r.images.length > 0 && (
                       <View className="review-images">
                         {r.images.map((img, i) => (

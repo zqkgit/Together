@@ -12,11 +12,23 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.BIGINT,
         allowNull: false
       },
+      teacher_id: {
+        type: DataTypes.BIGINT,
+        allowNull: true
+      },
+      studio_id: {
+        type: DataTypes.BIGINT,
+        allowNull: true
+      },
       user_id: {
         type: DataTypes.BIGINT,
         allowNull: false
       },
       order_id: {
+        type: DataTypes.BIGINT,
+        allowNull: true
+      },
+      child_id: {
         type: DataTypes.BIGINT,
         allowNull: true
       },
@@ -33,10 +45,33 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.JSON,
         allowNull: true
       },
+      reply_content: {
+        type: DataTypes.TEXT,
+        allowNull: true
+      },
+      reply_at: {
+        type: DataTypes.DATE,
+        allowNull: true
+      },
+      teacher_reply_content: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: "老师回复内容"
+      },
+      teacher_reply_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: "老师回复时间"
+      },
       status: {
+        // 0 待审核 / 1 通过 / 2 驳回
         type: DataTypes.SMALLINT,
         allowNull: false,
-        defaultValue: 1
+        defaultValue: 0
+      },
+      reject_reason: {
+        type: DataTypes.STRING(255),
+        allowNull: true
       }
     },
     {
@@ -50,6 +85,8 @@ module.exports = (sequelize, DataTypes) => {
   CourseReview.associate = (models) => {
     CourseReview.belongsTo(models.Course, { foreignKey: "course_id", as: "course" });
     CourseReview.belongsTo(models.User, { foreignKey: "user_id", as: "user" });
+    CourseReview.belongsTo(models.StudioProfile, { foreignKey: "studio_id", as: "studio" });
+    CourseReview.belongsTo(models.TeacherProfile, { foreignKey: "teacher_id", as: "teacher" });
   };
 
   CourseReview.beforeValidate((instance) => {

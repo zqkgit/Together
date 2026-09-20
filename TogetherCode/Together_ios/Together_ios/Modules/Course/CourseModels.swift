@@ -160,10 +160,53 @@ struct CourseReviewItem: Codable {
     let images: [String]?
     let nickname: String?
     let avatar: String?
+    let reply_content: String?
+    let teacher_reply_content: String?
     let created_at: String?
 
     var authorName: String { nickname ?? "艺启家长" }
     var timeText: String { created_at?.shortRelativeTime ?? "" }
+}
+
+/// 课程评价汇总（评分分布 + 总数）
+struct CourseReviewSummary: Codable {
+    let rating_count: Int?
+    let rating_distribution: [String: Int]?
+
+    var total: Int { rating_count ?? 0 }
+    /// 1...5 星数量（缺失补 0）
+    func count(of star: Int) -> Int {
+        rating_distribution?[String(star)] ?? 0
+    }
+}
+
+/// 我的评价（我的评价列表）
+struct MyReviewItem: Codable {
+    let review_id: String?
+    let rating: Int?
+    let content: String?
+    let images: [String]?
+    let status: Int?          // 0 待审核 / 1 通过 / 2 驳回
+    let reject_reason: String?
+    let reply_content: String?
+    let teacher_reply_content: String?
+    let created_at: String?
+    let course: CourseBrief?
+
+    var statusText: String {
+        switch status ?? 0 {
+        case 1: return "已通过"
+        case 2: return "已驳回"
+        default: return "待审核"
+        }
+    }
+    var timeText: String { created_at?.shortRelativeTime ?? "" }
+}
+
+struct CourseBrief: Codable {
+    let course_id: String?
+    let title: String?
+    let cover: String?
 }
 
 // MARK: - 我的课程（列表）

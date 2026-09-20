@@ -7,6 +7,8 @@ const {
   getReviewsList,
   getReviewDetail,
   putReview,
+  getCourseReviewsList,
+  putCourseReviewAudit,
   putStudioBan,
   putStudioUnban,
   getSettlementsData,
@@ -79,6 +81,10 @@ router.put("/studios/:id/unban", studioIdValidator, validateRequest, putStudioUn
 router.get("/reviews", listReviewsValidators, validateRequest, getReviewsList);
 router.get("/reviews/:id", reviewIdValidator, validateRequest, getReviewDetail);
 router.put("/reviews/:id", handleStudioReviewValidators, validateRequest, putReview);
+
+// 课程评价管理（家长课后评价，与工作室入驻审核 /reviews 区分）
+router.get("/course-reviews", getCourseReviewsList);
+router.put("/course-reviews/:id/audit", putCourseReviewAudit);
 router.get("/settlements", getSettlementsData);
 router.get("/settlements/export", exportSettlementsData);
 router.post("/settlements/generate", postGenerateSettlements);

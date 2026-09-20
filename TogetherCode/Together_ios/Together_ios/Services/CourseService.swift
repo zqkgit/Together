@@ -61,17 +61,75 @@ enum CourseService {
         }
     }
 
-    /// 课程评价（详情页家长评价）
+    /// 课程评价（详情页家长评价）+ 评分汇总
     static func fetchReviews(
         courseId: String,
-        completion: @escaping ([CourseReviewItem], String?) -> Void
+        completion: @escaping ([CourseReviewItem], CourseReviewSummary?, String?) -> Void
     ) {
-        APIClient.shared.request("/courses/\(courseId)/reviews", method: .get) { result in
+        APIClient.shared.request("/courses/\(courseId)/reviews?page=1&page_size=10", method: .get) { result in
             switch result {
             case .success(let json):
-                completion(JSONKit.decodeList([CourseReviewItem].self, from: json["list"]), nil)
+                let items = JSONKit.decodeList([CourseReviewItem].self, from: json["list"])
+                let summary = JSONKit.decode(CourseReviewSummary.self, from: json)
+                completion(items, summary, nil)
             case .failure(let error):
-                completion([], error.message)
+                completion([], nil, error.message)
+            }
+        }
+    }
+
+    /// 课程完整评价列表（分页）
+    static func fetchCourseReviews(
+        courseId: String,
+        page: Int,
+        completion: @escaping ([CourseReviewItem]?, Bool, String?) -> Void
+    ) {
+        APIClient.shared.request("/courses/\(courseId)/reviews?page=\(page)&page_size=10", method: .get) { result in
+            switch result {
+            case .success(let json):
+                let items = JSONKit.decodeList([CourseReviewItem].self, from: json["list"])
+                let total = json["rating_count"].intValue
+                completion(items, (page * 10) < total, nil)
+            case .failure(let error):
+                completion(nil, false, error.message)
+            }
+        }
+    }
+
+    /// 发表评价
+    static func postReview(
+        courseId: String,
+        rating: Int,
+        content: String?,
+        imageUrls: [String],
+        completion: @escaping (String?) -> Void
+    ) {
+        var body: [String: Any] = ["rating": rating]
+        if let content, !content.isEmpty { body["content"] = content }
+        if !imageUrls.isEmpty { body["images"] = imageUrls }
+        APIClient.shared.request("/courses/\(courseId)/reviews", method: .post, parameters: body) { result in
+            switch result {
+            case .success: completion(nil)
+            case .failure(let error): completion(error.message)
+            }
+        }
+    }
+
+    /// 编辑我的评价（待审核/驳回可改）
+    static func updateReview(
+        reviewId: String,
+        rating: Int,
+        content: String?,
+        imageUrls: [String]?,
+        completion: @escaping (String?) -> Void
+    ) {
+        var body: [String: Any] = ["rating": rating]
+        if let content, !content.isEmpty { body["content"] = content }
+        if let imageUrls { body["images"] = imageUrls }
+        APIClient.shared.request("/reviews/\(reviewId)", method: .put, parameters: body) { result in
+            switch result {
+            case .success: completion(nil)
+            case .failure(let error): completion(error.message)
             }
         }
     }

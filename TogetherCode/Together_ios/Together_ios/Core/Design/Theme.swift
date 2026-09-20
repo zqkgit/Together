@@ -48,6 +48,10 @@ enum Theme {
 
         /// 微信绿
         static let wechat = UIColor(hex: 0x07C160)
+
+        /// 老师回复标签紫
+        static let violet = UIColor(hex: 0x7C3AED)
+        static let violetTint = UIColor(hex: 0xF5F3FF)
     }
 
     // MARK: - 圆角

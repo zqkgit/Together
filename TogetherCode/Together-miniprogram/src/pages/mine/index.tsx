@@ -77,6 +77,7 @@ export default function MinePage() {
     { label: "我的孩子", icon: "👶", url: "/pages/children/index" },
     { label: "我的收藏", icon: "⭐", url: "/pages/favorites/index" },
     { label: "我的帖子", icon: "📝", url: "/pages/my-posts/index" },
+
     { label: "我的课程", icon: "🎓", url: "/pages/my-courses/index" },
     { label: "课程表", icon: "🗓️", url: "/pages/child-timetable/index" },
     { label: "收益中心", icon: "💰", url: "/pages/wallet/index" },

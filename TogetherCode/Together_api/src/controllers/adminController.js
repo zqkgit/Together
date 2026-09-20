@@ -241,6 +241,37 @@ async function deleteTopicItem(req, res) {
   }
 }
 
+const { listAdminCourseReviews, auditCourseReview } = require("../services/reviewService");
+
+/** 课程评价列表（管理端） */
+async function getCourseReviewsList(req, res) {
+  try {
+    return ok(res, await listAdminCourseReviews(req.query));
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+/** 课程评价审核：approve 通过 / reject 驳回 */
+async function putCourseReviewAudit(req, res) {
+  try {
+    const result = await auditCourseReview(req.params.id, req.body.action, req.body.reason);
+    if (result && result.error) {
+      return fail(res, result.error.status || 400, result.error.code || 40000, result.error.message);
+    }
+    await recordAudit({
+      actor: req.admin,
+      action: req.body.action === "approve" ? "course_review.approve" : "course_review.reject",
+      target_type: "course_review",
+      target_id: req.params.id,
+      detail: { reason: req.body.reason || "" }
+    });
+    return ok(res, result, req.body.action === "approve" ? "评价已通过" : "评价已驳回");
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   getOverview,
   getStudiosList,
@@ -250,6 +281,8 @@ module.exports = {
   getReviewsList,
   getReviewDetail,
   putReview,
+  getCourseReviewsList,
+  putCourseReviewAudit,
   getSettlementsData,
   exportSettlementsData,
   postGenerateSettlements,

@@ -1,7 +1,9 @@
 const { ok, fail } = require("../utils/response");
 const {
   createCourseReview,
-  listCourseReviews
+  updateCourseReview,
+  listCourseReviews,
+  listMyReviews
 } = require("../services/reviewService");
 const {
   addFavorite,
@@ -26,7 +28,29 @@ async function postCourseReview(req, res) {
     if (result && result.error) {
       return fail(res, result.error.status || 400, result.error.code || 40000, result.error.message);
     }
-    return ok(res, result, "评价成功");
+    return ok(res, result, "评价已提交，等待平台审核");
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+/** 我的评价列表（登录） */
+async function getMyCourseReviews(req, res) {
+  try {
+    return ok(res, await listMyReviews(req.user.userId, req.query));
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+/** 编辑我的评价（登录，仅待审核/驳回可改） */
+async function putMyCourseReview(req, res) {
+  try {
+    const result = await updateCourseReview(req.user.userId, req.params.id, req.body);
+    if (result && result.error) {
+      return fail(res, result.error.status || 400, result.error.code || 40000, result.error.message);
+    }
+    return ok(res, result, "评价已更新，等待平台审核");
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");
   }
@@ -80,6 +104,8 @@ async function getFavoriteIds(req, res) {
 module.exports = {
   getCourseReviews,
   postCourseReview,
+  getMyCourseReviews,
+  putMyCourseReview,
   postFavorite,
   deleteFavorite,
   getFavorites,

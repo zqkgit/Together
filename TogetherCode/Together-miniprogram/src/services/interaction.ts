@@ -7,6 +7,10 @@ export interface ReviewItem {
   images: string[];
   nickname: string;
   avatar: string | null;
+  reply_content: string | null;
+  reply_at: string | null;
+  teacher_reply_content: string | null;
+  teacher_reply_at: string | null;
   created_at: string;
 }
 
@@ -63,4 +67,37 @@ export function getFavoriteIds(targetType: string): Promise<string[]> {
 /** 我的收藏列表 */
 export function getFavorites(targetType: string, page = 1): Promise<FavoritePage> {
   return request<any>({ url: `/favorites?target_type=${targetType}&page=${page}&page_size=10`, method: "GET" });
+}
+
+export interface MyReviewItem {
+  review_id: string;
+  rating: number;
+  content: string | null;
+  images: string[];
+  reply_content: string | null;
+  reply_at: string | null;
+  status: number; // 0 待审核 / 1 通过 / 2 驳回
+  reject_reason: string | null;
+  course: { course_id: string; title: string; cover: string | null } | null;
+  created_at: string;
+}
+
+export interface MyReviewsPage {
+  total: number;
+  page: number;
+  page_size: number;
+  list: MyReviewItem[];
+}
+
+/** 我的评价列表 */
+export function getMyReviews(page = 1): Promise<MyReviewsPage> {
+  return request<any>({ url: `/reviews/mine?page=${page}&page_size=10`, method: "GET" });
+}
+
+/** 编辑我的评价（待审核/驳回可改） */
+export function updateMyReview(
+  reviewId: string,
+  data: { rating: number; content?: string; images?: string[] }
+): Promise<any> {
+  return request({ url: `/reviews/${reviewId}`, method: "PUT", data });
 }

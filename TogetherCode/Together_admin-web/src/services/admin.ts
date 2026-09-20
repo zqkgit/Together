@@ -587,3 +587,45 @@ export async function reviewWithdrawal(
   const response = await request.put(`/admin/withdrawals/${id}`, payload);
   return response.data;
 }
+
+// ===== 课程评价管理（A1 评价/口碑） =====
+export interface CourseReviewItem {
+  review_id: string;
+  rating: number;
+  content: string | null;
+  images: string[];
+  reply_content: string | null;
+  reply_at: string | null;
+  status: number; // 0 待审核 / 1 通过 / 2 驳回
+  reject_reason: string | null;
+  user: { user_id: string; nickname: string; avatar: string | null } | null;
+  course: {
+    course_id: string;
+    title: string;
+    cover: string | null;
+    studio_name: string | null;
+    studio_id: string | null;
+  } | null;
+  teacher_name: string | null;
+  created_at: string;
+}
+
+export async function fetchCourseReviews(params: {
+  status?: number | "";
+  course_id?: string;
+  studio_id?: string;
+  rating?: number | "";
+  page?: number;
+  page_size?: number;
+} = {}): Promise<PagedList<CourseReviewItem>> {
+  const response = await request.get("/admin/course-reviews", { params });
+  return response.data;
+}
+
+export async function auditCourseReview(
+  id: string,
+  payload: { action: "approve" | "reject"; reason?: string }
+): Promise<CourseReviewItem> {
+  const response = await request.put(`/admin/course-reviews/${id}/audit`, payload);
+  return response.data;
+}

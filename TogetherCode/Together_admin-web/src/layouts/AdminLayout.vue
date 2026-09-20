@@ -21,7 +21,8 @@ import {
   DataLine,
   Wallet,
   Money,
-  DataAnalysis
+  DataAnalysis,
+  Star
 } from "@element-plus/icons-vue";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -41,6 +42,7 @@ const platformMenus = [
   { path: "/tags", title: "标签管理", icon: Collection },
   { path: "/topics", title: "话题管理", icon: ChatDotRound },
   { path: "/settlements", title: "结算分账", icon: CreditCard },
+  { path: "/admin-reviews", title: "评价管理", icon: Star },
   { path: "/admin-reports", title: "举报处置", icon: Warning },
   { path: "/admin-posts", title: "内容管理", icon: Document },
   { path: "/admin-announcements", title: "公告管理", icon: Bell },
@@ -55,6 +57,7 @@ const studioMenus = [
   { path: "/studio-reports", title: "经营报表", icon: DataAnalysis },
   { path: "/studio-teachers", title: "教师管理", icon: User },
   { path: "/studio-courses", title: "课程管理", icon: Tickets },
+  { path: "/studio-reviews", title: "评价管理", icon: Star },
   { path: "/studio-classes", title: "班级管理", icon: OfficeBuilding },
   { path: "/studio-schedules", title: "排课管理", icon: Calendar },
   { path: "/studio-students", title: "学员管理", icon: User },
