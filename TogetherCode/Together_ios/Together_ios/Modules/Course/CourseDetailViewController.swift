@@ -52,6 +52,9 @@ final class CourseDetailViewController: BaseViewController {
         tableView.estimatedSectionHeaderHeight = 0
         tableView.estimatedSectionFooterHeight = 0
         tableView.rowHeight = UITableView.automaticDimension
+        if #available(iOS 15.0, *) {
+            tableView.sectionHeaderTopPadding = 0
+        }
         tableView.dataSource = self
         tableView.delegate = self
         tableView.register(CourseCoverCell.self, forCellReuseIdentifier: CourseCoverCell.reuseID)
@@ -203,16 +206,18 @@ extension CourseDetailViewController: UITableViewDataSource, UITableViewDelegate
     }
 
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
-        guard sections[section] == .reviews else { return UIView() }
+        guard sections[section] == .reviews else { return nil }
         let header = CourseReviewHeaderView()
         header.configure(summary: reviewSummary)
         header.onWrite = { [weak self] in self?.openReviewCompose() }
         return header
     }
 
-    func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat { 0.01 }
+    func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
+        return sections[section] == .reviews ? 0.01 : 0
+    }
 
-    func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? { UIView() }
+    func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? { nil }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         switch sections[indexPath.section] {
