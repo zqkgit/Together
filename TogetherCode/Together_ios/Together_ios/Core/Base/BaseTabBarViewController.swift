@@ -18,11 +18,21 @@ class BaseTabBarViewController: UITabBarController {
     // MARK: - TabBar 外观
 
     private func configureTabBar() {
-        // 选中态主题色（未选中浅灰）；不透明背景避免内容延伸被遮挡
+        // 选中态主题色（未选中浅灰）
         tabBar.tintColor = Theme.Color.brand
         tabBar.unselectedItemTintColor = UIColor(hex: 0x9C948A)
-        tabBar.isTranslucent = false
-        tabBar.backgroundColor = Theme.Color.surface
+
+        // 透明背景（沉浸式）：bar 不再遮挡页面内容，滚动到顶也不会"弹回"不透明
+        let appearance = UITabBarAppearance()
+        appearance.configureWithTransparentBackground()
+        appearance.backgroundColor = .clear
+        appearance.shadowColor = .clear        // 去掉顶部分隔线
+        appearance.backgroundEffect = nil       // 不要毛玻璃，纯透明
+        tabBar.standardAppearance = appearance
+        if #available(iOS 15.0, *) {
+            tabBar.scrollEdgeAppearance = appearance
+        }
+        tabBar.isTranslucent = true
     }
 
     // MARK: - Tab 工厂

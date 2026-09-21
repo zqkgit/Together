@@ -168,13 +168,11 @@ final class PostDetailViewController: BaseViewController {
         let sheet = ThemeActionSheet(title: nil, actions: actions)
         sheet.onSelect = { [weak self] index in
             guard let self else { return }
-            // 等菜单 dismiss 完成后再 present 编辑页/删除弹框
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                if index == 0 {
-                    self.didTapEditPost()
-                } else if index == 1 {
-                    self.didTapDeletePost()
-                }
+            // ThemeActionSheet 已在 dismiss 完成后回调本闭包，present 编辑页/删除弹框不会再冲突
+            if index == 0 {
+                self.didTapEditPost()
+            } else if index == 1 {
+                self.didTapDeletePost()
             }
         }
         present(sheet, animated: false)

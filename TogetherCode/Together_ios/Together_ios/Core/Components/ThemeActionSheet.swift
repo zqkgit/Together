@@ -133,8 +133,14 @@ final class ThemeActionSheet: UIViewController {
     }
 
     @objc private func didTapAction(_ sender: UIButton) {
-        onSelect?(sender.tag)
-        dismiss(animated: false)
+        let index = sender.tag
+        // 关键：先 dismiss，再在 completion 中回调 onSelect。
+        // 否则 present 新页面的请求会与当前 sheet 的 present 冲突（UIKit 报
+        // "presentation is in progress" 并忽略），导致点击「重新选择」等动作无反应。
+        let handler = onSelect
+        dismiss(animated: false) {
+            handler?(index)
+        }
     }
 
     @objc private func dismissSheet() {
