@@ -1,6 +1,7 @@
 import UIKit
 import SnapKit
 import ESPullToRefresh
+import CoreLocation
 
 /// 广场（对齐 PR 设计图 #plaza）：话题 chips + 双列瀑布流作品卡
 /// 复用：TagChipRow / WaterfallLayout / WorkCardView / EmptyStateView / PostService
@@ -81,8 +82,18 @@ final class PlazaViewController: BaseViewController {
             self.currentTopic = index == 0 ? "" : Self.topics[index]
             self.reload()
         }
-        collectionView.snp.remakeConstraints {
+        // 排序栏（最新/热门/附近）置于话题栏下方
+        view.addSubview(sortChips)
+        sortChips.snp.makeConstraints {
             $0.top.equalTo(chipRow.snp.bottom).offset(Theme.Spacing.s)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
+            $0.height.equalTo(34)
+        }
+        sortChips.onSelect = { [weak self] index in
+            self?.applySort(index: index)
+        }
+        collectionView.snp.remakeConstraints {
+            $0.top.equalTo(sortChips.snp.bottom).offset(Theme.Spacing.s)
             $0.leading.trailing.bottom.equalToSuperview()
         }
     }
@@ -91,7 +102,7 @@ final class PlazaViewController: BaseViewController {
         // 空态只覆盖内容区（chips 下方），不遮挡顶部话题标签
         view.addSubview(emptyView)
         emptyView.snp.makeConstraints {
-            $0.top.equalTo(view.safeAreaLayoutGuide).offset(34)
+            $0.top.equalTo(view.safeAreaLayoutGuide).offset(92)
             $0.leading.trailing.bottom.equalToSuperview()
         }
         emptyView.isHidden = true
@@ -107,7 +118,7 @@ final class PlazaViewController: BaseViewController {
         isLoading = true
         showEmpty(.loading)
 
-        PostService.fetchPlaza(page: 1, size: pageSize, sort: "latest", topic: currentTopic) { [weak self] list, hasMore, error in
+        PostService.fetchPlaza(page: 1, size: pageSize, sort: currentSort, topic: currentTopic, lat: currentLat, lng: currentLng) { [weak self] list, hasMore, error in
             guard let self else { return }
             self.isLoading = false
             self.collectionView.es.stopPullToRefresh()
@@ -149,6 +160,37 @@ final class PlazaViewController: BaseViewController {
             self.items.append(contentsOf: list ?? [])
             self.collectionView.reloadData()
             self.updateEmptyState()
+        }
+    }
+
+    // MARK: - 排序（最新 / 热门 / 附近）
+
+    private func applySort(index: Int) {
+        let sorts = ["latest", "hot", "near"]
+        guard index >= 0, index < sorts.count else { return }
+        let sort = sorts[index]
+        if sort == "near" {
+            // 附近：先取用户坐标；未授权/失败则退化为最新
+            LocationManager.shared.requestCurrentLocation { [weak self] loc in
+                guard let self else { return }
+                if let loc = loc {
+                    self.currentLat = loc.coordinate.latitude
+                    self.currentLng = loc.coordinate.longitude
+                    self.currentSort = "near"
+                } else {
+                    self.showToast("未授权定位，已按最新展示")
+                    self.sortChips.select(index: 0)
+                    self.currentSort = "latest"
+                    self.currentLat = nil
+                    self.currentLng = nil
+                }
+                self.reload()
+            }
+        } else {
+            currentSort = sort
+            currentLat = nil
+            currentLng = nil
+            reload()
         }
     }
 

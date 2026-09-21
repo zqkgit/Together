@@ -73,9 +73,11 @@ final class LocationManager: NSObject, CLLocationManagerDelegate {
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         if isAuthorized {
-            // 授权刚授予，且此前有等待中的请求
-            if pending != nil {
-                startLocating { [weak self] loc in self?.pending?(loc); self?.pending = nil }
+            // 授权刚授予：复用等待中的回调直接启动定位。
+            // 注意：不要在此处包一层新闭包再调 self?.pending，否则 didUpdateLocations
+            // 回调该闭包时会再次调用 self?.pending（仍是自己）形成无限递归导致栈溢出崩溃。
+            if let pending = pending {
+                startLocating(completion: pending)
             }
         } else if authorizationStatus == .denied || authorizationStatus == .restricted {
             pending?(nil)

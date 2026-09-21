@@ -217,7 +217,12 @@ async function getStudioDetail(studioId) {
     user_id: String(studio.user_id),
     name: studio.name,
     cover: studio.cover,
-    type_tags: studio.type_tags || [],
+    type_tags: studio.type_tags || (studio.business_type ? [studio.business_type] : []),
+    business_type: studio.business_type || null,
+    // 师资数量：按实际在职合作老师数统计（teacher_studio_bindings status=1，由合作/解除时重算维护）
+    teacher_count: Number(studio.teacher_count) || 0,
+    city: studio.city || null,
+    contact_name: studio.contact_name || null,
     intro: studio.intro,
     address: studio.address,
     lng: studio.lng,

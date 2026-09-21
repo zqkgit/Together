@@ -69,6 +69,10 @@ export interface StudioDetail {
   name: string;
   cover: string | null;
   type_tags: string[];
+  business_type: string | null;
+  teacher_count: number;
+  city: string | null;
+  contact_name: string | null;
   intro: string | null;
   address: string | null;
   lng: number | null;

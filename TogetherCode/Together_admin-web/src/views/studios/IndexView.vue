@@ -274,6 +274,24 @@ onMounted(loadData);
               {{ detail.owner?.nickname || "-" }}
               <span class="cell-sub">（{{ detail.owner?.phone || "-" }}）</span>
             </el-descriptions-item>
+            <el-descriptions-item label="城市区域">{{ detail.city || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="联系人">{{ detail.contact_name || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="营业类型">
+              <template v-if="(detail.type_tags && detail.type_tags.length) || detail.business_type">
+                <el-tag
+                  v-for="t in (detail.type_tags && detail.type_tags.length ? detail.type_tags : [detail.business_type])"
+                  :key="t"
+                  size="small"
+                  type="success"
+                  effect="light"
+                  class="biz-tag"
+                >{{ t }}</el-tag>
+              </template>
+              <span v-else>-</span>
+            </el-descriptions-item>
+            <el-descriptions-item label="师资数量">
+              {{ detail.teacher_count ?? 0 }} 位合作老师
+            </el-descriptions-item>
             <el-descriptions-item label="经营地址">{{ detail.address || "-" }}</el-descriptions-item>
             <el-descriptions-item label="联系电话">{{ detail.phone || "-" }}</el-descriptions-item>
             <el-descriptions-item label="营业时间">{{ detail.hours || "-" }}</el-descriptions-item>
@@ -436,6 +454,11 @@ onMounted(loadData);
 
 .link-text {
   color: #2f5d45;
+}
+
+.biz-tag {
+  margin-right: 6px;
+  margin-bottom: 4px;
 }
 
 .detail-actions {
