@@ -35,6 +35,8 @@ final class ChatViewController: BaseViewController, UITableViewDataSource, UITab
 
     private let tableView = UITableView(frame: .zero, style: .plain)
     private let inputBar = UIView()
+    /// 底部安全区（home indicator 区域）填充，颜色与输入栏一致
+    private let bottomSafeFill = UIView()
     private let photoButton = UIButton(type: .system)
     private let inputField = UITextField()
     private let sendButton = UIButton(type: .system)
@@ -104,13 +106,13 @@ final class ChatViewController: BaseViewController, UITableViewDataSource, UITab
         tableView.register(ChatTimeCell.self, forCellReuseIdentifier: ChatTimeCell.reuseId)
         tableView.dataSource = self
         tableView.delegate = self
-        // tableView 区域从导航下方开始（safeArea=状态栏 + 导航栏 44），顶部无遮挡
+        // 透明沉浸式导航栏下，safeArea.top 已为导航栏底边；tableView 从导航栏正下方开始（紧贴，不额外留白）
         // 底部留输入栏上方间隔
         tableView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: Theme.Spacing.m, right: 0)
 
         view.addSubview(tableView)
         tableView.snp.makeConstraints {
-            $0.top.equalTo(view.safeAreaLayoutGuide.snp.top).offset(44)
+            $0.top.equalTo(view.safeAreaLayoutGuide.snp.top)
             $0.leading.trailing.equalToSuperview()
             $0.bottom.equalTo(inputBar.snp.top)
         }
@@ -119,9 +121,18 @@ final class ChatViewController: BaseViewController, UITableViewDataSource, UITab
     private func setupInputBar() {
         inputBar.backgroundColor = Theme.Color.surface
         view.addSubview(inputBar)
+        // 底部安全区（home indicator 区域）填充为输入栏同色，避免露出背景底色
+        bottomSafeFill.backgroundColor = Theme.Color.surface
+        view.insertSubview(bottomSafeFill, belowSubview: inputBar)
+        bottomSafeFill.snp.makeConstraints {
+            $0.top.equalTo(inputBar.snp.bottom)
+            $0.leading.trailing.equalToSuperview()
+            $0.bottom.equalToSuperview()
+        }
         inputBar.snp.makeConstraints { make in
             make.leading.trailing.equalToSuperview()
-            inputBarBottomConstraint = make.bottom.equalToSuperview().constraint
+            // 底部对齐安全区域底边：留出 home indicator 等底部安全区，不被遮挡
+            inputBarBottomConstraint = make.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom).constraint
         }
 
         // 顶部分隔线
@@ -293,23 +304,61 @@ final class ChatViewController: BaseViewController, UITableViewDataSource, UITab
             return
         }
         isSending = true
+
+        // 乐观插入：先把消息显示出来（临时 id），收到服务端回包/WS 回包再对齐
+        let tempId = "local-\(UUID().uuidString)"
+        let optimistic = ChatMessage(
+            messageId: tempId,
+            conversationId: conversation.conversationId,
+            senderId: TokenManager.shared.userId,
+            type: type,
+            content: content,
+            readAt: nil,
+            createdAt: Self.nowString(),
+            sender: nil
+        )
+        serverMessages.insert(optimistic, at: 0)
+        rebuildDisplay(scrollToBottom: true)
+        emptyView.isHidden = true
+        inputField.text = ""
+
         MessageService.sendMessage(conversationId: conversation.conversationId, content: content, type: type) { [weak self] message, error in
             guard let self else { return }
             self.isSending = false
             if let error {
+                // 发送失败：移除临时消息、还原输入框内容
+                self.serverMessages.removeAll { $0.messageId == tempId }
+                self.rebuildDisplay(scrollToBottom: true)
+                self.inputField.text = content
                 self.showToast(error)
                 return
             }
-            self.inputField.text = ""
-            if let message, !self.serverMessages.contains(where: { $0.messageId == message.messageId }) {
-                // 服务端顺序：最新插到头部
-                self.serverMessages.insert(message, at: 0)
-                self.rebuildDisplay(scrollToBottom: true)
-                self.emptyView.isHidden = true
+            // 服务端回包带回真实消息：用真实消息替换临时消息（去重，避免重复气泡）
+            if let message {
+                self.replaceTemp(tempId: tempId, with: message)
             }
+            // 若后端未回传消息体（message 为 nil），保留临时消息，等待 WS 回包对齐
             // 发送成功同步会话列表未读角标
             NotificationCenter.default.post(name: .messageUnreadChanged, object: nil)
         }
+    }
+
+    /// 用服务端真实消息替换本地临时消息（避免重复气泡）
+    private func replaceTemp(tempId: String, with message: ChatMessage) {
+        serverMessages.removeAll { $0.messageId == tempId }
+        if !serverMessages.contains(where: { $0.messageId == message.messageId }) {
+            serverMessages.insert(message, at: 0)
+        }
+        rebuildDisplay(scrollToBottom: true)
+        emptyView.isHidden = true
+    }
+
+    /// 当前时间字符串（MySQL 格式，对齐 MessageTimeFormatter 解析）
+    private static func nowString() -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        return f.string(from: Date())
     }
 
     // MARK: - 图片消息
@@ -370,8 +419,17 @@ final class ChatViewController: BaseViewController, UITableViewDataSource, UITab
         guard let userInfo = notification.object as? [String: Any],
               let conversationId = userInfo["conversation_id"] as? String,
               conversationId == conversation.conversationId,
-              let message = userInfo["message"] as? ChatMessage,
-              !serverMessages.contains(where: { $0.messageId == message.messageId }) else { return }
+              let message = userInfo["message"] as? ChatMessage else { return }
+        // 同 id 已存在则跳过（接口回包已插入）
+        if serverMessages.contains(where: { $0.messageId == message.messageId }) { return }
+        // 自己刚发的消息经 WS 回包（本地仍有临时消息）：直接替换临时消息，避免重复气泡
+        if isMyMessage(message),
+           let idx = serverMessages.firstIndex(where: { $0.messageId.hasPrefix("local-") }) {
+            serverMessages[idx] = message
+            rebuildDisplay(scrollToBottom: true)
+            emptyView.isHidden = true
+            return
+        }
         serverMessages.insert(message, at: 0)
         rebuildDisplay(scrollToBottom: true)
         emptyView.isHidden = true
@@ -385,7 +443,11 @@ final class ChatViewController: BaseViewController, UITableViewDataSource, UITab
               let duration = (info[UIResponder.keyboardAnimationDurationUserInfoKey] as? NSNumber)?.doubleValue else { return }
         let visibleHeight = view.window?.bounds.height ?? 0
         keyboardHeight = max(0, visibleHeight - endFrame.minY)
-        inputBarBottomConstraint?.update(offset: -keyboardHeight)
+        // 键盘弹起时：把安全区底距（home indicator 区域）也减掉，输入栏紧贴键盘顶部不露空隙；
+        // 键盘收起时：offset 归 0，输入栏停在安全区底边，正常避让 home indicator
+        let safeBottom = view.safeAreaInsets.bottom
+        let offset = keyboardHeight > 0 ? (safeBottom - keyboardHeight) : 0
+        inputBarBottomConstraint?.update(offset: offset)
         UIView.animate(withDuration: duration, delay: 0, options: [.curveEaseInOut]) {
             self.view.layoutIfNeeded()
         }

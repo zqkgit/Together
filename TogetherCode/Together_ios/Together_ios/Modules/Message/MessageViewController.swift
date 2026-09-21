@@ -62,10 +62,11 @@ final class MessageViewController: BaseViewController, UITableViewDataSource, UI
         super.viewWillAppear(animated)
         // 主动恢复普通不透明导航栏（聊天页返回后 appearance 自洽，不依赖其 restore 时机）
         restoreSystemNav()
-        // 每次进入刷新未读角标与列表
-        if view.window != nil {
-            reloadCurrent()
-        }
+        // 每次进入（含从聊天详情返回）刷新会话列表，保证「最后一条消息」与详情一致。
+        // 注意：viewWillAppear 时 view 尚未挂到 window，view.window 恒为 nil，
+        // 不能用 `if view.window != nil` 包裹，否则返回时列表永不刷新。
+        // 列表非空时 showLoading=false 静默刷新，不闪 loading。
+        reloadCurrent()
     }
 
     private func setupNavBar() {
