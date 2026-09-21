@@ -383,17 +383,24 @@ class BasePostCreateViewController: BaseViewController, UITableViewDataSource, U
         }
     }
 
-    /// 打开选点页（Apple 原生 MKMapView + 反地理编码）
+    /// 打开地点选择（半屏卡片：搜索 / 当前位置 / 附近 POI；其二级页可在地图上自由选点）
     func openLocationPicker() {
-        let picker = LocationPickerViewController()
-        if let loc = selectedLocation {
-            picker.initialLocation = loc
-        }
-        picker.onSelect = { [weak self] lat, lng, name in
+        let searchVC = LocationSearchViewController()
+        searchVC.initialLocation = selectedLocation
+        searchVC.onSelect = { [weak self] lat, lng, name in
             self?.selectedLocation = PostLocation(latitude: lat, longitude: lng, name: name)
             self?.tableView.reloadData()
         }
-        navigationController?.pushViewController(picker, animated: true)
+        let nav = UINavigationController(rootViewController: searchVC)
+        nav.modalPresentationStyle = .pageSheet
+        nav.isNavigationBarHidden = true
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 24
+            sheet.prefersScrollingExpandsWhenScrolledToEdge = true
+        }
+        present(nav, animated: true)
     }
 
     /// 位置参数（发布时并入请求体；未选返回空）
