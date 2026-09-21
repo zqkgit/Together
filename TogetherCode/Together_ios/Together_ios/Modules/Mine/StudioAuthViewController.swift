@@ -188,14 +188,14 @@ final class StudioAuthViewController: BaseViewController {
         anchor = addField("联系手机号", placeholder: "用于审核与经营通知", card: infoCard, top: anchor.snp.bottom, field: phoneField, keyboard: .phonePad)
 
         // 营业类型（来自 Web 端标签库的工作室标签，动态加载）
-        let typeTitle = makeFieldTitle("营业类型")
+        let typeTitle = makeFieldTitle("营业类型（可多选）")
         infoCard.addSubview(typeTitle)
         typeTitle.snp.makeConstraints {
             $0.top.equalTo(anchor.snp.bottom).offset(Theme.Spacing.l)
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
         }
         typeTagView = TagSelectView(options: studioTagNames, selected: [])
-        typeTagView.allowsMultipleSelection = false
+        typeTagView.allowsMultipleSelection = true // 营业类型支持多选（标签库 scope=1）
         infoCard.addSubview(typeTagView)
         typeTagView.snp.makeConstraints {
             $0.top.equalTo(typeTitle.snp.bottom).offset(Theme.Spacing.s)
@@ -360,7 +360,10 @@ final class StudioAuthViewController: BaseViewController {
         addressField.text = a["address"].string
         contactField.text = a["contact_name"].string
         phoneField.text = a["phone"].string
-        if let bt = a["business_type"].string, !bt.isEmpty {
+        let bizTags = a["business_tags"].array?.compactMap { $0.string }.filter { !$0.isEmpty } ?? []
+        if !bizTags.isEmpty {
+            typeTagView.setSelected(Set(bizTags))
+        } else if let bt = a["business_type"].string, !bt.isEmpty {
             typeTagView.setSelected([bt])
         }
         licenseField.text = a["license"].string
@@ -545,7 +548,8 @@ final class StudioAuthViewController: BaseViewController {
 
         guard !name.isEmpty else { showToast("请填写工作室名称"); return }
         guard !phone.isEmpty, phone.count >= 11 else { showToast("请填写正确的联系手机号"); return }
-        guard let businessType = typeTagView.selectedTags.first else { showToast("请选择营业类型"); return }
+        let selectedBizTags = studioTagNames.filter { typeTagView.selectedTags.contains($0) }
+        guard let businessType = selectedBizTags.first else { showToast("请选择营业类型（至少 1 项）"); return }
         guard !license.isEmpty else { showToast("请填写营业执照号"); return }
         guard !selectedPhotos.isEmpty else { showToast("请至少上传 1 张场地照片"); return }
         let permit = permitTagView.selectedTags.first ?? "暂无"
@@ -561,6 +565,7 @@ final class StudioAuthViewController: BaseViewController {
                 "contact_name": contact,
                 "phone": phone,
                 "business_type": businessType,
+                "business_tags": selectedBizTags,
                 "license": license,
                 "permit": permit,
                 "intro": intro,

@@ -50,7 +50,14 @@ module.exports = (sequelize, DataTypes) => {
       },
       business_type: {
         type: DataTypes.STRING(60),
-        allowNull: true
+        allowNull: true,
+        comment: "主营类型（business_tags 第一项，兼容旧数据）"
+      },
+      business_tags: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: [],
+        comment: "营业类型标签（多选，取自标签库 scope=1）"
       },
       teacher_count: {
         type: DataTypes.SMALLINT,

@@ -293,6 +293,9 @@ async function getStudioReviewDetail(reviewId) {
     contact_name: row.contact_name,
     phone: row.phone,
     business_type: row.business_type,
+    business_tags: Array.isArray(row.business_tags) && row.business_tags.length
+      ? row.business_tags
+      : (row.business_type ? [row.business_type] : []),
     teacher_count: row.teacher_count,
     license: row.license,
     permit: row.permit,
@@ -351,9 +354,13 @@ async function reviewStudioApplication(reviewId, payload, operator = {}) {
         address: application.address || null,
         contact_name: application.contact_name || null,
         phone: application.phone || null,
-        business_type: application.business_type || null,
-        // 营业类型标签：写入 type_tags 数组，供工作室主页标签展示（与 Web 端标签库对齐）
-        type_tags: application.business_type ? [application.business_type] : [],
+        business_type: application.business_type
+          || (Array.isArray(application.business_tags) ? application.business_tags[0] : null)
+          || null,
+        // 营业类型标签（多选）：写入 type_tags 数组，供工作室主页标签展示（与 Web 端标签库对齐）
+        type_tags: Array.isArray(application.business_tags) && application.business_tags.length
+          ? application.business_tags
+          : (application.business_type ? [application.business_type] : []),
         teacher_count: Number(boundTotal) || 0,
         license: application.license || null,
         permit: application.permit || null,

@@ -259,7 +259,16 @@ onMounted(loadData);
             <el-descriptions-item label="联系人">{{ detail.contact_name || "-" }}</el-descriptions-item>
             <el-descriptions-item label="联系电话">{{ detail.phone || "-" }}</el-descriptions-item>
             <el-descriptions-item label="营业类型">
-              <el-tag v-if="detail.business_type" size="small" type="success" effect="light">{{ detail.business_type }}</el-tag>
+              <template v-if="(detail.business_tags && detail.business_tags.length) || detail.business_type">
+                <el-tag
+                  v-for="t in (detail.business_tags && detail.business_tags.length ? detail.business_tags : [detail.business_type])"
+                  :key="t"
+                  size="small"
+                  type="success"
+                  effect="light"
+                  class="biz-tag"
+                >{{ t }}</el-tag>
+              </template>
               <span v-else>-</span>
             </el-descriptions-item>
             <el-descriptions-item label="师资数量">
@@ -417,6 +426,11 @@ onMounted(loadData);
   line-height: 1.6;
   color: #2b2621;
   white-space: pre-wrap;
+}
+
+.biz-tag {
+  margin-right: 6px;
+  margin-bottom: 4px;
 }
 
 .link-text {

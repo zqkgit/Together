@@ -15,7 +15,7 @@ const ROLE_META = {
     profileModel: StudioProfile,
     required: ["name"],
     // 师资数量（teacher_count）不再由入驻表单自填，改由审核通过时按实际合作老师数统计
-    fields: ["name", "cover", "intro", "city", "address", "contact_name", "phone", "business_type", "license", "permit", "photos"],
+    fields: ["name", "cover", "intro", "city", "address", "contact_name", "phone", "business_type", "business_tags", "license", "permit", "photos"],
     label: "工作室入驻"
   }
 };
@@ -75,6 +75,20 @@ async function submitRoleApply(userId, { role, payload = {} }) {
   }
   if (role === "teacher") {
     data.studio_id = null; // 平台老师认证申请（不绑定工作室）
+  }
+
+  if (role === "studio") {
+    // 营业类型多选（取自标签库 scope=1）：清洗去重，首项同步到 business_type 作为主营类型
+    const rawTags = Array.isArray(payload.business_tags)
+      ? payload.business_tags
+      : (payload.business_type ? [payload.business_type] : []);
+    const tags = [...new Set(rawTags.map((t) => String(t).trim()).filter(Boolean))].slice(0, 10);
+    data.business_tags = tags;
+    if (tags.length > 0) {
+      data.business_type = tags[0];
+    } else if (payload.business_type) {
+      data.business_type = String(payload.business_type).trim();
+    }
   }
 
   const application = await meta.model.create(data);

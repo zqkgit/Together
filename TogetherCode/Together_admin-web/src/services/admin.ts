@@ -147,6 +147,7 @@ export interface ReviewDetail {
   contact_name: string | null;
   phone: string | null;
   business_type: string | null;
+  business_tags?: string[];
   teacher_count: number | null;
   license: string | null;
   permit: string | null;
