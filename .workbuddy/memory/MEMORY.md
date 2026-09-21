@@ -94,7 +94,21 @@ Together/                      # 仓库根（git main，远程 origin/main）
 - **附近地点**：数据源 `MKLocalPointsOfInterestRequest(center:radius:)`；中国区/模拟器无定位时召回稀疏或空 → section 整块消失。已加兜底 `fetchNearbyByKeyword`（["美食","咖啡","便利店","超市"] 并行 `MKLocalSearch.Request` + `DispatchGroup` 合并 + 去重/3km/距离排序）与空态提示。
 - **`LocationManager` 崩溃教训**：`locationManagerDidChangeAuthorization` 里**禁止**包一层闭包再调 `self?.pending`（会与 `didUpdateLocations` 的 `pending?(loc)` 形成无限递归→栈溢出 EXC_BAD_ACCESS code=2）。授权后应直接复用已有 `pending` 调 `startLocating`。
 
-## 八、注意
+## 八、工作室 App「我的」页与 /v1/studio App 路由（2026-09-21）
+
+- **双令牌体系（关键）**：Web `/studio/*` 用后台令牌（`requireBackofficeAuth("studio")`，scope=studio）；App 端用 `requireAuth`+`requireRole`（JWT access_token，tokenType=user）。**两者不可混用**，故 App 端新增独立 **`/v1/studio/*`** 路由（`routes/studioApp.js` + `controllers/studioAppController.js` + `services/studioAppService.js`，`GET /mine`）。
+- 数据口径与 Web 经营概览同源（`studio_profiles.user_id` ↔ 登录用户）：在读学员（ChildCourseBalance 去重 remaining_lessons>0）、在售课程（Course.status=1）、入驻教师（TeacherStudioBinding.status=1）、待退款（Refund.status=0）。
+- iOS：`Services/StudioService.swift` + `Modules/Studio/StudioMineHeaderView.swift` + 重写 `Modules/Studio/StudioMineViewController.swift`。菜单第二组对齐原型 4 项：提现 / 分销返利设置 / 收益中心 / 设置。
+- **「我的」页顶部必须固定（与家长端同构，2026-09-21 二次修正）**：`headerView` 直接挂 `view`（top/leading/trailing），**不进滚动视图**；下方菜单区 `scrollView.top = headerView.bottom` 独立滚动。**统计卡是 `StudioMineHeaderView` 的子视图**（`top = userRow.bottom + 22`、`leading.trailing inset 16`、`bottom = superview.inset(14)`，header 高度由卡底决定），因此封面与统计卡一起固定。家长端 `MineViewController`/`MineHeaderView` 即此结构（`statCard` 在 header 内）。原「白卡上浮压边」的 `bottomInset` 留白方案已废弃。
+- **SnapKit 铁律**：被其它视图约束引用的子视图，**必须先 `addSubview` 并完成自身约束，再被引用**；否则 `snp.makeConstraints` 立即激活跨层级约束 → `NSInternalInconsistencyException`（本次 `StudioMenuRow` 崩溃根因）。
+- 无登录态视觉验证：`--preview-studio` 启动参数临时强切工作室角色并默认选中「我的」（改 `TokenManager` / `MainTabBarController.setupTabs` / `refreshData` 走 mock），**验证后必须全部删除并重新干净编译**。
+
+### 工作室 Tab 结构（2026-09-21 定稿）
+- 工作室 role=3 的 tab 与家长/老师**同构**：概览 / 广场 / ➕发布 / 消息 / 我的（`MainTabBarController.setupTabs` 的 role==3 分支）。课程管理、学员管理、老师管理、退款审核收进「我的」页菜单，**不再单独占 tab**。
+- 消息角标 `handleUnreadChanged` 取 `items[3]`，三套角色 index 3 均为「消息」，一致。
+- **发布接口角色门（关键）**：`POST /v1/teacher/posts` 在 `routes/teacher.js` 顶部 `router.use(requireAuth, requireRole(2))`，**role=3 会 403**；`POST /v1/posts`（通用动态）仅 `requireAuth`，无角色门 → 工作室发布走通用链路。`requireRole(...roles)` 支持变参，但 teacher.js 的 `router.use` 覆盖全部老师接口，整体放开风险大，**未改**。
+
+## 九、注意
 
 - git 提交信息统一为 "update"，无常规 commit 规范
 - `TogetherCode/Together_api/.DS_Store`、`node_modules` 等已在 .gitignore

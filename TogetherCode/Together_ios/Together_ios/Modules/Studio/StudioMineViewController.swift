@@ -2,8 +2,8 @@ import UIKit
 import SnapKit
 import SwiftyJSON
 
-/// 工作室端「我的」（对齐设计稿 studioMy · 参考老师「我的」页结构）
-/// 沉浸式深绿封面（身份胶囊 / 设置 / 机构资料）+ 白色经营统计卡 + 分组经营菜单卡
+/// 工作室端「我的」（对齐设计稿 studioMy · 结构对齐家长「我的」页）
+/// 顶部封面（身份胶囊 / 设置 / 机构资料 / 白色经营统计卡）**固定不滚动**，下方菜单区独立滚动
 final class StudioMineViewController: BaseViewController {
 
     // MARK: - 菜单
@@ -31,14 +31,11 @@ final class StudioMineViewController: BaseViewController {
 
     // MARK: - 视图
 
+    /// 顶部固定封面（含白色经营统计卡），不随滚动
+    private let headerView = StudioMineHeaderView()
     private let scrollView = UIScrollView()
     private let contentView = UIView()
-    private let headerView = StudioMineHeaderView()
-    private let statsCard = UIView()
     private let menuCard = UIView()
-
-    private let statTitles = ["在读学员", "在售课程", "入驻教师"]
-    private var statValueLabels: [UILabel] = []
 
     // MARK: - 数据
 
@@ -81,44 +78,31 @@ final class StudioMineViewController: BaseViewController {
     // MARK: - 布局
 
     private func setupLayout() {
+        view.backgroundColor = Theme.Color.bg
+
+        // 顶部固定封面（含白色经营统计卡）：直接挂在 view 上，不进滚动视图
+        headerView.onSettings = { [weak self] in self?.openSettings() }
+        headerView.onIdentityTapped = { [weak self] in self?.showRoleSheet() }
+        view.addSubview(headerView)
+        headerView.snp.makeConstraints {
+            $0.top.leading.trailing.equalToSuperview()
+        }
+
+        // 菜单区：封面下方独立滚动
         scrollView.backgroundColor = Theme.Color.bg
         scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.showsVerticalScrollIndicator = false
         view.addSubview(scrollView)
-        scrollView.snp.makeConstraints { $0.edges.equalToSuperview() }
+        scrollView.snp.makeConstraints {
+            $0.top.equalTo(headerView.snp.bottom)
+            $0.leading.trailing.bottom.equalToSuperview()
+        }
 
         scrollView.addSubview(contentView)
         contentView.snp.makeConstraints {
             $0.edges.equalToSuperview()
             $0.width.equalTo(scrollView)
         }
-
-        // 深绿封面
-        headerView.onSettings = { [weak self] in self?.openSettings() }
-        headerView.onIdentityTapped = { [weak self] in self?.showRoleSheet() }
-        contentView.addSubview(headerView)
-        headerView.snp.makeConstraints {
-            $0.top.leading.trailing.equalToSuperview()
-        }
-
-        // 白色经营统计卡：上浮压住封面底部，左右通栏
-        statsCard.backgroundColor = Theme.Color.surface
-        statsCard.layer.cornerRadius = 18
-        statsCard.layer.maskedCorners = [
-            .layerMinXMinYCorner, .layerMaxXMinYCorner,
-            .layerMinXMaxYCorner, .layerMaxXMaxYCorner
-        ]
-        statsCard.layer.shadowColor = UIColor(hex: 0x2B2621).cgColor
-        statsCard.layer.shadowOpacity = 0.05
-        statsCard.layer.shadowRadius = 14
-        statsCard.layer.shadowOffset = CGSize(width: 0, height: 6)
-        contentView.addSubview(statsCard)
-        statsCard.snp.makeConstraints {
-            $0.top.equalTo(headerView.snp.bottom).offset(-18)
-            $0.leading.trailing.equalToSuperview()
-            $0.height.equalTo(76)
-        }
-        setupStats()
 
         // 菜单卡（两组，卡片圆角 + 暖阴影）
         menuCard.backgroundColor = Theme.Color.surface
@@ -129,74 +113,11 @@ final class StudioMineViewController: BaseViewController {
         menuCard.layer.shadowOffset = CGSize(width: 0, height: 6)
         contentView.addSubview(menuCard)
         menuCard.snp.makeConstraints {
-            $0.top.equalTo(statsCard.snp.bottom).offset(20)
+            $0.top.equalToSuperview().offset(6)
             $0.leading.trailing.equalToSuperview().inset(18)
             $0.bottom.equalToSuperview().inset(24)
         }
         setupMenu()
-    }
-
-    private func setupStats() {
-        var previous: UIView?
-        for (index, title) in statTitles.enumerated() {
-            let item = makeStatItem(title: title)
-            statsCard.addSubview(item)
-            item.snp.makeConstraints { make in
-                make.top.bottom.equalToSuperview()
-                if let previous {
-                    make.leading.equalTo(previous.snp.trailing)
-                    make.width.equalTo(previous)
-                } else {
-                    make.leading.equalToSuperview()
-                }
-                if index == statTitles.count - 1 {
-                    make.trailing.equalToSuperview()
-                }
-            }
-            if let previous {
-                let divider = UIView()
-                divider.backgroundColor = Theme.Color.line
-                statsCard.addSubview(divider)
-                divider.snp.makeConstraints {
-                    $0.leading.equalTo(previous.snp.trailing)
-                    $0.centerY.equalToSuperview()
-                    $0.width.equalTo(0.5)
-                    $0.height.equalTo(40)
-                }
-            }
-            previous = item
-        }
-    }
-
-    private func makeStatItem(title: String) -> UIView {
-        let item = UIView()
-
-        let value = UILabel()
-        value.font = .appHero(22)
-        value.textColor = Theme.Color.brandDark
-        value.textAlignment = .center
-        value.text = "0"
-        item.addSubview(value)
-        value.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(15)
-            $0.centerX.equalToSuperview()
-            $0.height.equalTo(26)
-        }
-        statValueLabels.append(value)
-
-        let label = UILabel()
-        label.font = .appLabel(11)
-        label.textColor = Theme.Color.muted
-        label.textAlignment = .center
-        label.text = title
-        item.addSubview(label)
-        label.snp.makeConstraints {
-            $0.bottom.equalToSuperview().inset(11)
-            $0.centerX.equalToSuperview()
-            $0.height.equalTo(15)
-        }
-
-        return item
     }
 
     private func setupMenu() {
@@ -231,29 +152,14 @@ final class StudioMineViewController: BaseViewController {
     // MARK: - 数据
 
     private func refreshData() {
-        // TEMP-PREVIEW 设计稿比对：以设计稿样例数据渲染（验证后移除）
-        if ProcessInfo.processInfo.arguments.contains("--preview-studio") {
-            headerView.refresh(profile: StudioMineProfile.previewMock)
-            studioStats = .previewMock
-            updateStats()
-            // TEMP-PREVIEW：滚到底验证底部留白（验证后随预览代码一并移除）
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                guard let self else { return }
-                let maxY = max(0, self.scrollView.contentSize.height
-                    + self.scrollView.contentInset.bottom
-                    - self.scrollView.bounds.height)
-                self.scrollView.setContentOffset(CGPoint(x: 0, y: maxY), animated: false)
-            }
-            return
-        }
         StudioService.fetchMine { [weak self] result in
             guard let self else { return }
             switch result {
             case .success(let data):
                 self.studioProfile = data.profile
                 if let stats = data.stats { self.studioStats = stats }
-                self.headerView.refresh(profile: data.profile)
-                self.updateStats()
+                // 统计卡在封面头内部，随头部一起刷新（固定不动）
+                self.headerView.refresh(profile: data.profile, stats: self.studioStats)
             case .failure(let error):
                 self.headerView.refresh(profile: nil)
                 self.showToast(error.message ?? "加载失败")
@@ -264,17 +170,6 @@ final class StudioMineViewController: BaseViewController {
             if case .success(let profile) = result {
                 self?.mineProfile = profile
             }
-        }
-    }
-
-    private func updateStats() {
-        let values = [
-            "\(studioStats.activeStudents)",
-            "\(studioStats.onlineCourses)",
-            "\(studioStats.teacherCount)"
-        ]
-        for (index, value) in values.enumerated() where index < statValueLabels.count {
-            statValueLabels[index].text = value
         }
     }
 
@@ -479,35 +374,3 @@ private final class StudioMenuRow: UIControl {
     }
 }
 
-// MARK: - TEMP-PREVIEW 设计稿比对样例数据（验证后移除）
-
-extension StudioMineProfile {
-    static let previewMock = StudioMineProfile(
-        studio_id: "1",
-        user_id: "1",
-        name: "青苗艺术工坊",
-        cover: nil,
-        avatar: nil,
-        intro: "自然美育，专注 3–12 岁少儿美术与书法",
-        city: "杭州",
-        address: "西湖区文三路",
-        business_type: "少儿美术",
-        type_tags: ["少儿美术", "书法"],
-        phone: "13800000002",
-        cert_status: 1,
-        status: 1,
-        joined_at: nil,
-        years: 2,
-        months: 0
-    )
-}
-
-extension StudioMineStats {
-    static let previewMock = StudioMineStats(
-        active_students: 186,
-        online_courses: 42,
-        course_total: 45,
-        teachers: 9,
-        pending_refunds: 3
-    )
-}

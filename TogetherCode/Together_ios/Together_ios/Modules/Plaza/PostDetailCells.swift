@@ -481,6 +481,16 @@ final class PostLocationCell: UITableViewCell {
             $0.leading.equalToSuperview().offset(Theme.Spacing.l)
         }
 
+        // 先入层 distanceLabel：nameLabel 的 trailing 会引用它的 leading，
+        // 否则约束激活时二者无共同祖先 → NSGenericException 崩溃
+        distanceLabel.font = .appLabel(12)
+        distanceLabel.textColor = Theme.Color.brand
+        card.addSubview(distanceLabel)
+        distanceLabel.snp.makeConstraints {
+            $0.centerY.equalToSuperview()
+            $0.trailing.equalToSuperview().offset(-Theme.Spacing.l)
+        }
+
         nameLabel.font = .appBody(14)
         nameLabel.textColor = Theme.Color.ink
         card.addSubview(nameLabel)
@@ -488,14 +498,6 @@ final class PostLocationCell: UITableViewCell {
             $0.centerY.equalToSuperview()
             $0.leading.equalTo(iconLabel.snp.trailing).offset(Theme.Spacing.s)
             $0.trailing.lessThanOrEqualTo(distanceLabel.snp.leading).offset(-Theme.Spacing.s)
-        }
-
-        distanceLabel.font = .appLabel(12)
-        distanceLabel.textColor = Theme.Color.brand
-        card.addSubview(distanceLabel)
-        distanceLabel.snp.makeConstraints {
-            $0.centerY.equalToSuperview()
-            $0.trailing.equalToSuperview().offset(-Theme.Spacing.l)
         }
     }
 

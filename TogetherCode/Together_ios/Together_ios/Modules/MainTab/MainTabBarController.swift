@@ -15,7 +15,7 @@ final class MainTabBarController: BaseTabBarViewController {
             name: .messageUnreadChanged,
             object: nil
         )
-        // 切换身份（家长 ↔ 老师）→ 重建第一个 tab（首页/工作台）
+        // 切换身份（家长 / 老师 / 工作室）→ 重建整套 tab
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(handleRoleDidChange),
@@ -29,24 +29,19 @@ final class MainTabBarController: BaseTabBarViewController {
     }
 
     override func setupTabs() {
-        // 工作室角色：概览 / 课程 / ➕ / 学员 / 我的（无广场、无消息，对齐 PRD roles.studio）
+        // 工作室角色：概览 / 广场 / ➕发布 / 消息 / 我的
+        // 课程管理、学员管理、老师管理、退款审核已收进「我的」页菜单，不再单独占 tab
         if TokenManager.shared.userRole == 3 {
             viewControllers = [
                 makeTab(StudioPlaceholderViewController(title: "经营概览", icon: "house",
                                                          tip: "经营数据、退款待办与结算概览将在下一阶段开放"),
                         title: "概览", icon: "house"),
-                makeTab(StudioPlaceholderViewController(title: "课程管理", icon: "book",
-                                                         tip: "课程、班级与排课管理将在下一阶段开放"),
-                        title: "课程", icon: "book"),
+                makeTab(PlazaViewController(), title: "广场", icon: "rectangle.grid.2x2"),
                 makeCenterTab(PlaceholderViewController(title: "发布"), tag: 2),
-                makeTab(StudioPlaceholderViewController(title: "学员管理", icon: "person.2",
-                                                         tip: "按班级查看学员与课时明细"),
-                        title: "学员", icon: "person.2"),
+                makeTab(MessageViewController(), title: "消息", icon: "bell"),
                 makeTab(StudioMineViewController(), title: "我的", icon: "person")
             ]
             delegate = self
-            // TEMP-PREVIEW 设计稿比对：默认选中「我的」页（验证后移除）
-            if ProcessInfo.processInfo.arguments.contains("--preview-studio") { selectedIndex = 4 }
             return
         }
 
@@ -83,18 +78,9 @@ extension MainTabBarController: UITabBarControllerDelegate {
         guard let index = viewControllers?.firstIndex(of: viewController), index == 2 else {
             return true
         }
-        // 工作室角色：阶段 1 中间「新建课程」尚未开放
-        if TokenManager.shared.userRole == 3 {
-            if let window = view.window
-                ?? (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.windows.first {
-                let hud = MBProgressHUD.showAdded(to: window, animated: true)
-                hud.mode = .text
-                hud.detailsLabel.text = "新建课程将在下一阶段开放"
-                hud.hide(animated: true, afterDelay: 1.8)
-            }
-            return false
-        }
-        // 点击中间大加号 → 发布：老师先选类型（孩子作品/动态），家长直接进家长发布
+        // 点击中间大加号 → 发布：老师先选类型（孩子作品/动态）
+        // 家长与工作室走通用动态发布（/v1/posts 无角色限制；
+        // 老师作品链路 /v1/teacher/posts 目前 requireRole(2)，工作室如需发布作品需后端放行）
         if TokenManager.shared.userRole == 2 {
             let sheet = ThemeActionSheet(title: "发布类型", actions: [("孩子作品", false), ("老师作品", false)])
             sheet.onSelect = { [weak self] index in
