@@ -123,6 +123,8 @@ class BasePostCreateViewController: BaseViewController, UITableViewDataSource, U
                     self.tableView.reloadData()
                 }
             }
+            // 位置在基类统一回显（家长/老师一致），避免编辑保存时 selectedLocation 为空误清原位置
+            self.selectedLocation = post.location
             self.applyEditingPost(post)
             self.tableView.reloadData()
         }

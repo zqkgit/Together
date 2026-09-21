@@ -41,7 +41,7 @@ final class LocationPickerViewController: BaseViewController {
         view.addSubview(mapView)
         mapView.snp.makeConstraints {
             $0.top.leading.trailing.equalToSuperview()
-            $0.bottom.equalTo(namePanel.snp.top)
+            // bottom 等 namePanel 加入同一层级后，在 setupBottomBar 中补齐，避免无共同祖先崩溃
         }
 
         let tap = UITapGestureRecognizer(target: self, action: #selector(didTapMap(_:)))
@@ -61,6 +61,10 @@ final class LocationPickerViewController: BaseViewController {
         namePanel.snp.makeConstraints {
             $0.leading.trailing.bottom.equalToSuperview()
             $0.height.equalTo(96)
+        }
+        // 此时 mapView、namePanel 已同在 view 层级下，约束拥有共同祖先，可安全激活
+        mapView.snp.makeConstraints {
+            $0.bottom.equalTo(namePanel.snp.top)
         }
 
         nameLabel.font = .appBody(14)

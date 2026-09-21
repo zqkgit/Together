@@ -165,6 +165,8 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
             return card(topicCell(tableView, indexPath: indexPath))
         case 5:
             return card(visibilityCell(tableView, indexPath: indexPath))
+        case 6:
+            return card(locationCell(tableView, indexPath: indexPath))
         default:
             return UITableViewCell()
         }
@@ -195,7 +197,7 @@ final class TeacherPostCreateViewController: BasePostCreateViewController {
         view.endEditing(true)
         if indexPath.section == 2 {
             presentClassPicker()
-        } else if indexPath.section == 5 {
+        } else if indexPath.section == 6 {
             didTapLocationSection()
         }
     }

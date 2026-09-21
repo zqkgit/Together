@@ -2,7 +2,7 @@ import UIKit
 import SnapKit
 
 /// 家长发布动态
-/// 流程：正文 + 图片 + 关联孩子(单选) + 可选关联课程 + 话题 + 谁可以看
+/// 流程：正文 + 图片 + 关联孩子(单选) + 可选关联课程 + 话题 + 谁可以看 + 位置(选填)
 /// 发布：POST /posts（createPost，不扣课时）
 final class ParentPostCreateViewController: BasePostCreateViewController {
 
@@ -104,6 +104,8 @@ final class ParentPostCreateViewController: BasePostCreateViewController {
             return card(topicCell(tableView, indexPath: indexPath))
         case 5:
             return card(visibilityCell(tableView, indexPath: indexPath))
+        case 6:
+            return card(locationCell(tableView, indexPath: indexPath))
         default:
             return UITableViewCell()
         }
@@ -129,6 +131,8 @@ final class ParentPostCreateViewController: BasePostCreateViewController {
         view.endEditing(true)
         if indexPath.section == 3 {
             presentParentCoursePicker()
+        } else if indexPath.section == 6 {
+            didTapLocationSection()
         }
     }
 
