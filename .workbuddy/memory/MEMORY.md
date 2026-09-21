@@ -108,6 +108,12 @@ Together/                      # 仓库根（git main，远程 origin/main）
 - 消息角标 `handleUnreadChanged` 取 `items[3]`，三套角色 index 3 均为「消息」，一致。
 - **发布接口角色门（关键）**：`POST /v1/teacher/posts` 在 `routes/teacher.js` 顶部 `router.use(requireAuth, requireRole(2))`，**role=3 会 403**；`POST /v1/posts`（通用动态）仅 `requireAuth`，无角色门 → 工作室发布走通用链路。`requireRole(...roles)` 支持变参，但 teacher.js 的 `router.use` 覆盖全部老师接口，整体放开风险大，**未改**。
 
+### 「我的」页菜单共用组件（2026-09-21 三端统一）
+- **`Core/Components/MineMenuCardView.swift`**：`MineMenuItem{icon,title}` + `MineMenuRow: UIControl`（34×34 brandSoft 圆角图标块 + 20pt brand 图标 + 标题 + chevron，行高 60）+ `MineMenuCardView(groups: [[MineMenuItem]])`（白卡圆角18+暖阴影，组间 18pt spacer，`onSelect` 回调）。**家长 / 老师 / 工作室三端「我的」菜单统一用它**，样式基准即工作室端。
+- 老师端 `TeacherMineViewController`、家长端 `MineViewController`、工作室端 `StudioMineViewController` 均改为 `scrollView + MineMenuCardView`；家长端底部开通条 `MineAuthFooterView` 由 `tableFooterView` 改为 contentView 子视图（`updateAuthFooter()` 用 `snp.remakeConstraints` 隐藏时高度归零）。
+- 旧 `Core/Components/MenuCell.swift` 已删除（三端不再用 tableView 做菜单）。
+- 三端「我的」统一结构：`headerView` 固定 + `scrollView.top = headerView.bottom` + `contentInset.bottom = safeAreaInsets.bottom + 12`。
+
 ## 九、注意
 
 - git 提交信息统一为 "update"，无常规 commit 规范

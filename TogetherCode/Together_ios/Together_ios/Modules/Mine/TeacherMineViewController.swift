@@ -3,28 +3,30 @@ import SnapKit
 import SwiftyJSON
 
 /// 老师「我的」页（与家长 MineViewController 拆分）
-/// 沉浸式头部（身份切换 + 资料 + 统计）+ 老师专属菜单
-final class TeacherMineViewController: BaseViewController, UITableViewDataSource, UITableViewDelegate {
+/// 沉浸式头部（身份切换 + 资料 + 统计）+ 老师专属菜单卡
+/// 菜单卡样式与家长端 / 工作室端统一（MineMenuCardView）
+final class TeacherMineViewController: BaseViewController {
 
-    private struct MenuItem {
-        let icon: String
-        let title: String
-    }
+    /// 第一组：教学与教务
+    private static let teachingItems: [MineMenuItem] = [
+        MineMenuItem(icon: "book.closed.fill", title: "我教的课程"),
+        MineMenuItem(icon: "person.3.fill", title: "我的学生"),
+        MineMenuItem(icon: "checkmark.seal.fill", title: "请假审批"),
+        MineMenuItem(icon: "calendar", title: "课表与排课")
+    ]
 
-    private let tableView = UITableView(frame: .zero, style: .plain)
-
-    private let menuItems: [MenuItem] = [
-        MenuItem(icon: "book.closed.fill", title: "我教的课程"),
-        MenuItem(icon: "person.3.fill", title: "我的学生"),
-        MenuItem(icon: "checkmark.seal.fill", title: "请假审批"),
-        MenuItem(icon: "calendar", title: "课表与排课"),
-        MenuItem(icon: "photo.on.rectangle.angled", title: "作品管理"),
-        MenuItem(icon: "yensign.circle", title: "收益中心"),
-        MenuItem(icon: "star.fill", title: "评价与口碑"),
-        MenuItem(icon: "gearshape", title: "设置")
+    /// 第二组：作品与财务
+    private static let serviceItems: [MineMenuItem] = [
+        MineMenuItem(icon: "photo.on.rectangle.angled", title: "作品管理"),
+        MineMenuItem(icon: "yensign.circle", title: "收益中心"),
+        MineMenuItem(icon: "star.fill", title: "评价与口碑"),
+        MineMenuItem(icon: "gearshape", title: "设置")
     ]
 
     private let headerView = TeacherMineHeaderView()
+    private let scrollView = UIScrollView()
+    private let contentView = UIView()
+    private let menuCard = MineMenuCardView(groups: [teachingItems, serviceItems])
     private var profile: TeacherMineProfile?
     private var stats = TeacherMineStats(active_students: nil, total_lessons: nil, post_count: nil)
 
@@ -51,6 +53,14 @@ final class TeacherMineViewController: BaseViewController, UITableViewDataSource
         }
     }
 
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        // 透明 tabbar 悬浮于内容之上：底部留出安全区（含 tabbar 高度）+ 间距
+        let bottom = view.safeAreaInsets.bottom + 12
+        scrollView.contentInset.bottom = bottom
+        scrollView.verticalScrollIndicatorInsets.bottom = bottom
+    }
+
     private func setupLayout() {
         view.addSubview(headerView)
         headerView.snp.makeConstraints {
@@ -60,16 +70,29 @@ final class TeacherMineViewController: BaseViewController, UITableViewDataSource
         headerView.onSettings = { [weak self] in self?.openSettings() }
         headerView.onIdentityTapped = { [weak self] in self?.showRoleSheet() }
 
-        tableView.backgroundColor = Theme.Color.bg
-        tableView.separatorStyle = .none
-        tableView.register(MenuCell.self, forCellReuseIdentifier: MenuCell.reuseID)
-        tableView.dataSource = self
-        tableView.delegate = self
-        tableView.rowHeight = 56
-        view.addSubview(tableView)
-        tableView.snp.makeConstraints {
+        // 菜单区：头部下方独立滚动
+        scrollView.backgroundColor = Theme.Color.bg
+        scrollView.contentInsetAdjustmentBehavior = .never
+        scrollView.showsVerticalScrollIndicator = false
+        view.addSubview(scrollView)
+        scrollView.snp.makeConstraints {
             $0.top.equalTo(headerView.snp.bottom)
             $0.leading.trailing.bottom.equalToSuperview()
+        }
+
+        scrollView.addSubview(contentView)
+        contentView.snp.makeConstraints {
+            $0.edges.equalToSuperview()
+            $0.width.equalTo(scrollView)
+        }
+
+        // 菜单卡（与家长端 / 工作室端同源组件）
+        menuCard.onSelect = { [weak self] item in self?.handleMenuTap(item) }
+        contentView.addSubview(menuCard)
+        menuCard.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(6)
+            $0.leading.trailing.equalToSuperview().inset(18)
+            $0.bottom.equalToSuperview().inset(24)
         }
     }
 
@@ -187,40 +210,32 @@ final class TeacherMineViewController: BaseViewController, UITableViewDataSource
         }
     }
 
-    // MARK: - TableView
+    // MARK: - 菜单点击
 
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        menuItems.count
-    }
-
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: MenuCell.reuseID, for: indexPath) as! MenuCell
-        let item = menuItems[indexPath.row]
-        cell.configure(icon: item.icon, title: item.title)
-        return cell
-    }
-
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let item = menuItems[indexPath.row]
+    private func handleMenuTap(_ item: MineMenuItem) {
         switch item.title {
         case "我教的课程":
-            navigationController?.pushViewController(MyTeachingCoursesViewController(), animated: true)
+            push(MyTeachingCoursesViewController())
         case "我的学生":
-            navigationController?.pushViewController(MyStudentsViewController(), animated: true)
+            push(MyStudentsViewController())
         case "请假审批":
-            navigationController?.pushViewController(LeaveApprovalViewController(), animated: true)
+            push(LeaveApprovalViewController())
         case "课表与排课":
-            navigationController?.pushViewController(TeacherTimetableViewController(), animated: true)
+            push(TeacherTimetableViewController())
         case "作品管理":
-            navigationController?.pushViewController(WorkManagementViewController(), animated: true)
+            push(WorkManagementViewController())
         case "收益中心":
-            navigationController?.pushViewController(WalletViewController(), animated: true)
+            push(WalletViewController())
         case "评价与口碑":
-            navigationController?.pushViewController(ReputationViewController(), animated: true)
+            push(ReputationViewController())
         case "设置":
             openSettings()
         default:
             showToast("「\(item.title)」功能开发中")
         }
+    }
+
+    private func push(_ vc: UIViewController) {
+        navigationController?.pushViewController(vc, animated: true)
     }
 }

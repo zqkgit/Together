@@ -8,25 +8,20 @@ final class StudioMineViewController: BaseViewController {
 
     // MARK: - 菜单
 
-    private struct MenuItem {
-        let icon: String
-        let title: String
-    }
-
     /// 第一组：经营与教务
-    private let managementItems: [MenuItem] = [
-        MenuItem(icon: "book.closed.fill", title: "课程管理"),
-        MenuItem(icon: "person.3.fill", title: "学员管理"),
-        MenuItem(icon: "person.crop.circle.badge.checkmark", title: "老师管理"),
-        MenuItem(icon: "arrow.uturn.backward.circle.fill", title: "退款审核")
+    private static let managementItems: [MineMenuItem] = [
+        MineMenuItem(icon: "book.closed.fill", title: "课程管理"),
+        MineMenuItem(icon: "person.3.fill", title: "学员管理"),
+        MineMenuItem(icon: "person.crop.circle.badge.checkmark", title: "老师管理"),
+        MineMenuItem(icon: "arrow.uturn.backward.circle.fill", title: "退款审核")
     ]
 
     /// 第二组：财务与分销
-    private let financeItems: [MenuItem] = [
-        MenuItem(icon: "yensign.circle.fill", title: "提现"),
-        MenuItem(icon: "hands.sparkles.fill", title: "分销返利设置"),
-        MenuItem(icon: "chart.bar.fill", title: "收益中心"),
-        MenuItem(icon: "gearshape.fill", title: "设置")
+    private static let financeItems: [MineMenuItem] = [
+        MineMenuItem(icon: "yensign.circle.fill", title: "提现"),
+        MineMenuItem(icon: "hands.sparkles.fill", title: "分销返利设置"),
+        MineMenuItem(icon: "chart.bar.fill", title: "收益中心"),
+        MineMenuItem(icon: "gearshape.fill", title: "设置")
     ]
 
     // MARK: - 视图
@@ -35,7 +30,7 @@ final class StudioMineViewController: BaseViewController {
     private let headerView = StudioMineHeaderView()
     private let scrollView = UIScrollView()
     private let contentView = UIView()
-    private let menuCard = UIView()
+    private let menuCard = MineMenuCardView(groups: [managementItems, financeItems])
 
     // MARK: - 数据
 
@@ -104,49 +99,14 @@ final class StudioMineViewController: BaseViewController {
             $0.width.equalTo(scrollView)
         }
 
-        // 菜单卡（两组，卡片圆角 + 暖阴影）
-        menuCard.backgroundColor = Theme.Color.surface
-        menuCard.layer.cornerRadius = 18
-        menuCard.layer.shadowColor = UIColor(hex: 0x2B2621).cgColor
-        menuCard.layer.shadowOpacity = 0.05
-        menuCard.layer.shadowRadius = 14
-        menuCard.layer.shadowOffset = CGSize(width: 0, height: 6)
+        // 菜单卡（共用组件，样式与家长/老师端统一）
+        menuCard.onSelect = { [weak self] item in self?.handleMenuTap(item) }
         contentView.addSubview(menuCard)
         menuCard.snp.makeConstraints {
             $0.top.equalToSuperview().offset(6)
             $0.leading.trailing.equalToSuperview().inset(18)
             $0.bottom.equalToSuperview().inset(24)
         }
-        setupMenu()
-    }
-
-    private func setupMenu() {
-        let stack = UIStackView()
-        stack.axis = .vertical
-        stack.spacing = 0
-        menuCard.addSubview(stack)
-        stack.snp.makeConstraints {
-            $0.edges.equalToSuperview().inset(UIEdgeInsets(top: 6, left: 0, bottom: 6, right: 0))
-        }
-
-        for item in managementItems {
-            stack.addArrangedSubview(makeMenuRow(item))
-        }
-
-        // 分组间隔
-        let spacer = UIView()
-        spacer.snp.makeConstraints { $0.height.equalTo(18) }
-        stack.addArrangedSubview(spacer)
-
-        for item in financeItems {
-            stack.addArrangedSubview(makeMenuRow(item))
-        }
-    }
-
-    private func makeMenuRow(_ item: MenuItem) -> StudioMenuRow {
-        let row = StudioMenuRow(icon: item.icon, title: item.title)
-        row.onTap = { [weak self] in self?.handleMenuTap(item) }
-        return row
     }
 
     // MARK: - 数据
@@ -175,7 +135,7 @@ final class StudioMineViewController: BaseViewController {
 
     // MARK: - 菜单点击
 
-    private func handleMenuTap(_ item: MenuItem) {
+    private func handleMenuTap(_ item: MineMenuItem) {
         // 设置项直接进入设置页（与封面右上角齿轮一致）
         if item.title == "设置" {
             openSettings()
@@ -295,82 +255,3 @@ final class StudioMineViewController: BaseViewController {
         }
     }
 }
-
-// MARK: - 菜单行
-/// 工作室「我的」菜单行：浅绿圆角图标块 + 标题 + 右侧箭头
-private final class StudioMenuRow: UIControl {
-
-    var onTap: (() -> Void)?
-
-    private let iconTile = UIView()
-    private let iconView = UIImageView()
-    private let titleLabel = UILabel()
-    private let chevron = UIImageView()
-
-    override var isHighlighted: Bool {
-        didSet { backgroundColor = isHighlighted ? Theme.Color.surfaceAlt : .clear }
-    }
-
-    init(icon: String, title: String) {
-        super.init(frame: .zero)
-        setup(icon: icon, title: title)
-    }
-
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
-    private func setup(icon: String, title: String) {
-        backgroundColor = .clear
-        addTarget(self, action: #selector(didTap), for: .touchUpInside)
-
-        snp.makeConstraints { $0.height.equalTo(60) }
-
-        iconTile.backgroundColor = Theme.Color.brandSoft
-        iconTile.layer.cornerRadius = 10
-        iconTile.isUserInteractionEnabled = false
-        addSubview(iconTile)
-        iconTile.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(18)
-            $0.centerY.equalToSuperview()
-            $0.width.height.equalTo(34)
-        }
-
-        iconView.image = UIImage(systemName: icon)?
-            .withConfiguration(UIImage.SymbolConfiguration(pointSize: 17, weight: .regular))
-        iconView.tintColor = Theme.Color.brand
-        iconView.contentMode = .scaleAspectFit
-        iconTile.addSubview(iconView)
-        iconView.snp.makeConstraints {
-            $0.center.equalToSuperview()
-            $0.width.height.equalTo(20)
-        }
-
-        chevron.image = UIImage(systemName: "chevron.right")?
-            .withConfiguration(UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold))
-        chevron.tintColor = Theme.Color.muted
-        chevron.contentMode = .scaleAspectFit
-        chevron.isUserInteractionEnabled = false
-        addSubview(chevron)
-        chevron.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(16)
-            $0.centerY.equalToSuperview()
-            $0.width.equalTo(8)
-            $0.height.equalTo(14)
-        }
-
-        titleLabel.text = title
-        titleLabel.font = .appSection(15)
-        titleLabel.textColor = Theme.Color.ink
-        titleLabel.isUserInteractionEnabled = false
-        addSubview(titleLabel)
-        titleLabel.snp.makeConstraints {
-            $0.leading.equalTo(iconTile.snp.trailing).offset(12)
-            $0.centerY.equalToSuperview()
-            $0.trailing.lessThanOrEqualTo(chevron.snp.leading).offset(-8)
-        }
-    }
-
-    @objc private func didTap() {
-        onTap?()
-    }
-}
-

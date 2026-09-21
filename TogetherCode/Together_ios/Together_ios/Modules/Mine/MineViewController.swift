@@ -3,28 +3,30 @@ import SnapKit
 import SwiftyJSON
 
 /// 「我的」个人中心
-/// 沉浸式固定头部（深绿延伸状态栏 + 毛玻璃统计卡）+ 下方菜单 TableView 独立滚动
-final class MineViewController: BaseViewController, UITableViewDataSource, UITableViewDelegate {
+/// 沉浸式固定头部（深绿延伸状态栏 + 毛玻璃统计卡）+ 下方菜单卡独立滚动
+/// 菜单卡样式与老师端 / 工作室端统一（MineMenuCardView）
+final class MineViewController: BaseViewController {
 
-    private struct MenuItem {
-        let icon: String
-        let title: String
-    }
+    /// 第一组：我的内容
+    private static let contentItems: [MineMenuItem] = [
+        MineMenuItem(icon: "figure.2.and.child.holdinghands", title: "我的孩子"),
+        MineMenuItem(icon: "book.closed", title: "我的课程"),
+        MineMenuItem(icon: "list.clipboard", title: "我的订单"),
+        MineMenuItem(icon: "photo.on.rectangle.angled", title: "作品管理")
+    ]
 
-    private let tableView = UITableView(frame: .zero, style: .plain)
-
-    private let menuItems: [MenuItem] = [
-        MenuItem(icon: "figure.2.and.child.holdinghands", title: "我的孩子"),
-        MenuItem(icon: "book.closed", title: "我的课程"),
-        MenuItem(icon: "list.clipboard", title: "我的订单"),
-        MenuItem(icon: "photo.on.rectangle.angled", title: "作品管理"),
-        MenuItem(icon: "heart", title: "收藏与动态"),
-        MenuItem(icon: "yensign.circle", title: "收益中心"),
-        MenuItem(icon: "ticket", title: "优惠券"),
-        MenuItem(icon: "gearshape", title: "设置")
+    /// 第二组：资产与服务
+    private static let serviceItems: [MineMenuItem] = [
+        MineMenuItem(icon: "heart", title: "收藏与动态"),
+        MineMenuItem(icon: "yensign.circle", title: "收益中心"),
+        MineMenuItem(icon: "ticket", title: "优惠券"),
+        MineMenuItem(icon: "gearshape", title: "设置")
     ]
 
     private let headerView = MineHeaderView()
+    private let scrollView = UIScrollView()
+    private let contentView = UIView()
+    private let menuCard = MineMenuCardView(groups: [contentItems, serviceItems])
     private var profile: MineProfile?
     private var stats = MineStats()
 
@@ -52,6 +54,14 @@ final class MineViewController: BaseViewController, UITableViewDataSource, UITab
         }
     }
 
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        // 透明 tabbar 悬浮于内容之上：底部留出安全区（含 tabbar 高度）+ 间距
+        let bottom = view.safeAreaInsets.bottom + 12
+        scrollView.contentInset.bottom = bottom
+        scrollView.verticalScrollIndicatorInsets.bottom = bottom
+    }
+
     private func setupLayout() {
         // 背景深绿：头部与状态栏区域融为一体
         view.backgroundColor = Theme.Color.brandDark
@@ -73,23 +83,40 @@ final class MineViewController: BaseViewController, UITableViewDataSource, UITab
             $0.top.leading.trailing.equalToSuperview()
         }
 
-        // 菜单列表：头部下方独立滚动
-        tableView.backgroundColor = Theme.Color.bg
-        tableView.separatorStyle = .none
-        tableView.showsVerticalScrollIndicator = false
-        tableView.rowHeight = 56
-        tableView.dataSource = self
-        tableView.delegate = self
-        tableView.register(MenuCell.self, forCellReuseIdentifier: MenuCell.reuseID)
-        view.addSubview(tableView)
-        tableView.snp.makeConstraints {
+        // 菜单区：头部下方独立滚动
+        scrollView.backgroundColor = Theme.Color.bg
+        scrollView.contentInsetAdjustmentBehavior = .never
+        scrollView.showsVerticalScrollIndicator = false
+        view.addSubview(scrollView)
+        scrollView.snp.makeConstraints {
             $0.top.equalTo(headerView.snp.bottom)
-            $0.leading.trailing.equalToSuperview()
-            $0.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom)
+            $0.leading.trailing.bottom.equalToSuperview()
         }
 
+        scrollView.addSubview(contentView)
+        contentView.snp.makeConstraints {
+            $0.edges.equalToSuperview()
+            $0.width.equalTo(scrollView)
+        }
+
+        // 菜单卡（与老师端 / 工作室端同源组件）
+        menuCard.onSelect = { [weak self] item in self?.handleMenuTap(item) }
+        contentView.addSubview(menuCard)
+        menuCard.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(6)
+            $0.leading.trailing.equalToSuperview().inset(18)
+        }
+
+        // 底部「开通老师/工作室身份」开通条
         authFooterView.onAuthTapped = { [weak self] in self?.showRoleSheet() }
-        tableView.tableFooterView = authFooterView
+        authFooterView.isHidden = true
+        contentView.addSubview(authFooterView)
+        authFooterView.snp.makeConstraints {
+            $0.top.equalTo(menuCard.snp.bottom)
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(0)
+            $0.bottom.equalToSuperview().inset(24)
+        }
     }
 
     // MARK: - 数据
@@ -122,12 +149,23 @@ final class MineViewController: BaseViewController, UITableViewDataSource, UITab
     private func updateAuthFooter() {
         let needsAuth = !(profile?.hasRole(2) ?? false) && !(profile?.hasRole(3) ?? false)
         authFooterView.isHidden = !needsAuth
+
+        var height: CGFloat = 0
         if needsAuth {
-            let width = view.bounds.width
+            let width = view.bounds.width > 0 ? view.bounds.width : UIScreen.main.bounds.width
             let targetSize = CGSize(width: width, height: UIView.layoutFittingCompressedSize.height)
-            let size = authFooterView.systemLayoutSizeFitting(targetSize, withHorizontalFittingPriority: .required, verticalFittingPriority: .fittingSizeLevel)
-            authFooterView.frame = CGRect(x: 0, y: 0, width: width, height: size.height)
-            tableView.tableFooterView = authFooterView
+            height = authFooterView.systemLayoutSizeFitting(
+                targetSize,
+                withHorizontalFittingPriority: .required,
+                verticalFittingPriority: .fittingSizeLevel
+            ).height
+        }
+        // 隐藏时高度归零，避免占位留白
+        authFooterView.snp.remakeConstraints {
+            $0.top.equalTo(menuCard.snp.bottom).offset(needsAuth ? Theme.Spacing.l : 0)
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(height)
+            $0.bottom.equalToSuperview().inset(24)
         }
     }
 
@@ -251,52 +289,31 @@ final class MineViewController: BaseViewController, UITableViewDataSource, UITab
         }
     }
 
-    // MARK: - TableView
+    // MARK: - 菜单点击
 
-    func numberOfSections(in tableView: UITableView) -> Int { 1 }
-
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        menuItems.count
-    }
-
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: MenuCell.reuseID, for: indexPath) as! MenuCell
-        let item = menuItems[indexPath.row]
-        cell.configure(icon: item.icon, title: item.title)
-        return cell
-    }
-
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let item = menuItems[indexPath.row]
-        if item.title == "设置" {
+    private func handleMenuTap(_ item: MineMenuItem) {
+        switch item.title {
+        case "设置":
             openSettings()
-            return
-        }
-        if item.title == "我的孩子" {
-            navigationController?.pushViewController(MyChildrenViewController(), animated: true)
-            return
-        }
-        if item.title == "我的课程" {
+        case "我的孩子":
+            push(MyChildrenViewController())
+        case "我的课程":
             openMyCourses()
-            return
+        case "我的订单":
+            push(MyOrdersViewController())
+        case "作品管理":
+            push(WorkManagementViewController())
+        case "收藏与动态":
+            push(FavoritesAndDynamicsViewController())
+        case "收益中心":
+            push(WalletViewController())
+        default:
+            showToast("「\(item.title)」功能开发中")
         }
-        if item.title == "我的订单" {
-            navigationController?.pushViewController(MyOrdersViewController(), animated: true)
-            return
-        }
-        if item.title == "作品管理" {
-            navigationController?.pushViewController(WorkManagementViewController(), animated: true)
-            return
-        }
-        if item.title == "收藏与动态" {
-            navigationController?.pushViewController(FavoritesAndDynamicsViewController(), animated: true)
-            return
-        }
-        if item.title == "收益中心" {
-            navigationController?.pushViewController(WalletViewController(), animated: true)
-            return
-        }
-        showToast("「\(item.title)」功能开发中")
+    }
+
+    private func push(_ vc: UIViewController) {
+        navigationController?.pushViewController(vc, animated: true)
     }
 
     // MARK: - 我的课程
