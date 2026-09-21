@@ -23,6 +23,8 @@ final class TokenManager {
 
     /// 是否已登录
     var isLoggedIn: Bool {
+        // TEMP-PREVIEW 设计稿比对：强制进入工作室角色主框架（验证后移除）
+        if ProcessInfo.processInfo.arguments.contains("--preview-studio") { return true }
         guard let token = accessToken, !token.isEmpty else { return false }
         return true
     }
@@ -34,7 +36,9 @@ final class TokenManager {
 
     /// 当前角色（1 家长 / 2 老师）
     var userRole: Int {
-        defaults.integer(forKey: Keys.userRole)
+        // TEMP-PREVIEW 设计稿比对：强制返回工作室角色（验证后移除）
+        if ProcessInfo.processInfo.arguments.contains("--preview-studio") { return 3 }
+        return defaults.integer(forKey: Keys.userRole)
     }
 
     /// 用户信息字典（昵称/手机号/头像等）

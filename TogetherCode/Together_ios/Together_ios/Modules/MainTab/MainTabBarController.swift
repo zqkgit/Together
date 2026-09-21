@@ -45,6 +45,8 @@ final class MainTabBarController: BaseTabBarViewController {
                 makeTab(StudioMineViewController(), title: "我的", icon: "person")
             ]
             delegate = self
+            // TEMP-PREVIEW 设计稿比对：默认选中「我的」页（验证后移除）
+            if ProcessInfo.processInfo.arguments.contains("--preview-studio") { selectedIndex = 4 }
             return
         }
 

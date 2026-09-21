@@ -5,6 +5,7 @@ const orderRoutes = require("./order");
 const authRoutes = require("./auth");
 const leaveRoutes = require("./leave");
 const teacherRoutes = require("./teacher");
+const studioAppRoutes = require("./studioApp");
 const childRoutes = require("./child");
 const postRoutes = require("./post");
 const tagRoutes = require("./tags");
@@ -122,7 +123,8 @@ router.use("/", interactionRoutes);
 // 关注关系：关注/取消关注/关注列表/粉丝列表（登录）
 router.use("/", followRoutes);
 
-// 工作室轻量 App 端接口当前还未独立拆分；
-// 现阶段已落地的工作室能力主要集中在 Web 侧 /studio/*。
+// 工作室角色 App 端：/v1/studio/*（我的页资料与统计）。
+// 完整经营与教务能力仍在 Web 侧 /studio/*（后台 token），两者令牌体系互相隔离。
+router.use("/studio", studioAppRoutes);
 
 module.exports = router;
