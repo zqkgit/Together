@@ -37,6 +37,8 @@ final class LocationSearchViewController: UIViewController {
 
     private let geocoder = CLGeocoder()
     private var nearbySearch: MKLocalSearch?
+    /// 兜底关键词检索进行中的 search 对象（需强引用，否则会被提前释放）
+    private var fallbackSearches: [MKLocalSearch] = []
     private var keywordSearch: MKLocalSearch?
     private var searchWorkItem: DispatchWorkItem?
     private var locateTimeout: DispatchWorkItem?
@@ -271,25 +273,81 @@ final class LocationSearchViewController: UIViewController {
                 NSLog("[LOCSEARCH] nearby POI error: \(error.localizedDescription)")
             }
             NSLog("[LOCSEARCH] nearby POI raw count=\(response?.mapItems.count ?? -1)")
-            var seen = Set<String>()
-            let points = (response?.mapItems ?? [])
-                .filter { Self.distance($0.placemark.coordinate, from: coord) <= 3000 }
-                .compactMap { item -> Point? in
-                    guard let name = item.name?.trimmingCharacters(in: .whitespacesAndNewlines),
-                          !name.isEmpty, !seen.contains(name) else { return nil }
-                    seen.insert(name)
-                    return Point(name: name, address: Self.formatAddress(item.placemark), coordinate: item.placemark.coordinate)
+            let points = Self.dedupeSort([response?.mapItems ?? []], around: coord)
+            if points.isEmpty {
+                // 兜底：部分区域（含中国区）MKLocalPointsOfInterestRequest 召回稀疏或为空，
+                // 退回「分类关键词检索」补齐附近地点，避免「附近地点」整块不显示。
+                NSLog("[LOCSEARCH] nearby POI empty, fallback to keyword search")
+                self.fetchNearbyByKeyword(coord: coord) { [weak self] fallback in
+                    guard let self else { return }
+                    self.nearbyTimeout?.cancel()
+                    self.nearby = fallback
+                    self.nearbyLoading = false
+                    self.tableView.reloadData()
+                    self.updateStatus()
                 }
-                .sorted { Self.distance($0.coordinate, from: coord) < Self.distance($1.coordinate, from: coord) }
-            let limited = Array(points.prefix(20))
+                return
+            }
             DispatchQueue.main.async {
                 self.nearbyTimeout?.cancel()
-                self.nearby = limited
+                self.nearby = points
                 self.nearbyLoading = false
                 self.tableView.reloadData()
                 self.updateStatus()
             }
         }
+    }
+
+    /// 附近地点兜底：按常用分类关键词并行检索，合并去重后按距离排序（回调在主线程）
+    private func fetchNearbyByKeyword(coord: CLLocationCoordinate2D, completion: @escaping ([Point]) -> Void) {
+        let queries = ["美食", "咖啡", "便利店", "超市"]
+        let region = MKCoordinateRegion(center: coord, latitudinalMeters: 3000, longitudinalMeters: 3000)
+        let group = DispatchGroup()
+        let lock = NSLock()
+        var collected: [[MKMapItem]] = []
+        var searches: [MKLocalSearch] = []
+
+        for q in queries {
+            let request = MKLocalSearch.Request()
+            request.naturalLanguageQuery = q
+            request.region = region
+            request.resultTypes = [.pointOfInterest]
+            request.pointOfInterestFilter = .includingAll
+            let search = MKLocalSearch(request: request)
+            searches.append(search)
+            group.enter()
+            search.start { response, error in
+                if let error = error {
+                    NSLog("[LOCSEARCH] fallback(\(q)) error: \(error.localizedDescription)")
+                }
+                lock.lock()
+                collected.append(response?.mapItems ?? [])
+                lock.unlock()
+                group.leave()
+            }
+        }
+        fallbackSearches = searches
+        group.notify(queue: .main) { [weak self] in
+            let items = collected
+            self?.fallbackSearches = []
+            completion(Self.dedupeSort(items, around: coord))
+        }
+    }
+
+    /// 合并多组 mapItem → 过滤 3km 内 → 同名去重 → 按距离升序，取前 20
+    private static func dedupeSort(_ groups: [[MKMapItem]], around coord: CLLocationCoordinate2D) -> [Point] {
+        var seen = Set<String>()
+        let points = groups
+            .flatMap { $0 }
+            .filter { Self.distance($0.placemark.coordinate, from: coord) <= 3000 }
+            .compactMap { item -> Point? in
+                guard let name = item.name?.trimmingCharacters(in: .whitespacesAndNewlines),
+                      !name.isEmpty, !seen.contains(name) else { return nil }
+                seen.insert(name)
+                return Point(name: name, address: Self.formatAddress(item.placemark), coordinate: item.placemark.coordinate)
+            }
+            .sorted { Self.distance($0.coordinate, from: coord) < Self.distance($1.coordinate, from: coord) }
+        return Array(points.prefix(20))
     }
 
     private func scheduleSearch(_ keyword: String) {
@@ -386,6 +444,9 @@ final class LocationSearchViewController: UIViewController {
             spinner.isHidden = true
             if currentPoint == nil && !nearbyLoading {
                 statusLabel.text = "无法获取当前位置，可点击下方在地图上选点"
+                statusLabel.isHidden = false
+            } else if currentPoint != nil && !nearbyLoading && nearby.isEmpty {
+                statusLabel.text = "附近暂无地点，可搜索或在地图上选取"
                 statusLabel.isHidden = false
             } else {
                 statusLabel.isHidden = true

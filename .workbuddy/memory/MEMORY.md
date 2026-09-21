@@ -90,9 +90,13 @@ Together/                      # 仓库根（git main，远程 origin/main）
   - 广场 `PlazaViewController`：排序 chips（最新/热门/附近），near 模式先取用户坐标再 reload（未授权 toast 退最新）
   - 展示：`WorkCardView` 作者行拼距离；`PostDetailViewController` 详情新增 location section（有位置才显示）
   - `Info.plist` 加 `NSLocationWhenInUseUsageDescription`；工程用 Xcode 16 PBXFileSystemSynchronizedRootGroup，新 swift 自动纳编无需改 pbxproj
+- **选点入口已升级（9-21）**：`BasePostCreateViewController.openLocationPicker()` → present `LocationSearchViewController`（pageSheet 半屏）。该页含「搜索地点」实时检索（MKLocalSearch）、「当前位置」（定位+CLGeocoder 反地理编码，带"当前位置"标签）、「附近地点」、「在地图上选取」二级页（复用 `LocationPickerViewController`）。
+- **附近地点**：数据源 `MKLocalPointsOfInterestRequest(center:radius:)`；中国区/模拟器无定位时召回稀疏或空 → section 整块消失。已加兜底 `fetchNearbyByKeyword`（["美食","咖啡","便利店","超市"] 并行 `MKLocalSearch.Request` + `DispatchGroup` 合并 + 去重/3km/距离排序）与空态提示。
+- **`LocationManager` 崩溃教训**：`locationManagerDidChangeAuthorization` 里**禁止**包一层闭包再调 `self?.pending`（会与 `didUpdateLocations` 的 `pending?(loc)` 形成无限递归→栈溢出 EXC_BAD_ACCESS code=2）。授权后应直接复用已有 `pending` 调 `startLocating`。
 
 ## 八、注意
 
 - git 提交信息统一为 "update"，无常规 commit 规范
 - `TogetherCode/Together_api/.DS_Store`、`node_modules` 等已在 .gitignore
 - 沙箱无 docker，后端改动仅做 `node --check` 语法校验；真实验证需本地 `docker compose up -d --build` 起容器（自动跑 migration）
+- **iOS 可在本环境直接编译验证（勿再写"未编译"，此前误判）**：`cd TogetherCode/Together_ios && xcodebuild -workspace Together_ios.xcworkspace -scheme Together_ios -destination id=<booted UDID> -configuration Debug -derivedDataPath build build`；产物 `build/Build/Products/Debug-iphonesimulator/Together_ios.app`；BundleId `ymjr.com.Together-ios`；模拟器定位 `xcrun simctl location <UDID> set <lat>,<lng>`；一键脚本 `TogetherCode/Together_ios/rebuild.sh`。Xcode 26.3，常用模拟器 iPhone 15 Pro / iOS 17.2 UDID `9086EE2C-0737-4ECE-ADD2-3C561031E7CE`
