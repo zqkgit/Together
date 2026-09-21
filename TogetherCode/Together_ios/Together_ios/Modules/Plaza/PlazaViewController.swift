@@ -3,15 +3,12 @@ import SnapKit
 import ESPullToRefresh
 import CoreLocation
 
-/// 广场（对齐 PR 设计图 #plaza）：话题 chips + 双列瀑布流作品卡
+/// 广场（对齐 PR 设计图 #plaza）：排序 chips（最新/热门/附近）+ 双列瀑布流作品卡
 /// 复用：TagChipRow / WaterfallLayout / WorkCardView / EmptyStateView / PostService
 final class PlazaViewController: BaseViewController {
 
-    private static let topics = ["推荐", "水彩", "黏土", "书法", "素描", "国画"]
-
     private let layout = WaterfallLayout()
     private lazy var collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-    private let chipRow = TagChipRow(chips: PlazaViewController.topics)
     private let emptyView = EmptyStateView()
 
     private var items: [PostItem] = []
@@ -19,7 +16,6 @@ final class PlazaViewController: BaseViewController {
     private let pageSize = 20
     private var hasMore = true
     private var isLoading = false
-    private var currentTopic = ""
     /// 排序：最新 / 热门 / 附近（按距离）
     private let sortChips = TagChipRow(chips: ["最新", "热门", "附近"])
     private var currentSort = "latest"
@@ -70,22 +66,10 @@ final class PlazaViewController: BaseViewController {
     }
 
     private func setupChipHeader() {
-        // chips 固定在导航栏下方，不随内容滚动；左右统一 12pt
-        view.addSubview(chipRow)
-        chipRow.snp.makeConstraints {
-            $0.top.equalTo(view.safeAreaLayoutGuide)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
-            $0.height.equalTo(34)
-        }
-        chipRow.onSelect = { [weak self] index in
-            guard let self else { return }
-            self.currentTopic = index == 0 ? "" : Self.topics[index]
-            self.reload()
-        }
-        // 排序栏（最新/热门/附近）置于话题栏下方
+        // 仅保留排序栏（最新 / 热门 / 附近），固定在导航栏下方，不随内容滚动；左右统一 12pt
         view.addSubview(sortChips)
         sortChips.snp.makeConstraints {
-            $0.top.equalTo(chipRow.snp.bottom).offset(Theme.Spacing.s)
+            $0.top.equalTo(view.safeAreaLayoutGuide)
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
             $0.height.equalTo(34)
         }
@@ -102,7 +86,7 @@ final class PlazaViewController: BaseViewController {
         // 空态只覆盖内容区（chips 下方），不遮挡顶部话题标签
         view.addSubview(emptyView)
         emptyView.snp.makeConstraints {
-            $0.top.equalTo(view.safeAreaLayoutGuide).offset(92)
+            $0.top.equalTo(view.safeAreaLayoutGuide).offset(46)
             $0.leading.trailing.bottom.equalToSuperview()
         }
         emptyView.isHidden = true
@@ -118,7 +102,7 @@ final class PlazaViewController: BaseViewController {
         isLoading = true
         showEmpty(.loading)
 
-        PostService.fetchPlaza(page: 1, size: pageSize, sort: currentSort, topic: currentTopic, lat: currentLat, lng: currentLng) { [weak self] list, hasMore, error in
+        PostService.fetchPlaza(page: 1, size: pageSize, sort: currentSort, topic: "", lat: currentLat, lng: currentLng) { [weak self] list, hasMore, error in
             guard let self else { return }
             self.isLoading = false
             self.collectionView.es.stopPullToRefresh()
@@ -146,7 +130,7 @@ final class PlazaViewController: BaseViewController {
         isLoading = true
         footerSpinner?.startAnimating()
 
-        PostService.fetchPlaza(page: page + 1, size: pageSize, sort: currentSort, topic: currentTopic, lat: currentLat, lng: currentLng) { [weak self] list, hasMore, error in
+        PostService.fetchPlaza(page: page + 1, size: pageSize, sort: currentSort, topic: "", lat: currentLat, lng: currentLng) { [weak self] list, hasMore, error in
             guard let self else { return }
             self.isLoading = false
             self.footerSpinner?.stopAnimating()
@@ -196,7 +180,7 @@ final class PlazaViewController: BaseViewController {
 
     private func updateEmptyState() {
         if items.isEmpty {
-            showEmpty(.empty("该话题暂无作品"))
+            showEmpty(.empty("暂无作品"))
         } else {
             hideEmpty()
         }
