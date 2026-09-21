@@ -969,6 +969,22 @@
   .step{flex:1;height:4px;border-radius:3px;background:var(--line);}
   .step.done{background:var(--green);}
   .st.pen{background:#FBE7C6;color:#B7791F;}
+  /* ===== location picker ===== */
+  .loc-search{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:9px 14px;margin:10px 16px 4px;box-shadow:var(--shadow-sm);}
+  .loc-search input{flex:1;border:none;outline:none;font-size:14px;background:transparent;color:var(--ink);}
+  .loc-map{position:relative;height:150px;margin:12px 16px;border-radius:16px;overflow:hidden;background:linear-gradient(135deg,#DCE7DC,#BFD3C2);box-shadow:var(--shadow-sm);}
+  .loc-map .pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);font-size:30px;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25));}
+  .loc-map .maptip{position:absolute;left:10px;bottom:10px;background:rgba(255,255,255,.9);font-size:11px;color:var(--sub);padding:4px 9px;border-radius:8px;}
+  .loc-sec{font-size:12px;color:var(--muted);font-weight:600;margin:16px 18px 6px;}
+  .loc-card{display:flex;align-items:center;gap:10px;background:#fff;border-radius:14px;padding:13px 14px;margin:0 16px;box-shadow:var(--shadow-sm);cursor:pointer;}
+  .loc-card .lic{width:34px;height:34px;border-radius:10px;background:var(--green-soft);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+  .loc-card .lt{font-size:14px;font-weight:600;color:var(--ink);}
+  .loc-card .ld{font-size:11.5px;color:var(--muted);margin-top:1px;}
+  .loc-row{display:flex;align-items:center;gap:10px;background:#fff;border-radius:14px;padding:13px 14px;margin:8px 16px;box-shadow:var(--shadow-sm);cursor:pointer;}
+  .loc-row .lt{font-size:14px;font-weight:600;color:var(--ink);flex:1;}
+  .loc-row .ar{color:var(--muted);}
+  .loc-row.clear .lt{color:var(--muted);}
+  .loc-foot{height:18px;}
 </style>
 </head>
 <body data-page-node-id="fEyWsOFqEn7heNwoDYVS61">
@@ -1431,6 +1447,7 @@
           <div class="o on" onclick="pickS(this)" data-page-node-id="vQ95YgRqz9nU2GJHaL334k"><span class="ic" data-page-node-id="pyLLAqk2DiOFd7uoDhkseN">🌐</span> 公开</div>
           <div class="o" onclick="pickS(this)" data-page-node-id="CbJBherzdJzOckvnmvx4Zw"><span class="ic" data-page-node-id="gtrh12ufgdQ9357pb3F6Ek">👥</span> 仅家长</div>
         </div>
+        <div class="pc-row" onclick="openLocPick('teacher')" data-page-node-id="locRowT"><div class="lab" data-page-node-id="locRowTlab">位置</div><div class="val" id="tLocVal" style="color:var(--muted)" data-page-node-id="locRowTval">添加地点（选填）›</div></div>
       </div>
       <div class="pc-bottom" data-page-node-id="uGoNIVS7jZWCQZbppRa75i"><button class="btn btn-green" id="tPublish" onclick="publishTeacher()" data-page-node-id="WPfDkhMHfZ1qAou9vcPfHv">发布并消课 2 节</button></div>
     </section>
@@ -1468,8 +1485,31 @@
           <div class="o on" onclick="pickS(this)" data-page-node-id="yRfZRyGjdXdbopU9wJCOkM"><span class="ic" data-page-node-id="6keLnalCzTEPKWBnzTNffI">🌐</span> 公开</div>
           <div class="o" onclick="pickS(this)" data-page-node-id="G2bnOHBxKFNfW6zdemqGkc"><span class="ic" data-page-node-id="Kw0SNEpOEGPPiVOMAcmjzD">👥</span> 仅好友</div>
         </div>
+        <div class="pc-row" onclick="openLocPick('parent')" data-page-node-id="locRowP"><div class="lab" data-page-node-id="locRowPlab">位置</div><div class="val" id="pLocVal" style="color:var(--muted)" data-page-node-id="locRowPval">添加地点（选填）›</div></div>
       </div>
       <div class="pc-bottom" data-page-node-id="FfWDfGjUSVs38xU5HU29zH"><button class="btn btn-green" onclick="publishParent()" data-page-node-id="75kPzakJiivAiz8ghsR8uZ">发布动态</button></div>
+    </section>
+
+    <!-- ===== LOCATION PICKER（发帖选点，对齐 iOS LocationSearchViewController） ===== -->
+    <section class="screen" id="locPick" data-page-node-id="locPickScr">
+      <div class="topbar" data-page-node-id="locPickTb"><h1 data-page-node-id="locPickTt">选择地点</h1><div class="icon-btn" onclick="back()" data-page-node-id="locPickX">✕</div></div>
+      <div class="loc-search" data-page-node-id="locPickSearch">
+        <span style="color:var(--muted)">🔍</span>
+        <input id="locSearchInp" placeholder="搜索地点、商户、地址…" oninput="renderLocPick()" data-page-node-id="locPickInp"/>
+      </div>
+      <div class="loc-map" data-page-node-id="locPickMap" onclick="toast('在地图上点选位置')">
+        <div class="pin" data-page-node-id="locPickPin">📍</div>
+        <div class="maptip" data-page-node-id="locPickTip">点击地图任意位置落点</div>
+      </div>
+      <div class="loc-card" onclick="setLoc('当前位置 · 杭州西湖区')" data-page-node-id="locCur">
+        <div class="lic" data-page-node-id="locCurIc">📍</div>
+        <div data-page-node-id="locCurTx"><div class="lt">当前位置</div><div class="ld">杭州 · 西湖区文三路（已授权定位）</div></div>
+      </div>
+      <div class="loc-sec" data-page-node-id="locNearSec">附近地点</div>
+      <div id="locNear" data-page-node-id="locNearList"></div>
+      <div class="loc-row" onclick="toast('打开地图选点')" data-page-node-id="locMapRow"><div class="lt">在地图上选取</div><div class="ar">›</div></div>
+      <div class="loc-row clear" onclick="setLoc('')" data-page-node-id="locClear"><div class="lt">不显示位置</div><div class="ar">›</div></div>
+      <div class="loc-foot" data-page-node-id="locFoot"></div>
     </section>
 
     <!-- ===== MY PAGE ===== -->
@@ -3239,12 +3279,45 @@
     const n=teacherState.students.length;
     if(n===0){toast('请至少选择一名学生');return;}
     const top=document.getElementById('tTitle').value.trim();
-    toast(`已发布《${top||'课堂作品'}》· 为 ${n} 名学生消课`);
+    const loc=postLoc.teacher?(' · 📍'+postLoc.teacher):'';
+    toast(`已发布《${top||'课堂作品'}》· 为 ${n} 名学生消课${loc}`);
   }
   function publishParent(){
     const kids=selectedNames('pChildren');
     if(kids.length===0){toast('请至少关联一名孩子');return;}
-    toast(`动态已发布 · ${kids.join('、')}`);
+    const loc=postLoc.parent?(' · 📍'+postLoc.parent):'';
+    toast(`动态已发布 · ${kids.join('、')}${loc}`);
+  }
+  /* ---------- 位置选择（对齐 iOS 选点 + 附近推荐） ---------- */
+  const postLoc={teacher:'',parent:''};
+  let locRole='parent';
+  const locNearAll=[
+    {nm:'青苗艺术工坊',ds:'西湖区文三路 128 号 2F'},
+    {nm:'西湖文化广场',ds:'距离 320m · 公共广场'},
+    {nm:'言几又书店（西湖店）',ds:'距离 540m · 书店'},
+    {nm:'星巴克（文三路店）',ds:'距离 680m · 咖啡'},
+    {nm:'盒马鲜生（西城店）',ds:'距离 1.1km · 超市'}
+  ];
+  function openLocPick(role){ locRole=role; go('locPick'); renderLocPick(); }
+  function renderLocPick(){
+    const q=(document.getElementById('locSearchInp').value||'').trim();
+    const list= locNearAll.filter(p=>!q || p.nm.includes(q) || p.ds.includes(q));
+    document.getElementById('locNear').innerHTML = list.length ? list.map(p=>
+      `<div class="loc-row" onclick="setLoc('${p.nm} · ${p.ds.split(' · ')[0]}')" data-page-node-id="ln_${p.nm}">
+         <div class="lic" style="width:34px;height:34px;border-radius:10px;background:var(--brown-soft);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📍</div>
+         <div style="flex:1"><div class="lt" style="font-size:14px;font-weight:600;color:var(--ink)">${p.nm}</div><div class="ld" style="font-size:11.5px;color:var(--muted);margin-top:1px">${p.ds}</div></div>
+         <div class="ar" style="color:var(--muted)">›</div>
+       </div>`).join('')
+      : '<div class="loc-sec" style="margin-top:8px">附近暂无地点，可搜索或在地图上选取</div>';
+  }
+  function setLoc(name){
+    postLoc[locRole]=name;
+    const val=name||'添加地点（选填）›';
+    const sel='#'+ (locRole==='teacher'?'tLocVal':'pLocVal');
+    const el=document.querySelector(sel);
+    if(el){ el.textContent=val; el.style.color = name? 'var(--green-deep)':'var(--muted)'; }
+    if(name) toast('已添加位置：'+name);
+    back();
   }
   /* ---------- studio screens ---------- */
   const sConvs = [
