@@ -43,6 +43,7 @@ final class StudioAuthViewController: BaseViewController {
 
     private let scrollView = UIScrollView()
     private let pendingView = UIView()
+    private let tagRetryView = UIView()
 
     // MARK: - 初始化
 
@@ -82,14 +83,78 @@ final class StudioAuthViewController: BaseViewController {
             guard let self else { return }
             self.hideLoading()
             switch result {
-            case .success(let tags):
+            case .success(let tags) where !tags.isEmpty:
                 // 按后台 sort 升序展示
                 self.studioTagNames = tags.sorted { $0.sort < $1.sort }.map { $0.name }
+                self.showFormView()
+            case .success:
+                // 标签库为空：平台尚未在「标签管理 · 工作室」配置
+                self.showTagLoadRetry(empty: true)
             case .failure:
-                // 标签加载失败不阻断表单；营业类型为必选项，未选会由提交校验拦截
-                self.studioTagNames = []
+                // 标签加载失败：给重试入口，避免营业类型整块空白
+                self.showTagLoadRetry(empty: false)
             }
-            self.showFormView()
+        }
+    }
+
+    @objc private func retryLoadTags() {
+        tagRetryView.removeFromSuperview()
+        loadStudioTagsThenShowForm()
+    }
+
+    /// 标签为空 / 加载失败的兜底态
+    private func showTagLoadRetry(empty: Bool) {
+        tagRetryView.subviews.forEach { $0.removeFromSuperview() }
+        tagRetryView.backgroundColor = Theme.Color.bg
+        view.addSubview(tagRetryView)
+        tagRetryView.snp.remakeConstraints {
+            $0.top.equalTo(view.safeAreaLayoutGuide)
+            $0.leading.trailing.bottom.equalToSuperview()
+        }
+
+        let icon = UIImageView(image: UIImage(systemName: empty ? "tag" : "wifi.exclamationmark"))
+        icon.tintColor = Theme.Color.muted
+        icon.contentMode = .scaleAspectFit
+        tagRetryView.addSubview(icon)
+        icon.snp.makeConstraints {
+            $0.centerX.equalToSuperview()
+            $0.centerY.equalToSuperview().offset(-44)
+            $0.width.height.equalTo(46)
+        }
+        let title = UILabel()
+        title.text = empty ? "暂未配置营业类型标签" : "营业类型加载失败"
+        title.font = .appSection(16)
+        title.textColor = Theme.Color.ink
+        title.textAlignment = .center
+        tagRetryView.addSubview(title)
+        title.snp.makeConstraints {
+            $0.top.equalTo(icon.snp.bottom).offset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(32)
+        }
+        let desc = UILabel()
+        desc.text = empty ? "请联系平台在「标签管理 · 工作室」中添加标签后重试" : "网络异常，请检查网络后重新加载"
+        desc.font = .appLabel(13)
+        desc.textColor = Theme.Color.sub
+        desc.textAlignment = .center
+        desc.numberOfLines = 0
+        tagRetryView.addSubview(desc)
+        desc.snp.makeConstraints {
+            $0.top.equalTo(title.snp.bottom).offset(Theme.Spacing.s)
+            $0.leading.trailing.equalToSuperview().inset(32)
+        }
+        let btn = UIButton(type: .system)
+        btn.setTitle("重新加载", for: .normal)
+        btn.titleLabel?.font = .appBody(15)
+        btn.setTitleColor(.white, for: .normal)
+        btn.backgroundColor = Theme.Color.brand
+        btn.layer.cornerRadius = 22
+        btn.contentEdgeInsets = UIEdgeInsets(top: 0, left: 32, bottom: 0, right: 32)
+        btn.addTarget(self, action: #selector(retryLoadTags), for: .touchUpInside)
+        tagRetryView.addSubview(btn)
+        btn.snp.makeConstraints {
+            $0.top.equalTo(desc.snp.bottom).offset(Theme.Spacing.xl)
+            $0.centerX.equalToSuperview()
+            $0.height.equalTo(44)
         }
     }
 

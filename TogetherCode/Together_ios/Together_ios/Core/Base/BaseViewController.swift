@@ -40,6 +40,8 @@ class BaseViewController: UIViewController {
         nav.navigationBar.isTranslucent = true
 
         // 自定义圆底返回按钮（帖子详情样式：白 chevron + 黑半透明圆底 38pt）
+        // 用容器承载：系统导航栏 ItemWrapperView 高度固定 36，直接给 customView 按钮设 38 高会与其冲突；
+        // 容器高度交给系统，按钮 38×38 在容器内居中（上下各溢出 1pt，容器不裁剪）
         let button = UIButton(type: .system)
         button.backgroundColor = backBackground
         button.layer.cornerRadius = 19
@@ -47,9 +49,18 @@ class BaseViewController: UIViewController {
         button.setImage(UIImage(systemName: "chevron.left"), for: .normal)
         button.tintColor = backTint
         button.addTarget(self, action: #selector(didTapImmersiveBack), for: .touchUpInside)
-        button.snp.makeConstraints { $0.width.height.equalTo(38) }
 
-        navigationItem.leftBarButtonItem = UIBarButtonItem(customView: button)
+        let backContainer = UIView()
+        backContainer.addSubview(button)
+        button.snp.makeConstraints { make in
+            make.center.equalToSuperview()
+            make.width.height.equalTo(38)
+        }
+        backContainer.snp.makeConstraints { make in
+            make.width.equalTo(38)
+        }
+
+        navigationItem.leftBarButtonItem = UIBarButtonItem(customView: backContainer)
         navigationItem.hidesBackButton = true
         navigationItem.title = title
     }
