@@ -85,7 +85,10 @@ Together/                      # 仓库根（git main，远程 origin/main）
   - ⚠️ **金额单位坑**：接口**统一返回「分」**，但库中单位不一致 —— `orders.paid_amount`、`settlements.payable_amount`、`courses.price` 是**分**；`wallets.balance`、`commission_records.amount` 是**元**（×100 转分）
   - 口径：本月营收＝本月已支付订单合计；可提现＝主理人 `wallets.balance`；分销返利＝本月 `commission_records`（JOIN distribution_links→courses 归属 studio）；结算中＝`settlements.status=0` 的 `payable_amount` 合计；待结算订单＝落在待打款结算单周期内的已支付订单（无则取最近 `period_end` 之后的新单）
   - `dynamic.headline` 是真实数据拼装的经营播报（新课上线天数＋累计报名＋分销占比），**不要用 `posts` 正文**（会抓到该用户以家长身份发的帖）
-  - iOS：`Modules/Studio/StudioOverviewViewController.swift`（私有组件 `OverviewStatCard/OverviewTodoRow/OverviewDynamicCard`）；`StudioAmount` 提供 `¥ 86,420` 千分位口径（既有 `Int.fenToYuanText` 无千分位）
+  - iOS 结构：**固定 headerView + UITableView 列表**（与「我的」页同构）。`Modules/Studio/StudioOverviewHeaderView.swift`（标题栏＋营收卡＋三张统计卡，`apply(_:)`）挂 view 顶部不滚动；下方 `.plain` tableView 从 `headerView.bottom` 到 `view.safeAreaLayoutGuide.bottom`（底部对齐悬浮 tabbar 上沿，避免最后一行被遮）。列表 = 待办 3 行：退款/结算固定 88pt，动态卡 automaticDimension。`StudioAmount` 提供 `¥ 86,420` 千分位口径（既有 `Int.fenToYuanText` 无千分位）
+  - 「待办事项 + 全部 ›」区头也在**固定 headerView** 内（`setupTodosBar()` + `onAllTodos`），tableView 的 `viewForHeaderInSection` 返回 nil
+  - ⚠️ **iOS 15+ `sectionHeaderTopPadding` 会凭空加 ~22pt**：plain 样式 tableView 即便 `viewForHeaderInSection` 返回 nil、`heightForHeaderInSection` 返回 0，首个 section 前仍预留 22pt → 首行卡片离固定区头很远。必须 `if #available(iOS 15.0, *) { tableView.sectionHeaderTopPadding = 0 }`
+  - ⚠️ **cell 两条坑**：① 自定义指定初始化器（`init(icon:tint:action:reuseId:)`）的 cell **不能 `register(cellClass)`**（UIKit 只调 `init(style:reuseIdentifier:)` → 崩溃），改用 `dequeueReusableCell(withIdentifier:)`＋`?? 工厂方法`；② **别把同一卡片视图在 cell 之间搬移**（`cell.cardView = xxx` + `prepareForReuse` 移除），每个 cell 自带卡片、只传数据
   - **演示数据**：`api/src/seeders/studio-overview-demo.js`（`npm run db:seed:overview`，幂等）。演示账号的主理工作室「兰亭书画」是**运行时注册**的，`bootstrap-demo` 不含它 → 概览全 0，需跑此脚本补课程/教师/学员/订单/退款/结算单/钱包
 - **「我的」页菜单共用组件** `Core/Components/MineMenuCardView.swift`：`MineMenuItem{icon,title}` + `MineMenuRow: UIControl`（34×34 brandSoft 圆角图标块 + 20pt brand 图标 + 标题 + chevron，行高 60）+ `MineMenuCardView(groups:)`（白卡圆角18+暖阴影，组间 18pt spacer）。三端「我的」统一使用（旧 `MenuCell.swift` 已删）
 - **SnapKit 铁律**：被其它视图约束引用的子视图，**必须先 `addSubview` 并完成自身约束，再被引用**；否则 `snp.makeConstraints` 立即激活跨层级约束 → `NSInternalInconsistencyException`
@@ -98,3 +101,4 @@ Together/                      # 仓库根（git main，远程 origin/main）
 - 沙箱 xcodebuild 末尾 `failed` 常因 keychain 写被拦截，代码本身已 `BUILD SUCCEEDED`，勿误判
 - 沙箱 `grep` 在 Bash 里常返回空 → 改用 Grep 工具；查 MySQL 中文需 `--default-character-set=utf8mb4`
 - 视觉验证：用 `--preview-*` 启动参数临时强切角色，**验证后必须全部删除并重新干净编译**
+- **间距对不上先 NSLog 定位，别靠像素猜**：临时打 `headerView.frame.height / tableView.frame.minY / contentInset.top / sectionHeaderTopPadding / cellForRow(at:)?.frame.minY`，一次就能判断间距来自哪一层；像素扫描只用来验证结果

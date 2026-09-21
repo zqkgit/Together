@@ -2,52 +2,25 @@ import UIKit
 import SnapKit
 
 /// 工作室端「经营概览」（对齐设计稿 studioOverview）
-/// 结构：标题栏（经营概览 + 通知铃铛）
-///      → 深绿营收卡（本月营收 / 提现入口 / 可提现 · 分销返利 · 结算中）
-///      → 三张经营统计卡（在读学员 / 在售课程 / 入驻教师）
-///      → 待办事项（退款申请待审核 / 课程订单待结算 / 机构动态播报）
+///
+/// 结构与「我的」页同构：**顶部 headerView 固定不动**（标题栏 + 营收卡 + 三张统计卡），
+/// 下方 `UITableView` 独立滚动（待办事项列表：退款审核 / 订单结算 / 机构动态）。
 /// 数据源：GET /v1/studio/overview（金额单位「分」，端上格式化）
 final class StudioOverviewViewController: BaseViewController {
 
     // MARK: - 视图
 
-    private let scrollView = UIScrollView()
-    private let contentView = UIView()
-
-    private let titleLabel = UILabel()
-    private let bellButton = UIButton(type: .system)
-
-    private let revenueCard = UIView()
-    private let revenueCaptionLabel = UILabel()
-    private let withdrawButton = UIButton(type: .system)
-    private let revenueAmountLabel = UILabel()
-    private var revenueValueLabels: [UILabel] = []
-    private var revenueGradient: CAGradientLayer?
-
-    private let statsRow = UIStackView()
-    private var statCards: [OverviewStatCard] = []
-
-    private let todosTitleLabel = UILabel()
-    private let todosAllButton = UIControl()
-    private let refundCard = OverviewTodoRow(
-        icon: "arrow.uturn.backward",
-        tint: Theme.Color.brand,
-        title: "退款申请待审核",
-        subtitle: "超时未处理将自动通过",
-        action: "处理"
-    )
-    private let settleCard = OverviewTodoRow(
-        icon: "doc.text",
-        tint: Theme.Color.wood,
-        title: "课程订单待结算",
-        subtitle: "暂无待结算订单",
-        action: "查看"
-    )
-    private let dynamicCard = OverviewDynamicCard()
+    private let headerView = StudioOverviewHeaderView()
+    private let tableView = UITableView(frame: .zero, style: .plain)
 
     // MARK: - 数据
 
     private var overview: StudioOverviewData?
+
+    private enum Row {
+        case refund, settle, dynamic
+    }
+    private let rows: [Row] = [.refund, .settle, .dynamic]
 
     // MARK: - 生命周期
 
@@ -55,6 +28,7 @@ final class StudioOverviewViewController: BaseViewController {
         super.viewDidLoad()
         view.backgroundColor = Theme.Color.bg
         setupLayout()
+        setupActions()
         refreshData()
     }
 
@@ -74,267 +48,52 @@ final class StudioOverviewViewController: BaseViewController {
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        // 透明 tabbar 悬浮于内容之上：底部留出安全区（含 tabbar 高度）+ 间距
-        let bottom = view.safeAreaInsets.bottom + 12
-        scrollView.contentInset.bottom = bottom
-        scrollView.verticalScrollIndicatorInsets.bottom = bottom
-        // 渐变色层跟随营收卡尺寸
-        revenueGradient?.frame = revenueCard.bounds
+        // 列表底部对齐悬浮 tabbar 上沿（safeArea 已含 tabbar 高度），再留 12 间距
+        tableView.contentInset.bottom = 12
+        tableView.verticalScrollIndicatorInsets.bottom = 12
     }
 
     // MARK: - 布局
 
     private func setupLayout() {
-        scrollView.backgroundColor = Theme.Color.bg
-        scrollView.contentInsetAdjustmentBehavior = .never
-        scrollView.showsVerticalScrollIndicator = false
-        view.addSubview(scrollView)
-        scrollView.snp.makeConstraints { $0.edges.equalToSuperview() }
-
-        scrollView.addSubview(contentView)
-        contentView.snp.makeConstraints {
-            $0.edges.equalToSuperview()
-            $0.width.equalTo(scrollView)
+        // 顶部固定区：不随内容滚动
+        view.addSubview(headerView)
+        headerView.snp.makeConstraints {
+            $0.top.leading.trailing.equalToSuperview()
         }
 
-        setupTitleBar()
-        setupRevenueCard()
-        setupStatsRow()
-        setupTodos()
-    }
-
-    private func setupTitleBar() {
-        titleLabel.text = "经营概览"
-        titleLabel.font = .appTitle(24)
-        titleLabel.textColor = Theme.Color.ink
-        contentView.addSubview(titleLabel)
-        titleLabel.snp.makeConstraints {
-            $0.top.equalTo(contentView.safeAreaLayoutGuide).offset(Theme.Spacing.s)
-            $0.leading.equalToSuperview().offset(20)
+        tableView.backgroundColor = Theme.Color.bg
+        tableView.separatorStyle = .none
+        // 消除 iOS 15+ plain style 在首个 section 前的默认留白
+        if #available(iOS 15.0, *) {
+            tableView.sectionHeaderTopPadding = 0
         }
-
-        bellButton.backgroundColor = Theme.Color.surface
-        bellButton.layer.cornerRadius = 19
-        bellButton.layer.shadowColor = UIColor(hex: 0x2B2621).cgColor
-        bellButton.layer.shadowOpacity = 0.05
-        bellButton.layer.shadowRadius = 10
-        bellButton.layer.shadowOffset = CGSize(width: 0, height: 3)
-        bellButton.setImage(
-            UIImage(systemName: "bell")?.withConfiguration(
-                UIImage.SymbolConfiguration(pointSize: 16, weight: .regular)
-            ),
-            for: .normal
-        )
-        bellButton.tintColor = Theme.Color.ink
-        bellButton.addTarget(self, action: #selector(didTapBell), for: .touchUpInside)
-        contentView.addSubview(bellButton)
-        bellButton.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(20)
-            $0.centerY.equalTo(titleLabel)
-            $0.width.height.equalTo(38)
+        tableView.showsVerticalScrollIndicator = false
+        tableView.contentInsetAdjustmentBehavior = .never
+        tableView.rowHeight = UITableView.automaticDimension
+        tableView.estimatedRowHeight = 120
+        tableView.dataSource = self
+        tableView.delegate = self
+        // 待办 cell 有自定义指定初始化器（图标 / 配色随类型而定），不走 register 自动创建
+        tableView.register(OverviewDynamicCell.self, forCellReuseIdentifier: OverviewDynamicCell.reuseId)
+        view.addSubview(tableView)
+        tableView.snp.makeConstraints {
+            $0.top.equalTo(headerView.snp.bottom)
+            $0.leading.trailing.equalToSuperview()
+            // 底部对齐悬浮 tabbar 上沿，避免最后一行被 tab 遮挡
+            $0.bottom.equalTo(view.safeAreaLayoutGuide)
         }
     }
 
-    // MARK: - 营收卡
-
-    private func setupRevenueCard() {
-        revenueCard.layer.cornerRadius = 18
-        revenueCard.layer.masksToBounds = true
-        revenueCard.backgroundColor = Theme.Color.brandDark
-        contentView.addSubview(revenueCard)
-        revenueCard.snp.makeConstraints {
-            $0.top.equalTo(titleLabel.snp.bottom).offset(Theme.Spacing.l)
-            $0.leading.trailing.equalToSuperview().inset(18)
-            $0.height.equalTo(178)
+    private func setupActions() {
+        headerView.onBell = { [weak self] in
+            self?.tabBarController?.selectedIndex = 3
         }
-
-        // 深绿渐变（brand → brandDark），与「我的」封面同源
-        let gradient = CAGradientLayer()
-        gradient.colors = [Theme.Color.brand.cgColor, Theme.Color.brandDark.cgColor]
-        gradient.startPoint = CGPoint(x: 0, y: 0)
-        gradient.endPoint = CGPoint(x: 0.7, y: 1)
-        gradient.frame = CGRect(x: 0, y: 0, width: 375, height: 178)
-        revenueCard.layer.insertSublayer(gradient, at: 0)
-        revenueGradient = gradient
-
-        // 右上装饰光晕
-        let orb = UIView()
-        orb.backgroundColor = Theme.Color.wood.withAlphaComponent(0.16)
-        orb.layer.cornerRadius = 70
-        orb.isUserInteractionEnabled = false
-        revenueCard.addSubview(orb)
-        orb.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(-40)
-            $0.trailing.equalToSuperview().offset(40)
-            $0.width.height.equalTo(140)
+        headerView.onWithdraw = { [weak self] in
+            self?.openPlaceholder(title: "提现", icon: "yensign.circle.fill",
+                                  tip: "课程收入结算、提现与账单明细将在下一阶段开放。")
         }
-
-        revenueCaptionLabel.text = "本月营收（元）"
-        revenueCaptionLabel.font = .appLabel(12)
-        revenueCaptionLabel.textColor = UIColor.white.withAlphaComponent(0.82)
-        revenueCard.addSubview(revenueCaptionLabel)
-        revenueCaptionLabel.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(20)
-            $0.leading.equalToSuperview().offset(18)
-        }
-
-        // 提现 pill（白底深绿字）
-        var withdrawConfig = UIButton.Configuration.filled()
-        withdrawConfig.baseBackgroundColor = Theme.Color.surface
-        withdrawConfig.baseForegroundColor = Theme.Color.brandDark
-        withdrawConfig.background.cornerRadius = 14
-        withdrawConfig.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 15, bottom: 0, trailing: 15)
-        withdrawConfig.attributedTitle = AttributedString(
-            "提现",
-            attributes: AttributeContainer([.font: UIFont.appSection(12.5)])
-        )
-        withdrawButton.configuration = withdrawConfig
-        withdrawButton.addTarget(self, action: #selector(didTapWithdraw), for: .touchUpInside)
-        revenueCard.addSubview(withdrawButton)
-        withdrawButton.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(18)
-            $0.centerY.equalTo(revenueCaptionLabel)
-            $0.height.equalTo(28)
-        }
-
-        revenueAmountLabel.textColor = .white
-        revenueAmountLabel.attributedText = revenueAmountText(for: 0)
-        revenueCard.addSubview(revenueAmountLabel)
-        revenueAmountLabel.snp.makeConstraints {
-            $0.top.equalTo(revenueCaptionLabel.snp.bottom).offset(6)
-            $0.leading.equalToSuperview().offset(18)
-            $0.trailing.lessThanOrEqualToSuperview().inset(18)
-        }
-
-        // 三列：可提现 / 分销返利 / 结算中
-        let metricsStack = UIStackView()
-        metricsStack.axis = .horizontal
-        metricsStack.distribution = .fillEqually
-        metricsStack.alignment = .leading
-        revenueCard.addSubview(metricsStack)
-        metricsStack.snp.makeConstraints {
-            $0.leading.trailing.equalToSuperview().inset(18)
-            $0.bottom.equalToSuperview().inset(18)
-        }
-
-        for title in ["可提现", "分销返利", "结算中"] {
-            let item = UIView()
-            let value = UILabel()
-            value.font = .appHero(16)
-            value.textColor = .white
-            value.text = "¥ 0"
-            item.addSubview(value)
-            value.snp.makeConstraints {
-                $0.top.leading.equalToSuperview()
-                $0.trailing.lessThanOrEqualToSuperview()
-            }
-            let label = UILabel()
-            label.font = .appLabel(11)
-            label.textColor = UIColor.white.withAlphaComponent(0.72)
-            label.text = title
-            item.addSubview(label)
-            label.snp.makeConstraints {
-                $0.top.equalTo(value.snp.bottom).offset(5)
-                $0.leading.bottom.equalToSuperview()
-                $0.trailing.lessThanOrEqualToSuperview()
-            }
-            revenueValueLabels.append(value)
-            metricsStack.addArrangedSubview(item)
-        }
-    }
-
-    /// 「¥ 86,420」：币种符号小一号，数字等宽防跳变
-    private func revenueAmountText(for fen: Int) -> NSAttributedString {
-        let text = NSMutableAttributedString(
-            string: "¥ ",
-            attributes: [
-                .font: UIFont.systemFont(ofSize: 20, weight: .bold),
-                .foregroundColor: UIColor.white.withAlphaComponent(0.9)
-            ]
-        )
-        text.append(NSAttributedString(
-            string: StudioAmount.groupedNumber(fen),
-            attributes: [
-                .font: UIFont.monospacedDigitSystemFont(ofSize: 34, weight: .bold),
-                .foregroundColor: UIColor.white
-            ]
-        ))
-        return text
-    }
-
-    // MARK: - 三张统计卡
-
-    private func setupStatsRow() {
-        statsRow.axis = .horizontal
-        statsRow.spacing = 12
-        statsRow.distribution = .fillEqually
-        contentView.addSubview(statsRow)
-        statsRow.snp.makeConstraints {
-            $0.top.equalTo(revenueCard.snp.bottom).offset(Theme.Spacing.l)
-            $0.leading.trailing.equalToSuperview().inset(18)
-            $0.height.equalTo(80)
-        }
-
-        for title in ["在读学员", "在售课程", "入驻教师"] {
-            let card = OverviewStatCard(title: title)
-            statCards.append(card)
-            statsRow.addArrangedSubview(card)
-        }
-    }
-
-    // MARK: - 待办事项
-
-    private func setupTodos() {
-        todosTitleLabel.text = "待办事项"
-        todosTitleLabel.font = .appSection(17)
-        todosTitleLabel.textColor = Theme.Color.ink
-        contentView.addSubview(todosTitleLabel)
-        todosTitleLabel.snp.makeConstraints {
-            $0.top.equalTo(statsRow.snp.bottom).offset(26)
-            $0.leading.equalToSuperview().offset(20)
-        }
-
-        let allLabel = UILabel()
-        allLabel.text = "全部"
-        allLabel.font = .appLabel(12)
-        allLabel.textColor = Theme.Color.sub
-        let allChevron = UIImageView(image: UIImage(systemName: "chevron.right")?
-            .withConfiguration(UIImage.SymbolConfiguration(pointSize: 10, weight: .semibold)))
-        allChevron.tintColor = Theme.Color.muted
-        allChevron.contentMode = .scaleAspectFit
-
-        // 先入层再被引用（约束铁律）
-        todosAllButton.addSubview(allLabel)
-        todosAllButton.addSubview(allChevron)
-        allLabel.snp.makeConstraints {
-            $0.leading.centerY.equalToSuperview()
-        }
-        allChevron.snp.makeConstraints {
-            $0.leading.equalTo(allLabel.snp.trailing).offset(3)
-            $0.trailing.centerY.equalToSuperview()
-            $0.width.height.equalTo(8)
-        }
-        todosAllButton.addTarget(self, action: #selector(didTapAllTodos), for: .touchUpInside)
-        contentView.addSubview(todosAllButton)
-        todosAllButton.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(18)
-            $0.centerY.equalTo(todosTitleLabel)
-            $0.height.equalTo(28)
-        }
-
-        refundCard.onTap = { [weak self] in self?.openRefundReview() }
-        settleCard.onTap = { [weak self] in self?.openSettleList() }
-        dynamicCard.onTap = { [weak self] in self?.openStudioPosts() }
-
-        let stack = UIStackView(arrangedSubviews: [refundCard, settleCard, dynamicCard])
-        stack.axis = .vertical
-        stack.spacing = 12
-        contentView.addSubview(stack)
-        stack.snp.makeConstraints {
-            $0.top.equalTo(todosTitleLabel.snp.bottom).offset(12)
-            $0.leading.trailing.equalToSuperview().inset(18)
-            $0.bottom.equalToSuperview().inset(24)
-        }
+        headerView.onAllTodos = { [weak self] in self?.didTapAllTodos() }
     }
 
     // MARK: - 数据
@@ -353,42 +112,11 @@ final class StudioOverviewViewController: BaseViewController {
     }
 
     private func apply(_ data: StudioOverviewData) {
-        let revenue = data.revenue ?? .empty
-        revenueAmountLabel.attributedText = revenueAmountText(for: revenue.monthIncome)
-        let metrics = [revenue.withdrawableText, revenue.distributionText, revenue.settlingText]
-        for (index, text) in metrics.enumerated() where index < revenueValueLabels.count {
-            revenueValueLabels[index].text = text
-        }
-
-        let stats = data.stats ?? .empty
-        let values = [stats.active_students, stats.online_courses, stats.teachers]
-        for (index, value) in values.enumerated() where index < statCards.count {
-            statCards[index].setValue(value ?? 0)
-        }
-
-        let todos = data.todos ?? .empty
-        refundCard.set(title: "\(todos.pendingRefunds) 笔退款申请待审核")
-        if todos.pendingSettleOrders > 0 {
-            settleCard.set(title: "\(todos.pendingSettleOrders) 笔课程订单待结算")
-            settleCard.set(subtitle: "收入合计 \(todos.pendingSettleAmountText)")
-        } else {
-            settleCard.set(title: "暂无待结算订单")
-            settleCard.set(subtitle: "新课订单收款后将自动结算")
-        }
-
-        dynamicCard.refresh(data.dynamic ?? .empty)
+        headerView.apply(data)
+        tableView.reloadData()
     }
 
     // MARK: - 交互
-
-    @objc private func didTapBell() {
-        tabBarController?.selectedIndex = 3
-    }
-
-    @objc private func didTapWithdraw() {
-        openPlaceholder(title: "提现", icon: "yensign.circle.fill",
-                        tip: "课程收入结算、提现与账单明细将在下一阶段开放。")
-    }
 
     @objc private func didTapAllTodos() {
         openPlaceholder(title: "待办事项", icon: "checklist",
@@ -417,50 +145,155 @@ final class StudioOverviewViewController: BaseViewController {
     }
 }
 
-// MARK: - 统计小卡
+// MARK: - UITableViewDataSource / Delegate
 
-/// 白色小卡：Hero 数字 + 标签
-private final class OverviewStatCard: UIView {
+extension StudioOverviewViewController: UITableViewDataSource, UITableViewDelegate {
 
-    private let valueLabel = UILabel()
-    private let titleLabel = UILabel()
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return rows.count
+    }
 
-    init(title: String) {
-        super.init(frame: .zero)
-        backgroundColor = Theme.Color.surface
-        layer.cornerRadius = 16
-        layer.shadowColor = UIColor(hex: 0x2B2621).cgColor
-        layer.shadowOpacity = 0.05
-        layer.shadowRadius = 14
-        layer.shadowOffset = CGSize(width: 0, height: 6)
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let todos = overview?.todos ?? .empty
 
-        valueLabel.font = .appHero(24)
-        valueLabel.textColor = Theme.Color.brandDark
-        valueLabel.textAlignment = .center
-        valueLabel.text = "0"
-        addSubview(valueLabel)
-        valueLabel.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(17)
-            $0.centerX.equalToSuperview()
-            $0.height.equalTo(28)
+        switch rows[indexPath.row] {
+        case .refund:
+            let cell = (tableView.dequeueReusableCell(withIdentifier: OverviewTodoCell.refundId) as? OverviewTodoCell)
+                ?? OverviewTodoCell.refund()
+            cell.configure(
+                title: "\(todos.pendingRefunds) 笔退款申请待审核",
+                subtitle: "超时未处理将自动通过"
+            )
+            cell.onTap = { [weak self] in self?.openRefundReview() }
+            return cell
+
+        case .settle:
+            let cell = (tableView.dequeueReusableCell(withIdentifier: OverviewTodoCell.settleId) as? OverviewTodoCell)
+                ?? OverviewTodoCell.settle()
+            if todos.pendingSettleOrders > 0 {
+                cell.configure(
+                    title: "\(todos.pendingSettleOrders) 笔课程订单待结算",
+                    subtitle: "收入合计 \(todos.pendingSettleAmountText)"
+                )
+            } else {
+                cell.configure(title: "暂无待结算订单", subtitle: "新课订单收款后将自动结算")
+            }
+            cell.onTap = { [weak self] in self?.openSettleList() }
+            return cell
+
+        case .dynamic:
+            let cell = tableView.dequeueReusableCell(
+                withIdentifier: OverviewDynamicCell.reuseId,
+                for: indexPath
+            ) as! OverviewDynamicCell
+            cell.configure(overview?.dynamic ?? .empty)
+            cell.onTap = { [weak self] in self?.openStudioPosts() }
+            return cell
         }
+    }
 
-        titleLabel.font = .appLabel(11)
-        titleLabel.textColor = Theme.Color.muted
-        titleLabel.textAlignment = .center
-        titleLabel.text = title
-        addSubview(titleLabel)
-        titleLabel.snp.makeConstraints {
-            $0.bottom.equalToSuperview().inset(13)
-            $0.centerX.equalToSuperview()
-            $0.height.equalTo(15)
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        switch rows[indexPath.row] {
+        case .dynamic:
+            return UITableView.automaticDimension
+        default:
+            return OverviewTodoCell.rowHeight
+        }
+    }
+
+    /// 区头已随「待办事项 + 全部 ›」固定在 headerView 里，列表内不再渲染 section header
+    func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+        return nil
+    }
+
+    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+        return 0
+    }
+
+    func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
+        return 0
+    }
+}
+
+// MARK: - 待办行 Cell
+
+/// 待办行 cell：**自带**一张待办卡（退款 / 结算两种样式由 reuseId 区分），左右 18、行间 12
+private final class OverviewTodoCell: UITableViewCell {
+
+    static let refundId = "OverviewTodoRefundCell"
+    static let settleId = "OverviewTodoSettleCell"
+    /// 卡片 76 + 行间 12
+    static let rowHeight: CGFloat = 88
+
+    var onTap: (() -> Void)?
+
+    private let row: OverviewTodoRow
+
+    init(icon: String, tint: UIColor, action: String, reuseId: String) {
+        row = OverviewTodoRow(icon: icon, tint: tint, title: "", subtitle: "", action: action)
+        super.init(style: .default, reuseIdentifier: reuseId)
+        backgroundColor = .clear
+        selectionStyle = .none
+
+        contentView.addSubview(row)
+        row.snp.makeConstraints {
+            $0.top.equalToSuperview()
+            $0.leading.trailing.equalToSuperview().inset(18)
+            $0.height.equalTo(OverviewTodoCell.rowHeight - 12)
+        }
+        row.onTap = { [weak self] in self?.onTap?() }
+    }
+
+    /// 退款行
+    static func refund() -> OverviewTodoCell {
+        OverviewTodoCell(icon: "arrow.uturn.backward", tint: Theme.Color.brand,
+                         action: "处理", reuseId: refundId)
+    }
+
+    /// 结算行
+    static func settle() -> OverviewTodoCell {
+        OverviewTodoCell(icon: "doc.text", tint: Theme.Color.wood,
+                         action: "查看", reuseId: settleId)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    func configure(title: String, subtitle: String) {
+        row.set(title: title)
+        row.set(subtitle: subtitle)
+    }
+}
+
+// MARK: - 机构动态 Cell
+
+/// 机构动态 cell：自带机构播报卡，高度自适应
+private final class OverviewDynamicCell: UITableViewCell {
+
+    static let reuseId = "OverviewDynamicCell"
+
+    var onTap: (() -> Void)? {
+        didSet { card.onTap = onTap }
+    }
+
+    private let card = OverviewDynamicCard()
+
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        backgroundColor = .clear
+        selectionStyle = .none
+
+        contentView.addSubview(card)
+        card.snp.makeConstraints {
+            $0.top.equalToSuperview()
+            $0.leading.trailing.equalToSuperview().inset(18)
+            $0.bottom.equalToSuperview().inset(12)
         }
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func setValue(_ value: Int) {
-        valueLabel.text = "\(value)"
+    func configure(_ dynamic: StudioOverviewDynamic) {
+        card.refresh(dynamic)
     }
 }
 
