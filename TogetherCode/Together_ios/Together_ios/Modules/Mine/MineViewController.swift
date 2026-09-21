@@ -140,6 +140,20 @@ final class MineViewController: BaseViewController, UITableViewDataSource, UITab
     // MARK: - 身份弹窗
 
     private func showRoleSheet() {
+        // 身份可能在 App 外发生变化（如平台刚在后台审核通过工作室入驻），先拉最新身份再弹窗，
+        // 否则本地缓存的 roles 不含新身份，会把「已开通」误判成「去认证」
+        MineService.fetchMe { [weak self] result in
+            guard let self else { return }
+            if case .success(let profile) = result {
+                self.profile = profile
+                self.updateHeader()
+                self.updateAuthFooter()
+            }
+            self.presentRoleSheet()
+        }
+    }
+
+    private func presentRoleSheet() {
         let owned = profile?.roles ?? (TokenManager.shared.userRole > 1 ? [1, TokenManager.shared.userRole] : [1])
         var statuses: [Int: String] = [:]
         RoleSwitchSheet.show(
@@ -182,6 +196,11 @@ final class MineViewController: BaseViewController, UITableViewDataSource, UITab
             switch result {
             case .success(let json):
                 let status = json["status"].stringValue
+                // 档案已审核通过（本地身份缓存可能尚未刷新）→ 直接切换，不再进入认证表单
+                if status == "approved" {
+                    self.switchRole(role)
+                    return
+                }
                 let reason = json["reason"].string
                 let apply = json["apply"]
                 if role == 2 {
