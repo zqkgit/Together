@@ -1,5 +1,4 @@
 import UIKit
-import MBProgressHUD
 
 /// 主 Tab 框架（对齐 PR 设计图 #parentHome）：首页 / 广场 / ➕发布 / 消息 / 我的
 /// tabbar 外观与中间大加号由 BaseTabBarViewController 统一封装
@@ -33,9 +32,7 @@ final class MainTabBarController: BaseTabBarViewController {
         // 课程管理、学员管理、老师管理、退款审核已收进「我的」页菜单，不再单独占 tab
         if TokenManager.shared.userRole == 3 {
             viewControllers = [
-                makeTab(StudioPlaceholderViewController(title: "经营概览", icon: "house",
-                                                         tip: "经营数据、退款待办与结算概览将在下一阶段开放"),
-                        title: "概览", icon: "house"),
+                makeTab(StudioOverviewViewController(), title: "概览", icon: "house"),
                 makeTab(PlazaViewController(), title: "广场", icon: "rectangle.grid.2x2"),
                 makeCenterTab(PlaceholderViewController(title: "发布"), tag: 2),
                 makeTab(MessageViewController(), title: "消息", icon: "bell"),

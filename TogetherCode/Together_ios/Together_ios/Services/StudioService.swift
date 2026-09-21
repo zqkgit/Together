@@ -86,6 +86,106 @@ struct StudioMineData: Codable {
     let stats: StudioMineStats?
 }
 
+// MARK: - 工作室「经营概览」模型
+
+/// 经营金额文案（设计稿口径：`¥ 86,420`，千分位、整数不带小数）
+enum StudioAmount {
+    /// 分 → 千分位数字（不带币种前缀），用于 `¥` 需单独排版的大字号场景
+    static func groupedNumber(_ fen: Int) -> String {
+        let yuan = Double(fen) / 100.0
+        let isInteger = yuan == yuan.rounded()
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = ","
+        formatter.usesGroupingSeparator = true
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = isInteger ? 0 : 2
+        return formatter.string(from: NSNumber(value: yuan)) ?? "0"
+    }
+
+    static func text(_ fen: Int) -> String {
+        "¥ \(groupedNumber(fen))"
+    }
+
+    /// 带符号的增量文案（如 `+¥ 2,180`）
+    static func signedText(_ fen: Int) -> String {
+        "\(fen >= 0 ? "+" : "-")\(text(abs(fen)))"
+    }
+}
+
+/// 营收卡（GET /studio/overview → revenue）
+struct StudioOverviewRevenue: Codable {
+    let month_income: Int?
+    let withdrawable: Int?
+    let distribution: Int?
+    let settling: Int?
+
+    static let empty = StudioOverviewRevenue(month_income: nil, withdrawable: nil, distribution: nil, settling: nil)
+
+    var monthIncome: Int { month_income ?? 0 }
+    var monthIncomeText: String { StudioAmount.text(monthIncome) }
+    var withdrawableText: String { StudioAmount.text(withdrawable ?? 0) }
+    var distributionText: String { StudioAmount.text(distribution ?? 0) }
+    var settlingText: String { StudioAmount.text(settling ?? 0) }
+}
+
+/// 三项经营统计（GET /studio/overview → stats）
+struct StudioOverviewStats: Codable {
+    let active_students: Int?
+    let online_courses: Int?
+    let teachers: Int?
+
+    static let empty = StudioOverviewStats(active_students: nil, online_courses: nil, teachers: nil)
+}
+
+/// 待办（GET /studio/overview → todos）
+struct StudioOverviewTodos: Codable {
+    let pending_refunds: Int?
+    let pending_settle_orders: Int?
+    let pending_settle_amount: Int?
+
+    static let empty = StudioOverviewTodos(pending_refunds: nil, pending_settle_orders: nil, pending_settle_amount: nil)
+
+    var pendingRefunds: Int { pending_refunds ?? 0 }
+    var pendingSettleOrders: Int { pending_settle_orders ?? 0 }
+    var pendingSettleAmountText: String { StudioAmount.text(pending_settle_amount ?? 0) }
+}
+
+/// 机构动态播报（GET /studio/overview → dynamic）
+struct StudioOverviewDynamic: Codable {
+    let studio_name: String?
+    let today_enrolled: Int?
+    let weekly_enrolled: Int?
+    let weekly_income: Int?
+    let distribution_ratio: Int?
+    let headline: String?
+
+    static let empty = StudioOverviewDynamic(
+        studio_name: nil, today_enrolled: nil, weekly_enrolled: nil,
+        weekly_income: nil, distribution_ratio: nil, headline: nil
+    )
+
+    var studioName: String {
+        guard let studio_name, !studio_name.isEmpty else { return "我的工作室" }
+        return studio_name
+    }
+    var todayEnrolled: Int { today_enrolled ?? 0 }
+    var weeklyEnrolled: Int { weekly_enrolled ?? 0 }
+    var weeklyIncome: Int { weekly_income ?? 0 }
+    var weeklyIncomeText: String { StudioAmount.signedText(weeklyIncome) }
+    var headlineText: String {
+        guard let headline, !headline.isEmpty else { return "本周经营数据持续更新中。" }
+        return headline
+    }
+}
+
+struct StudioOverviewData: Codable {
+    let revenue: StudioOverviewRevenue?
+    let stats: StudioOverviewStats?
+    let todos: StudioOverviewTodos?
+    let dynamic: StudioOverviewDynamic?
+}
+
 // MARK: - 工作室数据服务
 
 /// 工作室端（角色 3）App 接口：/v1/studio/*
@@ -98,6 +198,20 @@ enum StudioService {
             case .success(let json):
                 let data = JSONKit.decode(StudioMineData.self, from: json)
                     ?? StudioMineData(profile: nil, stats: nil)
+                completion(.success(data))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 工作室「经营概览」：营收卡 + 三项统计 + 待办 + 机构动态
+    static func fetchOverview(completion: @escaping (Result<StudioOverviewData, APIError>) -> Void) {
+        APIClient.shared.request("/studio/overview", method: .get) { result in
+            switch result {
+            case .success(let json):
+                let data = JSONKit.decode(StudioOverviewData.self, from: json)
+                    ?? StudioOverviewData(revenue: nil, stats: nil, todos: nil, dynamic: nil)
                 completion(.success(data))
             case .failure(let error):
                 completion(.failure(error))

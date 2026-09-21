@@ -16,7 +16,8 @@ const loading = ref(false);
 
 const demoAccounts: Record<LoginScope, { username: string; password: string; label: string }> = {
   platform: { username: "platform_admin", password: "123456", label: "平台超管" },
-  studio: { username: "studio_owner_1", password: "123456", label: "工作室主理人" }
+  // 工作室后台账号由平台审核通过时自动开通：用户名＝主理人注册手机号，初始密码 123456
+  studio: { username: "13800000000", password: "123456", label: "工作室主理人" }
 };
 
 function switchScope(next: LoginScope) {
@@ -140,6 +141,10 @@ async function handleLogin() {
           <code>{{ demoAccounts[scope].label }}：{{ demoAccounts[scope].username }} / {{ demoAccounts[scope].password }}</code>
           <span class="demo-action">点击填入</span>
         </div>
+
+        <p v-if="scope === 'studio'" class="scope-hint">
+          工作室后台账号在平台审核通过时自动开通，使用主理人注册手机号登录，初始密码 123456
+        </p>
       </div>
 
       <p class="form-foot">© 2026 艺启 YIQI · 温暖手作设计系统 v2</p>
@@ -400,6 +405,13 @@ async function handleLogin() {
   margin-left: auto;
   color: #2f5d45;
   font-weight: 600;
+}
+
+.scope-hint {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #9c9385;
 }
 
 .form-foot {

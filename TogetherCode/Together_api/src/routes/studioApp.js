@@ -1,6 +1,6 @@
 const express = require("express");
 const { requireAuth, requireRole } = require("../middlewares/auth");
-const { getStudioMineHandler } = require("../controllers/studioAppController");
+const { getStudioMineHandler, getStudioOverviewHandler } = require("../controllers/studioAppController");
 
 const router = express.Router();
 
@@ -8,5 +8,6 @@ const router = express.Router();
 router.use(requireAuth, requireRole(3));
 
 router.get("/mine", getStudioMineHandler);
+router.get("/overview", getStudioOverviewHandler);
 
 module.exports = router;

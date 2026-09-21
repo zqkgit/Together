@@ -1,3 +1,4 @@
+const bcrypt = require("bcryptjs");
 const { Op, fn, col, QueryTypes } = require("sequelize");
 const {
   StudioProfile,
@@ -5,6 +6,7 @@ const {
   Settlement,
   User,
   UserRole,
+  AdminAccount,
   Order,
   Course,
   Child
@@ -316,6 +318,68 @@ async function getStudioReviewDetail(reviewId) {
   };
 }
 
+// 主理人 Web 后台初始密码（登录后可在后台自行修改）
+const STUDIO_OWNER_INITIAL_PASSWORD = "123456";
+
+/**
+ * 工作室认证通过后，为主理人开通 Web 后台账号（幂等）。
+ * 后台账号体系（admin_accounts）与 C 端账号（users）相互独立，
+ * 不建这条记录，主理人即使有工作室身份也登不进 Web 端。
+ * 用户名取主理人手机号，角色 studio_owner，绑定本次审核通过的工作室。
+ */
+async function ensureStudioOwnerAccount({ userId, studioId, phone, transaction }) {
+  if (!userId || !studioId) {
+    return null;
+  }
+
+  // 已开通过：重新绑定工作室并解冻（一个主理人只保留一个 studio_owner 账号）
+  const existing = await AdminAccount.findOne({
+    where: { user_id: userId, role: "studio_owner" },
+    transaction
+  });
+  if (existing) {
+    const patch = {};
+    if (String(existing.studio_id || "") !== String(studioId)) {
+      patch.studio_id = studioId;
+    }
+    if (Number(existing.status) !== 1) {
+      patch.status = 1;
+    }
+    if (Object.keys(patch).length) {
+      await existing.update(patch, { transaction });
+    }
+    return existing;
+  }
+
+  let username = String(phone || "").trim();
+  if (!username) {
+    const owner = await User.findByPk(userId, { attributes: ["phone"], transaction });
+    username = String(owner?.phone || "").trim();
+  }
+  if (!username) {
+    return null;
+  }
+
+  // 用户名唯一：被占用时退化为 owner_<userId 后 8 位>，保证仍能登录
+  const clash = await AdminAccount.findOne({ where: { username }, transaction });
+  if (clash) {
+    username = `owner_${String(userId).slice(-8)}`;
+  }
+
+  return AdminAccount.create(
+    {
+      admin_id: generateId(),
+      user_id: userId,
+      username,
+      password_hash: bcrypt.hashSync(STUDIO_OWNER_INITIAL_PASSWORD, 10),
+      role: "studio_owner",
+      studio_id: studioId,
+      status: 1
+    },
+    { transaction }
+  );
+}
+
 async function reviewStudioApplication(reviewId, payload, operator = {}) {
   return sequelize.transaction(async (transaction) => {
     const application = await StudioApplication.findByPk(reviewId, {
@@ -404,11 +468,21 @@ async function reviewStudioApplication(reviewId, payload, operator = {}) {
         },
         { transaction }
       );
+      // 开通 Web 后台账号：用户名为主理人注册手机号，初始密码 123456
+      const ownerAccount = await ensureStudioOwnerAccount({
+        userId: application.user_id,
+        studioId: studio.studio_id,
+        transaction
+      });
+
       await createNotification({
         userId: application.user_id,
         type: "cert",
         title: "工作室认证已通过",
-        content: `恭喜，「${application.name || "你的工作室"}」认证已通过，现在可以开展课程与招生了。`,
+        content: ownerAccount
+          ? `恭喜，「${application.name || "你的工作室"}」认证已通过，现在可以开展课程与招生了。`
+            + ` Web 管理后台已开通：使用手机号 ${ownerAccount.username} 登录「工作室后台」，初始密码 ${STUDIO_OWNER_INITIAL_PASSWORD}，请尽快修改。`
+          : `恭喜，「${application.name || "你的工作室"}」认证已通过，现在可以开展课程与招生了。`,
         refType: "cert",
         refId: application.id
       });
@@ -543,6 +617,7 @@ module.exports = {
   getReviews,
   getStudioReviewDetail,
   reviewStudioApplication,
+  ensureStudioOwnerAccount,
   banStudio,
   unbanStudio,
   getSettlements

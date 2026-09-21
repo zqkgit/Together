@@ -12,7 +12,9 @@
     "db:migrate": "npx sequelize-cli db:migrate",
     "db:migrate:undo": "npx sequelize-cli db:migrate:undo",
     "db:migrate:status": "npx sequelize-cli db:migrate:status",
-    "db:seed:demo": "node src/seeders/bootstrap-demo.js"
+    "db:seed:demo": "node src/seeders/bootstrap-demo.js",
+    "db:seed:overview": "node src/seeders/studio-overview-demo.js",
+    "db:seed:studio-admin": "node src/seeders/studio-admin-accounts.js"
   },
   "dependencies": {
     "ali-oss": "^6.23.0",
