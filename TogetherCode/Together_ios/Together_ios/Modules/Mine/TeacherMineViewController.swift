@@ -29,6 +29,8 @@ final class TeacherMineViewController: BaseViewController {
     private let menuCard = MineMenuCardView(groups: [teachingItems, serviceItems])
     private var profile: TeacherMineProfile?
     private var stats = TeacherMineStats(active_students: nil, total_lessons: nil, post_count: nil)
+    /// 真实身份列表（来自 /auth/me）：老师档案接口不含 roles，切换身份必须以它为准
+    private var mineProfile: MineProfile?
 
     override var preferredStatusBarStyle: UIStatusBarStyle { .lightContent }
 
@@ -112,6 +114,13 @@ final class TeacherMineViewController: BaseViewController {
                 self.showToast(error.message ?? "加载失败")
             }
         }
+
+        // 老师档案接口不含 roles：单独拉 /auth/me 拿真实身份列表，供切换身份弹窗判断
+        MineService.fetchMe { [weak self] result in
+            if case .success(let profile) = result {
+                self?.mineProfile = profile
+            }
+        }
     }
 
     private func openSettings() {
@@ -121,13 +130,25 @@ final class TeacherMineViewController: BaseViewController {
     // MARK: - 身份弹窗（复用家长侧逻辑）
 
     private func showRoleSheet() {
-        let owned = profile != nil ? [1, 2] : [1, TokenManager.shared.userRole > 1 ? TokenManager.shared.userRole : 1]
+        // 身份可能在 App 外发生变化（如平台刚在后台审核通过工作室入驻），先拉最新身份再弹窗，
+        // 否则本地缓存的 roles 不含新身份，会把「已开通」误判成「去认证」（与家长端一致）
+        MineService.fetchMe { [weak self] result in
+            guard let self else { return }
+            if case .success(let profile) = result {
+                self.mineProfile = profile
+            }
+            self.presentRoleSheet()
+        }
+    }
+
+    private func presentRoleSheet() {
+        let owned = mineProfile?.roles ?? (TokenManager.shared.userRole > 1 ? [1, TokenManager.shared.userRole] : [1])
         var statuses: [Int: String] = [:]
         RoleSwitchSheet.show(
             roles: owned,
-            currentRole: 2,
+            currentRole: mineProfile?.current_role ?? TokenManager.shared.userRole,
             authStatuses: statuses,
-            teacherName: profile?.name,
+            teacherName: mineProfile?.teacherRealName ?? profile?.name,
             onSelect: { [weak self] role in
                 self?.switchRole(role)
             },
@@ -161,6 +182,11 @@ final class TeacherMineViewController: BaseViewController {
             switch result {
             case .success(let json):
                 let status = json["status"].stringValue
+                // 档案已审核通过（本地身份缓存可能尚未刷新）→ 直接切换，不再进入认证表单
+                if status == "approved" {
+                    self.switchRole(role)
+                    return
+                }
                 let reason = json["reason"].string
                 let apply = json["apply"]
                 if role == 2 {

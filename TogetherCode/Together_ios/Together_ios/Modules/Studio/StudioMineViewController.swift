@@ -165,7 +165,18 @@ final class StudioMineViewController: BaseViewController {
     // MARK: - 身份切换
 
     private func showRoleSheet() {
-        let owned = mineProfile?.roles ?? [1, TokenManager.shared.userRole]
+        // 身份可能在 App 外变化（如平台刚审核通过老师认证），先拉最新身份再弹窗（与家长端一致）
+        MineService.fetchMe { [weak self] result in
+            guard let self else { return }
+            if case .success(let profile) = result {
+                self.mineProfile = profile
+            }
+            self.presentRoleSheet()
+        }
+    }
+
+    private func presentRoleSheet() {
+        let owned = mineProfile?.roles ?? (TokenManager.shared.userRole > 1 ? [1, TokenManager.shared.userRole] : [1])
         var statuses: [Int: String] = [:]
         RoleSwitchSheet.show(
             roles: owned,
@@ -205,6 +216,11 @@ final class StudioMineViewController: BaseViewController {
             switch result {
             case .success(let json):
                 let status = json["status"].stringValue
+                // 档案已审核通过（本地身份缓存可能尚未刷新）→ 直接切换，不再进入认证表单
+                if status == "approved" {
+                    self.switchRole(role)
+                    return
+                }
                 let reason = json["reason"].string
                 let apply = json["apply"]
                 if role == 2 {

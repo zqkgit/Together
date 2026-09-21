@@ -71,7 +71,9 @@ Together/                      # 仓库根（git main，远程 origin/main）
 - **平台审核**：`adminStore.reviewStudioApplication`（Web `PUT /admin/.../studio-applications/:id`）→ 写 `studio_profiles` + `user_roles(role:3)` + 发 `cert` 通知；通过后才在切换身份弹窗出现"工作室·切换"
 - 状态口径：DB 存整数 0/1/2，对外转字符串（注意 iOS 端、文档与 DB 三者口径要一致）
 - 字段对齐：iOS 提交字段与 `ROLE_META.studio.fields` 完全一致（name/city/address/contact_name/phone/business_type/teacher_count/license/permit/intro/photos/cover）
-- ⚠️ 已知缺陷：`MineViewController/StudioMineViewController` 在 `getRoleApplyStatus` 返回 `approved` 时无专属分支，会落入 default 重开空白表单而非引导进入工作室端；`uploadPhotosIfNeeded` 失败时静默返回空数组，提交被"请至少上传1张照片"拦截却无真实错误原因
+- ⚠️ **切换身份弹窗的数据源铁律（2026-09-21 修）**：`RoleSwitchSheet` 的四态（当前/切换/审核中/已驳回/去认证）**完全由调用方传入的 `roles` 决定**，组件自身不查接口。所以每个承载切换入口的页面都必须传 `/auth/me` 的 `roles`，**不能用角色专属档案接口**——`/v1/teacher/mine`、`/v1/studio/mine` 都不含 `roles` 字段。曾因此踩坑：`TeacherMineViewController` 写死 `owned = [1, 2]`，导致已开通工作室的账号在老师端恒显示「去认证」（家长端/工作室端用 `MineService.fetchMe().roles` 故正常）。三端现已统一为 `mineProfile?.roles ?? (userRole > 1 ? [1, userRole] : [1])`，且 `showRoleSheet()` 先拉 `/auth/me` 再弹窗（防 App 外审核通过后本地缓存滞后）。
+- 三端 `handleNeedAuth` 均已补 `status == "approved" → switchRole(role)` 分支（原缺，会落入 default 重开空白表单）。
+- ⚠️ 仍存缺陷：`uploadPhotosIfNeeded` 失败时静默返回空数组，提交被"请至少上传1张照片"拦截却无真实错误原因
 
 ## 七、帖子位置与距离推荐（2026-09-20 新增，后台先行）
 
