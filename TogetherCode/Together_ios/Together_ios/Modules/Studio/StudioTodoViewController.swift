@@ -52,7 +52,11 @@ final class StudioTodoViewController: BaseViewController {
         tableView.delegate = self
         tableView.register(StudioTodoCell.self, forCellReuseIdentifier: StudioTodoCell.reuseID)
         tableView.rowHeight = UITableView.automaticDimension
-        tableView.estimatedRowHeight = 84
+        tableView.estimatedRowHeight = 88
+        // iOS 15+ plain style 会在首个 section 前预留约 22pt
+        if #available(iOS 15.0, *) {
+            tableView.sectionHeaderTopPadding = 0
+        }
         tableView.es.addPullToRefresh(animator: BrandRefreshHeader()) { [weak self] in
             self?.loadData()
         }
@@ -150,6 +154,8 @@ extension StudioTodoViewController: UITableViewDataSource, UITableViewDelegate {
 
 private final class StudioTodoCell: UITableViewCell {
     static let reuseID = "StudioTodoCell"
+    /// 卡片高度（上下各留 6 → 行高 88）
+    static let cardHeight: CGFloat = 76
 
     private let card = UIView()
     private let iconBox = UIView()
@@ -165,6 +171,8 @@ private final class StudioTodoCell: UITableViewCell {
         backgroundColor = .clear
         contentView.backgroundColor = .clear
 
+        // 卡片：左右 12，行间 12，**显式高度**（内容全用 centerY/相对定位，
+        // 不给高度的话 automaticDimension 会算出塌缩高度 → 多行挤在一起）
         contentView.addSubview(card)
         card.backgroundColor = Theme.Color.surface
         card.layer.cornerRadius = Theme.Radius.card
@@ -172,6 +180,30 @@ private final class StudioTodoCell: UITableViewCell {
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
             $0.top.equalToSuperview().offset(6)
             $0.bottom.equalToSuperview().offset(-6)
+            $0.height.equalTo(Self.cardHeight)
+        }
+
+        // 右侧控件先入层（避免被左侧 label 约束跨层级引用）
+        chevron.tintColor = Theme.Color.muted
+        chevron.contentMode = .scaleAspectFit
+        card.addSubview(chevron)
+        chevron.snp.makeConstraints {
+            $0.centerY.equalToSuperview()
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.width.equalTo(8)
+        }
+
+        badgeLabel.font = .appLabel(11)
+        badgeLabel.textColor = .white
+        badgeLabel.backgroundColor = Theme.Color.danger
+        badgeLabel.layer.cornerRadius = 10
+        badgeLabel.clipsToBounds = true
+        badgeLabel.textInsets = UIEdgeInsets(top: 2, left: 7, bottom: 2, right: 7)
+        card.addSubview(badgeLabel)
+        badgeLabel.snp.makeConstraints {
+            $0.centerY.equalToSuperview()
+            // 角标位置必须用等式钉住，否则欠定会飘到卡片中间
+            $0.trailing.equalTo(chevron.snp.leading).offset(-8)
         }
 
         iconBox.layer.cornerRadius = Theme.Radius.icon
@@ -191,35 +223,17 @@ private final class StudioTodoCell: UITableViewCell {
         titleLabel.snp.makeConstraints {
             $0.leading.equalTo(iconBox.snp.trailing).offset(Theme.Spacing.m)
             $0.top.equalTo(iconBox).offset(2)
+            $0.trailing.lessThanOrEqualTo(badgeLabel.snp.leading).offset(-8)
         }
+
         detailLabel.font = .appLabel(12)
         detailLabel.textColor = Theme.Color.muted
         card.addSubview(detailLabel)
         detailLabel.snp.makeConstraints {
             $0.leading.equalTo(titleLabel)
+            $0.top.equalTo(titleLabel.snp.bottom).offset(4)
             $0.bottom.equalTo(iconBox).offset(-2)
-            $0.trailing.lessThanOrEqualToSuperview().inset(72)
-        }
-
-        badgeLabel.font = .appLabel(11)
-        badgeLabel.textColor = .white
-        badgeLabel.backgroundColor = Theme.Color.danger
-        badgeLabel.layer.cornerRadius = 10
-        badgeLabel.clipsToBounds = true
-        badgeLabel.textInsets = UIEdgeInsets(top: 2, left: 7, bottom: 2, right: 7)
-        card.addSubview(badgeLabel)
-        badgeLabel.snp.makeConstraints {
-            $0.centerY.equalToSuperview()
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.xl)
-        }
-
-        chevron.tintColor = Theme.Color.muted
-        chevron.contentMode = .scaleAspectFit
-        card.addSubview(chevron)
-        chevron.snp.makeConstraints {
-            $0.centerY.equalToSuperview()
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
-            $0.width.equalTo(8)
+            $0.trailing.lessThanOrEqualTo(badgeLabel.snp.leading).offset(-8)
         }
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
