@@ -42,7 +42,7 @@ enum OrderService {
         }
     }
 
-    /// 取消待支付订单
+    /// 取消待收款订单（机构尚未确认收款，可取消）
     static func cancelOrder(orderId: String, completion: @escaping (Result<Void, APIError>) -> Void) {
         APIClient.shared.request("/orders/\(orderId)/cancel", method: .post) { result in
             switch result {
@@ -59,21 +59,33 @@ enum OrderService {
 
 extension OrderService {
 
-    /// 支付订单（channel: wechat_mini / ios_iap / offline；childId 可选：支付时切换上课孩子）
-    static func payOrder(orderId: String, channel: String, childId: String? = nil, completion: @escaping (Result<Void, APIError>) -> Void) {
-        var parameters: [String: Any] = ["channel": channel]
-        if let childId, !childId.isEmpty {
-            parameters["child_id"] = childId
+    /// 提交线下付款凭证（平台不经手资金；家长线下向机构付款后上传，机构核对确认后发课时）
+    /// - Parameters:
+    ///   - payMethod: 付款方式（cash 现金可免凭证；其余线上转账必传凭证图）
+    ///   - voucherImages: 付款凭证图 OSS URL（≤9）
+    ///   - note: 备注（可选）
+    static func submitPaymentVoucher(
+        orderId: String,
+        payMethod: String,
+        voucherImages: [String],
+        note: String? = nil,
+        completion: @escaping (Result<Void, APIError>) -> Void
+    ) {
+        var parameters: [String: Any] = [
+            "pay_method": payMethod,
+            "voucher_images": voucherImages
+        ]
+        if let note, !note.isEmpty {
+            parameters["note"] = note
         }
         APIClient.shared.request(
-            "/orders/\(orderId)/pay",
+            "/orders/\(orderId)/payment-voucher",
             method: .post,
             parameters: parameters
         ) { result in
             switch result {
             case .success:
-                // 统计：支付成功
-                AnalyticsManager.shared.event("order_pay_success", params: ["channel": channel])
+                AnalyticsManager.shared.event("payment_voucher_submit", params: ["method": payMethod])
                 completion(.success(()))
             case .failure(let error):
                 completion(.failure(error))

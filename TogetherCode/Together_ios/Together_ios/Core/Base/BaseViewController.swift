@@ -1,5 +1,4 @@
 import UIKit
-import SnapKit
 import MBProgressHUD
 
 /// 基类控制器：统一背景、加载、提示、空态、沉浸式导航
@@ -7,18 +6,28 @@ class BaseViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = Theme.Color.bg
         setupNavigationBar()
+        // 系统返回按钮只显示箭头、不显示上一页标题（iOS 14+）
+        navigationItem.backButtonDisplayMode = .minimal
     }
 
     private func setupNavigationBar() {
         navigationController?.navigationBar.prefersLargeTitles = false
     }
 
-    // MARK: - 统一沉浸式导航（透明系统导航栏方案）
+    // MARK: - 统一沉浸式导航（透明系统导航栏 + 系统返回箭头）
 
-    /// 沉浸式导航：透明导航栏 + 自定义圆底返回按钮 + 系统标题（标题居中、转场动画、侧滑返回手势均由系统管理）
-    /// 子类在 viewWillAppear 调用；viewWillDisappear 调用 restoreSystemNav() 恢复默认导航栏
+    /// 沉浸式导航：透明导航栏 + 系统返回箭头 + 居中标题。
+    /// 全局导航栏外观已在 BaseNavigationController 统一为透明，这里只按页面需要设置标题色 / 返回箭头色
+    /// （深色头、图片头页面传白色）。返回按钮统一用系统 backBarButtonItem：它固定在导航栏上，
+    /// 手势返回时不会跟随页面横向移动、不抖动，且自带边缘侧滑返回与长按返回历史菜单。
+    /// 子类在 viewWillAppear 调用；viewWillDisappear 调用 restoreSystemNav() 复位着色。
+    /// - Parameters:
+    ///   - title: 导航标题
+    ///   - titleColor: 标题颜色
+    ///   - backBackground: 已废弃（系统返回按钮无背景），保留参数以兼容旧调用
+    ///   - backTint: 返回箭头颜色（深色头页面传 .white）
     func configureImmersiveNav(
         title: String? = nil,
         titleColor: UIColor = Theme.Color.ink,
@@ -33,62 +42,41 @@ class BaseViewController: UIViewController {
             .foregroundColor: titleColor,
             .font: UIFont.appSection(17)
         ]
+        let back = UIBarButtonItemAppearance()
+        back.normal.titleTextAttributes = [.foregroundColor: UIColor.clear]
+        back.highlighted.titleTextAttributes = [.foregroundColor: UIColor.clear]
+        appearance.backButtonAppearance = back
+
         guard let nav = navigationController else { return }
         nav.navigationBar.standardAppearance = appearance
         nav.navigationBar.scrollEdgeAppearance = appearance
         nav.navigationBar.compactAppearance = appearance
         nav.navigationBar.isTranslucent = true
-
-        // 自定义圆底返回按钮（帖子详情样式：白 chevron + 黑半透明圆底 38pt）
-        // 用容器承载：系统导航栏 ItemWrapperView 高度固定 36，直接给 customView 按钮设 38 高会与其冲突；
-        // 容器高度交给系统，按钮 38×38 在容器内居中（上下各溢出 1pt，容器不裁剪）
-        let button = UIButton(type: .system)
-        button.backgroundColor = backBackground
-        button.layer.cornerRadius = 19
-        button.clipsToBounds = true
-        button.setImage(UIImage(systemName: "chevron.left"), for: .normal)
-        button.tintColor = backTint
-        button.addTarget(self, action: #selector(didTapImmersiveBack), for: .touchUpInside)
-
-        let backContainer = UIView()
-        backContainer.addSubview(button)
-        button.snp.makeConstraints { make in
-            make.center.equalToSuperview()
-            make.width.height.equalTo(38)
-        }
-        backContainer.snp.makeConstraints { make in
-            make.width.equalTo(38)
-        }
-
-        navigationItem.leftBarButtonItem = UIBarButtonItem(customView: backContainer)
-        navigationItem.hidesBackButton = true
+        // 系统返回箭头颜色
+        nav.navigationBar.tintColor = backTint
         navigationItem.title = title
     }
 
-    /// 恢复默认不透明导航栏（沉浸式页在 viewWillDisappear 调用，保证上一级普通页正常显示）
+    /// 恢复默认导航外观（沉浸式页 viewWillDisappear 调用：只重置标题/箭头着色，背景保持透明，避免手势转场晃动）
     func restoreSystemNav() {
         let appearance = UINavigationBarAppearance()
-        appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = Theme.Color.surface
+        appearance.configureWithTransparentBackground()
+        appearance.backgroundColor = .clear
         appearance.shadowColor = .clear
         appearance.titleTextAttributes = [
             .foregroundColor: Theme.Color.ink,
             .font: UIFont.appSection(17)
         ]
+        let back = UIBarButtonItemAppearance()
+        back.normal.titleTextAttributes = [.foregroundColor: UIColor.clear]
+        appearance.backButtonAppearance = back
         guard let nav = navigationController else { return }
         nav.navigationBar.standardAppearance = appearance
         nav.navigationBar.scrollEdgeAppearance = appearance
         nav.navigationBar.compactAppearance = appearance
-        // isTranslucent 保持 true（与沉浸式一致）：iOS 17 在转场中切换 translucent 会渲染出整片导航阴影
+        // 全局统一透明导航栏，isTranslucent 恒定 true
         nav.navigationBar.isTranslucent = true
-    }
-
-    @objc private func didTapImmersiveBack() {
-        if let nav = navigationController, nav.viewControllers.count > 1 {
-            nav.popViewController(animated: true)
-        } else {
-            dismiss(animated: true)
-        }
+        nav.navigationBar.tintColor = Theme.Color.ink
     }
 
     // MARK: - 加载

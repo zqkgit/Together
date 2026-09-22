@@ -324,7 +324,7 @@ final class SetPayPasswordViewController: BaseViewController {
         }
 
         let tipLabel = UILabel()
-        tipLabel.text = "支付密码用于余额支付时校验"
+        tipLabel.text = "支付密码用于佣金提现等操作时校验"
         tipLabel.font = .appLabel(12)
         tipLabel.textColor = Theme.Color.sub
         view.addSubview(tipLabel)

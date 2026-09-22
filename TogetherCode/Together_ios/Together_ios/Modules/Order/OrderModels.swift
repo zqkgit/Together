@@ -1,26 +1,22 @@
 import Foundation
 
-// MARK: - 订单状态（对齐后端 orders.status：0 待支付 / 1 已支付 / 2 已取消 / 3 已退款 / 4 全额退款终态）
+// MARK: - 订单状态（对齐后端 orders.status：0 待收款 / 1 已收款 / 2 已取消；已退款由 refunds 聚合展示）
 
 enum OrderStatus: Int {
-    case pending = 0      // 待支付
-    case enrolled = 1     // 已支付（已报名）
-    case cancelled = 2    // 已取消
-    case refunded = 3     // 已退款
-    case completed = 4    // 全额退款终态（未上课全退）
+    case pendingCollect = 0   // 待收款（线下付款后传凭证，等待机构确认）
+    case collected = 1        // 已收款（机构确认到账，已发课时）
+    case cancelled = 2        // 已取消
 
     var text: String {
         switch self {
-        case .pending: return "待支付"
-        case .enrolled: return "已支付"
+        case .pendingCollect: return "待付款"
+        case .collected: return "已报名"
         case .cancelled: return "已取消"
-        case .refunded: return "已退款"
-        case .completed: return "已退款"
         }
     }
 }
 
-// MARK: - 退款状态（订单层聚合：0 无 / 1 退款中 / 2 已退款 / 3 已驳回）
+// MARK: - 订单层退款聚合状态：0 无 / 1 退款中 / 2 已退款 / 3 已驳回
 
 enum OrderRefundStatus: Int {
     case none = 0
@@ -38,12 +34,105 @@ enum OrderRefundStatus: Int {
     }
 }
 
+// MARK: - 线下付款方式（仅记录，不跳转支付、不展示收款码）
+
+enum PayMethod: String, CaseIterable {
+    case cash
+    case wechat
+    case alipay
+    case bank
+    case qrcode
+    case other
+
+    /// 后端枚举值
+    var code: String { rawValue }
+
+    var text: String {
+        switch self {
+        case .cash: return "现金"
+        case .wechat: return "微信转账"
+        case .alipay: return "支付宝转账"
+        case .bank: return "银行转账"
+        case .qrcode: return "扫码转账"
+        case .other: return "其他"
+        }
+    }
+
+    /// SF Symbol 图标
+    var icon: String {
+        switch self {
+        case .cash: return "banknote"
+        case .wechat: return "message.fill"
+        case .alipay: return "a.circle.fill"
+        case .bank: return "building.columns.fill"
+        case .qrcode: return "qrcode"
+        case .other: return "ellipsis.circle"
+        }
+    }
+
+    /// 是否线上转账类（线上必须上传付款凭证；现金可免凭证）
+    var isOnline: Bool { self != .cash }
+
+    static func from(_ raw: String?) -> PayMethod? {
+        guard let raw else { return nil }
+        return PayMethod.allCases.first { $0.rawValue == raw }
+    }
+}
+
+// MARK: - 付款记录（一笔=一次收款登记 / 一张凭证）
+
+enum PaymentStatus: Int {
+    case pending = 0    // 待机构确认
+    case confirmed = 1  // 已确认（已收款）
+    case rejected = 2   // 凭证被驳回
+
+    var text: String {
+        switch self {
+        case .pending: return "待确认"
+        case .confirmed: return "已确认"
+        case .rejected: return "已驳回"
+        }
+    }
+}
+
+struct PaymentItem: Codable {
+    let payment_id: String?
+    let payment_no: String?
+    let channel: String?
+    let pay_method: String?
+    let pay_method_text: String?
+    let amount: Int?
+    let status: Int?
+    let status_text: String?
+    let voucher_images: [String]?
+    let payer_note: String?
+    /// 0 = 家长上传，1 = 工作室代登记
+    let upload_by: Int?
+    let reject_reason: String?
+    let paid_at: String?
+    let created_at: String?
+
+    var statusValue: PaymentStatus { PaymentStatus(rawValue: status ?? 0) ?? .pending }
+    var methodText: String { pay_method_text ?? PayMethod.from(pay_method ?? channel)?.text ?? "线下结算" }
+    var images: [String] { voucher_images ?? [] }
+    var isFromStudio: Bool { (upload_by ?? 0) == 1 }
+    var timeText: String { PaymentItem.fmt(created_at ?? paid_at) }
+
+    static func fmt(_ raw: String?) -> String {
+        guard let raw, !raw.isEmpty else { return "-" }
+        return raw.replacingOccurrences(of: "T", with: " ").prefix(16).description
+    }
+}
+
 // MARK: - 订单
 
 struct OrderItem: Codable {
     let order_id: String?
     let order_no: String?
     let status: Int?
+    /// 0 家长报名 / 1 工作室手动建单
+    let source: Int?
+    let source_text: String?
     let total_lessons: Int?
     let consumed_lessons: Int?
     let refunded_lessons: Int?
@@ -55,48 +144,40 @@ struct OrderItem: Codable {
     let refund_status_text: String?
     let can_apply_refund: Bool?
     let refund_expire_at: String?
-    let pay_expire_at: String?
     let pay_channel: String?
+    let pay_method: String?
+    let pay_method_text: String?
     let paid_at: String?
     let created_at: String?
     let child: OrderChildBrief?
     let studio: OrderStudioBrief?
     let course: OrderCourseBrief?
     let package: OrderPackageBrief?
+    let `class`: OrderClassBrief?
+    let user: OrderUserBrief?
+    let payments: [PaymentItem]?
     let refunds: [OrderRefundBrief]?
 
-    var statusValue: OrderStatus { OrderStatus(rawValue: status ?? -1) ?? .completed }
+    var statusValue: OrderStatus { OrderStatus(rawValue: status ?? -1) ?? .cancelled }
 
-    /// 订单层退款聚合状态
     var refundStatusValue: OrderRefundStatus { OrderRefundStatus(rawValue: refund_status ?? 0) ?? .none }
 
-    /// 是否存在进行中退款（退款中 → 订单按钮/状态展示切换）
     var hasActiveRefund: Bool { refundStatusValue == .processing }
 
-    /// 支付截止时间（待支付订单，来自后端 pay_expire_at）
-    var payExpireDate: Date? {
-        guard let raw = pay_expire_at, !raw.isEmpty else { return nil }
-        let withFrac = ISO8601DateFormatter()
-        withFrac.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = withFrac.date(from: raw) { return date }
-        let plain = ISO8601DateFormatter()
-        plain.formatOptions = [.withInternetDateTime]
-        return plain.date(from: raw)
+    /// 最近一笔被驳回的凭证（待收款状态下提示重新上传）
+    var rejectedPayment: PaymentItem? {
+        (payments ?? []).first { $0.statusValue == .rejected }
     }
 
-    /// 支付倒计时文案：剩余不足 1 小时显示 mm:ss，否则 HH:mm:ss；已超时显示取消文案
-    var payCountdownText: String {
-        guard let deadline = payExpireDate else { return "待支付" }
-        let remain = deadline.timeIntervalSinceNow
-        if remain <= 0 { return "支付超时 · 订单已取消" }
-        let total = Int(remain)
-        let h = total / 3600
-        let m = (total % 3600) / 60
-        let s = total % 60
-        if h > 0 {
-            return String(format: "支付剩余 %02d:%02d:%02d", h, m, s)
-        }
-        return String(format: "支付剩余 %02d:%02d", m, s)
+    /// 最近一笔待确认 / 已确认的付款记录
+    var latestPayment: PaymentItem? {
+        let list = payments ?? []
+        return list.first { $0.statusValue == .pending } ?? list.first { $0.statusValue == .confirmed } ?? list.first
+    }
+
+    /// 付款凭证已提交、等待机构确认：此时不可重复上传凭证，也不可取消订单
+    var isVoucherUnderReview: Bool {
+        statusValue == .pendingCollect && latestPayment?.statusValue == .pending
     }
 
     /// 最近一笔退款单（详情页跳转退款进度用）
@@ -116,14 +197,27 @@ struct OrderItem: Codable {
         return "\(title)·\(lessons)节"
     }
 
-    /// 机构 · 老师（后端订单无老师字段，机构优先）
-    var studioTeacherText: String {
-        studio?.name ?? "未知机构"
+    /// 机构 · 班级
+    var studioClassText: String {
+        let studioName = studio?.name ?? "未知机构"
+        if let className = `class`?.name, !className.isEmpty {
+            return "\(studioName) · \(className)"
+        }
+        return studioName
     }
 
-    /// 孩子名（可能为空，订单页可省略展示）
-    var childName: String? {
-        child?.nickname
+    /// 机构（旧属性，兼容已有调用）
+    var studioTeacherText: String { studio?.name ?? "未知机构" }
+
+    var childName: String? { child?.nickname }
+
+    /// 课程 · 班级（详情用）
+    var courseClassText: String {
+        let title = course?.title ?? "未知课程"
+        if let className = `class`?.name, !className.isEmpty {
+            return "\(title) · \(className)"
+        }
+        return title
     }
 
     static func fenToYuan(_ fen: Int) -> String {
@@ -135,6 +229,12 @@ struct OrderItem: Codable {
         let value = formatter.string(from: NSNumber(value: yuan)) ?? "\(yuan)"
         return "¥\(value)"
     }
+}
+
+struct OrderUserBrief: Codable {
+    let user_id: String?
+    let nickname: String?
+    let phone: String?
 }
 
 struct OrderChildBrief: Codable {
@@ -152,6 +252,11 @@ struct OrderCourseBrief: Codable {
     let course_id: String?
     let title: String?
     let cover: String?
+}
+
+struct OrderClassBrief: Codable {
+    let class_id: String?
+    let name: String?
 }
 
 struct OrderPackageBrief: Codable {

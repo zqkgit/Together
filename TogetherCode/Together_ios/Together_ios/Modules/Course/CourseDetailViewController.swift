@@ -99,7 +99,7 @@ final class CourseDetailViewController: BaseViewController {
             $0.centerY.equalTo(enrollButton.snp.centerY)
         }
 
-        enrollButton.setTitle("立即报名", for: .normal)
+        enrollButton.setTitle("我要报名", for: .normal)
         enrollButton.setTitleColor(.white, for: .normal)
         enrollButton.titleLabel?.font = .appLabel(16)
         enrollButton.backgroundColor = Theme.Color.brand

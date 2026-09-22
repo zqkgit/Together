@@ -2,24 +2,21 @@ import UIKit
 import SnapKit
 import ESPullToRefresh
 
-/// 我的订单（家长端，对齐 PR：全部/待支付/已支付/已退款 Tab + 订单卡片）
+/// 我的订单（家长端 · 线下收款模式）
+/// Tab：全部 / 待付款 / 已报名 / 已退款
+/// 平台不经手资金：待付款订单线下付款后上传凭证，机构确认收款发课时。
 final class MyOrdersViewController: BaseViewController {
 
     private enum Tab: Int, CaseIterable {
-        case all = 0
-        case pending
-        case enrolled
-        case refunded
-
+        case all, pending, enrolled, refunded
         var title: String {
             switch self {
             case .all: return "全部"
-            case .pending: return "待支付"
-            case .enrolled: return "已支付"
+            case .pending: return "待付款"
+            case .enrolled: return "已报名"
             case .refunded: return "已退款"
             }
         }
-        /// 对应的后端 status（all 无过滤）
         var status: Int? {
             switch self {
             case .all: return nil
@@ -30,194 +27,150 @@ final class MyOrdersViewController: BaseViewController {
         }
     }
 
-    private let tableView = UITableView(frame: .zero, style: .plain)
-    private var chipRow: TagChipRow?
     private var orders: [OrderItem] = []
-    private var currentTab: Tab = .all
+    private var selectedTabIndex = 0
+    private var isLoading = false
+
+    private var chipRow: TagChipRow!
+    private let tableView = UITableView(frame: .zero, style: .plain)
     private let emptyView = EmptyStateView()
-    private var countdownTimer: Timer?
 
     override func viewDidLoad() {
         super.viewDidLoad()
         configureImmersiveNav(title: "我的订单")
         setupUI()
+        loadOrders()
     }
 
-    /// 每次进入/返回列表都刷新，保证退款、取消等操作后状态最新
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        loadData()
-        startCountdown()
-    }
-
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        countdownTimer?.invalidate()
-        countdownTimer = nil
-    }
-
-    // MARK: - 支付倒计时（待支付 cell 每秒刷新）
-
-    private func startCountdown() {
-        countdownTimer?.invalidate()
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            self?.tickCountdown()
-        }
-    }
-
-    private func tickCountdown() {
-        var needReload = false
-        for cell in tableView.visibleCells {
-            if let orderCell = cell as? OrderCell {
-                orderCell.refreshCountdownIfNeeded()
-                if orderCell.isExpiredNow {
-                    needReload = true
-                }
-            }
-        }
-        // 有订单倒计时归零 → 刷新列表（后端定时任务会置为已取消）
-        if needReload {
-            loadData()
-        }
+        restoreSystemNav()
+        if !orders.isEmpty { loadOrders() }
     }
 
     private func setupUI() {
-        view.backgroundColor = Theme.Color.bg
-
-        // 筛选条固定在导航下方（对齐我的课程 chipRow）
-        let chipRow = TagChipRow(chips: Tab.allCases.map(\.title))
+        chipRow = TagChipRow(chips: Tab.allCases.map { $0.title }, selectedIndex: 0)
         chipRow.onSelect = { [weak self] index in
-            guard let self, let tab = Tab(rawValue: index) else { return }
-            self.currentTab = tab
-            self.loadData()
+            self?.selectedTabIndex = index
+            self?.loadOrders()
         }
         view.addSubview(chipRow)
         chipRow.snp.makeConstraints {
-            $0.top.equalTo(view.safeAreaLayoutGuide).offset(Theme.Spacing.m)
+            $0.top.equalTo(view.safeAreaLayoutGuide).offset(Theme.Spacing.s)
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
-            $0.height.equalTo(34)
         }
-        self.chipRow = chipRow
 
-        tableView.backgroundColor = .clear
+        tableView.backgroundColor = Theme.Color.bg
         tableView.separatorStyle = .none
         tableView.dataSource = self
         tableView.delegate = self
-        tableView.register(OrderCell.self, forCellReuseIdentifier: "OrderCell")
+        tableView.register(OrderCell.self, forCellReuseIdentifier: OrderCell.reuseID)
         tableView.rowHeight = UITableView.automaticDimension
-        tableView.estimatedRowHeight = 150
-        tableView.es.addPullToRefresh(animator: BrandRefreshHeader()) { [weak self] in
-            self?.loadData()
-        }
+        tableView.estimatedRowHeight = 180
         view.addSubview(tableView)
         tableView.snp.makeConstraints {
             $0.top.equalTo(chipRow.snp.bottom).offset(Theme.Spacing.s)
-            $0.leading.trailing.bottom.equalTo(view.safeAreaLayoutGuide)
+            $0.leading.trailing.bottom.equalToSuperview()
         }
 
+        emptyView.show(style: .empty("暂无订单"))
         emptyView.isHidden = true
         view.addSubview(emptyView)
-        emptyView.snp.makeConstraints { $0.center.equalToSuperview() }
-    }
+        emptyView.snp.makeConstraints {
+            $0.center.equalTo(tableView)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.xl)
+        }
 
-    private func loadData() {
-        emptyView.show(style: .loading)
-        OrderService.fetchOrders(status: currentTab.status) { [weak self] result in
-            guard let self else { return }
-            self.tableView.es.stopPullToRefresh()
-            switch result {
-            case .success(let list):
-                self.orders = list
-                self.tableView.reloadData()
-                self.updateEmptyState()
-            case .failure(let error):
-                self.emptyView.show(style: .error(error.message) { [weak self] in
-                    self?.loadData()
-                })
-            }
+        tableView.es.addPullToRefresh(animator: BrandRefreshHeader()) { [weak self] in
+            self?.loadOrders()
         }
     }
 
-    private func updateEmptyState() {
-        let isEmpty = orders.isEmpty
-        emptyView.isHidden = !isEmpty
-        if isEmpty {
-            emptyView.show(style: .empty(currentTab == .all ? "暂无订单" : "\(currentTab.title)暂无订单"))
+    private func loadOrders() {
+        guard !isLoading else { return }
+        isLoading = true
+        let tab = Tab(rawValue: selectedTabIndex) ?? .all
+
+        OrderService.fetchOrders(status: tab.status) { [weak self] result in
+            guard let self else { return }
+            DispatchQueue.main.async {
+                self.tableView.es.stopPullToRefresh()
+                self.isLoading = false
+                switch result {
+                case .success(let list):
+                    self.orders = list
+                    self.emptyView.isHidden = !list.isEmpty
+                    self.tableView.reloadData()
+                case .failure(let error):
+                    self.showToast(error.message ?? "加载失败")
+                }
+            }
         }
     }
 
     // MARK: - 操作
 
-    private func cancelOrder(_ order: OrderItem) {
-        ThemeAlertView.show(
-            title: "取消订单",
-            message: "确定取消该待支付订单吗？",
-            confirmTitle: "取消订单",
-            cancelTitle: "再想想",
-            onConfirm: { [weak self] in
-                guard let self, let orderId = order.order_id else { return }
-                self.showLoading()
-                OrderService.cancelOrder(orderId: orderId) { [weak self] result in
-                    guard let self else { return }
-                    self.hideLoading()
-                    switch result {
-                    case .success:
-                        self.showToast("订单已取消")
-                        self.loadData()
-                    case .failure(let error):
-                        self.showToast(error.message ?? "取消失败")
-                    }
+    fileprivate func handleAction(_ action: OrderCell.Action, order: OrderItem) {
+        switch action {
+        case .cancel:
+            ThemeAlertView.show(
+                title: "取消订单",
+                message: "确定取消该待付款订单吗？",
+                confirmTitle: "取消订单",
+                cancelTitle: "再想想",
+                onConfirm: { [weak self] in
+                    guard let orderId = order.order_id else { return }
+                    self?.cancelOrder(orderId)
+                }
+            )
+        case .voucher:
+            let vc = PaymentVoucherViewController(order: order)
+            vc.onSubmitted = { [weak self] in self?.loadOrders() }
+            navigationController?.pushViewController(vc, animated: true)
+        case .study:
+            guard let courseId = order.course?.course_id, let childId = order.child?.child_id else { return }
+            navigationController?.pushViewController(
+                CourseStudyViewController(childId: childId, courseId: courseId, courseTitle: order.course?.title ?? "课程学习"),
+                animated: true
+            )
+        case .refundDetail:
+            guard let refundId = order.latestRefundId else { return }
+            navigationController?.pushViewController(RefundDetailViewController(refundId: refundId), animated: true)
+        case .reorder:
+            guard let courseId = order.course?.course_id else { return }
+            navigationController?.pushViewController(CourseEnrollViewController(courseId: courseId), animated: true)
+        }
+    }
+
+    private func cancelOrder(_ orderId: String) {
+        showLoading()
+        OrderService.cancelOrder(orderId: orderId) { [weak self] result in
+            guard let self else { return }
+            DispatchQueue.main.async {
+                self.hideLoading()
+                switch result {
+                case .success:
+                    self.showToast("订单已取消")
+                    self.loadOrders()
+                case .failure(let error):
+                    self.showToast(error.message ?? "取消失败")
                 }
             }
-        )
-    }
-
-    private func goPay(_ order: OrderItem) {
-        let vc = OrderPayViewController(order: order)
-        vc.onPaid = { [weak self] in
-            self?.loadData()
         }
-        navigationController?.pushViewController(vc, animated: true)
-    }
-
-    private func goCourse(_ order: OrderItem) {
-        guard let courseId = order.course?.course_id, let childId = order.child?.child_id else {
-            showToast("课程信息缺失")
-            return
-        }
-        let vc = CourseStudyViewController(
-            childId: childId,
-            courseId: courseId,
-            courseTitle: order.course?.title ?? "课程学习"
-        )
-        navigationController?.pushViewController(vc, animated: true)
     }
 }
 
-extension MyOrdersViewController: UITableViewDataSource, UITableViewDelegate {
+// MARK: - DataSource / Delegate
 
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        orders.count
-    }
+extension MyOrdersViewController: UITableViewDataSource, UITableViewDelegate {
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { orders.count }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "OrderCell", for: indexPath) as! OrderCell
-        cell.configure(orders[indexPath.row])
+        let cell = tableView.dequeueReusableCell(withIdentifier: OrderCell.reuseID, for: indexPath) as! OrderCell
+        let order = orders[indexPath.row]
+        cell.configure(with: order)
         cell.onAction = { [weak self] action in
-            guard let self else { return }
-            let order = self.orders[indexPath.row]
-            switch action {
-            case .cancel: self.cancelOrder(order)
-            case .pay: self.goPay(order)
-            case .schedule: self.goCourse(order)
-            case .study: self.goCourse(order)
-            case .refundDetail:
-                guard let refundId = order.latestRefundId else {
-                    self.showToast("退款单不存在")
-                    return
-                }
-                self.navigationController?.pushViewController(RefundDetailViewController(refundId: refundId), animated: true)
-            }
+            self?.handleAction(action, order: order)
         }
         return cell
     }
@@ -229,176 +182,217 @@ extension MyOrdersViewController: UITableViewDataSource, UITableViewDelegate {
     }
 }
 
-// MARK: - 订单卡片 Cell
+// MARK: - 订单卡片（纵向 StackView 布局，隐藏提示自动折叠）
 
 final class OrderCell: UITableViewCell {
+    static let reuseID = "OrderCell"
 
     enum Action {
-        case cancel      // 取消
-        case pay         // 去支付
-        case schedule    // 查看课表
-        case study       // 去学习
-        case refundDetail // 查看退款
+        case cancel, voucher, study, refundDetail, reorder
     }
 
     var onAction: ((Action) -> Void)?
 
-    private var order: OrderItem?
-
-    /// 当前订单是否已超过支付截止时间（供列表秒级检查）
-    var isExpiredNow: Bool {
-        guard let order, order.statusValue == .pending,
-              let deadline = order.payExpireDate else { return false }
-        return deadline.timeIntervalSinceNow <= 0
-    }
-
-    /// 待支付倒计时：由列表 Timer 每秒调用刷新状态文案
-    func refreshCountdownIfNeeded() {
-        guard let order, order.statusValue == .pending else { return }
-        if isExpiredNow {
-            statusLabel.text = "已超时"
-            statusLabel.textColor = Theme.Color.sub
-        } else {
-            statusLabel.text = order.payCountdownText
-            statusLabel.textColor = UIColor.systemOrange
-        }
-    }
-
     private let card = UIView()
-    private let orderNoLabel = UILabel()
-    private let statusLabel = UILabel()
     private let titleLabel = UILabel()
-    private let studioLabel = UILabel()
+    private let statusBadge = PaddingLabel()
+    private let subtitleLabel = UILabel()
+    private let hintLabel = UILabel()
     private let amountLabel = UILabel()
-    private let actionStack = UIStackView()
+    private let buttonRow = UIStackView()
+    private let contentStack = UIStackView()
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
-        backgroundColor = .clear
         selectionStyle = .none
+        backgroundColor = .clear
+        contentView.backgroundColor = .clear
 
-        contentView.addSubview(card)
         card.backgroundColor = Theme.Color.surface
         card.layer.cornerRadius = Theme.Radius.card
+        contentView.addSubview(card)
         card.snp.makeConstraints {
-            $0.top.bottom.equalToSuperview().inset(Theme.Spacing.s)
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.top.equalToSuperview().offset(6)
+            $0.bottom.equalToSuperview().offset(-6)
         }
 
-        // 行1：订单号 + 状态
-        orderNoLabel.font = .appLabel(12)
-        orderNoLabel.textColor = Theme.Color.sub
-        statusLabel.font = .appLabel(13)
-        statusLabel.textAlignment = .right
-        let row1 = UIStackView(arrangedSubviews: [orderNoLabel, statusLabel])
-        row1.spacing = Theme.Spacing.s
-
-        titleLabel.font = .appSection(17)
+        titleLabel.font = .appSection(15)
         titleLabel.textColor = Theme.Color.ink
+        titleLabel.numberOfLines = 2
+        titleLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        studioLabel.font = .appLabel(13)
-        studioLabel.textColor = Theme.Color.sub
+        statusBadge.font = .appLabel(11)
+        statusBadge.layer.cornerRadius = 6
+        statusBadge.clipsToBounds = true
+        statusBadge.textAlignment = .center
+        statusBadge.setContentHuggingPriority(.required, for: .horizontal)
+        statusBadge.setContentCompressionResistancePriority(.required, for: .horizontal)
+        statusBadge.snp.makeConstraints { $0.height.equalTo(20) }
 
-        // 行4：金额 + 按钮
+        let titleRow = UIStackView(arrangedSubviews: [titleLabel, statusBadge])
+        titleRow.axis = .horizontal
+        titleRow.spacing = Theme.Spacing.s
+        titleRow.alignment = .top
+
+        subtitleLabel.font = .appLabel(12)
+        subtitleLabel.textColor = Theme.Color.sub
+        subtitleLabel.numberOfLines = 1
+
+        hintLabel.font = .appLabel(12)
+        hintLabel.numberOfLines = 0
+
         amountLabel.font = .appSection(17)
-        amountLabel.textColor = Theme.Color.ink
-        actionStack.axis = .horizontal
-        actionStack.spacing = Theme.Spacing.m
-        actionStack.setContentHuggingPriority(.required, for: .horizontal)
-        let row4 = UIStackView(arrangedSubviews: [amountLabel, actionStack])
-        row4.spacing = Theme.Spacing.s
-        row4.alignment = .center
+        amountLabel.textColor = Theme.Color.clay
+        amountLabel.setContentHuggingPriority(.required, for: .horizontal)
+        amountLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
 
-        let stack = UIStackView(arrangedSubviews: [row1, titleLabel, studioLabel, row4])
-        stack.axis = .vertical
-        stack.spacing = 8
-        card.addSubview(stack)
-        stack.snp.makeConstraints {
+        buttonRow.axis = .horizontal
+        buttonRow.spacing = Theme.Spacing.s
+        buttonRow.alignment = .center
+
+        let spacer = UIView()
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        let bottomRow = UIStackView(arrangedSubviews: [amountLabel, spacer, buttonRow])
+        bottomRow.axis = .horizontal
+        bottomRow.alignment = .center
+
+        contentStack.axis = .vertical
+        contentStack.spacing = 8
+        contentStack.alignment = .fill
+        card.addSubview(contentStack)
+        contentStack.snp.makeConstraints {
             $0.edges.equalToSuperview().inset(Theme.Spacing.l)
         }
+        contentStack.addArrangedSubview(titleRow)
+        contentStack.setCustomSpacing(6, after: titleRow)
+        contentStack.addArrangedSubview(subtitleLabel)
+        contentStack.setCustomSpacing(10, after: subtitleLabel)
+        contentStack.addArrangedSubview(hintLabel)
+        contentStack.setCustomSpacing(12, after: hintLabel)
+        contentStack.addArrangedSubview(bottomRow)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func configure(_ order: OrderItem) {
-        self.order = order
-        orderNoLabel.text = "订单号\(order.order_no ?? "-")"
-        if order.refundStatusValue != .none {
-            statusLabel.text = order.refundStatusValue.text
-            statusLabel.textColor = Theme.Color.brand
-        } else if order.statusValue == .pending {
-            statusLabel.text = order.payCountdownText
-            statusLabel.textColor = UIColor.systemOrange
-        } else {
-            statusLabel.text = order.statusValue.text
-            statusLabel.textColor = statusColor(order.statusValue)
-        }
+    func configure(with order: OrderItem) {
         titleLabel.text = order.courseTitleWithLessons
-        studioLabel.text = order.studioTeacherText
+        subtitleLabel.text = order.studioClassText
+        subtitleLabel.isHidden = order.studioClassText.isEmpty
         amountLabel.text = order.amountText
 
-        actionStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        let actions: [(String, Action, Bool)] = buttonActions(for: order)
-        for (title, action, isPrimary) in actions {
-            let button = UIButton(type: .system)
-            button.setTitle(title, for: .normal)
-            button.titleLabel?.font = .appLabel(13)
-            button.contentEdgeInsets = UIEdgeInsets(top: 6, left: 14, bottom: 6, right: 14)
-            button.layer.cornerRadius = 15
-            if isPrimary {
-                button.backgroundColor = Theme.Color.brand
-                button.setTitleColor(.white, for: .normal)
-            } else {
-                button.backgroundColor = .clear
-                button.setTitleColor(Theme.Color.ink, for: .normal)
-                button.layer.borderWidth = 1
-                button.layer.borderColor = Theme.Color.line.cgColor
+        // 状态 badge（退款聚合优先）
+        let badgeText: String
+        let badgeColor: UIColor
+        let badgeBg: UIColor
+        switch order.refundStatusValue {
+        case .processing:
+            badgeText = "退款中"; badgeColor = Theme.Color.warn; badgeBg = Theme.Color.warnTint
+        case .refunded:
+            badgeText = "已退款"; badgeColor = Theme.Color.brand; badgeBg = Theme.Color.brandSoft
+        case .rejected:
+            badgeText = "退款驳回"; badgeColor = Theme.Color.danger; badgeBg = Theme.Color.dangerTint
+        case .none:
+            switch order.statusValue {
+            case .pendingCollect:
+                badgeText = "待付款"; badgeColor = Theme.Color.warn; badgeBg = Theme.Color.warnTint
+            case .collected:
+                badgeText = "已报名"; badgeColor = Theme.Color.brand; badgeBg = Theme.Color.brandSoft
+            case .cancelled:
+                badgeText = "已取消"; badgeColor = Theme.Color.muted; badgeBg = Theme.Color.surfaceAlt
             }
-            button.onTap { [weak self] in
-                self?.onAction?(action)
+        }
+        statusBadge.text = "  \(badgeText)  "
+        statusBadge.textColor = badgeColor
+        statusBadge.backgroundColor = badgeBg
+
+        // 提示
+        let hint: (text: String, color: UIColor)?
+        switch order.refundStatusValue {
+        case .processing:
+            hint = ("退款处理中，请留意机构线下退款", Theme.Color.warn)
+        case .rejected:
+            hint = ("退款未通过，可在订单详情再次申请", Theme.Color.danger)
+        case .refunded:
+            hint = nil
+        case .none:
+            switch order.statusValue {
+            case .pendingCollect:
+                if order.rejectedPayment != nil {
+                    hint = ("付款凭证未通过，请重新上传", Theme.Color.danger)
+                } else if order.latestPayment?.statusValue == .pending {
+                    hint = ("凭证已提交，等待机构确认", Theme.Color.warn)
+                } else {
+                    hint = ("请线下付款后上传凭证，机构确认后发课时", Theme.Color.warn)
+                }
+            case .collected:
+                hint = ("报名成功，课时已到账", Theme.Color.brand)
+            case .cancelled:
+                hint = nil
             }
-            actionStack.addArrangedSubview(button)
+        }
+        if let hint {
+            hintLabel.text = hint.text
+            hintLabel.textColor = hint.color
+            hintLabel.isHidden = false
+        } else {
+            hintLabel.text = nil
+            hintLabel.isHidden = true
+        }
+
+        rebuildButtons(order)
+        setNeedsLayout()
+        layoutIfNeeded()
+    }
+
+    private func rebuildButtons(_ order: OrderItem) {
+        buttonRow.arrangedSubviews.forEach {
+            buttonRow.removeArrangedSubview($0)
+            $0.removeFromSuperview()
+        }
+        for action in buttonActions(order) {
+            let btn = makeButton(action)
+            buttonRow.addArrangedSubview(btn)
+            btn.snp.makeConstraints { $0.height.equalTo(32) }
         }
     }
 
-    private func buttonActions(for order: OrderItem) -> [(String, Action, Bool)] {
+    private func buttonActions(_ order: OrderItem) -> [Action] {
         if order.refundStatusValue != .none {
-            return [("查看退款", .refundDetail, true)]
+            return [.refundDetail]
         }
         switch order.statusValue {
-        case .pending:
-            return [("取消", .cancel, false), ("去支付", .pay, true)]
-        case .enrolled:
-            return [("查看课表", .schedule, false), ("去学习", .study, true)]
-        default:
-            return []
+        case .pendingCollect:
+            // 凭证审核中：不允许重复上传或取消，仅展示等待提示
+            if order.isVoucherUnderReview { return [] }
+            return [.cancel, .voucher]
+        case .collected:
+            return [.study]
+        case .cancelled:
+            return [.reorder]
         }
     }
 
-    private func statusColor(_ status: OrderStatus) -> UIColor {
-        switch status {
-        case .pending: return UIColor.systemOrange
-        case .enrolled: return Theme.Color.brand
-        default: return Theme.Color.sub
+    private func makeButton(_ action: Action) -> UIButton {
+        let titles: [Action: String] = [
+            .cancel: "取消", .voucher: "上传凭证", .study: "去学习",
+            .refundDetail: "查看退款", .reorder: "重新报名"
+        ]
+        let primary: Set<Action> = [.voucher, .study, .reorder]
+        let btn = UIButton(type: .system)
+        btn.setTitle(titles[action], for: .normal)
+        btn.titleLabel?.font = .appLabel(13)
+        btn.contentEdgeInsets = UIEdgeInsets(top: 0, left: 14, bottom: 0, right: 14)
+        btn.layer.cornerRadius = 16
+        if primary.contains(action) {
+            btn.backgroundColor = Theme.Color.brand
+            btn.setTitleColor(.white, for: .normal)
+        } else {
+            btn.backgroundColor = Theme.Color.surfaceAlt
+            btn.setTitleColor(Theme.Color.ink, for: .normal)
         }
+        btn.addAction(UIAction { [weak self] _ in self?.onAction?(action) }, for: .touchUpInside)
+        return btn
     }
-}
-
-private extension UIView {
-    /// 轻量点击回调（避免引入 target-action 样板）
-    func onTap(_ action: @escaping () -> Void) {
-        isUserInteractionEnabled = true
-        let recognizer = TapGestureRecognizer(action: action)
-        addGestureRecognizer(recognizer)
-    }
-}
-
-private final class TapGestureRecognizer: UITapGestureRecognizer {
-    private var action: (() -> Void)?
-    convenience init(action: @escaping () -> Void) {
-        self.init()
-        self.action = action
-        addTarget(self, action: #selector(handle))
-    }
-    @objc private func handle() { action?() }
 }

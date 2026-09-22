@@ -77,7 +77,7 @@ final class CourseEnrollViewController: BaseViewController {
             $0.centerY.equalToSuperview()
         }
 
-        submitButton.setTitle("确认报名", for: .normal)
+        submitButton.setTitle("提交报名", for: .normal)
         submitButton.setTitleColor(.white, for: .normal)
         submitButton.titleLabel?.font = .appLabel(16)
         submitButton.backgroundColor = Theme.Color.brand
@@ -170,30 +170,24 @@ final class CourseEnrollViewController: BaseViewController {
         ) { [weak self] orderId, error in
             guard let self else { return }
             DispatchQueue.main.async {
+                self.hideLoading()
                 if let error {
-                    self.hideLoading()
                     self.showToast(error)
                     return
                 }
                 guard let orderId else {
-                    self.hideLoading()
                     self.showToast("报名失败，请稍后重试")
                     return
                 }
-                // 拉取订单详情 → 跳转确认支付
-                OrderService.fetchOrderDetail(orderId: orderId) { result in
-                    DispatchQueue.main.async {
-                        self.hideLoading()
-                        switch result {
-                        case .success(let order):
-                            let vc = OrderPayViewController(order: order)
-                            self.navigationController?.pushViewController(vc, animated: true)
-                        case .failure:
-                            self.showToast("报名成功，请到「我的订单」完成支付")
-                            self.navigationController?.popViewController(animated: true)
-                        }
-                    }
+                // 报名成功 → 生成「待收款」订单，进入订单详情线下付款并上传凭证
+                self.showToast("报名成功，请线下付款后上传凭证")
+                let detail = OrderDetailViewController(orderId: orderId)
+                var stack = self.navigationController?.viewControllers ?? []
+                if let idx = stack.firstIndex(where: { $0 is CourseEnrollViewController }) {
+                    stack.remove(at: idx)
                 }
+                stack.append(detail)
+                self.navigationController?.setViewControllers(stack, animated: true)
             }
         }
     }
