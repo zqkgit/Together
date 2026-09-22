@@ -15,6 +15,8 @@ final class CourseDetailViewController: BaseViewController {
     private let bottomBar = UIView()
     private let priceLabel = UILabel()
     private let enrollButton = UIButton(type: .system)
+    /// 是否展示报名入口：仅家长角色(role=1)；老师/工作室进入为只读预览
+    private var canEnroll: Bool { TokenManager.shared.userRole == 1 }
 
     init(courseId: String) {
         self.courseId = courseId
@@ -68,7 +70,12 @@ final class CourseDetailViewController: BaseViewController {
         tableView.snp.makeConstraints {
             $0.top.equalTo(view.safeAreaLayoutGuide)
             $0.leading.trailing.equalToSuperview()
-            $0.bottom.equalTo(bottomBar.snp.top)
+            // 仅家长角色展示底部报名栏；老师/工作室预览时列表铺到底部安全区
+            if self.canEnroll {
+                $0.bottom.equalTo(self.bottomBar.snp.top)
+            } else {
+                $0.bottom.equalTo(self.view.safeAreaLayoutGuide)
+            }
         }
     }
 
@@ -107,6 +114,9 @@ final class CourseDetailViewController: BaseViewController {
         // 半圆：圆角 = 高度一半
         enrollButton.layer.cornerRadius = 23
         enrollButton.clipsToBounds = true
+
+        // 老师 / 工作室角色仅预览，隐藏「价格 + 立即报名」转化栏
+        bottomBar.isHidden = !canEnroll
     }
 
     // MARK: - Data
@@ -208,7 +218,7 @@ extension CourseDetailViewController: UITableViewDataSource, UITableViewDelegate
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         guard sections[section] == .reviews else { return nil }
         let header = CourseReviewHeaderView()
-        header.configure(summary: reviewSummary)
+        header.configure(summary: reviewSummary, canWrite: self.canEnroll)
         header.onWrite = { [weak self] in self?.openReviewCompose() }
         return header
     }
@@ -276,6 +286,7 @@ extension CourseDetailViewController: UITableViewDataSource, UITableViewDelegate
     }
 
     private func openReviewCompose() {
+        guard canEnroll else { return }
         guard TokenManager.shared.isLoggedIn else {
             showToast("请先登录")
             return
@@ -888,7 +899,8 @@ final class CourseReviewHeaderView: UIView {
         return row
     }
 
-    func configure(summary: CourseReviewSummary?) {
+    func configure(summary: CourseReviewSummary?, canWrite: Bool = true) {
+        writeButton.isHidden = !canWrite
         let total = summary?.total ?? 0
         countLabel.text = "\(total) 条"
         distStack.isHidden = total <= 0
