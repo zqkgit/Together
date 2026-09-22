@@ -2,9 +2,9 @@ import UIKit
 import SnapKit
 import SwiftyJSON
 
-/// 提现页面：工作室角色「我的」→ 提现
-/// 匹配设计稿：奶油底 + 松绿余额卡片 + 金额输入 + 到账方式选择 + 底部确认按钮
-/// 到账方式：艺启余额（即时到账，免手续费）/ 已绑定银行卡（动态加载，审核后转账）
+/// 提现记录页面：工作室角色「我的」→ 提现
+/// 定位为记账工具：平台不碰资金，实际转账线下完成，App只做记录
+/// 收款方式：艺启余额（余额记录，免手续费）/ 已绑定银行卡（动态加载，线下转账）
 final class WithdrawViewController: BaseViewController, UITextFieldDelegate {
     
     private let scrollView = UIScrollView()
@@ -26,7 +26,7 @@ final class WithdrawViewController: BaseViewController, UITextFieldDelegate {
     
     // 到账方式
     private let methodTitleLabel = UILabel()
-    private let walletMethodRow = MethodRow(iconName: "yiqi_wallet", title: "艺启余额", subtitle: "即时到账 · 免手续费", selected: true)
+    private let walletMethodRow = MethodRow(iconName: "yiqi_wallet", title: "艺启余额", subtitle: "余额记录 · 免手续费", selected: true)
     
     // 银行卡行（动态）
     private var bankRows: [MethodRow] = []
@@ -137,7 +137,7 @@ final class WithdrawViewController: BaseViewController, UITextFieldDelegate {
         withdrawAllButton.addTarget(self, action: #selector(didTapWithdrawAll), for: .touchUpInside)
         amountCard.addSubview(withdrawAllButton)
         
-        tipLabel.text = "单笔限额 ¥50,000 · 银行卡手续费 0.1% · 预计 1-3 个工作日到账"
+        tipLabel.text = "单笔限额 ¥50,000 · 银行卡手续费 0.1% · 线下转账请自行安排"
         tipLabel.font = .appBody(12)
         tipLabel.textColor = Theme.Color.sub
         amountCard.addSubview(tipLabel)
@@ -148,7 +148,7 @@ final class WithdrawViewController: BaseViewController, UITextFieldDelegate {
         amountCard.addSubview(feeLabel)
         
         // 到账方式
-        methodTitleLabel.text = "到账方式"
+        methodTitleLabel.text = "收款方式"
         methodTitleLabel.font = .appBody(14)
         methodTitleLabel.textColor = Theme.Color.sub
         contentView.addSubview(methodTitleLabel)
@@ -164,7 +164,7 @@ final class WithdrawViewController: BaseViewController, UITextFieldDelegate {
         contentView.addSubview(addBankButton)
         
         // 底部确认按钮
-        confirmButton.setTitle("确认提现", for: .normal)
+        confirmButton.setTitle("确认记录", for: .normal)
         confirmButton.titleLabel?.font = .appBody(16)
         confirmButton.setTitleColor(.white, for: .normal)
         confirmButton.backgroundColor = Theme.Color.brand
@@ -316,7 +316,7 @@ final class WithdrawViewController: BaseViewController, UITextFieldDelegate {
         // 为每张银行卡创建行
         for (index, account) in bankAccounts.enumerated() {
             let title = "\(account.bankName) (\(account.lastFourDigits))"
-            let row = MethodRow(iconName: "bank_card", title: title, subtitle: "审核后 1-3 个工作日到账", selected: false)
+            let row = MethodRow(iconName: "bank_card", title: title, subtitle: "线下转账 · 手续费 0.1%", selected: false)
             row.onTap = { [weak self] in
                 guard let self else { return }
                 self.selectMethod("bank", accountId: account.accountId)
@@ -347,7 +347,7 @@ final class WithdrawViewController: BaseViewController, UITextFieldDelegate {
                 bankRows[index].setSelected(true)
             }
         }
-        // 切换到账方式时更新手续费显示
+        // 切换收款方式时更新手续费显示
         updateFeeLabel()
     }
     
@@ -389,7 +389,7 @@ final class WithdrawViewController: BaseViewController, UITextFieldDelegate {
     
     @objc private func didTapConfirm() {
         guard let text = amountField.text, let amount = Double(text), amount > 0 else {
-            showToast("请输入正确的提现金额")
+            showToast("请输入正确的金额")
             return
         }
         if amount > withdrawable {
@@ -397,13 +397,13 @@ final class WithdrawViewController: BaseViewController, UITextFieldDelegate {
             return
         }
         if amount > 50000 {
-            showToast("单笔提现不能超过 50,000 元")
+            showToast("单笔记录不能超过 50,000 元")
             return
         }
         
         // 银行卡方式必须选中一张卡
         if selectedMethod == "bank" && selectedAccountId == nil {
-            showToast("请选择到账银行卡")
+            showToast("请选择收款银行卡")
             return
         }
         
@@ -417,7 +417,7 @@ final class WithdrawViewController: BaseViewController, UITextFieldDelegate {
         let actualAmount = amount - fee
         
         guard actualAmount > 0 else {
-            showToast("提现金额扣除手续费后必须大于0")
+            showToast("金额扣除手续费后必须大于0")
             return
         }
         
@@ -432,8 +432,8 @@ final class WithdrawViewController: BaseViewController, UITextFieldDelegate {
             switch result {
             case .success:
                 let msg = self.selectedMethod == "wallet"
-                    ? "提现成功，已转入艺启余额"
-                    : "提现申请已提交，审核后 1-3 个工作日到账"
+                    ? "记录成功，余额已更新"
+                    : "记录已提交，请线下完成转账"
                 self.showToast(msg)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                     self.navigationController?.popViewController(animated: true)
@@ -483,7 +483,7 @@ final class WithdrawViewController: BaseViewController, UITextFieldDelegate {
     }
 }
 
-// MARK: - 到账方式行组件
+// MARK: - 收款方式行组件
 
 private final class MethodRow: UIView {
     var onTap: (() -> Void)?
