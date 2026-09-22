@@ -25,6 +25,9 @@ final class WalletViewController: BaseViewController, UITableViewDataSource, UIT
         setupBottomBar()
         loadSummary()
         loadRecords(reset: true)
+        
+        // 监听余额更新通知
+        NotificationCenter.default.addObserver(self, selector: #selector(refreshData), name: .walletBalanceUpdated, object: nil)
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -120,6 +123,11 @@ final class WalletViewController: BaseViewController, UITableViewDataSource, UIT
             }
         }
     }
+    
+    @objc private func refreshData() {
+        loadSummary()
+        loadRecords(reset: true)
+    }
 
     private func loadRecords(reset: Bool) {
         if reset {
@@ -207,22 +215,8 @@ final class WalletViewController: BaseViewController, UITableViewDataSource, UIT
             showToast("暂无可提现余额")
             return
         }
-        WithdrawSheetView.show(balance: balance) { [weak self] amount, method, account in
-            guard let self else { return }
-            self.showLoading()
-            MineService.requestWithdraw(amount: amount, method: method, account: account) { [weak self] result in
-                guard let self else { return }
-                self.hideLoading()
-                switch result {
-                case .success:
-                    self.showToast("提现申请已提交，审核后到账")
-                    self.loadSummary()
-                    self.loadRecords(reset: true)
-                case .failure(let error):
-                    self.showToast(error.message)
-                }
-            }
-        }
+        let vc = WithdrawViewController(withdrawable: balance)
+        navigationController?.pushViewController(vc, animated: true)
     }
 }
 

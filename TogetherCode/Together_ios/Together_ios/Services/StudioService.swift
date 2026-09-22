@@ -260,6 +260,37 @@ struct StudioRefundPage: Codable {
     let list: [StudioRefund]?
 }
 
+// MARK: - 银行卡模型
+
+/// 银行卡列表分页
+struct BankAccountPage: Codable {
+    let total: Int?
+    let list: [BankAccount]?
+}
+
+/// 银行卡账户
+struct BankAccount: Codable {
+    let account_id: String?
+    let account_type: String?
+    let account_name: String?
+    let account_no: String?
+    let bank_name: String?
+    let is_default: Int?
+    let status: Int?
+    
+    var accountId: String { account_id ?? "" }
+    var accountType: String { account_type ?? "bank" }
+    var accountName: String { account_name ?? "" }
+    var accountNo: String { account_no ?? "" }
+    var bankName: String { bank_name ?? "银行卡" }
+    var isDefault: Int { is_default ?? 0 }
+    
+    /// 卡号后四位
+    var lastFourDigits: String {
+        String(accountNo.suffix(4))
+    }
+}
+
 // MARK: - 学员管理模型
 
 /// 学员筛选（对应接口 filter）
@@ -944,6 +975,44 @@ enum StudioService {
         completion: @escaping (Result<Void, APIError>) -> Void
     ) {
         APIClient.shared.request("/studio/teachers/\(teacherId)", method: .delete) { result in
+            switch result {
+            case .success:
+                completion(.success(()))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+    
+    // MARK: - 银行卡管理
+    
+    /// 获取工作室绑定的银行卡列表
+    static func fetchBankAccounts(completion: @escaping (Result<[BankAccount], APIError>) -> Void) {
+        APIClient.shared.request("/studio/accounts", method: .get) { result in
+            switch result {
+            case .success(let json):
+                let page = JSONKit.decode(BankAccountPage.self, from: json)
+                completion(.success(page?.list ?? []))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+    
+    /// 绑定银行卡
+    static func addBankAccount(
+        accountType: String,
+        accountName: String,
+        accountNo: String,
+        bankName: String,
+        completion: @escaping (Result<Void, APIError>) -> Void
+    ) {
+        APIClient.shared.request("/studio/accounts", method: .post, parameters: [
+            "account_type": accountType,
+            "account_name": accountName,
+            "account_no": accountNo,
+            "bank_name": bankName
+        ]) { result in
             switch result {
             case .success:
                 completion(.success(()))
