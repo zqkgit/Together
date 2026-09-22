@@ -119,13 +119,11 @@ final class StudioOverviewViewController: BaseViewController {
     // MARK: - 交互
 
     @objc private func didTapAllTodos() {
-        openPlaceholder(title: "待办事项", icon: "checklist",
-                        tip: "退款审核、订单结算与经营提醒的完整列表将在下一阶段开放。")
+        navigationController?.pushViewController(StudioTodoViewController(), animated: true)
     }
 
     private func openRefundReview() {
-        openPlaceholder(title: "退款审核", icon: "arrow.uturn.backward.circle.fill",
-                        tip: "退款申请审核与打款将在下一阶段开放。")
+        navigationController?.pushViewController(StudioRefundViewController(initialStatus: 0), animated: true)
     }
 
     private func openSettleList() {

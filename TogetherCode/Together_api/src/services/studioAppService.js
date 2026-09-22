@@ -241,6 +241,12 @@ async function getStudioOverviewForApp(userId) {
     Order.sum("paid_amount", { where: settleWhere })
   ]);
 
+  // 待打款退款：审核通过（status=1）、等待工作室确认打款的退款单
+  const pendingPayouts = await Refund.count({
+    where: { status: 1 },
+    include: [{ model: Order, as: "order", where: { studio_id: studioId }, required: true }]
+  });
+
   // 机构动态播报：优先「新课上线」口径，其次本周新增报名；均附分销员贡献占比
   const distributionRatio = weekIncomeValue > 0 ? Math.round((weekDistribution / weekIncomeValue) * 100) : 0;
   let headline = `本周新增报名 ${weekEnrolled} 人，分销员贡献占比 ${distributionRatio}%。`;
@@ -265,6 +271,7 @@ async function getStudioOverviewForApp(userId) {
     },
     todos: {
       pending_refunds: pendingRefunds,
+      pending_payouts: pendingPayouts,
       pending_settle_orders: pendingSettleOrders,
       pending_settle_amount: Number(pendingSettleAmount || 0)
     },

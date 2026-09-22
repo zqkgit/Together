@@ -46,6 +46,7 @@ function formatStudioRefund(refund) {
             ? {
                 child_id: String(refund.order.child.child_id),
                 nickname: refund.order.child.nickname,
+                avatar: refund.order.child.avatar,
                 birthday: refund.order.child.birthday
               }
             : null,
@@ -60,6 +61,7 @@ function formatStudioRefund(refund) {
             ? {
                 user_id: String(refund.order.user.user_id),
                 nickname: refund.order.user.nickname,
+                avatar: refund.order.user.avatar,
                 phone: refund.order.user.phone
               }
             : null,
@@ -133,10 +135,10 @@ async function listStudioRefunds(studioId, query = {}) {
           studio_id: studioId
         },
         include: [
-          { model: Child, as: "child", attributes: ["child_id", "nickname", "birthday"] },
+          { model: Child, as: "child", attributes: ["child_id", "nickname", "avatar", "birthday"] },
           { model: Course, as: "course", attributes: ["course_id", "title", "cover"] },
           { model: ChildCourseBalance, as: "balance", attributes: ["balance_id", "total_lessons", "consumed_lessons", "refunded_lessons", "remaining_lessons", "valid_from", "valid_to", "status"] },
-          { model: User, as: "user", attributes: ["user_id", "nickname", "phone"] }
+          { model: User, as: "user", attributes: ["user_id", "nickname", "avatar", "phone"] }
         ]
       }
     ],

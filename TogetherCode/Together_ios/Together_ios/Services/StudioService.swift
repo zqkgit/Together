@@ -141,12 +141,14 @@ struct StudioOverviewStats: Codable {
 /// 待办（GET /studio/overview → todos）
 struct StudioOverviewTodos: Codable {
     let pending_refunds: Int?
+    let pending_payouts: Int?
     let pending_settle_orders: Int?
     let pending_settle_amount: Int?
 
-    static let empty = StudioOverviewTodos(pending_refunds: nil, pending_settle_orders: nil, pending_settle_amount: nil)
+    static let empty = StudioOverviewTodos(pending_refunds: nil, pending_payouts: nil, pending_settle_orders: nil, pending_settle_amount: nil)
 
     var pendingRefunds: Int { pending_refunds ?? 0 }
+    var pendingPayouts: Int { pending_payouts ?? 0 }
     var pendingSettleOrders: Int { pending_settle_orders ?? 0 }
     var pendingSettleAmountText: String { StudioAmount.text(pending_settle_amount ?? 0) }
 }
@@ -186,6 +188,78 @@ struct StudioOverviewData: Codable {
     let dynamic: StudioOverviewDynamic?
 }
 
+// MARK: - 退款审核模型
+
+/// 退款单关联的精简家长 / 孩子 / 课程 / 课时账户
+struct StudioRefundParty: Codable {
+    let user_id: String?
+    let nickname: String?
+    let avatar: String?
+    let phone: String?
+}
+struct StudioRefundChild: Codable {
+    let child_id: String?
+    let nickname: String?
+    let avatar: String?
+}
+struct StudioRefundCourse: Codable {
+    let course_id: String?
+    let title: String?
+    let cover: String?
+}
+struct StudioRefundBalance: Codable {
+    let total_lessons: Int?
+    let consumed_lessons: Int?
+    let remaining_lessons: Int?
+}
+struct StudioRefundOrder: Codable {
+    let order_id: String?
+    let order_no: String?
+    let status: Int?
+    let child: StudioRefundChild?
+    let course: StudioRefundCourse?
+    let user: StudioRefundParty?
+    let balance: StudioRefundBalance?
+}
+
+/// 工作室退款单：status 0 申请中 / 1 待打款 / 2 已驳回 / 3 已打款；金额单位「分」
+struct StudioRefund: Codable {
+    let refund_id: String
+    let order_id: String?
+    let requested_lessons: Int?
+    let refundable_lessons: Int?
+    let unit_price: Int?
+    let amount: Int?
+    let reason: String?
+    let status: Int
+    let reviewed_at: String?
+    let refunded_at: String?
+    let created_at: String?
+    let order: StudioRefundOrder?
+
+    var amountFen: Int { amount ?? 0 }
+    var parentName: String {
+        if let n = order?.user?.nickname, !n.isEmpty { return n }
+        if let c = order?.child?.nickname, !c.isEmpty { return c + "家长" }
+        return "家长用户"
+    }
+    var parentAvatar: String? { order?.user?.avatar ?? order?.child?.avatar }
+    var courseTitle: String { order?.course?.title ?? "课程" }
+    var remaining: Int { order?.balance?.remaining_lessons ?? 0 }
+    var totalLessons: Int { order?.balance?.total_lessons ?? 0 }
+    var reasonText: String { reason ?? "" }
+
+    /// 金额文案（两位小数，对齐设计稿 ¥440.00）
+    var amountText: String {
+        String(format: "¥%.2f", Double(amountFen) / 100.0)
+    }
+}
+
+struct StudioRefundPage: Codable {
+    let total: Int?
+    let list: [StudioRefund]?
+}
+
 // MARK: - 工作室数据服务
 
 /// 工作室端（角色 3）App 接口：/v1/studio/*
@@ -213,6 +287,42 @@ enum StudioService {
                 let data = JSONKit.decode(StudioOverviewData.self, from: json)
                     ?? StudioOverviewData(revenue: nil, stats: nil, todos: nil, dynamic: nil)
                 completion(.success(data))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    // MARK: 退款审核
+
+    /// 退款列表：status 0 申请中 / 1 待打款 / 2 已驳回 / 3 已打款；传 nil 为全部
+    static func fetchRefunds(status: Int?, completion: @escaping (Result<[StudioRefund], APIError>) -> Void) {
+        var params: [String: Any]?
+        if let status { params = ["status": status] }
+        APIClient.shared.request("/studio/refunds", method: .get, parameters: params) { result in
+            switch result {
+            case .success(let json):
+                let page = JSONKit.decode(StudioRefundPage.self, from: json)
+                completion(.success(page?.list ?? []))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 退款审核：action = approve 通过(→待打款) / reject 驳回(需 reason) / confirm 确认打款(→已打款)
+    static func reviewRefund(
+        refundId: String,
+        action: String,
+        reason: String? = nil,
+        completion: @escaping (Result<StudioRefund?, APIError>) -> Void
+    ) {
+        var body: [String: Any] = ["action": action]
+        if let reason, !reason.isEmpty { body["reason"] = reason }
+        APIClient.shared.request("/studio/refunds/\(refundId)", method: .put, parameters: body) { result in
+            switch result {
+            case .success(let json):
+                completion(.success(JSONKit.decode(StudioRefund.self, from: json)))
             case .failure(let error):
                 completion(.failure(error))
             }
