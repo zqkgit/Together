@@ -118,6 +118,11 @@ module.exports = (sequelize, DataTypes) => {
       ban_reason: {
         type: DataTypes.STRING(255),
         allowNull: true
+      },
+      // SaaS 订阅到期日（线下收费、平台后台手动维护）；null 视为未订阅/试用
+      subscription_expire_at: {
+        type: DataTypes.DATE,
+        allowNull: true
       }
     },
     {

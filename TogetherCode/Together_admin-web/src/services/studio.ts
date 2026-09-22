@@ -482,12 +482,36 @@ export async function consumeStudentLessons(
   return response.data;
 }
 
-// ============ 订单管理 ============
+// ============ 订单管理（线下收款模式） ============
+
+// 支付方式：现金 / 微信转账 / 支付宝转账 / 银行转账 / 收款码 / 其他
+export type PayMethod = "cash" | "wechat" | "alipay" | "bank" | "qrcode" | "other";
+
+export interface PaymentItem {
+  payment_id: string;
+  payment_no: string;
+  channel: string | null;
+  pay_method: string | null;
+  pay_method_text?: string;
+  amount: number;
+  status: number; // 0 待确认 / 1 已确认 / 2 已驳回
+  status_text?: string;
+  paid_at: string | null;
+  voucher_images: string[] | null;
+  payer_note: string | null;
+  upload_by: number; // 0 家长上传 / 1 工作室代登记
+  confirm_by: string | null;
+  reject_reason: string | null;
+  created_at: string;
+}
 
 export interface OrderItem {
   order_id: string;
   order_no: string;
-  status: number;
+  status: number; // 0 待收款 / 1 已收款 / 2 已取消 / 3 已退款
+  status_text?: string;
+  source: number; // 0 家长自助报名 / 1 工作室手动建单
+  source_text?: string;
   total_lessons: number;
   consumed_lessons: number;
   refunded_lessons: number;
@@ -495,11 +519,18 @@ export interface OrderItem {
   total_amount: number;
   paid_amount: number;
   refund_amount: number;
-  pay_channel: string;
+  pay_channel: string | null;
+  pay_method?: string | null;
+  pay_method_text?: string;
+  confirmed_by?: string | null;
   paid_at: string | null;
+  completed_at?: string | null;
   created_at: string;
-  child: { child_id: string; nickname: string; birthday: string | null } | null;
+  remark: string | null;
+  child: { child_id: string; nickname: string; birthday: string | null; avatar?: string | null } | null;
+  user: { user_id: string; nickname: string; phone: string; avatar?: string | null } | null;
   course: { course_id: string; title: string; cover: string | null } | null;
+  class: { class_id: string; name: string } | null;
   package: { package_id: string; name: string; lessons: number } | null;
   items: Array<{
     item_id: string;
@@ -509,6 +540,7 @@ export interface OrderItem {
     unit_price: number;
     total_price: number;
   }>;
+  payments: PaymentItem[];
   balance: {
     balance_id: string;
     total_lessons: number;
@@ -521,7 +553,20 @@ export interface OrderItem {
   } | null;
 }
 
-export async function fetchStudioOrders(params: { status?: number | "" } = {}): Promise<Paged<OrderItem>> {
+export interface OrderContact {
+  child_id: string;
+  nickname: string;
+  avatar: string | null;
+  birthday: string | null;
+  gender: number;
+  parent: { user_id: string; phone: string; nickname: string; avatar: string | null };
+  courses: Array<{ course_id: string; title: string }>;
+  total_remaining_lessons: number;
+}
+
+export async function fetchStudioOrders(
+  params: { status?: number | ""; q?: string; page?: number; page_size?: number } = {}
+): Promise<Paged<OrderItem>> {
   const response = await request.get("/studio/orders", { params });
   return response.data;
 }
@@ -529,6 +574,60 @@ export async function fetchStudioOrders(params: { status?: number | "" } = {}): 
 export async function fetchStudioOrderDetail(id: string): Promise<OrderItem> {
   const response = await request.get(`/studio/orders/${id}`);
   return response.data;
+}
+
+// 手动建单联系人库（本工作室在读 / 历史订单孩子）
+export async function fetchStudioOrderContacts(
+  params: { q?: string; page?: number; page_size?: number } = {}
+): Promise<Paged<OrderContact>> {
+  const response = await request.get("/studio/orders/contacts", { params });
+  return response.data;
+}
+
+// 工作室手动建单（confirm=1 且现金可当场确认发课时；线上方式须传凭证）
+export async function createStudioOrder(payload: {
+  child_id: string;
+  course_id: string;
+  class_id?: string;
+  total_amount: number; // 单位：分
+  confirm?: 0 | 1;
+  pay_method?: PayMethod;
+  voucher_images?: string[];
+  note?: string;
+  remark?: string;
+}): Promise<OrderItem> {
+  const response = await request.post("/studio/orders", payload);
+  return response.data;
+}
+
+// 确认收款（沿用家长凭证或工作室代登记；线上须有凭证、现金可直接登记），确认后发课时
+export async function confirmStudioPayment(
+  id: string,
+  payload: { pay_method?: PayMethod; voucher_images?: string[]; note?: string } = {}
+): Promise<OrderItem> {
+  const response = await request.post(`/studio/orders/${id}/payments/confirm`, payload);
+  return response.data;
+}
+
+// 驳回家长上传的付款凭证（订单仍待收款）
+export async function rejectStudioPayment(id: string, payload: { reason: string }): Promise<OrderItem> {
+  const response = await request.post(`/studio/orders/${id}/payments/reject`, payload);
+  return response.data;
+}
+
+// 工作室手动取消待收款订单
+export async function cancelStudioOrder(id: string): Promise<OrderItem> {
+  const response = await request.post(`/studio/orders/${id}/cancel`);
+  return response.data;
+}
+
+// 工作室后台图片上传（付款凭证 / 课程封面等），返回 URL 数组
+export async function uploadStudioImages(files: File[], folder = "common"): Promise<string[]> {
+  const fd = new FormData();
+  files.forEach((file) => fd.append("files", file));
+  fd.append("folder", folder);
+  const response = await request.post("/studio/upload", fd);
+  return response.data.urls;
 }
 
 // ============ 退款管理 ============

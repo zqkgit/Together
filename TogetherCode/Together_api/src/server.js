@@ -3,7 +3,6 @@ const app = require("./app");
 const env = require("./config/env");
 const { sequelize, connectRedis } = require("./config/db");
 const wsHub = require("./ws/hub");
-const { autoCancelExpiredOrders } = require("./services/orderService");
 
 async function bootstrap() {
   sequelize
@@ -24,12 +23,6 @@ async function bootstrap() {
     console.log(`Together API running at http://localhost:${env.port}${env.apiPrefix}`);
     console.log(`WebSocket running at ws://localhost:${env.port}/ws`);
   });
-
-  // 定时清理：待支付订单超时自动取消（每 10 分钟）
-  autoCancelExpiredOrders().catch(() => {});
-  setInterval(() => {
-    autoCancelExpiredOrders().catch(() => {});
-  }, 10 * 60 * 1000);
 }
 
 bootstrap();

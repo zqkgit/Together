@@ -1,26 +1,35 @@
 const { ok, fail } = require("../utils/response");
-const { createOrder, payOrder, cancelOrder, listOrders, getOrderDetail, createRefund, listMyRefunds, getRefundDetail } = require("../services/orderService");
+const {
+  createOrder,
+  submitPaymentVoucher,
+  cancelOrder,
+  listOrders,
+  getOrderDetail,
+  createRefund,
+  listMyRefunds,
+  getRefundDetail
+} = require("../services/orderService");
 
 async function postOrder(req, res) {
   try {
     const data = await createOrder(req.user.userId, req.body);
     return ok(res, data, "order created");
   } catch (error) {
-    const status = /not found|not available|重复|已报名|待支付/i.test(error.message) ? 400 : 500;
+    const status = /not found|not available|重复|已报名|待收款/i.test(error.message) ? 400 : 500;
     return fail(res, status, status === 400 ? 40020 : 50000, error.message || "Internal server error");
   }
 }
 
-async function postOrderPay(req, res) {
+// 家长为待收款订单上传线下付款凭证（不发起任何在线支付）
+async function postPaymentVoucher(req, res) {
   try {
-    const data = await payOrder(req.user.userId, req.params.id, req.body || {});
+    const data = await submitPaymentVoucher(req.user.userId, req.params.id, req.body || {});
     if (!data) {
       return fail(res, 404, 40420, "Order not found");
     }
-
-    return ok(res, data, "order paid");
+    return ok(res, data, "payment voucher submitted");
   } catch (error) {
-    const status = /already paid|unavailable/i.test(error.message) ? 400 : 500;
+    const status = /不是待收款|支付方式|凭证|请选择/i.test(error.message) ? 400 : 500;
     return fail(res, status, status === 400 ? 40021 : 50000, error.message || "Internal server error");
   }
 }
@@ -56,7 +65,7 @@ async function postOrderRefund(req, res) {
 
     return ok(res, data, "refund requested");
   } catch (error) {
-    const status = /not refundable|in progress|exceed|not found/i.test(error.message) ? 400 : 500;
+    const status = /not refundable|in progress|exceed|not found|expired/i.test(error.message) ? 400 : 500;
     return fail(res, status, status === 400 ? 40022 : 50000, error.message || "Internal server error");
   }
 }
@@ -90,14 +99,14 @@ async function postOrderCancel(req, res) {
     }
     return ok(res, data, "order cancelled");
   } catch (error) {
-    const status = /already paid|unavailable/i.test(error.message) ? 400 : 500;
+    const status = /already paid|unavailable|待收款/i.test(error.message) ? 400 : 500;
     return fail(res, status, status === 400 ? 40021 : 50000, error.message || "Internal server error");
   }
 }
 
 module.exports = {
   postOrder,
-  postOrderPay,
+  postPaymentVoucher,
   postOrderCancel,
   getOrders,
   getOrder,

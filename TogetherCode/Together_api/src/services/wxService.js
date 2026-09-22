@@ -1,18 +1,14 @@
-const crypto = require("crypto");
 const axios = require("axios");
 const env = require("../config/env");
 
 /**
- * 微信开放平台封装：小程序登录(code2session) + 支付回调验签
+ * 微信开放平台封装：仅保留小程序登录(code2session)。
+ * 线下资金模式已移除微信支付下单 / 回调验签，平台全程不碰学费资金。
  * 未配置 WX_* 凭据时返回 { notConfigured: true }，调用方按 503 处理。
  */
 
 function isWxConfigured() {
   return Boolean(env.wx.appId && env.wx.appSecret);
-}
-
-function isWxPayConfigured() {
-  return Boolean(env.wx.payMchId && env.wx.payKey);
 }
 
 /**
@@ -46,55 +42,7 @@ async function code2session(code) {
   }
 }
 
-/**
- * 微信支付 V2 回调验签（MD5）
- * 返回 null 表示验签失败；成功返回解出的字段对象。
- */
-function verifyPayCallback(rawBody) {
-  if (!isWxPayConfigured()) {
-    return { notConfigured: true };
-  }
-
-  // 微信回调 XML 转对象（只取需要字段）
-  const text = String(rawBody || "");
-  const fields = {};
-  const regex = /<(\w+)><!\[CDATA\[(.*?)\]\]><\/\1>/g;
-  let match;
-  while ((match = regex.exec(text))) {
-    fields[match[1]] = match[2];
-  }
-  const plainRegex = /<(\w+)>([^<]+)<\/\1>/g;
-  while ((match = plainRegex.exec(text))) {
-    fields[match[1]] = match[2];
-  }
-
-  if (!fields.sign) {
-    return { error: { status: 400, code: 40082, message: "回调缺少签名" } };
-  }
-
-  const { sign, ...rest } = fields;
-  const signStr = Object.keys(rest)
-    .filter((key) => rest[key] !== "" && key !== "sign")
-    .sort()
-    .map((key) => `${key}=${rest[key]}`)
-    .join("&");
-
-  const expected = crypto
-    .createHash("md5")
-    .update(`${signStr}&key=${env.wx.payKey}`)
-    .digest("hex")
-    .toUpperCase();
-
-  if (expected !== String(sign).toUpperCase()) {
-    return { error: { status: 400, code: 40083, message: "回调签名校验失败" } };
-  }
-
-  return fields;
-}
-
 module.exports = {
   isWxConfigured,
-  isWxPayConfigured,
-  code2session,
-  verifyPayCallback
+  code2session
 };

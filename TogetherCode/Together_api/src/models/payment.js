@@ -37,6 +37,34 @@ module.exports = (sequelize, DataTypes) => {
       trade_no: {
         type: DataTypes.STRING(64),
         allowNull: true
+      },
+      // 线下支付方式：cash/wechat/alipay/bank/qrcode/other（与 channel 同义，channel 保留）
+      pay_method: {
+        type: DataTypes.STRING(20),
+        allowNull: true
+      },
+      // 付款凭证图片 URL 数组（OSS）
+      voucher_images: {
+        type: DataTypes.JSON,
+        allowNull: true
+      },
+      payer_note: {
+        type: DataTypes.STRING(255),
+        allowNull: true
+      },
+      // 凭证上传方：0 家长上传  1 工作室登记
+      upload_by: {
+        type: DataTypes.TINYINT,
+        allowNull: false,
+        defaultValue: 0
+      },
+      confirm_by: {
+        type: DataTypes.BIGINT,
+        allowNull: true
+      },
+      reject_reason: {
+        type: DataTypes.STRING(255),
+        allowNull: true
       }
     },
     {

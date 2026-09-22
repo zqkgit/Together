@@ -89,6 +89,17 @@ module.exports = (sequelize, DataTypes) => {
       remark: {
         type: DataTypes.STRING(255),
         allowNull: true
+      },
+      // 订单来源：0 家长App自助报名  1 工作室后台手动建单
+      source: {
+        type: DataTypes.TINYINT,
+        allowNull: false,
+        defaultValue: 0
+      },
+      // 工作室确认收款的操作人（后台账号 id）
+      confirmed_by: {
+        type: DataTypes.BIGINT,
+        allowNull: true
       }
     },
     {
@@ -104,6 +115,7 @@ module.exports = (sequelize, DataTypes) => {
     Order.belongsTo(models.StudioProfile, { foreignKey: "studio_id", as: "studio" });
     Order.belongsTo(models.Course, { foreignKey: "course_id", as: "course" });
     Order.belongsTo(models.CoursePackage, { foreignKey: "package_id", as: "coursePackage" });
+    Order.belongsTo(models.Class, { foreignKey: "class_id", as: "class" });
     Order.hasMany(models.OrderItem, { foreignKey: "order_id", as: "items" });
     Order.hasMany(models.Payment, { foreignKey: "order_id", as: "payments" });
     Order.hasMany(models.Refund, { foreignKey: "order_id", as: "refunds" });

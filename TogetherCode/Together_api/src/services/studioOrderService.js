@@ -1,3 +1,4 @@
+const { Op } = require("sequelize");
 const {
   sequelize,
   Order,
@@ -10,9 +11,16 @@ const {
   ChildCourseBalance,
   StudioProfile,
   User,
-  LessonLog
+  LessonLog,
+  Class
 } = require("../models");
-const { formatOrder, getOrderWithDetails } = require("./orderService");
+const {
+  formatOrder,
+  getOrderWithDetails,
+  grantOrderLessons,
+  PAY_METHODS,
+  isOnlinePayMethod
+} = require("./orderService");
 const { createNotification } = require("./messageService");
 const { generateId } = require("../utils/id");
 
@@ -96,7 +104,9 @@ async function listStudioOrders(studioId, query = {}) {
       { model: Course, as: "course", attributes: ["course_id", "title", "cover"] },
       { model: CoursePackage, as: "coursePackage", attributes: ["package_id", "name", "lessons"] },
       { model: OrderItem, as: "items", attributes: ["item_id", "course_title", "package_name", "lessons", "unit_price", "total_price"] },
-      { model: Payment, as: "payments", attributes: ["payment_id", "payment_no", "channel", "amount", "status", "paid_at"] },
+      { model: User, as: "user", attributes: ["user_id", "nickname", "phone"] },
+      { model: Class, as: "class", attributes: ["class_id", "name"] },
+      { model: Payment, as: "payments", attributes: ["payment_id", "payment_no", "channel", "pay_method", "amount", "status", "paid_at", "voucher_images", "payer_note", "upload_by", "confirm_by", "reject_reason", "created_at"] },
       { model: Refund, as: "refunds", attributes: ["refund_id", "amount", "requested_lessons", "refundable_lessons", "status", "reason", "created_at"] },
       { model: ChildCourseBalance, as: "balance", attributes: ["balance_id", "total_lessons", "consumed_lessons", "refunded_lessons", "remaining_lessons", "valid_from", "valid_to", "status"] }
     ],
@@ -435,10 +445,375 @@ async function confirmRefundPaid(studioId, refundId, operator = {}) {
   });
 }
 
+
+function normalizeImages(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((v) => String(v || "").trim()).filter(Boolean);
+}
+
+/**
+ * 工作室「联系人库」：在本工作室下过订单（含待收款/历史）的孩子，供手动建单选择。
+ * 全新孩子（无任何本工作室订单）选不到，须由家长在 App 自助报名。
+ * 支持按孩子昵称 / 家长昵称 / 家长手机号搜索。
+ */
+async function listOrderContacts(studioId, query = {}) {
+  const orders = await Order.findAll({
+    where: { studio_id: studioId },
+    attributes: ["child_id", "user_id", "created_at"],
+    include: [
+      { model: Child, as: "child", attributes: ["child_id", "nickname", "avatar", "birthday", "gender", "parent_user_id"] },
+      { model: User, as: "user", attributes: ["user_id", "phone", "nickname", "avatar"] },
+      { model: Course, as: "course", attributes: ["course_id", "title"] },
+      {
+        model: ChildCourseBalance,
+        as: "balance",
+        attributes: ["balance_id", "remaining_lessons", "status"]
+      }
+    ],
+    order: [["created_at", "DESC"]]
+  });
+
+  const map = new Map();
+  for (const o of orders) {
+    const c = o.child;
+    if (!c) continue;
+    const cid = String(c.child_id);
+    if (!map.has(cid)) {
+      map.set(cid, {
+        child_id: cid,
+        nickname: c.nickname,
+        avatar: c.avatar || null,
+        birthday: c.birthday,
+        gender: c.gender,
+        parent: o.user
+          ? {
+              user_id: String(o.user.user_id),
+              phone: o.user.phone,
+              nickname: o.user.nickname,
+              avatar: o.user.avatar || null
+            }
+          : null,
+        courses: [],
+        total_remaining_lessons: 0
+      });
+    }
+    const rec = map.get(cid);
+    if (o.course && !rec.courses.some((x) => String(x.course_id) === String(o.course.course_id))) {
+      rec.courses.push({ course_id: String(o.course.course_id), title: o.course.title });
+    }
+    if (o.balance) {
+      rec.total_remaining_lessons += Number(o.balance.remaining_lessons || 0);
+    }
+  }
+
+  let list = [...map.values()];
+  const kw = String(query.q || "").trim();
+  if (kw) {
+    list = list.filter(
+      (r) =>
+        (r.nickname || "").includes(kw) ||
+        (r.parent?.nickname || "").includes(kw) ||
+        (r.parent?.phone || "").includes(kw)
+    );
+  }
+  return { total: list.length, list };
+}
+
+/**
+ * 工作室后台手动建单（老学员续费 / 线下现金报名）。
+ * payload: { child_id, course_id, class_id?, total_amount(分), remark?,
+ *            confirm?:1 当场确认收款, pay_method?, voucher_images?, note? }
+ * 当场确认时：现金可免凭证直接发课时；线上转账必须有凭证。
+ */
+async function createStudioOrder(studioId, payload, operator = {}) {
+  return sequelize.transaction(async (transaction) => {
+    const child = await Child.findByPk(payload.child_id, { transaction });
+    if (!child) {
+      throw new Error("孩子不存在");
+    }
+    // 孩子必须已在本工作室联系人库（有历史订单）
+    const contactOrder = await Order.findOne({
+      where: { studio_id: studioId, child_id: child.child_id },
+      transaction
+    });
+    if (!contactOrder) {
+      throw new Error("该孩子不在本工作室联系人库，新学员请由家长在 App 自助报名");
+    }
+
+    const course = await Course.findByPk(payload.course_id, { transaction });
+    if (!course || String(course.studio_id) !== String(studioId)) {
+      throw new Error("课程不存在或不属于本工作室");
+    }
+    if (Number(course.status) !== 1) {
+      throw new Error("课程未上架，无法建单");
+    }
+
+    let classId = null;
+    if (payload.class_id) {
+      const cls = await Class.findByPk(payload.class_id, { transaction });
+      if (!cls || String(cls.course_id) !== String(course.course_id)) {
+        throw new Error("班级不属于该课程");
+      }
+      if (Number(cls.enrolled) >= Number(cls.capacity)) {
+        throw new Error("班级已满员");
+      }
+      classId = String(cls.class_id);
+    }
+
+    const existingBalance = await ChildCourseBalance.findOne({
+      where: { child_id: child.child_id, course_id: course.course_id, status: { [Op.in]: [1, 2] } },
+      transaction
+    });
+    if (existingBalance) {
+      throw new Error("该孩子已报名此课程，请勿重复建单");
+    }
+    const pending = await Order.findOne({
+      where: { studio_id: studioId, child_id: child.child_id, course_id: course.course_id, status: 0 },
+      transaction
+    });
+    if (pending) {
+      throw new Error("该孩子已有此课程的待收款订单");
+    }
+
+    const amount = Math.round(Number(payload.total_amount));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error("请填写正确的收款金额");
+    }
+    const parentUserId = child.parent_user_id || contactOrder.user_id;
+
+    const order = await Order.create(
+      {
+        order_id: generateId(),
+        order_no: `TG${generateId()}`,
+        user_id: parentUserId,
+        child_id: child.child_id,
+        studio_id: studioId,
+        course_id: course.course_id,
+        class_id: classId,
+        package_id: null,
+        total_lessons: course.total_lessons,
+        total_amount: amount,
+        remark: payload.remark ? String(payload.remark).slice(0, 255) : null,
+        distribution_link_id: null,
+        source: 1,
+        status: 0
+      },
+      { transaction }
+    );
+
+    await OrderItem.create(
+      {
+        item_id: generateId(),
+        order_id: order.order_id,
+        course_id: course.course_id,
+        class_id: classId,
+        package_id: null,
+        course_title: course.title,
+        package_name: null,
+        lessons: course.total_lessons,
+        quantity: 1,
+        unit_price: amount,
+        total_price: amount
+      },
+      { transaction }
+    );
+
+    // 当场确认收款（线下现金/已转账）：现金免凭证，线上必传凭证，确认后立即发课时
+    if (Number(payload.confirm) === 1 || Number(payload.status) === 1) {
+      const method = payload.pay_method || "cash";
+      if (!PAY_METHODS.includes(method)) {
+        throw new Error("支付方式不正确");
+      }
+      const images = normalizeImages(payload.voucher_images);
+      if (isOnlinePayMethod(method) && images.length === 0) {
+        throw new Error("线上转账请上传付款凭证；现金可直接登记");
+      }
+      await Payment.create(
+        {
+          payment_id: generateId(),
+          order_id: order.order_id,
+          payment_no: `PM${generateId()}`,
+          channel: method,
+          pay_method: method,
+          amount: amount,
+          voucher_images: images,
+          payer_note: payload.note ? String(payload.note).slice(0, 255) : null,
+          upload_by: 1,
+          status: 1,
+          paid_at: new Date(),
+          confirm_by: operator.adminId || null
+        },
+        { transaction }
+      );
+      const locked = await Order.findByPk(order.order_id, { transaction, lock: transaction.LOCK.UPDATE });
+      await grantOrderLessons(locked, {
+        transaction,
+        payMethod: method,
+        operatorId: operator.adminId || null
+      });
+    }
+
+    const detail = await getOrderWithDetails(order.order_id, { transaction });
+    return formatOrder(detail);
+  });
+}
+
+/**
+ * 工作室确认收款：确认家长上传的凭证，或工作室直接登记收款（现金/线下）。
+ * 线上转账必须存在凭证（家长已传或本次代传）；确认全款后发课时。
+ */
+async function confirmStudioPayment(studioId, orderId, payload, operator = {}) {
+  return sequelize.transaction(async (transaction) => {
+    const order = await Order.findOne({
+      where: { order_id: orderId, studio_id: studioId },
+      include: [{ model: Course, as: "course", attributes: ["course_id", "title", "validity_days"] }],
+      transaction,
+      lock: transaction.LOCK.UPDATE
+    });
+    if (!order) {
+      return null;
+    }
+    if (Number(order.status) !== 0) {
+      throw new Error("订单不是待收款状态");
+    }
+
+    const method = payload.pay_method;
+    if (!PAY_METHODS.includes(method)) {
+      throw new Error("请选择支付方式");
+    }
+    const images = normalizeImages(payload.voucher_images);
+
+    const prior = await Payment.findOne({
+      where: { order_id: orderId, status: 0 },
+      transaction,
+      order: [["created_at", "DESC"]]
+    });
+    const priorImages = prior && Array.isArray(prior.voucher_images) ? prior.voucher_images : [];
+    if (isOnlinePayMethod(method) && images.length === 0 && priorImages.length === 0) {
+      throw new Error("线上转账须有付款凭证（家长上传或工作室代传）；现金可直接登记");
+    }
+
+    const finalImages = images.length ? images : priorImages;
+    const pending = await Payment.findOne({
+      where: { order_id: orderId, status: { [Op.in]: [0, 2] } },
+      transaction,
+      order: [["created_at", "DESC"]]
+    });
+
+    if (pending) {
+      await pending.update(
+        {
+          channel: method,
+          pay_method: method,
+          amount: order.total_amount,
+          voucher_images: finalImages,
+          payer_note: pending.payer_note || (payload.note ? String(payload.note).slice(0, 255) : null),
+          upload_by: pending.upload_by ?? 0,
+          status: 1,
+          paid_at: new Date(),
+          confirm_by: operator.adminId || null,
+          reject_reason: null
+        },
+        { transaction }
+      );
+    } else {
+      await Payment.create(
+        {
+          payment_id: generateId(),
+          order_id: orderId,
+          payment_no: `PM${generateId()}`,
+          channel: method,
+          pay_method: method,
+          amount: order.total_amount,
+          voucher_images: finalImages,
+          payer_note: payload.note ? String(payload.note).slice(0, 255) : null,
+          upload_by: 1,
+          status: 1,
+          paid_at: new Date(),
+          confirm_by: operator.adminId || null
+        },
+        { transaction }
+      );
+    }
+
+    await grantOrderLessons(order, { transaction, payMethod: method, operatorId: operator.adminId || null });
+    return formatOrder(await getOrderWithDetails(orderId, { transaction }));
+  });
+}
+
+/** 工作室驳回家长上传的付款凭证：订单仍保持待收款，通知家长重新处理 */
+async function rejectStudioPayment(studioId, orderId, payload, operator = {}) {
+  return sequelize.transaction(async (transaction) => {
+    const order = await Order.findOne({
+      where: { order_id: orderId, studio_id: studioId },
+      include: [
+        { model: Course, as: "course", attributes: ["course_id", "title"] },
+        { model: User, as: "user", attributes: ["user_id"] }
+      ],
+      transaction,
+      lock: transaction.LOCK.UPDATE
+    });
+    if (!order) {
+      return null;
+    }
+    if (Number(order.status) !== 0) {
+      throw new Error("订单不是待收款状态");
+    }
+    const payment = await Payment.findOne({
+      where: { order_id: orderId, status: 0 },
+      transaction,
+      order: [["created_at", "DESC"]]
+    });
+    if (!payment) {
+      throw new Error("没有待审核的付款凭证");
+    }
+    const reason = payload.reason ? String(payload.reason).slice(0, 255) : "凭证无效，请重新上传";
+    await payment.update(
+      { status: 2, reject_reason: reason, confirm_by: operator.adminId || null },
+      { transaction }
+    );
+    if (order.user?.user_id) {
+      createNotification({
+        userId: order.user.user_id,
+        type: "order",
+        title: "付款凭证未通过核对",
+        content: `「${order.course?.title || "课程"}」的付款凭证未通过核对：${reason}，请重新付款或上传凭证。`.slice(0, 120),
+        refType: "order",
+        refId: orderId
+      }).catch(() => {});
+    }
+    return formatOrder(await getOrderWithDetails(orderId, { transaction }));
+  });
+}
+
+/** 工作室手动取消待收款订单（0 -> 2） */
+async function cancelStudioOrder(studioId, orderId) {
+  return sequelize.transaction(async (transaction) => {
+    const order = await Order.findOne({
+      where: { order_id: orderId, studio_id: studioId },
+      transaction,
+      lock: transaction.LOCK.UPDATE
+    });
+    if (!order) {
+      return null;
+    }
+    if (Number(order.status) !== 0) {
+      throw new Error("仅待收款订单可取消");
+    }
+    await order.update({ status: 2, completed_at: new Date() }, { transaction });
+    return formatOrder(await getOrderWithDetails(orderId, { transaction }));
+  });
+}
+
 module.exports = {
   listStudioOrders,
   getStudioOrderDetail,
   listStudioRefunds,
   reviewStudioRefund,
-  confirmRefundPaid
+  confirmRefundPaid,
+  listOrderContacts,
+  createStudioOrder,
+  confirmStudioPayment,
+  rejectStudioPayment,
+  cancelStudioOrder
 };

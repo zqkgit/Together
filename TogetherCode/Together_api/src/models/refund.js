@@ -52,6 +52,33 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.SMALLINT,
         allowNull: false,
         defaultValue: 0
+      },
+      // 退款方式：cash/wechat/alipay/bank/qrcode/other
+      refund_method: {
+        type: DataTypes.STRING(20),
+        allowNull: true
+      },
+      // 工作室退款凭证图片 URL 数组
+      voucher_images: {
+        type: DataTypes.JSON,
+        allowNull: true
+      },
+      reject_reason: {
+        type: DataTypes.STRING(255),
+        allowNull: true
+      },
+      processed_by: {
+        type: DataTypes.BIGINT,
+        allowNull: true
+      },
+      processed_at: {
+        type: DataTypes.DATE,
+        allowNull: true
+      },
+      // 家长确认收到退款的时间
+      confirmed_at: {
+        type: DataTypes.DATE,
+        allowNull: true
       }
     },
     {
