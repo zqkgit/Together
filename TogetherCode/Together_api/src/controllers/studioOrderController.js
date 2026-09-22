@@ -55,7 +55,7 @@ async function putStudioRefund(req, res) {
 
     return ok(res, data, isConfirm ? "refund paid" : "refund handled");
   } catch (error) {
-    const status = /already handled|exceed|not found|awaiting payout/i.test(error.message) ? 400 : 500;
+    const status = /already handled|exceed|not found|awaiting|请选择|凭证|退款方式|驳回|原因|必填/i.test(error.message) ? 400 : 500;
     return fail(res, status, status === 400 ? 40090 : 50000, error.message || "Internal server error");
   }
 }

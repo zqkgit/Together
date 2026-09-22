@@ -30,14 +30,19 @@ function formatStudioRefund(refund) {
     order_id: String(refund.order_id),
     user_id: String(refund.user_id),
     requested_lessons: refund.requested_lessons,
+    approved_lessons: refund.approved_lessons != null ? Number(refund.approved_lessons) : null,
     refundable_lessons: refund.refundable_lessons,
     unit_price: refund.unit_price,
     amount: refund.amount,
     reason: refund.reason,
     status: refund.status,
+    refund_method: refund.refund_method || null,
+    voucher_images: Array.isArray(refund.voucher_images) ? refund.voucher_images : [],
+    reject_reason: refund.reject_reason || null,
     reviewed_by: refund.reviewed_by ? String(refund.reviewed_by) : null,
     reviewed_at: refund.reviewed_at,
     refunded_at: refund.refunded_at,
+    confirmed_at: refund.confirmed_at || null,
     created_at: refund.created_at,
     order: refund.order
       ? {
@@ -262,13 +267,33 @@ async function reviewStudioRefund(studioId, refundId, payload, operator = {}) {
 
     const remainingLessons = Number(balance.remaining_lessons || 0);
     const requestedLessons = Number(refund.requested_lessons || 0);
-    if (requestedLessons > remainingLessons) {
-      throw new Error("Refund lessons exceed current remaining lessons");
+    const unitPrice = Number(refund.unit_price || 0);
+    // 申请后可能又消课：实退课时以当前剩余为准，金额随实退课时自动调减
+    const approvedLessons = Math.max(0, Math.min(requestedLessons, remainingLessons));
+    if (approvedLessons <= 0) {
+      throw new Error("该订单当前没有可退课时，请驳回该退款申请");
+    }
+    const approvedAmount = approvedLessons * unitPrice;
+
+    // 线下资金模式：通过即代表工作室已线下退款给家长，必须登记退款方式；
+    // 线上方式须上传打款凭证（现金可免图）。通过后进入「待家长确认」，此时不扣课时，
+    // 需家长在 App 确认收到后才按实退课时扣减、订单转已退款。
+    const refundMethod = String(payload.refund_method || "").trim();
+    if (!PAY_METHODS.includes(refundMethod)) {
+      throw new Error("请选择退款方式");
+    }
+    const refundVouchers = normalizeImages(payload.voucher_images);
+    if (isOnlinePayMethod(refundMethod) && refundVouchers.length === 0) {
+      throw new Error("线上退款请上传打款凭证");
     }
 
     await refund.update(
       {
         status: 1,
+        approved_lessons: approvedLessons,
+        amount: approvedAmount,
+        refund_method: refundMethod,
+        voucher_images: refundVouchers,
         reviewed_by: operator.adminId || null,
         reviewed_at: new Date(),
         reason: payload.reason || refund.reason
@@ -300,9 +325,13 @@ async function reviewStudioRefund(studioId, refundId, payload, operator = {}) {
       createNotification({
         userId: parent.user_id,
         type: "refund",
-        title: "退款审核已通过",
-        content: `「${refund.order.course?.title || "课程"}」退款 ¥${(Number(refund.amount) / 100).toFixed(2)} 已通过审核，正在打款处理中。`
-          .slice(0, 120),
+        title: "退款已退回，待你确认",
+        content: (
+          (approvedLessons < requestedLessons
+            ? `你申请退${requestedLessons}节，期间已上课${requestedLessons - approvedLessons}节，本次实退${approvedLessons}节、¥${(approvedAmount / 100).toFixed(2)}，已线下退回。`
+            : `「${refund.order.course?.title || "课程"}」退款 ¥${(approvedAmount / 100).toFixed(2)} 已审核通过并线下退回。`) +
+          "请在订单中确认是否收到。"
+        ).slice(0, 120),
         refType: "refund",
         refId: refund.refund_id
       }).catch(() => {});

@@ -7,7 +7,8 @@ const {
   getOrderDetail,
   createRefund,
   listMyRefunds,
-  getRefundDetail
+  getRefundDetail,
+  confirmRefundReceived
 } = require("../services/orderService");
 
 async function postOrder(req, res) {
@@ -91,6 +92,20 @@ async function getRefund(req, res) {
   }
 }
 
+// 家长确认收到线下退款：待家长确认（1）→ 已退款（3），此时才扣减课时
+async function postConfirmRefund(req, res) {
+  try {
+    const data = await confirmRefundReceived(req.user.userId, req.params.refundId);
+    if (!data) {
+      return fail(res, 404, 40430, "Refund not found");
+    }
+    return ok(res, data, "refund confirmed");
+  } catch (error) {
+    const status = /awaiting your confirm|exceed|not found|balance/i.test(error.message) ? 400 : 500;
+    return fail(res, status, status === 400 ? 40031 : 50000, error.message || "Internal server error");
+  }
+}
+
 async function postOrderCancel(req, res) {
   try {
     const data = await cancelOrder(req.user.userId, req.params.id);
@@ -111,6 +126,7 @@ module.exports = {
   getOrders,
   getOrder,
   postOrderRefund,
+  postConfirmRefund,
   getRefunds,
   getRefund
 };

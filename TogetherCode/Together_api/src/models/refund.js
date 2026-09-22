@@ -20,6 +20,11 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.SMALLINT,
         allowNull: false
       },
+      // 审核通过时锁定的实际退款课时（申请后若已消课，可能小于 requested_lessons）
+      approved_lessons: {
+        type: DataTypes.SMALLINT,
+        allowNull: true
+      },
       refundable_lessons: {
         type: DataTypes.SMALLINT,
         allowNull: false

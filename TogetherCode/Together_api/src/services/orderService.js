@@ -650,10 +650,14 @@ async function listMyRefunds(userId, query = {}) {
       studio_name: r.order?.studio ? r.order.studio.name : null,
       child_name: r.order?.child ? r.order.child.nickname : "-",
       requested_lessons: Number(r.requested_lessons),
+      approved_lessons: r.approved_lessons != null ? Number(r.approved_lessons) : null,
       amount: Number(r.amount),
       amount_text: `¥${(Number(r.amount) / 100).toFixed(2)}`,
       status: Number(r.status),
       status_text: refundStatusText(r.status),
+      refund_method: r.refund_method || null,
+      refund_method_text: r.refund_method ? payMethodText(r.refund_method) : null,
+      can_confirm: Number(r.status) === 1,
       reason: r.reason,
       created_at: r.created_at
     }))
@@ -696,6 +700,7 @@ async function getRefundDetail(userId, refundId) {
     balance_remaining: order?.balance ? Number(order.balance.remaining_lessons) : 0,
     valid_to: order?.balance ? order.balance.valid_to : null,
     requested_lessons: Number(row.requested_lessons),
+    approved_lessons: row.approved_lessons != null ? Number(row.approved_lessons) : null,
     refundable_lessons: Number(row.refundable_lessons),
     unit_price: Number(row.unit_price),
     unit_price_text: `¥${(Number(row.unit_price) / 100).toFixed(2)}/课时`,
@@ -704,13 +709,19 @@ async function getRefundDetail(userId, refundId) {
     reason: row.reason,
     status: status,
     status_text: refundStatusText(status),
+    refund_method: row.refund_method || null,
+    refund_method_text: row.refund_method ? payMethodText(row.refund_method) : null,
+    voucher_images: Array.isArray(row.voucher_images) ? row.voucher_images : [],
+    reject_reason: row.reject_reason || null,
+    can_confirm: status === 1,
     created_at: row.created_at,
     reviewed_at: row.reviewed_at,
     refunded_at: row.refunded_at,
+    confirmed_at: row.confirmed_at || null,
     steps: [
       { key: "submit", title: "提交申请", time: row.created_at, done: true },
-      { key: "review", title: "工作室审核", time: row.reviewed_at, done: row.reviewed_at != null, current: status === 0 },
-      { key: "result", title: status === 2 ? "已驳回" : "已通过并退款", time: status === 2 ? row.reviewed_at : row.refunded_at, done: status === 2 || status === 3, current: status === 2 || status === 3 }
+      { key: "review", title: "机构审核并退款", time: row.reviewed_at, done: row.reviewed_at != null && status !== 2, current: status === 0 },
+      { key: "confirm", title: status === 2 ? "已驳回" : "确认收到退款", time: status === 2 ? row.reviewed_at : row.confirmed_at || row.refunded_at, done: status === 2 || status === 3, current: status === 1 }
     ]
   };
 }
@@ -803,6 +814,131 @@ async function createRefund(userId, orderId, payload) {
   });
 }
 
+/**
+ * 家长端：确认收到退款。退款单 待家长确认（1）→ 已退款（3）。
+ * 工作室通过退款时已线下退回并上传打款凭证；家长确认到账后，才扣减课时、
+ * 累计订单退款、写入消课流水、订单转已退款，并通知工作室。
+ */
+async function confirmRefundReceived(userId, refundId) {
+  const tx = await sequelize.transaction();
+  let amount = 0;
+  try {
+    const refund = await Refund.findOne({
+      where: { refund_id: refundId, user_id: userId },
+      include: [
+        {
+          model: Order,
+          as: "order",
+          required: true,
+          include: [
+            { model: Child, as: "child", attributes: ["child_id", "nickname"] },
+            { model: Course, as: "course", attributes: ["course_id", "title"] },
+            { model: StudioProfile, as: "studio", attributes: ["studio_id", "name", "user_id"] },
+            { model: ChildCourseBalance, as: "balance", attributes: ["balance_id", "remaining_lessons"] }
+          ]
+        }
+      ],
+      transaction: tx,
+      lock: tx.LOCK.UPDATE
+    });
+
+    if (!refund) {
+      throw Object.assign(new Error("Refund not found"), { notFound: true });
+    }
+    if (Number(refund.status) !== 1) {
+      throw new Error("Refund not awaiting your confirm");
+    }
+
+    const order = refund.order;
+    const balance = await ChildCourseBalance.findOne({
+      where: { order_id: refund.order_id },
+      transaction: tx,
+      lock: tx.LOCK.UPDATE
+    });
+    if (!order || !balance) {
+      throw new Error("Refund order balance not found");
+    }
+
+    // 按审核锁定的实退课时扣减（申请后可能已消课，approved_lessons 可能少于申请）
+    const approvedLessons = Number(
+      refund.approved_lessons != null ? refund.approved_lessons : refund.requested_lessons || 0
+    );
+    const remainingLessons = Number(balance.remaining_lessons || 0);
+    if (approvedLessons <= 0) {
+      throw new Error("Refund has no approved lessons");
+    }
+    if (approvedLessons > remainingLessons) {
+      throw new Error("Refund lessons exceed current remaining lessons");
+    }
+    const remainingAfter = remainingLessons - approvedLessons;
+    const now = new Date();
+    amount = Number(refund.amount || 0);
+
+    await refund.update(
+      { status: 3, refunded_at: now, confirmed_at: now },
+      { transaction: tx }
+    );
+    await order.update(
+      {
+        refunded_lessons: Number(order.refunded_lessons || 0) + approvedLessons,
+        refund_amount: Number(order.refund_amount || 0) + amount,
+        status: 3
+      },
+      { transaction: tx }
+    );
+    await balance.update(
+      {
+        refunded_lessons: Number(balance.refunded_lessons || 0) + approvedLessons,
+        remaining_lessons: remainingAfter,
+        status: remainingAfter === 0 ? 2 : 1
+      },
+      { transaction: tx }
+    );
+    await LessonLog.create(
+      {
+        log_id: generateId(),
+        child_id: order.child_id,
+        course_id: order.course_id,
+        order_id: order.order_id,
+        source: 4,
+        type: 3,
+        delta: -approvedLessons,
+        balance_after: remainingAfter,
+        note: "家长确认收到退款，扣减剩余课时"
+      },
+      { transaction: tx }
+    );
+
+    await tx.commit();
+  } catch (error) {
+    await tx.rollback().catch(() => {});
+    if (error.notFound) return null;
+    throw error;
+  }
+
+  // 通知工作室：家长已确认收到
+  try {
+    const ownerRefund = await Refund.findByPk(refundId, {
+      include: [
+        { model: Order, as: "order", include: [{ model: StudioProfile, as: "studio", attributes: ["studio_id", "user_id"] }] }
+      ]
+    });
+    const studioOwnerId = ownerRefund?.order?.studio?.user_id;
+    if (studioOwnerId) {
+      createNotification({
+        userId: studioOwnerId,
+        type: "refund",
+        title: "家长已确认收到退款",
+        content: `退款 ¥${(amount / 100).toFixed(2)} 家长已确认收到，课时已扣减。`.slice(0, 120),
+        refType: "refund",
+        refId: refundId
+      }).catch(() => {});
+    }
+  } catch (_) {}
+
+  return getRefundDetail(userId, refundId);
+}
+
 module.exports = {
   createOrder,
   grantOrderLessons,
@@ -813,6 +949,7 @@ module.exports = {
   createRefund,
   listMyRefunds,
   getRefundDetail,
+  confirmRefundReceived,
   formatOrder,
   getOrderWithDetails,
   PAY_METHODS,

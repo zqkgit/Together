@@ -81,11 +81,22 @@ export interface RefundItem {
   studio_name: string | null;
   child_name: string;
   requested_lessons: number;
+  /** 机构审核锁定的实退课时（申请后若已消课，可能少于申请课时；null=尚未审核） */
+  approved_lessons?: number | null;
   amount: number;
   amount_text: string;
   status: number;
   status_text: string;
   reason: string | null;
+  /** 线下退款方式 / 文案 */
+  refund_method?: string | null;
+  refund_method_text?: string | null;
+  /** 机构上传的线下打款凭证 */
+  voucher_images?: string[];
+  reject_reason?: string | null;
+  /** status=1 待家长确认时为 true */
+  can_confirm?: boolean;
+  confirmed_at?: string | null;
   created_at: string;
 }
 
@@ -113,4 +124,9 @@ export function getRefunds(status?: number): Promise<{ total: number; list: Refu
 /** 退款详情 */
 export function getRefundDetail(id: string): Promise<RefundDetail> {
   return request({ url: `/orders/refunds/${id}`, method: "GET" });
+}
+
+/** 家长确认已在线下收到退款（status=1 待确认 → 3 已退款，并扣减课时）；返回最新详情 */
+export function confirmRefundReceived(id: string): Promise<RefundDetail> {
+  return request({ url: `/orders/refunds/${id}/confirm`, method: "POST" });
 }

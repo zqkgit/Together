@@ -121,6 +121,22 @@ extension OrderService {
         }
     }
 
+    /// 家长确认已在线下收到退款（status=1 待确认 → 3 已退款，并扣减课时）；返回最新详情
+    static func confirmRefund(refundId: String, completion: @escaping (Result<RefundDetail, APIError>) -> Void) {
+        APIClient.shared.request("/orders/refunds/\(refundId)/confirm", method: .post) { result in
+            switch result {
+            case .success(let json):
+                if let detail = JSONKit.decode(RefundDetail.self, from: json) {
+                    completion(.success(detail))
+                } else {
+                    completion(.failure(.parse))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
     /// 申请退款
     static func requestRefund(orderId: String, lessons: Int, reason: String? = nil, completion: @escaping (Result<Void, APIError>) -> Void) {
         var parameters: [String: Any] = ["lessons": lessons]

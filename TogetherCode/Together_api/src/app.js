@@ -13,6 +13,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan(env.nodeEnv === "production" ? "combined" : "dev"));
+// 本地上传文件静态服务（未配置 OSS 时的开发环境；生产环境建议由 Nginx/OSS 提供）
+app.use("/uploads", express.static(env.upload.dir));
 // 接口加密（API_ENCRYPT_ENABLED=true 时生效）
 app.use(encryptMiddleware);
 

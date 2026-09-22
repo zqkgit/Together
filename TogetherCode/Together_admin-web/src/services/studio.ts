@@ -637,14 +637,19 @@ export interface RefundItem {
   order_id: string;
   user_id: string;
   requested_lessons: number;
+  approved_lessons?: number | null;
   refundable_lessons: number;
   unit_price: number;
   amount: number;
   reason: string;
   status: number;
+  refund_method?: PayMethod | null;
+  voucher_images?: string[];
+  reject_reason?: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
   refunded_at: string | null;
+  confirmed_at?: string | null;
   created_at: string;
   order: {
     order_id: string;
@@ -679,7 +684,12 @@ export async function fetchStudioRefunds(params: { status?: number | "" } = {}):
 
 export async function reviewStudioRefund(
   id: string,
-  payload: { action: "approve" | "reject" | "confirm"; reason?: string }
+  payload: {
+    action: "approve" | "reject" | "confirm";
+    reason?: string;
+    refund_method?: PayMethod;
+    voucher_images?: string[];
+  }
 ): Promise<RefundItem> {
   const response = await request.put(`/studio/refunds/${id}`, payload);
   return response.data;

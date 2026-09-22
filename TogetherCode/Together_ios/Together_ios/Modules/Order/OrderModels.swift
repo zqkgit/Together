@@ -292,6 +292,8 @@ struct RefundDetail: Codable {
     let balance_remaining: Int?
     let valid_to: String?
     let requested_lessons: Int?
+    /// 机构审核锁定的实退课时（申请后若已消课，可能少于申请课时；nil=尚未审核）
+    let approved_lessons: Int?
     let refundable_lessons: Int?
     let unit_price_text: String?
     let amount: Int?
@@ -299,6 +301,15 @@ struct RefundDetail: Codable {
     let reason: String?
     let status: Int?
     let status_text: String?
+    /// 线下退款方式 / 文案
+    let refund_method: String?
+    let refund_method_text: String?
+    /// 机构上传的线下打款凭证
+    let voucher_images: [String]?
+    let reject_reason: String?
+    /// status=1 待家长确认时为 true
+    let can_confirm: Bool?
+    let confirmed_at: String?
     let created_at: String?
     let reviewed_at: String?
     let refunded_at: String?
