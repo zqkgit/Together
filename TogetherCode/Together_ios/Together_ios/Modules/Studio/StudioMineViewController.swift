@@ -141,11 +141,18 @@ final class StudioMineViewController: BaseViewController {
             openSettings()
             return
         }
+        // 已落地的真实页面
+        if item.title == "课程管理" {
+            navigationController?.pushViewController(StudioCourseListViewController(), animated: true)
+            return
+        }
+        if item.title == "退款审核" {
+            navigationController?.pushViewController(StudioRefundViewController(initialStatus: 0), animated: true)
+            return
+        }
         let tips: [String: String] = [
-            "课程管理": "课程上下架、班级与排课管理将在下一阶段开放。",
             "学员管理": "按班级查看学员、剩余课时与续费提醒将在下一阶段开放。",
             "老师管理": "教师邀请、绑定审核与解绑将在下一阶段开放。",
-            "退款审核": "退款申请审核与打款将在下一阶段开放。",
             "提现": "课程收入结算、提现与账单明细将在下一阶段开放。",
             "分销返利设置": "全局返利比例与单课程覆盖设置将在下一阶段开放。",
             "收益中心": "收入结算、账单明细与流水导出将在下一阶段开放。"

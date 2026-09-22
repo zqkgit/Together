@@ -6,6 +6,11 @@ const {
   reviewStudioRefund,
   confirmRefundPaid
 } = require("../services/studioOrderService");
+const {
+  listStudioCourses,
+  getCourseDetail,
+  setStudioCourseStatus
+} = require("../services/courseService");
 
 /**
  * 由登录用户（工作室主体）解析其 studio_id；非工作室主体返回 null
@@ -91,9 +96,69 @@ async function putStudioRefundHandler(req, res) {
   }
 }
 
+/**
+ * GET /v1/studio/courses · 本工作室课程列表（query: status 0审核中/1在售/2已下架，q/keyword 模糊）
+ * studio_id 强制取登录主体，忽略前端传入，避免越权。
+ */
+async function getStudioCoursesHandler(req, res) {
+  try {
+    const studioId = await resolveStudioId(req.user.userId);
+    if (!studioId) {
+      return fail(res, 404, 40480, "Studio not found");
+    }
+    const data = await listStudioCourses({
+      studio_id: studioId,
+      status: req.query.status,
+      keyword: req.query.keyword || req.query.q
+    });
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+/**
+ * GET /v1/studio/courses/:id · 课程详情（校验归属本工作室，用于编辑回显 / 预览）
+ */
+async function getStudioCourseHandler(req, res) {
+  try {
+    const studioId = await resolveStudioId(req.user.userId);
+    if (!studioId) {
+      return fail(res, 404, 40480, "Studio not found");
+    }
+    const data = await getCourseDetail(req.params.id);
+    if (!data || !data.studio || String(data.studio.studio_id) !== String(studioId)) {
+      return fail(res, 404, 40481, "Course not found");
+    }
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+/**
+ * PATCH /v1/studio/courses/:id/status · 上架 / 下架（body.status: 1 在售 / 2 已下架）
+ */
+async function patchStudioCourseStatusHandler(req, res) {
+  try {
+    const studioId = await resolveStudioId(req.user.userId);
+    if (!studioId) {
+      return fail(res, 404, 40480, "Studio not found");
+    }
+    const data = await setStudioCourseStatus(studioId, req.params.id, req.body.status);
+    return ok(res, data, data.status === 1 ? "course on shelf" : "course off shelf");
+  } catch (error) {
+    const status = error.statusCode || (/not found/i.test(error.message) ? 404 : 500);
+    return fail(res, status, status === 404 ? 40481 : 40080, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   getStudioMineHandler,
   getStudioOverviewHandler,
   getStudioRefundsHandler,
-  putStudioRefundHandler
+  putStudioRefundHandler,
+  getStudioCoursesHandler,
+  getStudioCourseHandler,
+  patchStudioCourseStatusHandler
 };

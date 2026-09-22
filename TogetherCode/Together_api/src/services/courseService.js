@@ -409,10 +409,32 @@ async function updateCourse(courseId, payload) {
   });
 }
 
+/**
+ * 工作室 App 端：课程上架 / 下架（轻量，仅改 status，校验课程归属本工作室）。
+ * 仅允许 1 在售 / 2 已下架 互切；0 审核中不在此操作范围。
+ */
+async function setStudioCourseStatus(studioId, courseId, status) {
+  const next = Number(status);
+  if (![1, 2].includes(next)) {
+    const error = new Error("Invalid course status");
+    error.statusCode = 400;
+    throw error;
+  }
+  const course = await Course.findOne({ where: { course_id: courseId, studio_id: studioId } });
+  if (!course) {
+    const error = new Error("Course not found");
+    error.statusCode = 404;
+    throw error;
+  }
+  await course.update({ status: next });
+  return { course_id: String(course.course_id), status: next };
+}
+
 module.exports = {
   listCourses,
   listStudioCourses,
   getCourseDetail,
   createCourse,
-  updateCourse
+  updateCourse,
+  setStudioCourseStatus
 };

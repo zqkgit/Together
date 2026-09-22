@@ -328,4 +328,85 @@ enum StudioService {
             }
         }
     }
+
+    // MARK: - 课程管理
+
+    /// 本工作室课程列表。status: 0 审核中 / 1 在售 / 2 已下架；nil 为全部。
+    static func fetchCourses(status: Int?, completion: @escaping (Result<[StudioCourseItem], APIError>) -> Void) {
+        var params: [String: Any]?
+        if let status { params = ["status": status] }
+        APIClient.shared.request("/studio/courses", method: .get, parameters: params) { result in
+            switch result {
+            case .success(let json):
+                let page = JSONKit.decode(StudioCoursePage.self, from: json)
+                completion(.success(page?.list ?? []))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 上架 / 下架课程。status: 1 在售 / 2 已下架。
+    static func setCourseStatus(courseId: String, status: Int, completion: @escaping (Result<Void, APIError>) -> Void) {
+        APIClient.shared.request("/studio/courses/\(courseId)/status", method: .patch, parameters: ["status": status]) { result in
+            switch result {
+            case .success:
+                completion(.success(()))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+}
+
+
+// MARK: - 课程管理模型
+
+struct StudioCourseTeacher: Codable {
+    let teacher_id: String?
+    let real_name: String?
+}
+
+struct StudioCourseItem: Codable {
+    let course_id: String
+    let title: String?
+    let cover: String?
+    let age_min: Int?
+    let age_max: Int?
+    let total_lessons: Int?
+    let price: Int?
+    let sales: Int?
+    let status: Int?
+    let teacher: StudioCourseTeacher?
+
+    var teacherName: String { teacher?.real_name ?? "" }
+    var hasTeacher: Bool {
+        if let n = teacher?.real_name, !n.isEmpty { return true }
+        return false
+    }
+    var lessonsText: String { "\(total_lessons ?? 0) 节" }
+    var salesText: String { "已售 \(sales ?? 0)" }
+
+    var ageText: String {
+        if let mn = age_min, let mx = age_max, mx > mn { return "\(mn)-\(mx)岁" }
+        if let mn = age_min { return "\(mn)岁+" }
+        if let mx = age_max { return "\(mx)岁以内" }
+        return "适龄"
+    }
+
+    /// 价格单位为分；整元显示整数带千分位，否则两位小数
+    var priceText: String {
+        guard let fen = price else { return "¥0" }
+        let yuan = Double(fen) / 100.0
+        let fmt = NumberFormatter()
+        fmt.numberStyle = .decimal
+        fmt.maximumFractionDigits = 2
+        fmt.minimumFractionDigits = fen % 100 == 0 ? 0 : 2
+        return "¥" + (fmt.string(from: NSNumber(value: yuan)) ?? "0")
+    }
+}
+
+struct StudioCoursePage: Codable {
+    let total: Int?
+    let list: [StudioCourseItem]?
 }

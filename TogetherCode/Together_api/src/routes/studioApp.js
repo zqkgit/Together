@@ -1,15 +1,20 @@
 const express = require("express");
 const { requireAuth, requireRole } = require("../middlewares/auth");
 const { validateRequest } = require("../middlewares/validate");
+const { body } = require("express-validator");
 const {
   studioListRefundValidators,
   studioReviewRefundValidators
 } = require("../validators/orderValidator");
+const { listCoursesValidators, courseIdValidator } = require("../validators/courseValidator");
 const {
   getStudioMineHandler,
   getStudioOverviewHandler,
   getStudioRefundsHandler,
-  putStudioRefundHandler
+  putStudioRefundHandler,
+  getStudioCoursesHandler,
+  getStudioCourseHandler,
+  patchStudioCourseStatusHandler
 } = require("../controllers/studioAppController");
 
 const router = express.Router();
@@ -23,5 +28,13 @@ router.get("/overview", getStudioOverviewHandler);
 // 退款审核：列表 + 审核（通过 / 驳回留言 / 确认打款）
 router.get("/refunds", studioListRefundValidators, validateRequest, getStudioRefundsHandler);
 router.put("/refunds/:id", studioReviewRefundValidators, validateRequest, putStudioRefundHandler);
+
+// 课程管理：本工作室课程列表 / 详情 / 上架下架
+const courseStatusValidators = [
+  body("status").isInt({ min: 1, max: 2 }).withMessage("status must be 1(on) or 2(off)")
+];
+router.get("/courses", listCoursesValidators, validateRequest, getStudioCoursesHandler);
+router.get("/courses/:id", courseIdValidator, validateRequest, getStudioCourseHandler);
+router.patch("/courses/:id/status", courseIdValidator, courseStatusValidators, validateRequest, patchStudioCourseStatusHandler);
 
 module.exports = router;
