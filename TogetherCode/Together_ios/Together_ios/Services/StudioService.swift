@@ -460,6 +460,262 @@ struct StudioStudentDetail: Codable {
     let logs: [StudioStudentLog]?
 }
 
+// MARK: - 老师管理模型
+
+/// 老师管理统计（GET /studio/teachers → summary）
+/// 口径：在职老师数 / 本工作室学员数 / 在职老师本月消课合计 / 待审合作申请
+struct StudioTeacherSummary: Codable {
+    let total_teachers: Int?
+    let total_students: Int?
+    let month_lessons: Int?
+    let pending_applications: Int?
+
+    static let empty = StudioTeacherSummary(
+        total_teachers: nil,
+        total_students: nil,
+        month_lessons: nil,
+        pending_applications: nil
+    )
+
+    var pendingCount: Int { pending_applications ?? 0 }
+}
+
+/// 在职老师（GET /studio/teachers → list）
+struct StudioTeacherItem: Codable {
+    let binding_id: String?
+    let teacher_id: String
+    let user_id: String?
+    let real_name: String?
+    let nickname: String?
+    let avatar: String?
+    let phone: String?
+    let subjects: [String]?
+    let years: Int?
+    let intro: String?
+    let cert_no: String?
+    let cert_status: Int?
+    let rating: Double?
+    let bound_at: String?
+    let course_count: Int?
+    let student_count: Int?
+    let month_lessons: Int?
+
+    var displayName: String {
+        guard let real_name, !real_name.isEmpty else { return "未命名老师" }
+        return real_name
+    }
+
+    /// 副标题：水彩 / 硬笔书法 · 教龄 5 年
+    var subtitle: String {
+        var parts: [String] = []
+        if let subjects, !subjects.isEmpty { parts.append(subjects.joined(separator: " / ")) }
+        if let years { parts.append("教龄 \(years) 年") }
+        return parts.isEmpty ? "暂未填写擅长方向" : parts.joined(separator: " · ")
+    }
+
+    var studentsText: String { "\(student_count ?? 0) 名学生" }
+
+    var lessonsText: String { "月消课 \(month_lessons ?? 0) 节" }
+
+    var isCertified: Bool { (cert_status ?? 0) == 1 }
+
+    var ratingText: String { String(format: "%.1f", rating ?? 5) }
+
+    var joinedText: String {
+        guard let bound_at, bound_at.count >= 10 else { return "—" }
+        return String(bound_at.prefix(10))
+    }
+
+    var yearsText: String {
+        guard let years else { return "未填写" }
+        return "\(years) 年"
+    }
+
+    var subjectsText: String {
+        guard let subjects, !subjects.isEmpty else { return "暂未填写" }
+        return subjects.joined(separator: " / ")
+    }
+}
+
+struct StudioTeacherPage: Codable {
+    let summary: StudioTeacherSummary?
+    let total: Int?
+    let list: [StudioTeacherItem]?
+}
+
+/// 老师在本工作室带的课程
+struct StudioTeacherCourse: Codable {
+    let course_id: String
+    let title: String?
+    let cover: String?
+    let status: Int?
+    let total_lessons: Int?
+    let price: Int?
+    let student_count: Int?
+    let month_lessons: Int?
+
+    var titleText: String {
+        guard let title, !title.isEmpty else { return "课程" }
+        return title
+    }
+    var isOnline: Bool { (status ?? 0) == 1 }
+    var statusText: String { isOnline ? "在售" : "已下架" }
+    var detailText: String { "共 \(total_lessons ?? 0) 节 · 本月消课 \(month_lessons ?? 0) 节" }
+}
+
+/// 老师名下的消课流水
+struct StudioTeacherLog: Codable {
+    let log_id: String?
+    let created_at: String?
+    let child_name: String?
+    let course_title: String?
+    let delta: Int?
+    let balance_after: Int?
+    let note: String?
+
+    var dateText: String {
+        guard let created_at, created_at.count >= 10 else { return "—" }
+        return String(created_at.prefix(10))
+    }
+    var titleText: String {
+        let name = child_name ?? "学员"
+        let course = (course_title?.isEmpty == false) ? course_title! : "课程"
+        return "\(name) · \(course)"
+    }
+    var deltaText: String {
+        let value = delta ?? 0
+        return value > 0 ? "+\(value)" : "\(value)"
+    }
+    var isIncrease: Bool { (delta ?? 0) > 0 }
+    var detailText: String {
+        var text = "剩余 \(balance_after ?? 0) 节"
+        if let note, !note.isEmpty { text += " · \(note)" }
+        return text
+    }
+}
+
+struct StudioTeacherDetail: Codable {
+    let teacher: StudioTeacherItem?
+    let courses: [StudioTeacherCourse]?
+    let logs: [StudioTeacherLog]?
+}
+
+/// 合作申请筛选
+enum StudioTeacherApplicationFilter: String, CaseIterable {
+    case pending
+    case approved
+    case rejected
+    case all
+
+    var title: String {
+        switch self {
+        case .pending: return "待处理"
+        case .approved: return "已通过"
+        case .rejected: return "已驳回"
+        case .all: return "全部"
+        }
+    }
+
+    /// 接口 status 参数（nil 为全部）
+    var apiValue: Int? {
+        switch self {
+        case .pending: return 0
+        case .approved: return 1
+        case .rejected: return 2
+        case .all: return nil
+        }
+    }
+
+    var emptyText: String {
+        switch self {
+        case .pending: return "暂无待处理的合作申请"
+        case .approved: return "暂无已通过的合作申请"
+        case .rejected: return "暂无已驳回的合作申请"
+        case .all: return "暂无老师合作申请"
+        }
+    }
+}
+
+struct StudioTeacherApplicationSummary: Codable {
+    let pending: Int?
+    let approved: Int?
+    let rejected: Int?
+    let total: Int?
+
+    static let empty = StudioTeacherApplicationSummary(pending: nil, approved: nil, rejected: nil, total: nil)
+
+    func count(for filter: StudioTeacherApplicationFilter) -> Int {
+        switch filter {
+        case .pending: return pending ?? 0
+        case .approved: return approved ?? 0
+        case .rejected: return rejected ?? 0
+        case .all: return total ?? 0
+        }
+    }
+}
+
+struct StudioTeacherApplication: Codable {
+    let id: String
+    let user_id: String?
+    let real_name: String?
+    let nickname: String?
+    let avatar: String?
+    let phone: String?
+    let subjects: [String]?
+    let years: Int?
+    let intro: String?
+    let cert_no: String?
+    let status: Int?
+    let submitted_at: String?
+    let reviewed_at: String?
+    let review_reason: String?
+
+    var displayName: String {
+        guard let real_name, !real_name.isEmpty else { return "未命名老师" }
+        return real_name
+    }
+    var isPending: Bool { (status ?? 0) == 0 }
+    var statusText: String {
+        switch status {
+        case 0: return "待处理"
+        case 1: return "已通过"
+        case 2: return "已驳回"
+        default: return "未知"
+        }
+    }
+    var subtitle: String {
+        var parts: [String] = []
+        if let subjects, !subjects.isEmpty { parts.append(subjects.joined(separator: " / ")) }
+        if let years { parts.append("教龄 \(years) 年") }
+        return parts.isEmpty ? "—" : parts.joined(separator: " · ")
+    }
+    var submittedText: String {
+        guard let submitted_at, submitted_at.count >= 10 else { return "—" }
+        return String(submitted_at.prefix(10))
+    }
+}
+
+struct StudioTeacherApplicationPage: Codable {
+    let summary: StudioTeacherApplicationSummary?
+    let total: Int?
+    let list: [StudioTeacherApplication]?
+}
+
+/// 邀请老师成功后的回执（data.teacher）
+struct StudioTeacherInviteResult: Codable {
+    let binding_id: String?
+    let status: Int?
+    let teacher: StudioTeacherInviteTeacher?
+
+    struct StudioTeacherInviteTeacher: Codable {
+        let teacher_id: String?
+        let user_id: String?
+        let real_name: String?
+    }
+
+    var teacherName: String { teacher?.real_name ?? "老师" }
+}
+
 // MARK: - 工作室数据服务
 
 /// 工作室端（角色 3）App 接口：/v1/studio/*
@@ -587,6 +843,110 @@ enum StudioService {
             case .success(let json):
                 let detail = JSONKit.decode(StudioStudentDetail.self, from: json)
                 completion(.success(detail ?? StudioStudentDetail(student: nil, balances: [], logs: [])))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    // MARK: - 老师管理
+
+    /// 在职老师列表（含 summary：老师数 / 学员数 / 本月消课 / 待审申请）；keyword 匹配姓名或擅长方向
+    static func fetchTeachers(
+        keyword: String? = nil,
+        completion: @escaping (Result<StudioTeacherPage, APIError>) -> Void
+    ) {
+        var params: [String: Any]?
+        let trimmed = keyword?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !trimmed.isEmpty { params = ["q": trimmed] }
+        APIClient.shared.request("/studio/teachers", method: .get, parameters: params) { result in
+            switch result {
+            case .success(let json):
+                let page = JSONKit.decode(StudioTeacherPage.self, from: json)
+                completion(.success(page ?? StudioTeacherPage(summary: nil, total: 0, list: [])))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 老师详情：档案 + 本工作室带课 + 最近消课流水
+    static func fetchTeacherDetail(
+        teacherId: String,
+        completion: @escaping (Result<StudioTeacherDetail, APIError>) -> Void
+    ) {
+        APIClient.shared.request("/studio/teachers/\(teacherId)", method: .get) { result in
+            switch result {
+            case .success(let json):
+                let detail = JSONKit.decode(StudioTeacherDetail.self, from: json)
+                completion(.success(detail ?? StudioTeacherDetail(teacher: nil, courses: [], logs: [])))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 老师合作申请列表；status nil 为全部
+    static func fetchTeacherApplications(
+        status: Int?,
+        completion: @escaping (Result<StudioTeacherApplicationPage, APIError>) -> Void
+    ) {
+        var params: [String: Any]?
+        if let status { params = ["status": status] }
+        APIClient.shared.request("/studio/teachers/applications", method: .get, parameters: params) { result in
+            switch result {
+            case .success(let json):
+                let page = JSONKit.decode(StudioTeacherApplicationPage.self, from: json)
+                completion(.success(page ?? StudioTeacherApplicationPage(summary: nil, total: 0, list: [])))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 审批老师合作申请：action = approve 通过 / reject 驳回（需 reason）
+    static func reviewTeacherApplication(
+        id: String,
+        action: String,
+        reason: String? = nil,
+        completion: @escaping (Result<Void, APIError>) -> Void
+    ) {
+        var body: [String: Any] = ["action": action]
+        if let reason, !reason.isEmpty { body["reason"] = reason }
+        APIClient.shared.request("/studio/teachers/applications/\(id)", method: .put, parameters: body) { result in
+            switch result {
+            case .success:
+                completion(.success(()))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 邀请老师（手机号）：对方需已通过平台老师认证，本接口只建立合作绑定
+    static func inviteTeacher(
+        phone: String,
+        completion: @escaping (Result<StudioTeacherInviteResult?, APIError>) -> Void
+    ) {
+        APIClient.shared.request("/studio/teachers/invite", method: .post, parameters: ["phone": phone]) { result in
+            switch result {
+            case .success(let json):
+                completion(.success(JSONKit.decode(StudioTeacherInviteResult.self, from: json)))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 解除与老师的合作（老师档案与其他工作室绑定不受影响）
+    static func releaseTeacher(
+        teacherId: String,
+        completion: @escaping (Result<Void, APIError>) -> Void
+    ) {
+        APIClient.shared.request("/studio/teachers/\(teacherId)", method: .delete) { result in
+            switch result {
+            case .success:
+                completion(.success(()))
             case .failure(let error):
                 completion(.failure(error))
             }

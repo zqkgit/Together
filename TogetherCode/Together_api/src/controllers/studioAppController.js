@@ -15,6 +15,14 @@ const {
   listStudioStudentsForApp,
   getStudioStudentDetailForApp
 } = require("../services/studentService");
+const {
+  getStudioTeacherRoster,
+  getStudioTeacherDetail,
+  getStudioTeacherApplications,
+  reviewTeacherApplication,
+  inviteTeacher,
+  releaseTeacher
+} = require("../services/studioTeacherService");
 
 /**
  * 由登录用户（工作室主体）解析其 studio_id；非工作室主体返回 null
@@ -194,11 +202,131 @@ async function getStudioStudentDetailHandler(req, res) {
   }
 }
 
+/**
+ * GET /v1/studio/teachers · 在职老师列表（含本工作室口径统计）
+ * summary：老师数 / 学员数 / 本月消课 / 待审合作申请
+ */
+async function getStudioTeachersHandler(req, res) {
+  try {
+    const studioId = await resolveStudioId(req.user.userId);
+    if (!studioId) {
+      return fail(res, 404, 40480, "Studio not found");
+    }
+    const data = await getStudioTeacherRoster(studioId, req.query);
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+/**
+ * GET /v1/studio/teachers/:id · 老师详情（档案 + 本工作室带课 + 最近消课流水）
+ */
+async function getStudioTeacherDetailHandler(req, res) {
+  try {
+    const studioId = await resolveStudioId(req.user.userId);
+    if (!studioId) {
+      return fail(res, 404, 40480, "Studio not found");
+    }
+    const data = await getStudioTeacherDetail(studioId, req.params.id);
+    if (!data) {
+      return fail(res, 404, 40440, "Teacher not found");
+    }
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+/**
+ * GET /v1/studio/teachers/applications · 老师合作申请列表（含各状态计数）
+ */
+async function getStudioTeacherApplicationsHandler(req, res) {
+  try {
+    const studioId = await resolveStudioId(req.user.userId);
+    if (!studioId) {
+      return fail(res, 404, 40480, "Studio not found");
+    }
+    const data = await getStudioTeacherApplications(studioId, req.query.status);
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+/**
+ * PUT /v1/studio/teachers/applications/:id · 审批合作申请
+ * body: { action: "approve" | "reject", reason?: string }
+ */
+async function putStudioTeacherApplicationHandler(req, res) {
+  try {
+    const studioId = await resolveStudioId(req.user.userId);
+    if (!studioId) {
+      return fail(res, 404, 40480, "Studio not found");
+    }
+    const result = await reviewTeacherApplication(studioId, req.params.id, {
+      action: req.body.action,
+      reason: req.body.reason
+    });
+    if (result.error) {
+      return fail(res, result.error.status, result.error.status * 100, result.error.message);
+    }
+    return ok(res, result.data, result.message);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+/**
+ * POST /v1/studio/teachers/invite · 邀请老师（手机号）
+ * 前置：对方需已通过平台老师认证，本接口只建立合作绑定
+ */
+async function postStudioTeacherInviteHandler(req, res) {
+  try {
+    const studioId = await resolveStudioId(req.user.userId);
+    if (!studioId) {
+      return fail(res, 404, 40480, "Studio not found");
+    }
+    const result = await inviteTeacher(studioId, { phone: req.body.phone });
+    if (result.error) {
+      return fail(res, result.error.status, result.error.code || result.error.status * 100, result.error.message);
+    }
+    return ok(res, result.data, result.message);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+/**
+ * DELETE /v1/studio/teachers/:id · 解除与老师的合作（老师档案与其他工作室绑定不受影响）
+ */
+async function deleteStudioTeacherHandler(req, res) {
+  try {
+    const studioId = await resolveStudioId(req.user.userId);
+    if (!studioId) {
+      return fail(res, 404, 40480, "Studio not found");
+    }
+    const result = await releaseTeacher(studioId, req.params.id, {});
+    if (result.error) {
+      return fail(res, result.error.status, result.error.status * 100, result.error.message);
+    }
+    return ok(res, result.data, result.message);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   getStudioMineHandler,
   getStudioOverviewHandler,
   getStudioStudentsHandler,
   getStudioStudentDetailHandler,
+  getStudioTeachersHandler,
+  getStudioTeacherDetailHandler,
+  getStudioTeacherApplicationsHandler,
+  putStudioTeacherApplicationHandler,
+  postStudioTeacherInviteHandler,
+  deleteStudioTeacherHandler,
   getStudioRefundsHandler,
   putStudioRefundHandler,
   getStudioCoursesHandler,

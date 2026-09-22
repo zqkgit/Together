@@ -12,6 +12,13 @@ const {
   studentIdValidator
 } = require("../validators/studentValidator");
 const {
+  teacherRosterValidators,
+  teacherApplicationListValidators,
+  teacherApplicationReviewValidators,
+  teacherInviteValidators,
+  teacherIdValidator
+} = require("../validators/studioTeacherValidator");
+const {
   getStudioMineHandler,
   getStudioOverviewHandler,
   getStudioRefundsHandler,
@@ -20,7 +27,13 @@ const {
   getStudioCourseHandler,
   patchStudioCourseStatusHandler,
   getStudioStudentsHandler,
-  getStudioStudentDetailHandler
+  getStudioStudentDetailHandler,
+  getStudioTeachersHandler,
+  getStudioTeacherDetailHandler,
+  getStudioTeacherApplicationsHandler,
+  putStudioTeacherApplicationHandler,
+  postStudioTeacherInviteHandler,
+  deleteStudioTeacherHandler
 } = require("../controllers/studioAppController");
 
 const router = express.Router();
@@ -46,5 +59,24 @@ router.patch("/courses/:id/status", courseIdValidator, courseStatusValidators, v
 // 学员管理：本工作室学员列表（全部 / 待续费 / 本月新增）+ 学员详情（课时余额 + 流水）
 router.get("/students", studioAppStudentListValidators, validateRequest, getStudioStudentsHandler);
 router.get("/students/:id", studentIdValidator, validateRequest, getStudioStudentDetailHandler);
+
+// 老师管理：在职老师列表 / 详情 / 合作申请审批 / 邀请 / 解除合作
+// ⚠️ /teachers/applications 必须排在 /teachers/:id 之前，否则会被当成老师 id
+router.get("/teachers", teacherRosterValidators, validateRequest, getStudioTeachersHandler);
+router.get(
+  "/teachers/applications",
+  teacherApplicationListValidators,
+  validateRequest,
+  getStudioTeacherApplicationsHandler
+);
+router.put(
+  "/teachers/applications/:id",
+  teacherApplicationReviewValidators,
+  validateRequest,
+  putStudioTeacherApplicationHandler
+);
+router.post("/teachers/invite", teacherInviteValidators, validateRequest, postStudioTeacherInviteHandler);
+router.get("/teachers/:id", teacherIdValidator, validateRequest, getStudioTeacherDetailHandler);
+router.delete("/teachers/:id", teacherIdValidator, validateRequest, deleteStudioTeacherHandler);
 
 module.exports = router;
