@@ -5,6 +5,15 @@ const listStudioStudentsValidators = [
   query("status").optional({ values: "falsy" }).isIn(["active", "empty", "all"])
 ];
 
+// 工作室 App「学员管理」列表：filter all 全部 / renew 待续费 / new 本月新增
+const studioAppStudentListValidators = [
+  query("filter").optional({ values: "falsy" }).isIn(["all", "renew", "new"]),
+  query("q").optional({ values: "falsy" }).isString().isLength({ max: 40 }),
+  query("class_id").optional({ values: "falsy" }).isString().isLength({ max: 32 })
+];
+
+const studentIdValidator = [param("id").isString().notEmpty().withMessage("child id is required")];
+
 const studentLogsValidators = [
   param("id").isString().notEmpty().withMessage("child id is required"),
   query("limit").optional({ values: "falsy" }).isInt({ min: 1, max: 200 }),
@@ -36,6 +45,8 @@ const scheduleAttendanceValidators = [
 
 module.exports = {
   listStudioStudentsValidators,
+  studioAppStudentListValidators,
+  studentIdValidator,
   consumeLessonValidators,
   classIdValidator,
   scheduleAttendanceValidators,

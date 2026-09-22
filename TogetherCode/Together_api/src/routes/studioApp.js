@@ -8,13 +8,19 @@ const {
 } = require("../validators/orderValidator");
 const { listCoursesValidators, courseIdValidator } = require("../validators/courseValidator");
 const {
+  studioAppStudentListValidators,
+  studentIdValidator
+} = require("../validators/studentValidator");
+const {
   getStudioMineHandler,
   getStudioOverviewHandler,
   getStudioRefundsHandler,
   putStudioRefundHandler,
   getStudioCoursesHandler,
   getStudioCourseHandler,
-  patchStudioCourseStatusHandler
+  patchStudioCourseStatusHandler,
+  getStudioStudentsHandler,
+  getStudioStudentDetailHandler
 } = require("../controllers/studioAppController");
 
 const router = express.Router();
@@ -36,5 +42,9 @@ const courseStatusValidators = [
 router.get("/courses", listCoursesValidators, validateRequest, getStudioCoursesHandler);
 router.get("/courses/:id", courseIdValidator, validateRequest, getStudioCourseHandler);
 router.patch("/courses/:id/status", courseIdValidator, courseStatusValidators, validateRequest, patchStudioCourseStatusHandler);
+
+// 学员管理：本工作室学员列表（全部 / 待续费 / 本月新增）+ 学员详情（课时余额 + 流水）
+router.get("/students", studioAppStudentListValidators, validateRequest, getStudioStudentsHandler);
+router.get("/students/:id", studentIdValidator, validateRequest, getStudioStudentDetailHandler);
 
 module.exports = router;

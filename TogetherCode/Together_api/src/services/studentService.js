@@ -17,6 +17,9 @@ const {
 const { generateId } = require("../utils/id");
 const { createNotification } = require("./messageService");
 
+// 待续费阈值：剩余课时 ≤ 3 视为需要续费（App 学员管理「待续费」口径）
+const RENEW_THRESHOLD = 3;
+
 function computeOrderStatus(order, remainingAfter) {
   const refundedLessons = Number(order.refunded_lessons || 0);
   const consumedLessons = Number(order.consumed_lessons || 0);
@@ -34,11 +37,21 @@ function computeOrderStatus(order, remainingAfter) {
   return 1;
 }
 
-async function listStudioStudents(query = {}) {
+/**
+ * 工作室学员行（Web / App 共用底层）
+ * 取该工作室有课时余额的学员，保留原始 balances 明细，两端各自裁剪字段
+ * @param {number|string} studioId 工作室 id
+ * @param {object} query { q 昵称模糊, class_id 班级过滤 }
+ */
+async function loadStudioStudentRows(studioId, query = {}) {
+  if (!studioId) {
+    return [];
+  }
+
   const where = {};
   if (query.q) {
     where.nickname = {
-      [Op.like]: `%${query.q.trim()}%`
+      [Op.like]: `%${String(query.q).trim()}%`
     };
   }
 
@@ -48,7 +61,7 @@ async function listStudioStudents(query = {}) {
       attributes: ["class_id", "course_id"]
     });
     if (!classItem) {
-      return { total: 0, list: [] };
+      return [];
     }
     balanceWhere = {
       [Op.or]: [
@@ -72,7 +85,7 @@ async function listStudioStudents(query = {}) {
             as: "order",
             required: true,
             where: {
-              studio_id: query.studio_id
+              studio_id: studioId
             },
             include: [
               {
@@ -93,12 +106,13 @@ async function listStudioStudents(query = {}) {
     order: [["created_at", "DESC"]]
   });
 
-  let list = children.map((child) => {
+  return children.map((child) => {
     const balances = (child.balances || []).map((balance) => ({
       balance_id: String(balance.balance_id),
       order_id: String(balance.order_id),
       course_id: String(balance.course_id),
       course_title: balance.course?.title || "-",
+      course_cover: balance.course?.cover || null,
       total_lessons: balance.total_lessons,
       consumed_lessons: balance.consumed_lessons,
       refunded_lessons: balance.refunded_lessons,
@@ -112,23 +126,47 @@ async function listStudioStudents(query = {}) {
           }
         : null,
       order_created_at: balance.order ? balance.order.created_at : null,
+      order_paid_at: balance.order ? balance.order.paid_at : null,
       valid_to: balance.valid_to,
       status: balance.status
     }));
 
     const totalRemaining = balances.reduce((sum, item) => sum + Number(item.remaining_lessons || 0), 0);
+    const totalLessons = balances.reduce((sum, item) => sum + Number(item.total_lessons || 0), 0);
+    const consumedLessons = balances.reduce((sum, item) => sum + Number(item.consumed_lessons || 0), 0);
+    // 报名时间：本工作室最早一笔订单的支付时间（无支付时间时退化为下单时间）
+    const enrolledAt =
+      balances
+        .map((item) => item.order_paid_at || item.order_created_at)
+        .filter(Boolean)
+        .map((value) => new Date(value))
+        .filter((value) => !Number.isNaN(value.getTime()))
+        .sort((a, b) => a - b)[0] || null;
 
     return {
       child_id: String(child.child_id),
       nickname: child.nickname,
+      avatar: child.avatar || null,
       birthday: child.birthday,
       gender: child.gender,
       total_remaining_lessons: totalRemaining,
+      total_lessons: totalLessons,
+      consumed_lessons: consumedLessons,
+      enrolled_at: enrolledAt,
       status: totalRemaining > 0 ? "active" : "empty",
       balances
     };
   });
+}
 
+/**
+ * 工作室后台（Web）学员列表
+ * query: { studio_id 必填, q 昵称模糊, class_id 班级过滤, status active|empty|all 课时状态 }
+ */
+async function listStudioStudents(query = {}) {
+  const rows = await loadStudioStudentRows(query.studio_id, query);
+
+  let list = rows;
   if (query.status && query.status !== "all") {
     list = list.filter((item) => item.status === query.status);
   }
@@ -136,6 +174,147 @@ async function listStudioStudents(query = {}) {
   return {
     total: list.length,
     list
+  };
+}
+
+// ---------- 工作室 App 端「学员管理」 ----------
+
+/** 生日 → 周岁（整数，取不到返回 null） */
+function computeAge(birthday) {
+  if (!birthday) {
+    return null;
+  }
+  const birth = new Date(birthday);
+  if (Number.isNaN(birth.getTime())) {
+    return null;
+  }
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const monthDiff = now.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
+    age -= 1;
+  }
+  return age >= 0 ? age : null;
+}
+
+/** 手机号打码（家长无昵称时的兜底展示） */
+function maskPhone(phone) {
+  const value = String(phone || "").trim();
+  if (value.length < 7) {
+    return value;
+  }
+  return `${value.slice(0, 3)}****${value.slice(-4)}`;
+}
+
+/** 主推课程：最近一笔订单对应的课程；报多门时由前端拼「等 N 门」 */
+function pickLatestBalance(balances = []) {
+  const time = (item) => (item.order_created_at ? new Date(item.order_created_at).getTime() : 0);
+  return (
+    [...balances].sort((a, b) => {
+      const diff = time(b) - time(a);
+      // 同一订单时间（一次买多门）时用 balance_id 兜底，保证每次结果稳定
+      return diff !== 0 ? diff : String(b.balance_id).localeCompare(String(a.balance_id));
+    })[0] || null
+  );
+}
+
+/**
+ * 学员行 → App 列表/详情通用结构
+ * renew：剩余课时 ≤ RENEW_THRESHOLD（含耗尽）；is_new：本月首次报名
+ */
+function decorateStudentForApp(row) {
+  const remaining = Number(row.total_remaining_lessons || 0);
+  const latest = pickLatestBalance(row.balances);
+  const enrolledAt = row.enrolled_at ? new Date(row.enrolled_at) : null;
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const isNew = Boolean(enrolledAt && enrolledAt >= monthStart);
+  const parent = latest?.parent || null;
+
+  return {
+    child_id: row.child_id,
+    nickname: row.nickname,
+    avatar: row.avatar,
+    gender: row.gender,
+    age: computeAge(row.birthday),
+    birthday: row.birthday,
+    course_title: latest?.course_title || "",
+    course_count: (row.balances || []).length,
+    parent_name: (parent?.nickname || "").trim() || maskPhone(parent?.phone),
+    parent_phone: parent?.phone || "",
+    remaining_lessons: remaining,
+    total_lessons: Number(row.total_lessons || 0),
+    consumed_lessons: Number(row.consumed_lessons || 0),
+    renew: remaining <= RENEW_THRESHOLD,
+    is_new: isNew,
+    enrolled_at: row.enrolled_at,
+    status: remaining <= RENEW_THRESHOLD ? "renew" : "active"
+  };
+}
+
+/**
+ * 工作室 App「学员管理」列表
+ * summary 恒按工作室全量学员统计（不受筛选/搜索影响），与设计稿「全部/待续费/本月新增」口径一致
+ * @param {object} query { filter all|renew|new, q 昵称/家长模糊, class_id 班级过滤 }
+ */
+async function listStudioStudentsForApp(studioId, query = {}) {
+  // 全量拉取（不把搜索词下推到 SQL），以便 chips 统计口径稳定
+  const rows = await loadStudioStudentRows(studioId, { class_id: query.class_id });
+  const items = rows.map(decorateStudentForApp);
+
+  const summary = {
+    all: items.length,
+    renew: items.filter((item) => item.renew).length,
+    new: items.filter((item) => item.is_new).length
+  };
+
+  let list = items;
+  const filter = query.filter || "all";
+  if (filter === "renew") {
+    list = list.filter((item) => item.renew);
+  } else if (filter === "new") {
+    list = list.filter((item) => item.is_new);
+  }
+
+  const keyword = String(query.q || "").trim();
+  if (keyword) {
+    list = list.filter(
+      (item) => (item.nickname || "").includes(keyword) || (item.parent_name || "").includes(keyword)
+    );
+  }
+
+  return { summary, total: list.length, list };
+}
+
+/**
+ * 工作室 App「学员详情」：学员信息 + 各课程课时余额 + 课时流水
+ * 学员不属于本工作室时返回 null
+ */
+async function getStudioStudentDetailForApp(childId, studioId) {
+  const rows = await loadStudioStudentRows(studioId, {});
+  const row = rows.find((item) => String(item.child_id) === String(childId));
+  if (!row) {
+    return null;
+  }
+
+  const logs = await listStudentLessonLogs(childId, studioId, { limit: 50 });
+
+  return {
+    student: decorateStudentForApp(row),
+    balances: (row.balances || []).map((balance) => ({
+      balance_id: balance.balance_id,
+      order_id: balance.order_id,
+      course_id: balance.course_id,
+      course_title: balance.course_title,
+      course_cover: balance.course_cover,
+      total_lessons: Number(balance.total_lessons || 0),
+      consumed_lessons: Number(balance.consumed_lessons || 0),
+      remaining_lessons: Number(balance.remaining_lessons || 0),
+      valid_from: balance.valid_from,
+      valid_to: balance.valid_to,
+      order_created_at: balance.order_created_at
+    })),
+    logs: logs ? logs.list : []
   };
 }
 
@@ -859,6 +1038,8 @@ async function listStudentLessonLogs(childId, studioId, query = {}) {
 
 module.exports = {
   listStudioStudents,
+  listStudioStudentsForApp,
+  getStudioStudentDetailForApp,
   consumeStudentLessons,
   listClassStudents,
   attendSchedule,

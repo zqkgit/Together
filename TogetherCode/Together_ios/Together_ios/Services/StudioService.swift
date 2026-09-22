@@ -260,6 +260,206 @@ struct StudioRefundPage: Codable {
     let list: [StudioRefund]?
 }
 
+// MARK: - 学员管理模型
+
+/// 学员筛选（对应接口 filter）
+enum StudioStudentFilter: String, CaseIterable {
+    case all
+    case renew
+    case new
+
+    var title: String {
+        switch self {
+        case .all: return "全部"
+        case .renew: return "待续费"
+        case .new: return "本月新增"
+        }
+    }
+
+    var emptyText: String {
+        switch self {
+        case .all: return "暂无学员"
+        case .renew: return "暂无待续费学员"
+        case .new: return "本月暂无新增学员"
+        }
+    }
+}
+
+/// 学员统计（GET /studio/students → summary）
+/// 口径：工作室全量学员，不随筛选 / 搜索变化
+struct StudioStudentSummary: Codable {
+    let all: Int?
+    let renew: Int?
+    let newCount: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case all
+        case renew
+        case newCount = "new"
+    }
+
+    static let empty = StudioStudentSummary(all: nil, renew: nil, newCount: nil)
+
+    func count(for filter: StudioStudentFilter) -> Int {
+        switch filter {
+        case .all: return all ?? 0
+        case .renew: return renew ?? 0
+        case .new: return newCount ?? 0
+        }
+    }
+}
+
+/// 工作室学员（GET /studio/students → list）
+struct StudioStudentItem: Codable {
+    let child_id: String
+    let nickname: String?
+    let avatar: String?
+    let gender: Int?
+    let age: Int?
+    let birthday: String?
+    let course_title: String?
+    let course_count: Int?
+    let parent_name: String?
+    let parent_phone: String?
+    let remaining_lessons: Int?
+    let total_lessons: Int?
+    let consumed_lessons: Int?
+    let renew: Bool?
+    let is_new: Bool?
+    let enrolled_at: String?
+    let status: String?
+
+    var displayName: String {
+        guard let nickname, !nickname.isEmpty else { return "未命名学员" }
+        return nickname
+    }
+
+    /// 待续费（剩余课时 ≤ 3，含课时耗尽）
+    var isRenew: Bool { renew ?? false }
+
+    var remaining: Int { remaining_lessons ?? 0 }
+
+    /// 副标题：6 岁 · 森林水彩启蒙 · 家长：林女士（设计稿口径，课程取最近报名的一门）
+    var subtitle: String {
+        var parts: [String] = []
+        if let age { parts.append("\(age) 岁") }
+        if let title = course_title, !title.isEmpty { parts.append(title) }
+        if let parent = parent_name, !parent.isEmpty { parts.append("家长：\(parent)") }
+        return parts.joined(separator: " · ")
+    }
+
+    /// 剩余课时数文案（右侧大字）
+    var lessonsText: String { "\(remaining) 节" }
+
+    /// 右侧小字：待续费 / 剩余课时
+    var lessonsCaption: String { isRenew ? "待续费" : "剩余课时" }
+
+    /// 报名时间（yyyy-MM-dd）
+    var enrolledText: String {
+        guard let enrolled_at, enrolled_at.count >= 10 else { return "—" }
+        return String(enrolled_at.prefix(10))
+    }
+
+    var genderText: String {
+        switch gender {
+        case 1: return "男孩"
+        case 2: return "女孩"
+        default: return "未填"
+        }
+    }
+}
+
+struct StudioStudentPage: Codable {
+    let summary: StudioStudentSummary?
+    let total: Int?
+    let list: [StudioStudentItem]?
+}
+
+/// 学员详情：单门课程课时账本
+struct StudioStudentBalance: Codable {
+    let balance_id: String?
+    let course_id: String?
+    let course_title: String?
+    let total_lessons: Int?
+    let consumed_lessons: Int?
+    let remaining_lessons: Int?
+    let valid_from: String?
+    let valid_to: String?
+    let order_created_at: String?
+
+    var titleText: String {
+        guard let course_title, !course_title.isEmpty else { return "课程" }
+        return course_title
+    }
+    var remainingText: String { "\(remaining_lessons ?? 0) 节" }
+    var detailText: String {
+        "共 \(total_lessons ?? 0) 节 · 已消耗 \(consumed_lessons ?? 0) 节"
+    }
+    var validityText: String {
+        guard let from = valid_from, from.count >= 10 else { return "" }
+        let start = String(from.prefix(10))
+        guard let to = valid_to, to.count >= 10 else { return "有效期：\(start) 起" }
+        return "有效期：\(start) ~ \(String(to.prefix(10)))"
+    }
+}
+
+/// 学员课时流水
+struct StudioStudentLog: Codable {
+    let log_id: String?
+    let course_id: String?
+    let course_title: String?
+    let lesson_date: String?
+    let start_time: String?
+    let end_time: String?
+    let is_makeup: Bool?
+    let source: Int?
+    let delta: Int?
+    let balance_after: Int?
+    let note: String?
+    let created_at: String?
+
+    /// 0 课时到账 / 1 出勤打卡 / 2 排课消课 / 3 手动消课 / 4 退款扣减
+    var sourceText: String {
+        switch source ?? 0 {
+        case 0: return "课时到账"
+        case 1: return "出勤打卡"
+        case 2: return "排课消课"
+        case 3: return "手动消课"
+        case 4: return "退款扣减"
+        default: return "其他"
+        }
+    }
+
+    var deltaText: String {
+        let value = delta ?? 0
+        return "\(value > 0 ? "+" : "")\(value) 节"
+    }
+
+    var isIncrease: Bool { (delta ?? 0) > 0 }
+
+    var dateText: String {
+        if let lesson_date, lesson_date.count >= 10 { return String(lesson_date.prefix(10)) }
+        if let created_at, created_at.count >= 10 { return String(created_at.prefix(10)) }
+        return "—"
+    }
+
+    var timeText: String {
+        guard let start_time, let end_time, !start_time.isEmpty else { return "" }
+        return "\(start_time)~\(end_time)"
+    }
+
+    var titleText: String {
+        guard let course_title, !course_title.isEmpty else { return "课程" }
+        return course_title
+    }
+}
+
+struct StudioStudentDetail: Codable {
+    let student: StudioStudentItem?
+    let balances: [StudioStudentBalance]?
+    let logs: [StudioStudentLog]?
+}
+
 // MARK: - 工作室数据服务
 
 /// 工作室端（角色 3）App 接口：/v1/studio/*
@@ -352,6 +552,41 @@ enum StudioService {
             switch result {
             case .success:
                 completion(.success(()))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    // MARK: - 学员管理
+
+    /// 学员列表。filter：all 全部 / renew 待续费(剩余≤3) / new 本月新增；keyword 昵称或家长模糊
+    static func fetchStudents(
+        filter: StudioStudentFilter,
+        keyword: String? = nil,
+        completion: @escaping (Result<StudioStudentPage, APIError>) -> Void
+    ) {
+        var params: [String: Any] = ["filter": filter.rawValue]
+        let trimmed = keyword?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !trimmed.isEmpty { params["q"] = trimmed }
+        APIClient.shared.request("/studio/students", method: .get, parameters: params) { result in
+            switch result {
+            case .success(let json):
+                let page = JSONKit.decode(StudioStudentPage.self, from: json)
+                completion(.success(page ?? StudioStudentPage(summary: nil, total: 0, list: [])))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 学员详情：学员信息 + 各课程课时余额 + 课时流水
+    static func fetchStudentDetail(childId: String, completion: @escaping (Result<StudioStudentDetail, APIError>) -> Void) {
+        APIClient.shared.request("/studio/students/\(childId)", method: .get) { result in
+            switch result {
+            case .success(let json):
+                let detail = JSONKit.decode(StudioStudentDetail.self, from: json)
+                completion(.success(detail ?? StudioStudentDetail(student: nil, balances: [], logs: [])))
             case .failure(let error):
                 completion(.failure(error))
             }

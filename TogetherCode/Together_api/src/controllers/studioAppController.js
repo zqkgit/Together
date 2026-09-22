@@ -11,6 +11,10 @@ const {
   getCourseDetail,
   setStudioCourseStatus
 } = require("../services/courseService");
+const {
+  listStudioStudentsForApp,
+  getStudioStudentDetailForApp
+} = require("../services/studentService");
 
 /**
  * 由登录用户（工作室主体）解析其 studio_id；非工作室主体返回 null
@@ -153,9 +157,48 @@ async function patchStudioCourseStatusHandler(req, res) {
   }
 }
 
+/**
+ * GET /v1/studio/students · 工作室 App 端「学员管理」列表
+ * query: filter all 全部 / renew 待续费(剩余≤3) / new 本月新增；q 昵称/家长模糊
+ * 返回 summary（全量口径）+ list
+ */
+async function getStudioStudentsHandler(req, res) {
+  try {
+    const studioId = await resolveStudioId(req.user.userId);
+    if (!studioId) {
+      return fail(res, 404, 40480, "Studio not found");
+    }
+    const data = await listStudioStudentsForApp(studioId, req.query);
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+/**
+ * GET /v1/studio/students/:id · 学员详情（信息 + 各课程课时余额 + 课时流水）
+ */
+async function getStudioStudentDetailHandler(req, res) {
+  try {
+    const studioId = await resolveStudioId(req.user.userId);
+    if (!studioId) {
+      return fail(res, 404, 40480, "Studio not found");
+    }
+    const data = await getStudioStudentDetailForApp(req.params.id, studioId);
+    if (!data) {
+      return fail(res, 404, 40430, "Student not found");
+    }
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   getStudioMineHandler,
   getStudioOverviewHandler,
+  getStudioStudentsHandler,
+  getStudioStudentDetailHandler,
   getStudioRefundsHandler,
   putStudioRefundHandler,
   getStudioCoursesHandler,

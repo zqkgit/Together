@@ -64,7 +64,11 @@ async function ensureCourse(data) {
 }
 
 /** 一笔已支付订单（含订单项 / 支付记录 / 课时账本），幂等键 = 学员 + 课程 + 课时包 */
-async function ensurePaidOrder({ user, child, studio, course, coursePackage, paidAt }) {
+async function ensurePaidOrder({ user, child, studio, course, coursePackage, paidAt, remainingLessons }) {
+  // 传入 remainingLessons 时直接造出「已消耗一部分」的课时账本（学员管理页待续费演示）
+  const consumed = remainingLessons == null ? 0 : Math.max(0, coursePackage.lessons - remainingLessons);
+  const remaining = remainingLessons == null ? coursePackage.lessons : remainingLessons;
+
   const [order, created] = await Order.findOrCreate({
     where: {
       user_id: user.user_id,
@@ -81,7 +85,7 @@ async function ensurePaidOrder({ user, child, studio, course, coursePackage, pai
       course_id: course.course_id,
       package_id: coursePackage.package_id,
       total_lessons: coursePackage.lessons,
-      consumed_lessons: 0,
+      consumed_lessons: consumed,
       refunded_lessons: 0,
       total_amount: coursePackage.price,
       paid_amount: coursePackage.price,
@@ -134,9 +138,9 @@ async function ensurePaidOrder({ user, child, studio, course, coursePackage, pai
       course_id: course.course_id,
       order_id: order.order_id,
       total_lessons: coursePackage.lessons,
-      consumed_lessons: 0,
+      consumed_lessons: consumed,
       refunded_lessons: 0,
-      remaining_lessons: coursePackage.lessons,
+      remaining_lessons: remaining,
       valid_from: dayjs(paidAt).format("YYYY-MM-DD"),
       valid_to: null,
       status: 1
@@ -157,6 +161,23 @@ async function ensurePaidOrder({ user, child, studio, course, coursePackage, pai
       note: "订单支付成功，课时到账"
     }
   });
+
+  if (consumed > 0) {
+    await LessonLog.findOrCreate({
+      where: { order_id: order.order_id, source: 3, type: 2 },
+      defaults: {
+        log_id: generateId(),
+        child_id: child.child_id,
+        course_id: course.course_id,
+        order_id: order.order_id,
+        source: 3,
+        type: 2,
+        delta: -consumed,
+        balance_after: remaining,
+        note: "历史课时消耗（演示数据）"
+      }
+    });
+  }
 
   return order;
 }
@@ -334,6 +355,46 @@ async function main() {
         course: courses[index],
         coursePackage: packages[index],
         paidAt
+      }));
+    }
+  }
+
+  // ---------- 3.2 补充学员（学员管理页演示：年龄 / 课程 / 剩余课时各异，含 2 位待续费） ----------
+  // 订单时间落在 2 个月以前：不影响「今日招生」，也不计入「本月新增」
+  const extraStudentSeed = [
+    { phone: "13900000014", nickname: "小宇爸爸", child: "小宇", gender: 1, birthday: "2018-06-18", monthsAgo: 5, plans: [{ index: 1, remaining: 3 }] },
+    { phone: "13900000015", nickname: "乐乐妈妈", child: "乐乐", gender: 2, birthday: "2021-02-09", monthsAgo: 3, plans: [{ index: 0, remaining: 9 }] },
+    { phone: "13900000016", nickname: "阳阳妈妈", child: "阳阳", gender: 2, birthday: "2019-05-21", monthsAgo: 8, plans: [{ index: 1, remaining: 2 }] },
+    { phone: "13900000017", nickname: "糖糖妈妈", child: "糖糖", gender: 1, birthday: "2020-03-15", monthsAgo: 2, plans: [{ index: 0, remaining: 12 }] }
+  ];
+  for (const seed of extraStudentSeed) {
+    const user = await ensureUser({
+      user_id: generateId(),
+      phone: seed.phone,
+      nickname: seed.nickname,
+      password_hash: passwordHash,
+      city: "杭州",
+      current_role: 1,
+      terms_agreed_at: new Date()
+    });
+    await ensureUserRole(user.user_id, 1, null);
+    const child = await ensureChild({
+      child_id: generateId(),
+      parent_user_id: user.user_id,
+      nickname: seed.child,
+      birthday: seed.birthday,
+      gender: seed.gender
+    });
+    const paidAt = now.subtract(seed.monthsAgo, "month").toDate();
+    for (const plan of seed.plans) {
+      orders.push(await ensurePaidOrder({
+        user,
+        child,
+        studio,
+        course: courses[plan.index],
+        coursePackage: packages[plan.index],
+        paidAt,
+        remainingLessons: plan.remaining
       }));
     }
   }
