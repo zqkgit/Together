@@ -18,9 +18,9 @@ final class StudioMineViewController: BaseViewController {
 
     /// 第二组：财务与分销
     private static let financeItems: [MineMenuItem] = [
-        MineMenuItem(icon: "yensign.circle.fill", title: "提现"),
         MineMenuItem(icon: "hands.sparkles.fill", title: "分销返利设置"),
         MineMenuItem(icon: "chart.bar.fill", title: "收益中心"),
+        MineMenuItem(icon: "checkmark.shield.fill", title: "佣金审核"),
         MineMenuItem(icon: "gearshape.fill", title: "设置")
     ]
 
@@ -158,10 +158,16 @@ final class StudioMineViewController: BaseViewController {
             navigationController?.pushViewController(StudioTeacherListViewController(), animated: true)
             return
         }
+        if item.title == "收益中心" {
+            navigationController?.pushViewController(StudioRevenueViewController(), animated: true)
+            return
+        }
+        if item.title == "佣金审核" {
+            navigationController?.pushViewController(StudioCommissionReviewViewController(), animated: true)
+            return
+        }
         let tips: [String: String] = [
-            "提现": "课程收入结算、提现与账单明细将在下一阶段开放。",
-            "分销返利设置": "全局返利比例与单课程覆盖设置将在下一阶段开放。",
-            "收益中心": "收入结算、账单明细与流水导出将在下一阶段开放。"
+            "分销返利设置": "全局返利比例与单课程覆盖设置将在下一阶段开放。"
         ]
         let vc = StudioPlaceholderViewController(
             title: item.title,

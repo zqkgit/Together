@@ -24,6 +24,11 @@ const {
   releaseTeacher
 } = require("../services/studioTeacherService");
 
+const {
+  listStudioWithdrawals,
+  reviewStudioWithdrawal
+} = require("../services/commissionService");
+
 /**
  * 由登录用户（工作室主体）解析其 studio_id；非工作室主体返回 null
  */
@@ -316,6 +321,47 @@ async function deleteStudioTeacherHandler(req, res) {
   }
 }
 
+/**
+ * GET /v1/studio/commissions · 工作室佣金领取单列表
+ * query: status 0待审核/1待确认/2已驳回/3已完成, page, page_size
+ */
+async function getStudioCommissionsHandler(req, res) {
+  try {
+    const studioId = await resolveStudioId(req.user.userId);
+    if (!studioId) {
+      return fail(res, 404, 40480, "Studio not found");
+    }
+    const result = await listStudioWithdrawals(studioId, req.query);
+    return ok(res, result.data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+/**
+ * PUT /v1/studio/commissions/:id · 工作室审核佣金领取单
+ * body: { action: "approve"|"reject", method?, voucher_images?, reject_reason? }
+ */
+async function putStudioCommissionHandler(req, res) {
+  try {
+    const studioId = await resolveStudioId(req.user.userId);
+    if (!studioId) {
+      return fail(res, 404, 40480, "Studio not found");
+    }
+    const operator = { adminId: req.user.userId };
+    const result = await reviewStudioWithdrawal(studioId, req.params.id, req.body, operator);
+    if (!result) {
+      return fail(res, 404, 40495, "Withdrawal not found");
+    }
+    if (result.error) {
+      return fail(res, result.error.status, result.error.code || result.error.status * 100, result.error.message);
+    }
+    return ok(res, result, "commission reviewed");
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   getStudioMineHandler,
   getStudioOverviewHandler,
@@ -331,5 +377,7 @@ module.exports = {
   putStudioRefundHandler,
   getStudioCoursesHandler,
   getStudioCourseHandler,
-  patchStudioCourseStatusHandler
+  patchStudioCourseStatusHandler,
+  getStudioCommissionsHandler,
+  putStudioCommissionHandler
 };

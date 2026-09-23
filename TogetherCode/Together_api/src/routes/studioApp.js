@@ -33,7 +33,9 @@ const {
   getStudioTeacherApplicationsHandler,
   putStudioTeacherApplicationHandler,
   postStudioTeacherInviteHandler,
-  deleteStudioTeacherHandler
+  deleteStudioTeacherHandler,
+  getStudioCommissionsHandler,
+  putStudioCommissionHandler
 } = require("../controllers/studioAppController");
 
 const router = express.Router();
@@ -78,5 +80,9 @@ router.put(
 router.post("/teachers/invite", teacherInviteValidators, validateRequest, postStudioTeacherInviteHandler);
 router.get("/teachers/:id", teacherIdValidator, validateRequest, getStudioTeacherDetailHandler);
 router.delete("/teachers/:id", teacherIdValidator, validateRequest, deleteStudioTeacherHandler);
+
+// 佣金审核：领取单列表 + �核操作（通过/驳回）
+router.get("/commissions", getStudioCommissionsHandler);
+router.put("/commissions/:id", putStudioCommissionHandler);
 
 module.exports = router;

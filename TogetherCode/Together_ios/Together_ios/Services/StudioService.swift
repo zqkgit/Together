@@ -1,5 +1,6 @@
 import Foundation
 import Alamofire
+import SwiftyJSON
 
 // MARK: - 工作室「我的」模型
 
@@ -1021,6 +1022,76 @@ enum StudioService {
             }
         }
     }
+
+    // MARK: - 收益中心（财务对账 + 佣金审核）
+
+    /// 财务对账数据（GET /studio/finance）
+    static func fetchFinance(completion: @escaping (Result<StudioFinanceData, APIError>) -> Void) {
+        APIClient.shared.request("/studio/finance", method: .get) { result in
+            switch result {
+            case .success(let json):
+                let data = JSONKit.decode(StudioFinanceData.self, from: json)
+                    ?? StudioFinanceData(period: nil, summary: nil, orders: nil)
+                completion(.success(data))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 工作室佣金领取单列表（GET /studio/commissions）
+    /// status: 0 待审核 / 1 待确认(已打款) / 2 已驳回 / 3 已完成
+    static func fetchCommissionWithdrawals(
+        status: Int? = nil,
+        page: Int = 1,
+        pageSize: Int = 20,
+        completion: @escaping (Result<(total: Int, list: [CommissionWithdrawal]), APIError>) -> Void
+    ) {
+        var params: [String: Any] = ["page": page, "page_size": pageSize]
+        if let status { params["status"] = status }
+        APIClient.shared.request(
+            "/studio/commissions",
+            method: .get,
+            parameters: params,
+            encoding: URLEncoding.default
+        ) { result in
+            switch result {
+            case .success(let json):
+                let list = JSONKit.decodeList([CommissionWithdrawal].self, from: json["list"])
+                completion(.success((json["total"].int ?? 0, list)))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 工作室审核领取单（PUT /studio/commissions/:id）
+    /// action: approve 通过(需 method/voucher_images) / reject 驳回(需 reject_reason)
+    static func reviewCommissionWithdrawal(
+        id: String,
+        action: String,
+        method: String? = nil,
+        voucherImages: [String]? = nil,
+        rejectReason: String? = nil,
+        completion: @escaping (Result<CommissionWithdrawal?, APIError>) -> Void
+    ) {
+        var body: [String: Any] = ["action": action]
+        if let method { body["method"] = method }
+        if let voucherImages { body["voucher_images"] = voucherImages }
+        if let rejectReason { body["reject_reason"] = rejectReason }
+        APIClient.shared.request(
+            "/studio/commissions/\(id)",
+            method: .put,
+            parameters: body
+        ) { result in
+            switch result {
+            case .success(let json):
+                completion(.success(JSONKit.decode(CommissionWithdrawal.self, from: json)))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
 }
 
 
@@ -1073,4 +1144,54 @@ struct StudioCourseItem: Codable {
 struct StudioCoursePage: Codable {
     let total: Int?
     let list: [StudioCourseItem]?
+}
+
+// MARK: - 工作室财务对账模型（GET /studio/finance）
+
+/// 财务统计区间
+struct StudioFinancePeriod: Codable {
+    let start_date: String?
+    let end_date: String?
+}
+
+/// 财务汇总（金额单位：分）
+struct StudioFinanceSummary: Codable {
+    /// 累计营收
+    let gmv_total: Int?
+    /// 区间营收
+    let gmv_period: Int?
+    /// 累计退款
+    let refund_total: Int?
+    /// 区间退款
+    let refund_period: Int?
+    /// 累计分销支出
+    let distribution_total: Int?
+    /// 累计净收入
+    let net_total: Int?
+    /// 区间净收入
+    let net_period: Int?
+
+    var gmvTotal: Int { gmv_total ?? 0 }
+    var gmvPeriod: Int { gmv_period ?? 0 }
+    var refundTotal: Int { refund_total ?? 0 }
+    var refundPeriod: Int { refund_period ?? 0 }
+    var distributionTotal: Int { distribution_total ?? 0 }
+    var netTotal: Int { net_total ?? 0 }
+    var netPeriod: Int { net_period ?? 0 }
+}
+
+/// 区间订单明细
+struct StudioFinanceOrder: Codable {
+    let order_id: String?
+    let order_no: String?
+    let total_amount: Int?
+    let status: Int?
+    let paid_at: String?
+}
+
+/// GET /studio/finance 响应
+struct StudioFinanceData: Codable {
+    let period: StudioFinancePeriod?
+    let summary: StudioFinanceSummary?
+    let orders: [StudioFinanceOrder]?
 }
