@@ -228,6 +228,9 @@ async function listCommissionRecords(userId, query = {}) {
   if (query.status) {
     where.status = Number(query.status);
   }
+  if (query.studio_id) {
+    where.studio_id = String(query.studio_id);
+  }
 
   const { count, rows } = await CommissionRecord.findAndCountAll({
     where,
@@ -246,6 +249,7 @@ async function listCommissionRecords(userId, query = {}) {
       });
       return {
         commission_id: String(record.commission_id),
+        order_id: String(record.order_id),
         amount: Number(record.amount),
         rate: Number(record.rate),
         status: Number(record.status),

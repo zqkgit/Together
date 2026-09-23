@@ -159,15 +159,27 @@ struct WalletSummary: Codable {
     let withdrawable: Double?
 }
 
-/// 返利明细单条
+/// 返利明细单条（含工作室 / 课程，字段全部可选，兼容旧数据）
 struct CommissionRecordItem: Codable {
+    struct StudioBrief: Codable {
+        let studio_id: String?
+        let name: String?
+        let cover: String?
+    }
     struct CourseBrief: Codable {
+        let course_id: String?
         let title: String?
+        let cover: String?
     }
     let commission_id: String?
+    let order_id: String?
     let amount: Double?
+    /// 费率（整数百分比，如 8 表示 8%）
+    let rate: Double?
     let status: Int?
+    let status_text: String?
     let created_at: String?
+    let studio: StudioBrief?
     let course: CourseBrief?
 }
 

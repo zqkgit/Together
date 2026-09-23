@@ -30,6 +30,9 @@ export default defineAppConfig({
     "pages/post-detail/index",
     "pages/post-create/index",
     "pages/wallet/index",
+    "pages/studio-commission-detail/index",
+    "pages/commission-withdrawals/index",
+    "pages/commission-withdrawal-detail/index",
     "pages/messages/index",
     "pages/refund/index"
   ],

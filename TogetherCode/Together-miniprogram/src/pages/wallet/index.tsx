@@ -1,71 +1,62 @@
 import React, { useEffect, useState } from "react";
-import Taro from "@tarojs/taro";
-import { View, Text, Input } from "@tarojs/components";
-import { getCommissionSummary, getCommissionRecords, withdrawCommission, type CommissionSummary, type CommissionRecord } from "../../services/commission";
+import Taro, { useDidShow } from "@tarojs/taro";
+import { View, Text, Image, ScrollView } from "@tarojs/components";
+import {
+  getCommissionSummary,
+  requestWithdraw,
+  type CommissionSummary,
+  type StudioGroup,
+  PAY_METHODS,
+  yuan,
+} from "../../services/commission";
 import { useAuthStore } from "../../store/auth";
 import "./index.scss";
 
 export default function WalletPage() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const [summary, setSummary] = useState<CommissionSummary | null>(null);
-  const [records, setRecords] = useState<CommissionRecord[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [loading, setLoading] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
-  const [withdrawModal, setWithdrawModal] = useState(false);
-
-  useEffect(() => {
-    if (!isLoggedIn) {
-      Taro.reLaunch({ url: "/pages/login/index" });
-      return;
-    }
-    load();
-  }, [isLoggedIn]);
+  const [methodVisible, setMethodVisible] = useState(false);
+  const [activeStudioId, setActiveStudioId] = useState("");
 
   const load = async () => {
+    if (!isLoggedIn) return;
     try {
-      const [s, r] = await Promise.all([
-        getCommissionSummary(),
-        getCommissionRecords({ page: 1, page_size: 20 })
-      ]);
+      const s = await getCommissionSummary();
       setSummary(s);
-      setRecords(r.list);
-      setTotal(r.total);
     } catch {
       // 拦截器已提示
     }
   };
 
-  const onReachBottom = () => {
-    if (records.length < total) setPage(page + 1);
+  useDidShow(() => {
+    if (!isLoggedIn) {
+      Taro.reLaunch({ url: "/pages/login/index" });
+      return;
+    }
+    load();
+  });
+
+  const goStudioDetail = (studioId: string) => {
+    Taro.navigateTo({ url: `/pages/studio-commission-detail/index?id=${studioId}` });
   };
 
-  useEffect(() => {
-    if (page > 1) {
-      getCommissionRecords({ page, page_size: 20 }).then((r) => {
-        setRecords((prev) => [...prev, ...r.list]);
-        setTotal(r.total);
-      }).catch(() => undefined);
-    }
-  }, [page]);
+  const goWithdrawals = () => {
+    Taro.navigateTo({ url: "/pages/commission-withdrawals/index" });
+  };
 
-  const doWithdraw = async () => {
-    const amount = Number(withdrawAmount);
-    if (!amount || amount <= 0) {
-      Taro.showToast({ title: "请输入正确的金额", icon: "none" });
-      return;
-    }
-    if (summary && amount > summary.withdrawable) {
-      Taro.showToast({ title: "超出可提现余额", icon: "none" });
-      return;
-    }
+  const startWithdraw = (studioId: string) => {
+    setActiveStudioId(studioId);
+    setMethodVisible(true);
+  };
+
+  const pickMethod = async (method: string) => {
+    setMethodVisible(false);
     setWithdrawing(true);
     try {
-      await withdrawCommission(amount);
-      Taro.showToast({ title: "提现申请已提交", icon: "success" });
-      setWithdrawModal(false);
-      setWithdrawAmount("");
+      await requestWithdraw(activeStudioId, method);
+      Taro.showToast({ title: "领取申请已提交，等待工作室打款", icon: "none" });
       load();
     } catch {
       // 拦截器已提示
@@ -74,77 +65,124 @@ export default function WalletPage() {
     }
   };
 
-  const typeText = (t: string) => {
-    const map: Record<string, string> = {
-      sell: "课程分销佣金",
-      share: "分享返利",
-      withdraw: "提现",
-      refund: "退款退回",
-      settle: "结算"
-    };
-    return map[t] || "佣金";
-  };
+  const stats = summary?.stats;
+  const studios = summary?.studios ?? [];
 
   return (
     <View className="wallet">
-      <View className="balance-banner">
-        <View className="balance-label">可提现余额（元）</View>
-        <View className="balance-amount">{(summary?.withdrawable ?? 0).toFixed(2)}</View>
-        <View className="balance-stats">
-          <View className="b-stat">
-            <View className="b-num">{(summary?.stats?.total_commission ?? 0).toFixed(2)}</View>
-            <View className="b-label">累计收益</View>
+      {/* 收益总览深色卡 */}
+      <View className="overview-card">
+        <View className="ov-label">累计佣金（元）</View>
+        <View className="ov-amount">{yuan(stats?.total_commission)}</View>
+        <View className="ov-stats">
+          <View className="ov-stat">
+            <View className="ov-num">{yuan(stats?.receivable_commission)}</View>
+            <View className="ov-desc">待申请</View>
           </View>
-          <View className="b-stat">
-            <View className="b-num">{(summary?.stats?.pending_commission ?? 0).toFixed(2)}</View>
-            <View className="b-label">待结算</View>
+          <View className="ov-stat">
+            <View className="ov-num">{yuan(stats?.applying_commission)}</View>
+            <View className="ov-desc">申请中</View>
           </View>
-          <View className="b-stat">
-            <View className="b-num">{(summary?.stats?.total_withdrawn ?? 0).toFixed(2)}</View>
-            <View className="b-label">已提现</View>
+          <View className="ov-stat">
+            <View className="ov-num">{yuan(stats?.settled_commission)}</View>
+            <View className="ov-desc">已到账</View>
           </View>
         </View>
-        <View className="withdraw-btn" onClick={() => setWithdrawModal(true)}>申请提现</View>
       </View>
 
-      <View className="card record-card">
-        <View className="record-head">
-          <Text className="record-title">收益明细</Text>
-          <Text className="record-total">共 {total} 条</Text>
+      {/* 工作室收益卡片 */}
+      {studios.length === 0 ? (
+        <View className="card empty-card">
+          <View className="empty-icon">📦</View>
+          <View className="empty-text">还没有推广收益，分享课程或海报即可获得佣金</View>
         </View>
-        {records.length === 0 ? (
-          <View className="empty-tip">还没有收益记录，发帖分享课程即可赚佣金</View>
-        ) : (
-          records.map((r) => (
-            <View key={r.record_id} className="record-item">
-              <View className="r-body">
-                <View className="r-title">{typeText(r.type)}</View>
-                <View className="r-sub">{String(r.created_at || "").slice(0, 16)}</View>
-              </View>
-              <View className={`r-amount ${Number(r.amount) >= 0 ? "plus" : "minus"}`}>
-                {Number(r.amount) >= 0 ? "+" : ""}{Number(r.amount).toFixed(2)}
-              </View>
-            </View>
-          ))
-        )}
+      ) : (
+        studios.map((s) => (
+          <StudioCard
+            key={s.studio_id}
+            group={s}
+            onTap={() => goStudioDetail(s.studio_id)}
+            onWithdraw={() => startWithdraw(s.studio_id)}
+          />
+        ))
+      )}
+
+      {/* 领取记录入口 */}
+      <View className="card entry-card" onClick={goWithdrawals}>
+        <Text className="entry-title">领取记录</Text>
+        <Text className="entry-arrow">›</Text>
       </View>
 
-      {withdrawModal && (
-        <View className="mask" onClick={() => setWithdrawModal(false)}>
-          <View className="withdraw-panel" onClick={(e) => e.stopPropagation()}>
-            <View className="panel-title">申请提现</View>
-            <View className="panel-hint">可提现余额 ¥{(summary?.withdrawable ?? 0).toFixed(2)}</View>
-            <Input
-              className="amount-input"
-              type="digit"
-              placeholder="请输入提现金额"
-              value={withdrawAmount}
-              onInput={(e) => setWithdrawAmount(e.detail.value)}
-            />
-            <View className={`btn-primary panel-btn ${withdrawing ? "disabled" : ""}`} onClick={doWithdraw}>
-              {withdrawing ? "提交中..." : "确认提现"}
-            </View>
+      {/* 收款方式选择弹窗 */}
+      {methodVisible && (
+        <View className="mask" onClick={() => setMethodVisible(false)}>
+          <View className="method-sheet" onClick={(e) => e.stopPropagation()}>
+            <View className="sheet-title">选择收款方式（线下结算，平台不经手资金）</View>
+            {PAY_METHODS.map((m) => (
+              <View
+                key={m.value}
+                className="sheet-item"
+                onClick={() => pickMethod(m.value)}
+              >
+                {m.label}
+              </View>
+            ))}
           </View>
+        </View>
+      )}
+
+      {withdrawing && (
+        <View className="loading-mask">
+          <View className="loading-text">提交中...</View>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function StudioCard({
+  group,
+  onTap,
+  onWithdraw,
+}: {
+  group: StudioGroup;
+  onTap: () => void;
+  onWithdraw: () => void;
+}) {
+  const canWithdraw = group.receivable > 0;
+  return (
+    <View className="card studio-card">
+      <View className="studio-header" onClick={onTap}>
+        <View className="studio-cover-wrap">
+          {group.cover ? (
+            <Image className="studio-cover" src={group.cover} mode="aspectFill" />
+          ) : (
+            <View className="studio-cover studio-cover-placeholder">🏠</View>
+          )}
+        </View>
+        <View className="studio-name">{group.name || "工作室"}</View>
+        <View className="studio-chevron">›</View>
+      </View>
+      <View className="studio-divider" />
+      <View className="studio-stats">
+        <View className="studio-stat">
+          <View className={`studio-num ${canWithdraw ? "highlight" : ""}`}>
+            {yuan(group.receivable)}
+          </View>
+          <View className="studio-label">待申请</View>
+        </View>
+        <View className="studio-stat">
+          <View className="studio-num">{yuan(group.applying)}</View>
+          <View className="studio-label">申请中</View>
+        </View>
+        <View className="studio-stat">
+          <View className="studio-num">{yuan(group.settled)}</View>
+          <View className="studio-label">已到账</View>
+        </View>
+      </View>
+      {canWithdraw && (
+        <View className="withdraw-btn" onClick={onWithdraw}>
+          一键领取 {yuan(group.receivable)}
         </View>
       )}
     </View>

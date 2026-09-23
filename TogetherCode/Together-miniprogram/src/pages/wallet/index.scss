@@ -1,121 +1,179 @@
 @use "@/styles/theme.scss" as *;
 
 .wallet {
-  padding: $page-padding;
-  padding-bottom: 80rpx;
+  min-height: 100vh;
+  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
+  background: $color-bg;
 
-  .balance-banner {
-    position: relative;
+  // 收益总览深色卡
+  .overview-card {
+    margin: 24rpx 24rpx 0;
+    padding: 40rpx 36rpx;
     background: linear-gradient(135deg, #2f5d45, #3f7a5c);
-    border-radius: $radius-lg;
-    padding: 48rpx 40rpx;
+    border-radius: $radius-xl;
     color: #fff;
 
-    .balance-label {
-      font-size: 26rpx;
+    .ov-label {
+      font-size: 24rpx;
       opacity: 0.85;
     }
 
-    .balance-amount {
-      margin-top: 12rpx;
-      font-size: 64rpx;
+    .ov-amount {
+      margin-top: 8rpx;
+      font-size: 60rpx;
       font-weight: 700;
     }
 
-    .balance-stats {
+    .ov-stats {
       display: flex;
-      gap: 40rpx;
-      margin-top: 36rpx;
+      gap: 0;
+      margin-top: 32rpx;
 
-      .b-stat {
-        .b-num {
-          font-size: 30rpx;
+      .ov-stat {
+        flex: 1;
+
+        .ov-num {
+          font-size: 28rpx;
           font-weight: 600;
         }
 
-        .b-label {
-          margin-top: 6rpx;
-          font-size: 22rpx;
-          opacity: 0.8;
+        .ov-desc {
+          margin-top: 4rpx;
+          font-size: 20rpx;
+          opacity: 0.75;
         }
       }
     }
-
-    .withdraw-btn {
-      position: absolute;
-      top: 40rpx;
-      right: 40rpx;
-      padding: 12rpx 28rpx;
-      font-size: 24rpx;
-      background: rgba(255, 255, 255, 0.18);
-      border: 1rpx solid rgba(255, 255, 255, 0.4);
-      border-radius: $radius-button;
-    }
   }
 
-  .record-card {
-    margin-top: 24rpx;
-    padding: 24rpx;
+  // 工作室卡片
+  .studio-card {
+    padding: 0;
 
-    .record-head {
+    .studio-header {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding-bottom: 16rpx;
-      border-bottom: 1rpx solid rgba(0, 0, 0, 0.05);
+      padding: 28rpx 28rpx 0;
 
-      .record-title {
+      .studio-cover-wrap {
+        width: 80rpx;
+        height: 80rpx;
+        border-radius: 16rpx;
+        overflow: hidden;
+        flex-shrink: 0;
+
+        .studio-cover {
+          width: 100%;
+          height: 100%;
+        }
+
+        .studio-cover-placeholder {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: $color-primary;
+          font-size: 36rpx;
+        }
+      }
+
+      .studio-name {
+        flex: 1;
+        margin-left: 20rpx;
         font-size: 30rpx;
         font-weight: 600;
         color: $color-text;
       }
 
-      .record-total {
-        font-size: 22rpx;
-        color: $color-text-light;
+      .studio-chevron {
+        font-size: 32rpx;
+        color: $color-text-secondary;
       }
     }
 
-    .record-item {
+    .studio-divider {
+      margin: 20rpx 28rpx 0;
+      height: 1rpx;
+      background: $color-border;
+    }
+
+    .studio-stats {
       display: flex;
-      align-items: center;
-      padding: 24rpx 0;
-      border-bottom: 1rpx solid rgba(0, 0, 0, 0.04);
+      padding: 24rpx 28rpx;
 
-      &:last-child {
-        border-bottom: none;
-      }
-
-      .r-body {
+      .studio-stat {
         flex: 1;
 
-        .r-title {
-          font-size: 28rpx;
+        .studio-num {
+          font-size: 30rpx;
+          font-weight: 600;
           color: $color-text;
+          text-align: center;
+
+          &.highlight {
+            color: $color-gold;
+          }
         }
 
-        .r-sub {
-          margin-top: 6rpx;
-          font-size: 22rpx;
-          color: $color-text-light;
-        }
-      }
-
-      .r-amount {
-        font-size: 30rpx;
-        font-weight: 600;
-
-        &.plus {
-          color: $color-primary;
-        }
-
-        &.minus {
-          color: #c0392b;
+        .studio-label {
+          margin-top: 4rpx;
+          font-size: 20rpx;
+          color: $color-text-secondary;
+          text-align: center;
         }
       }
+    }
+
+    .withdraw-btn {
+      margin: 0 28rpx 28rpx;
+      text-align: center;
+      padding: 20rpx 0;
+      background: $color-primary;
+      color: #fff;
+      border-radius: $radius-button;
+      font-size: 28rpx;
+      font-weight: 600;
     }
   }
 
+  // 空态
+  .empty-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 80rpx 40rpx;
+
+    .empty-icon {
+      font-size: 64rpx;
+      margin-bottom: 20rpx;
+    }
+
+    .empty-text {
+      font-size: 26rpx;
+      color: $color-text-secondary;
+      text-align: center;
+    }
+  }
+
+  // 领取记录入口
+  .entry-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28rpx;
+
+    .entry-title {
+      font-size: 30rpx;
+      font-weight: 600;
+      color: $color-text;
+    }
+
+    .entry-arrow {
+      font-size: 32rpx;
+      color: $color-text-secondary;
+    }
+  }
+
+  // 遮罩
   .mask {
     position: fixed;
     inset: 0;
@@ -123,46 +181,54 @@
     z-index: 100;
     display: flex;
     align-items: flex-end;
+  }
 
-    .withdraw-panel {
-      width: 100%;
-      background: #fff;
-      border-radius: $radius-xl $radius-xl 0 0;
-      padding: 40rpx 40rpx calc(40rpx + env(safe-area-inset-bottom));
+  // 收款方式弹窗
+  .method-sheet {
+    width: 100%;
+    background: #fff;
+    border-radius: $radius-xl $radius-xl 0 0;
+    padding: 40rpx 0 calc(20rpx + env(safe-area-inset-bottom));
 
-      .panel-title {
-        text-align: center;
-        font-size: 32rpx;
-        font-weight: 600;
-        color: $color-text;
+    .sheet-title {
+      padding: 0 40rpx 20rpx;
+      font-size: 26rpx;
+      color: $color-text-secondary;
+      text-align: center;
+    }
+
+    .sheet-item {
+      padding: 28rpx 40rpx;
+      font-size: 30rpx;
+      color: $color-text;
+      border-bottom: 1rpx solid rgba(0, 0, 0, 0.05);
+
+      &:active {
+        background: rgba(0, 0, 0, 0.03);
       }
 
-      .panel-hint {
-        margin-top: 12rpx;
-        text-align: center;
-        font-size: 24rpx;
-        color: $color-text-light;
+      &:last-child {
+        border-bottom: none;
       }
+    }
+  }
 
-      .amount-input {
-        margin-top: 32rpx;
-        height: 96rpx;
-        padding: 0 24rpx;
-        font-size: 36rpx;
-        font-weight: 600;
-        background: $color-bg;
-        border-radius: $radius-md;
-        text-align: center;
-      }
+  // 加载遮罩
+  .loading-mask {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-      .panel-btn {
-        margin-top: 32rpx;
-        text-align: center;
-
-        &.disabled {
-          opacity: 0.5;
-        }
-      }
+    .loading-text {
+      padding: 24rpx 48rpx;
+      background: rgba(0, 0, 0, 0.7);
+      color: #fff;
+      border-radius: $radius-md;
+      font-size: 28rpx;
     }
   }
 }
