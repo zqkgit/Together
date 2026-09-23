@@ -35,8 +35,15 @@ final class MineMenuCardView: UIView {
 
         for (index, group) in groups.enumerated() {
             if index > 0 {
+                let divider = UIView()
+                divider.backgroundColor = Theme.Color.surfaceAlt
+                stack.addArrangedSubview(divider)
+                divider.snp.makeConstraints {
+                    $0.height.equalTo(0.5)
+                    $0.leading.trailing.equalToSuperview().inset(18)
+                }
                 let spacer = UIView()
-                spacer.snp.makeConstraints { $0.height.equalTo(18) }
+                spacer.snp.makeConstraints { $0.height.equalTo(6) }
                 stack.addArrangedSubview(spacer)
             }
             for item in group {
