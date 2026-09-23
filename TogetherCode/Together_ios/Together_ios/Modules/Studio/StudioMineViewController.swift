@@ -13,6 +13,7 @@ final class StudioMineViewController: BaseViewController {
         MineMenuItem(icon: "book.closed.fill", title: "课程管理"),
         MineMenuItem(icon: "person.3.fill", title: "学员管理"),
         MineMenuItem(icon: "person.crop.circle.badge.checkmark", title: "老师管理"),
+        MineMenuItem(icon: "doc.text.fill", title: "订单管理"),
         MineMenuItem(icon: "arrow.uturn.backward.circle.fill", title: "退款审核")
     ]
 
@@ -152,6 +153,10 @@ final class StudioMineViewController: BaseViewController {
         }
         if item.title == "退款审核" {
             navigationController?.pushViewController(StudioRefundViewController(initialStatus: 0), animated: true)
+            return
+        }
+        if item.title == "订单管理" {
+            navigationController?.pushViewController(StudioOrderListViewController(), animated: true)
             return
         }
         if item.title == "老师管理" {

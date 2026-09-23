@@ -4,7 +4,11 @@ const { validateRequest } = require("../middlewares/validate");
 const { body } = require("express-validator");
 const {
   studioListRefundValidators,
-  studioReviewRefundValidators
+  studioReviewRefundValidators,
+  studioListOrderValidators,
+  studioOrderIdValidators,
+  studioPaymentValidators,
+  studioRejectPaymentValidators
 } = require("../validators/orderValidator");
 const { listCoursesValidators, courseIdValidator } = require("../validators/courseValidator");
 const {
@@ -35,7 +39,12 @@ const {
   postStudioTeacherInviteHandler,
   deleteStudioTeacherHandler,
   getStudioCommissionsHandler,
-  putStudioCommissionHandler
+  putStudioCommissionHandler,
+  getStudioOrdersHandler,
+  getStudioOrderDetailHandler,
+  postStudioPaymentConfirmHandler,
+  postStudioPaymentRejectHandler,
+  postStudioOrderCancelHandler
 } = require("../controllers/studioAppController");
 
 const router = express.Router();
@@ -81,8 +90,15 @@ router.post("/teachers/invite", teacherInviteValidators, validateRequest, postSt
 router.get("/teachers/:id", teacherIdValidator, validateRequest, getStudioTeacherDetailHandler);
 router.delete("/teachers/:id", teacherIdValidator, validateRequest, deleteStudioTeacherHandler);
 
-// 佣金审核：领取单列表 + �核操作（通过/驳回）
+// 佣金审核：领取单列表 + 审核操作（通过/驳回）
 router.get("/commissions", getStudioCommissionsHandler);
 router.put("/commissions/:id", putStudioCommissionHandler);
+
+// 订单管理：列表 / 详情 / 确认收款 / 驳回凭证 / 取消订单
+router.get("/orders", studioListOrderValidators, validateRequest, getStudioOrdersHandler);
+router.get("/orders/:id", studioOrderIdValidators, validateRequest, getStudioOrderDetailHandler);
+router.post("/orders/:id/payments/confirm", studioOrderIdValidators, studioPaymentValidators, validateRequest, postStudioPaymentConfirmHandler);
+router.post("/orders/:id/payments/reject", studioOrderIdValidators, studioRejectPaymentValidators, validateRequest, postStudioPaymentRejectHandler);
+router.post("/orders/:id/cancel", studioOrderIdValidators, validateRequest, postStudioOrderCancelHandler);
 
 module.exports = router;

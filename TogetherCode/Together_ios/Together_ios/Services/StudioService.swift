@@ -748,6 +748,294 @@ struct StudioTeacherInviteResult: Codable {
     var teacherName: String { teacher?.real_name ?? "老师" }
 }
 
+// MARK: - 订单管理模型
+
+/// 订单状态：0 待收款 / 1 已收款 / 2 已取消 / 3 已退款
+enum StudioOrderStatus: Int, CaseIterable {
+    case pending = 0
+    case paid = 1
+    case cancelled = 2
+    case refunded = 3
+
+    var title: String {
+        switch self {
+        case .pending: return "待收款"
+        case .paid: return "已收款"
+        case .cancelled: return "已取消"
+        case .refunded: return "已退款"
+        }
+    }
+
+    /// 接口 status 参数（nil 为全部）
+    var apiValue: Int? {
+        // "全部" 传 nil
+        return self.rawValue
+    }
+
+    var emptyText: String {
+        switch self {
+        case .pending: return "暂无待收款订单"
+        case .paid: return "暂无已收款订单"
+        case .cancelled: return "暂无已取消订单"
+        case .refunded: return "暂无已退款订单"
+        }
+    }
+}
+
+/// 订单筛选（含"全部"选项）
+enum StudioOrderFilter: Int, CaseIterable {
+    case all = -1
+    case pending = 0
+    case paid = 1
+    case cancelled = 2
+    case refunded = 3
+
+    var title: String {
+        switch self {
+        case .all: return "全部"
+        case .pending: return "待收款"
+        case .paid: return "已收款"
+        case .cancelled: return "已取消"
+        case .refunded: return "已退款"
+        }
+    }
+
+    /// 接口 status 参数（nil 为全部）
+    var apiValue: Int? {
+        switch self {
+        case .all: return nil
+        default: return self.rawValue
+        }
+    }
+
+    var emptyText: String {
+        switch self {
+        case .all: return "暂无订单"
+        case .pending: return "暂无待收款订单"
+        case .paid: return "暂无已收款订单"
+        case .cancelled: return "暂无已取消订单"
+        case .refunded: return "暂无已退款订单"
+        }
+    }
+}
+
+/// 订单关联的学员
+struct StudioOrderChild: Codable {
+    let child_id: String?
+    let nickname: String?
+    let birthday: String?
+
+    var displayName: String { nickname ?? "学员" }
+}
+
+/// 订单关联的家长
+struct StudioOrderUser: Codable {
+    let user_id: String?
+    let nickname: String?
+    let phone: String?
+    let avatar: String?
+
+    var displayName: String { nickname ?? "家长" }
+}
+
+/// 订单关联的课程
+struct StudioOrderCourse: Codable {
+    let course_id: String?
+    let title: String?
+    let cover: String?
+    let validity_days: Int?
+
+    var titleText: String { title ?? "课程" }
+}
+
+/// 订单关联的班级
+struct StudioOrderClass: Codable {
+    let class_id: String?
+    let name: String?
+
+    var displayName: String { name ?? "" }
+}
+
+/// 订单关联的套餐
+struct StudioOrderPackage: Codable {
+    let package_id: String?
+    let name: String?
+    let lessons: Int?
+
+    var displayName: String { name ?? "套餐" }
+}
+
+/// 订单子项
+struct StudioOrderItem: Codable {
+    let item_id: String?
+    let course_title: String?
+    let package_name: String?
+    let lessons: Int?
+    let unit_price: Int?
+    let total_price: Int?
+}
+
+/// 付款记录
+struct StudioPayment: Codable {
+    let payment_id: String?
+    let payment_no: String?
+    let channel: String?
+    let pay_method: String?
+    let pay_method_text: String?
+    let amount: Int?
+    let status: Int?
+    let status_text: String?
+    let voucher_images: [String]?
+    let payer_note: String?
+    let upload_by: Int?
+    let reject_reason: String?
+    let paid_at: String?
+    let created_at: String?
+
+    /// 凭证状态：0 待确认 / 1 已确认 / 2 已驳回
+    var isPending: Bool { (status ?? 0) == 0 }
+    var isConfirmed: Bool { (status ?? 0) == 1 }
+    var isRejected: Bool { (status ?? 0) == 2 }
+
+    var amountText: String { StudioAmount.text(amount ?? 0) }
+    var methodText: String { pay_method_text ?? pay_method ?? "—" }
+    var statusLabel: String { status_text ?? "未知" }
+    var hasVoucher: Bool { !(voucher_images ?? []).isEmpty }
+    var voucherURLs: [String] { voucher_images ?? [] }
+    var noteText: String { payer_note ?? "" }
+    var rejectText: String { reject_reason ?? "" }
+    /// 是否家长上传（0 工作室 / 1 家长）
+    var isUploadedByParent: Bool { (upload_by ?? 0) == 1 }
+}
+
+/// 订单关联的退款
+struct StudioOrderRefund: Codable {
+    let refund_id: String?
+    let amount: Int?
+    let requested_lessons: Int?
+    let refundable_lessons: Int?
+    let status: Int?
+    let status_text: String?
+    let reason: String?
+    let created_at: String?
+
+    var amountText: String { StudioAmount.text(amount ?? 0) }
+}
+
+/// 订单课时余额
+struct StudioOrderBalance: Codable {
+    let balance_id: String?
+    let total_lessons: Int?
+    let consumed_lessons: Int?
+    let refunded_lessons: Int?
+    let remaining_lessons: Int?
+    let valid_from: String?
+    let valid_to: String?
+    let status: Int?
+
+    var remaining: Int { remaining_lessons ?? 0 }
+    var total: Int { total_lessons ?? 0 }
+    var consumed: Int { consumed_lessons ?? 0 }
+    var refunded: Int { refunded_lessons ?? 0 }
+}
+
+/// 工作室订单（列表 + 详情共用）
+struct StudioOrder: Codable {
+    let order_id: String
+    let order_no: String?
+    let status: Int?
+    let status_text: String?
+    let source: Int?
+    let source_text: String?
+    let class_id: String?
+    let total_lessons: Int?
+    let consumed_lessons: Int?
+    let refunded_lessons: Int?
+    let remaining_lessons: Int?
+    let total_amount: Int?
+    let paid_amount: Int?
+    let refund_amount: Int?
+    let refund_status: Int?
+    let refund_status_text: String?
+    let pay_channel: String?
+    let pay_method: String?
+    let pay_method_text: String?
+    let confirmed_by: String?
+    let paid_at: String?
+    let created_at: String?
+    let child: StudioOrderChild?
+    let user: StudioOrderUser?
+    let `class`: StudioOrderClass?
+    let studio: StudioOrderStudio?
+    let course: StudioOrderCourse?
+    let package: StudioOrderPackage?
+    let items: [StudioOrderItem]?
+    let payments: [StudioPayment]?
+    let refunds: [StudioOrderRefund]?
+    let balance: StudioOrderBalance?
+
+    /// 订单状态枚举
+    var orderStatus: StudioOrderStatus {
+        StudioOrderStatus(rawValue: status ?? 0) ?? .pending
+    }
+
+    var isPending: Bool { orderStatus == .pending }
+    var isPaid: Bool { orderStatus == .paid }
+    var isCancelled: Bool { orderStatus == .cancelled }
+    var isRefunded: Bool { orderStatus == .refunded }
+
+    /// 家长昵称（优先家长，其次"XX家长"）
+    var parentName: String {
+        if let n = user?.nickname, !n.isEmpty { return n }
+        if let n = child?.nickname, !n.isEmpty { return n + "家长" }
+        return "家长用户"
+    }
+
+    /// 课程标题
+    var courseTitle: String { course?.titleText ?? "课程" }
+
+    /// 金额文案
+    var totalAmountText: String { StudioAmount.text(total_amount ?? 0) }
+    var paidAmountText: String { StudioAmount.text(paid_amount ?? 0) }
+    var refundAmountText: String { StudioAmount.text(refund_amount ?? 0) }
+
+    /// 课时文案
+    var totalLessonsText: String { "\(total_lessons ?? 0) 节" }
+    var remainingLessonsText: String { "\(remaining_lessons ?? 0) 节" }
+
+    /// 来源文案
+    var sourceLabel: String { source_text ?? "家长报名" }
+
+    /// 状态文案
+    var statusLabel: String { status_text ?? "未知" }
+
+    /// 创建日期（yyyy-MM-dd）
+    var createdDate: String {
+        guard let created_at, created_at.count >= 10 else { return "—" }
+        return String(created_at.prefix(10))
+    }
+
+    /// 待确认的付款凭证（家长上传、线上方式）
+    var pendingPayment: StudioPayment? {
+        (payments ?? []).first { $0.isPending }
+    }
+
+    /// 是否有待确认凭证
+    var hasPendingPayment: Bool { pendingPayment != nil }
+}
+
+/// 订单关联的工作室（列表页不一定返回，但 formatOrder 包含）
+struct StudioOrderStudio: Codable {
+    let studio_id: String?
+    let name: String?
+}
+
+/// 订单列表分页
+struct StudioOrderPage: Codable {
+    let total: Int?
+    let list: [StudioOrder]?
+}
+
 // MARK: - 工作室数据服务
 
 /// 工作室端（角色 3）App 接口：/v1/studio/*
@@ -1087,6 +1375,117 @@ enum StudioService {
             switch result {
             case .success(let json):
                 completion(.success(JSONKit.decode(CommissionWithdrawal.self, from: json)))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    // MARK: - 订单管理
+
+    /// 订单列表（GET /studio/orders）
+    /// status: 0 待收款 / 1 已收款 / 2 已取消 / 3 已退款；nil 为全部
+    static func fetchOrders(
+        status: Int? = nil,
+        keyword: String? = nil,
+        page: Int = 1,
+        pageSize: Int = 20,
+        completion: @escaping (Result<(total: Int, list: [StudioOrder]), APIError>) -> Void
+    ) {
+        var params: [String: Any] = ["page": page, "page_size": pageSize]
+        if let status { params["status"] = status }
+        let trimmed = keyword?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !trimmed.isEmpty { params["q"] = trimmed }
+        APIClient.shared.request(
+            "/studio/orders",
+            method: .get,
+            parameters: params,
+            encoding: URLEncoding.default
+        ) { result in
+            switch result {
+            case .success(let json):
+                let list = JSONKit.decodeList([StudioOrder].self, from: json["list"])
+                completion(.success((json["total"].int ?? 0, list)))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 订单详情（GET /studio/orders/:id）
+    static func fetchOrderDetail(
+        orderId: String,
+        completion: @escaping (Result<StudioOrder?, APIError>) -> Void
+    ) {
+        APIClient.shared.request("/studio/orders/\(orderId)", method: .get) { result in
+            switch result {
+            case .success(let json):
+                completion(.success(JSONKit.decode(StudioOrder.self, from: json)))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 确认收款（POST /studio/orders/:id/payments/confirm）
+    /// body: { pay_method, voucher_images?, note? }
+    static func confirmPayment(
+        orderId: String,
+        payMethod: String,
+        voucherImages: [String]? = nil,
+        note: String? = nil,
+        completion: @escaping (Result<StudioOrder?, APIError>) -> Void
+    ) {
+        var body: [String: Any] = ["pay_method": payMethod]
+        if let voucherImages, !voucherImages.isEmpty { body["voucher_images"] = voucherImages }
+        if let note, !note.isEmpty { body["note"] = note }
+        APIClient.shared.request(
+            "/studio/orders/\(orderId)/payments/confirm",
+            method: .post,
+            parameters: body
+        ) { result in
+            switch result {
+            case .success(let json):
+                completion(.success(JSONKit.decode(StudioOrder.self, from: json)))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 驳回家长付款凭证（POST /studio/orders/:id/payments/reject）
+    /// body: { reason }
+    static func rejectPayment(
+        orderId: String,
+        reason: String,
+        completion: @escaping (Result<StudioOrder?, APIError>) -> Void
+    ) {
+        APIClient.shared.request(
+            "/studio/orders/\(orderId)/payments/reject",
+            method: .post,
+            parameters: ["reason": reason]
+        ) { result in
+            switch result {
+            case .success(let json):
+                completion(.success(JSONKit.decode(StudioOrder.self, from: json)))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 取消待收款订单（POST /studio/orders/:id/cancel）
+    static func cancelOrder(
+        orderId: String,
+        completion: @escaping (Result<StudioOrder?, APIError>) -> Void
+    ) {
+        APIClient.shared.request(
+            "/studio/orders/\(orderId)/cancel",
+            method: .post
+        ) { result in
+            switch result {
+            case .success(let json):
+                completion(.success(JSONKit.decode(StudioOrder.self, from: json)))
             case .failure(let error):
                 completion(.failure(error))
             }

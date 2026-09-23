@@ -29,6 +29,14 @@ const {
   reviewStudioWithdrawal
 } = require("../services/commissionService");
 
+const {
+  listStudioOrders,
+  getStudioOrderDetail,
+  confirmStudioPayment,
+  rejectStudioPayment,
+  cancelStudioOrder
+} = require("../services/studioOrderService");
+
 /**
  * 由登录用户（工作室主体）解析其 studio_id；非工作室主体返回 null
  */
@@ -362,6 +370,108 @@ async function putStudioCommissionHandler(req, res) {
   }
 }
 
+// ============ 订单管理（App 端） ============
+
+/**
+ * GET /v1/studio/orders · 工作室订单列表
+ * query: status 0待收款/1已收款/2已取消/3已退款, q 搜索, page, page_size
+ */
+async function getStudioOrdersHandler(req, res) {
+  try {
+    const studioId = await resolveStudioId(req.user.userId);
+    if (!studioId) {
+      return fail(res, 404, 40480, "Studio not found");
+    }
+    const data = await listStudioOrders(studioId, req.query);
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+/**
+ * GET /v1/studio/orders/:id · 订单详情
+ */
+async function getStudioOrderDetailHandler(req, res) {
+  try {
+    const studioId = await resolveStudioId(req.user.userId);
+    if (!studioId) {
+      return fail(res, 404, 40480, "Studio not found");
+    }
+    const data = await getStudioOrderDetail(studioId, req.params.id);
+    if (!data) {
+      return fail(res, 404, 40490, "Order not found");
+    }
+    return ok(res, data);
+  } catch (error) {
+    return fail(res, 500, 50000, error.message || "Internal server error");
+  }
+}
+
+/**
+ * POST /v1/studio/orders/:id/payments/confirm · 确认收款（选打款方式+凭证，确认后发课时）
+ * body: { pay_method, voucher_images?, note? }
+ */
+async function postStudioPaymentConfirmHandler(req, res) {
+  try {
+    const studioId = await resolveStudioId(req.user.userId);
+    if (!studioId) {
+      return fail(res, 404, 40480, "Studio not found");
+    }
+    const operator = { adminId: req.user.userId };
+    const data = await confirmStudioPayment(studioId, req.params.id, req.body || {}, operator);
+    if (!data) {
+      return fail(res, 404, 40490, "Order not found");
+    }
+    return ok(res, data, "payment confirmed");
+  } catch (error) {
+    const status = /不是待收款|支付方式|凭证|请选择|现金/i.test(error.message) ? 400 : 500;
+    return fail(res, status, status === 400 ? 40090 : 50000, error.message || "Internal server error");
+  }
+}
+
+/**
+ * POST /v1/studio/orders/:id/payments/reject · 驳回家长付款凭证（订单仍待收款）
+ * body: { reason }
+ */
+async function postStudioPaymentRejectHandler(req, res) {
+  try {
+    const studioId = await resolveStudioId(req.user.userId);
+    if (!studioId) {
+      return fail(res, 404, 40480, "Studio not found");
+    }
+    const operator = { adminId: req.user.userId };
+    const data = await rejectStudioPayment(studioId, req.params.id, req.body || {}, operator);
+    if (!data) {
+      return fail(res, 404, 40490, "Order not found");
+    }
+    return ok(res, data, "payment voucher rejected");
+  } catch (error) {
+    const status = /不是待收款|凭证|没有待审核/i.test(error.message) ? 400 : 500;
+    return fail(res, status, status === 400 ? 40090 : 50000, error.message || "Internal server error");
+  }
+}
+
+/**
+ * POST /v1/studio/orders/:id/cancel · 取消待收款订单
+ */
+async function postStudioOrderCancelHandler(req, res) {
+  try {
+    const studioId = await resolveStudioId(req.user.userId);
+    if (!studioId) {
+      return fail(res, 404, 40480, "Studio not found");
+    }
+    const data = await cancelStudioOrder(studioId, req.params.id);
+    if (!data) {
+      return fail(res, 404, 40490, "Order not found");
+    }
+    return ok(res, data, "order cancelled");
+  } catch (error) {
+    const status = /待收款|仅待收款/i.test(error.message) ? 400 : 500;
+    return fail(res, status, status === 400 ? 40090 : 50000, error.message || "Internal server error");
+  }
+}
+
 module.exports = {
   getStudioMineHandler,
   getStudioOverviewHandler,
@@ -379,5 +489,10 @@ module.exports = {
   getStudioCourseHandler,
   patchStudioCourseStatusHandler,
   getStudioCommissionsHandler,
-  putStudioCommissionHandler
+  putStudioCommissionHandler,
+  getStudioOrdersHandler,
+  getStudioOrderDetailHandler,
+  postStudioPaymentConfirmHandler,
+  postStudioPaymentRejectHandler,
+  postStudioOrderCancelHandler
 };
