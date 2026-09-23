@@ -23,6 +23,7 @@ const {
 } = require("./orderService");
 const { createNotification } = require("./messageService");
 const { generateId } = require("../utils/id");
+const { ORDER_STATUS } = require("../utils/orderStatus");
 
 function formatStudioRefund(refund) {
   return {
@@ -211,6 +212,16 @@ async function reviewStudioRefund(studioId, refundId, payload, operator = {}) {
         { transaction }
       );
 
+      // 驳回退款申请：订单回到「已收款」（status=2）。
+      // 待家长确认阶段（refund.status=1）尚未扣课时，回退无需补课时。
+      const rejectedOrder = await Order.findByPk(refund.order_id, {
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+      if (rejectedOrder) {
+        await rejectedOrder.update({ status: ORDER_STATUS.PAID }, { transaction });
+      }
+
       const latest = await Refund.findByPk(refund.refund_id, {
         include: [
           {
@@ -300,6 +311,10 @@ async function reviewStudioRefund(studioId, refundId, payload, operator = {}) {
       },
       { transaction }
     );
+
+    // 审核通过、已线下打款并传凭证：订单进入「待家长确认退款」（status=4），
+    // 此时不扣课时，待家长确认收到（confirmRefundReceived）后才扣减、订单转已退款。
+    await order.update({ status: ORDER_STATUS.REFUND_CONFIRM }, { transaction });
 
     const latest = await Refund.findByPk(refund.refund_id, {
       include: [
@@ -409,7 +424,8 @@ async function confirmRefundPaid(studioId, refundId, operator = {}) {
       {
         refunded_lessons: Number(order.refunded_lessons || 0) + requestedLessons,
         refund_amount: Number(order.refund_amount || 0) + Number(refund.amount || 0),
-        status: 3 // 确认打款后订单进入已退款终态（与 web 状态体系一致：3=已退款）
+        // 遗留后门（新流程退款终态由家长 confirmRefundReceived 完成）：此处同步为已退款 status=5
+        status: ORDER_STATUS.REFUNDED
       },
       { transaction }
     );
@@ -702,8 +718,12 @@ async function confirmStudioPayment(studioId, orderId, payload, operator = {}) {
     if (!order) {
       return null;
     }
-    if (Number(order.status) !== 0) {
-      throw new Error("订单不是待收款状态");
+    // 0 待收款 = 工作室当场登记（现金 / 无凭证）；1 待确认收款 = 核对家长上传的凭证
+    if (
+      Number(order.status) !== ORDER_STATUS.PENDING_PAYMENT &&
+      Number(order.status) !== ORDER_STATUS.PAYMENT_REVIEW
+    ) {
+      throw new Error("订单不是待收款 / 待确认收款状态");
     }
 
     const method = payload.pay_method;
@@ -785,8 +805,9 @@ async function rejectStudioPayment(studioId, orderId, payload, operator = {}) {
     if (!order) {
       return null;
     }
-    if (Number(order.status) !== 0) {
-      throw new Error("订单不是待收款状态");
+    // 订单须为「待确认收款」（status=1，家长已上传凭证）；驳回是该状态的子状态，订单保持 1
+    if (Number(order.status) !== ORDER_STATUS.PAYMENT_REVIEW) {
+      throw new Error("订单不是待确认收款状态");
     }
     const payment = await Payment.findOne({
       where: { order_id: orderId, status: 0 },
@@ -826,10 +847,14 @@ async function cancelStudioOrder(studioId, orderId) {
     if (!order) {
       return null;
     }
-    if (Number(order.status) !== 0) {
-      throw new Error("仅待收款订单可取消");
+    // 待收款（0）或待确认收款（1）阶段可取消
+    if (
+      Number(order.status) !== ORDER_STATUS.PENDING_PAYMENT &&
+      Number(order.status) !== ORDER_STATUS.PAYMENT_REVIEW
+    ) {
+      throw new Error("仅待收款 / 待确认收款订单可取消");
     }
-    await order.update({ status: 2, completed_at: new Date() }, { transaction });
+    await order.update({ status: ORDER_STATUS.CANCELLED, completed_at: new Date() }, { transaction });
     return formatOrder(await getOrderWithDetails(orderId, { transaction }));
   });
 }

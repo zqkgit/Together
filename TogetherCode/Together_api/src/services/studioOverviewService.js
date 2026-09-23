@@ -11,9 +11,9 @@ const {
   LeaveRequest
 } = require("../models");
 const { formatFen } = require("../utils/amount");
-
-// 订单状态：0 待支付 / 1 支付成功 / 3 已退款（与 seeder、orderService 一致）
-const PAID_STATUS = { [Op.ne]: 0 };
+// 订单成交状态集（曾确认收款：已收款 / 退款审核中 / 待家长确认退款 / 已退款），见 utils/orderStatus
+const { SETTLED_ORDER_STATUSES } = require("../utils/orderStatus");
+const PAID_STATUS = { [Op.in]: SETTLED_ORDER_STATUSES };
 
 /**
  * 工作室经营概览：核心统计 + 近 30 天 GMV 趋势 + 待办（退款审核 / 请假审批）
@@ -214,7 +214,7 @@ async function getStudioReports(studioId) {
       // 已消课时（统一账本 lesson_logs 汇总）
       sequelize.query(
         `SELECT COALESCE(SUM(ABS(delta)),0) AS total FROM lesson_logs WHERE order_id IN
-         (SELECT order_id FROM orders WHERE studio_id = ? AND status <> 0) AND type IN (2,3,4)`,
+         (SELECT order_id FROM orders WHERE studio_id = ? AND status IN (2,3,4,5)) AND type IN (2,3,4)`,
         { replacements: [studioId], type: sequelize.QueryTypes.SELECT }
       ),
       // 学员总数（去重）

@@ -13,8 +13,9 @@ const {
   User
 } = require("../models");
 
-// 订单状态：0 待支付 / 1 支付成功 / 3 已退款
-const PAID_STATUS = { [Op.ne]: 0 };
+// 订单成交状态集（曾确认收款），见 utils/orderStatus
+const { ORDER_STATUS, SETTLED_ORDER_STATUSES } = require("../utils/orderStatus");
+const PAID_STATUS = { [Op.in]: SETTLED_ORDER_STATUSES };
 
 /**
  * 工作室 App 端「我的」：机构资料 + 经营统计
@@ -219,7 +220,7 @@ async function getStudioOverviewForApp(userId) {
     where: { studio_id: studioId, status: 0 },
     order: [["period_end", "DESC"]]
   });
-  let settleWhere = { studio_id: studioId, status: 1 };
+  let settleWhere = { studio_id: studioId, status: ORDER_STATUS.PAID };
   if (pendingSettlement) {
     settleWhere = {
       ...settleWhere,

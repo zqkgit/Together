@@ -90,12 +90,12 @@ async function postStudioPaymentConfirm(req, res) {
     }
     return ok(res, data, "payment confirmed");
   } catch (error) {
-    const status = /不是待收款|支付方式|凭证|请选择|现金/i.test(error.message) ? 400 : 500;
+    const status = /不是待收款|不是待确认收款|支付方式|凭证|请选择|现金/i.test(error.message) ? 400 : 500;
     return fail(res, status, status === 400 ? 40090 : 50000, error.message || "Internal server error");
   }
 }
 
-// 工作室驳回家长上传的付款凭证（订单仍待收款）
+// 工作室驳回家长上传的付款凭证（订单保持待确认收款，驳回为其子状态）
 async function postStudioPaymentReject(req, res) {
   try {
     const data = await rejectStudioPayment(req.admin.studioId, req.params.id, req.body || {}, req.admin);
@@ -104,7 +104,7 @@ async function postStudioPaymentReject(req, res) {
     }
     return ok(res, data, "payment voucher rejected");
   } catch (error) {
-    const status = /不是待收款|凭证|没有待审核/i.test(error.message) ? 400 : 500;
+    const status = /不是待收款|不是待确认收款|凭证|没有待审核/i.test(error.message) ? 400 : 500;
     return fail(res, status, status === 400 ? 40090 : 50000, error.message || "Internal server error");
   }
 }
@@ -118,7 +118,7 @@ async function postStudioOrderCancel(req, res) {
     }
     return ok(res, data, "order cancelled");
   } catch (error) {
-    const status = /待收款|仅待收款/i.test(error.message) ? 400 : 500;
+    const status = /待收款|待确认收款|仅待收款/i.test(error.message) ? 400 : 500;
     return fail(res, status, status === 400 ? 40090 : 50000, error.message || "Internal server error");
   }
 }

@@ -15,6 +15,9 @@ const { sequelize } = require("../models");
 const { generateId } = require("../utils/id");
 const { createNotification } = require("./messageService");
 const { formatFen } = require("../utils/amount");
+// 订单成交状态集（曾确认收款），见 utils/orderStatus
+const { SETTLED_ORDER_STATUSES } = require("../utils/orderStatus");
+const PAID_STATUS = { [Op.in]: SETTLED_ORDER_STATUSES };
 
 async function getDashboardOverview() {
   const monthStart = new Date();
@@ -33,14 +36,14 @@ async function getDashboardOverview() {
       StudioProfile.count({ where: { created_at: { [Op.gte]: monthStart } } }),
       Course.count(),
       Child.count(),
-      Order.count({ where: { status: { [Op.ne]: 0 }, created_at: { [Op.gte]: monthStart } } }),
+      Order.count({ where: { status: PAID_STATUS, created_at: { [Op.gte]: monthStart } } }),
       Order.count({
-        where: { status: { [Op.ne]: 0 }, child_id: { [Op.ne]: null } },
+        where: { status: PAID_STATUS, child_id: { [Op.ne]: null } },
         distinct: true,
         col: "child_id"
       }),
       Order.findOne({
-        where: { status: { [Op.ne]: 0 }, created_at: { [Op.gte]: monthStart } },
+        where: { status: PAID_STATUS, created_at: { [Op.gte]: monthStart } },
         attributes: [[fn("COALESCE", fn("SUM", col("total_amount")), 0), "gmv"]],
         raw: true
       })
@@ -55,7 +58,7 @@ async function getDashboardOverview() {
   // 近 30 天 GMV 趋势（有效订单按天聚合）
   const trendRows = await sequelize.query(
     `SELECT DATE_FORMAT(created_at, '%Y-%m-%d') AS date, COALESCE(SUM(total_amount), 0) AS gmv
-     FROM orders WHERE status <> 0 AND created_at >= :start
+     FROM orders WHERE status IN (2,3,4,5) AND created_at >= :start
      GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d') ORDER BY date`,
     {
       replacements: { start: dayStart30 },

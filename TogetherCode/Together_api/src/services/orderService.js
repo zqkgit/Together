@@ -18,8 +18,8 @@ const { generateId } = require("../utils/id");
 const { resolveDistributionCode, settleCommissionForOrder } = require("./commissionService");
 const { createNotification } = require("./messageService");
 
-// 订单状态：0 待收款 / 1 已收款 / 2 已取消 / 3 已退款（退款终态由 Refund 聚合）
-const ORDER_STATUS_TEXT = { 0: "待收款", 1: "已收款", 2: "已取消", 3: "已退款" };
+// 订单状态机：见 utils/orderStatus（0待收款 1待确认收款 2已收款 3退款审核中 4待家长确认退款 5已退款 6已取消）
+const { ORDER_STATUS, ORDER_STATUS_TEXT } = require("../utils/orderStatus");
 // 线下支付方式（平台不碰资金，仅作文字/凭证记录，不跳转支付、不展示收款码）
 const {
   PAY_METHODS,
@@ -321,15 +321,20 @@ function computeValidTo(validityDays) {
 
 /**
  * 工作室确认全款到账后发放课时（原"在线支付成功"履约逻辑，改为线下收款确认时触发）。
- * 仅对待收款订单（status=0）生效；调用方需先做归属与凭证校验。
+ * 入口可为 0 待收款（工作室当场登记 / 手动建单）或 1 待确认收款（核对家长上传的凭证后确认）；
+ * 确认后订单进入「已收款」status=2。调用方需先做归属与凭证校验。
  * 佣金此时只记「待申请」，不入推广人钱包。
  */
 async function grantOrderLessons(order, { transaction, payMethod = null, operatorId = null, notify = true } = {}) {
   if (!order) {
     throw new Error("Order not found");
   }
-  if (Number(order.status) !== 0) {
-    throw new Error("订单不是待收款状态");
+  // 0 待收款 = 工作室当场登记；1 待确认收款 = 核对家长凭证
+  if (
+    Number(order.status) !== ORDER_STATUS.PENDING_PAYMENT &&
+    Number(order.status) !== ORDER_STATUS.PAYMENT_REVIEW
+  ) {
+    throw new Error("订单不是待收款 / 待确认收款状态");
   }
 
   const paidAt = new Date();
@@ -341,7 +346,7 @@ async function grantOrderLessons(order, { transaction, payMethod = null, operato
       pay_channel: method,
       paid_at: paidAt,
       confirmed_by: operatorId || null,
-      status: 1
+      status: ORDER_STATUS.PAID
     },
     { transaction }
   );
@@ -406,8 +411,9 @@ async function grantOrderLessons(order, { transaction, payMethod = null, operato
 }
 
 /**
- * 家长端：为待收款订单上传线下付款凭证（线上转账必传凭证；现金一般由工作室直接登记）。
- * 已有待确认/被驳回凭证则覆盖重提，订单保持待收款，等待工作室核对。
+ * 家长端：为订单上传线下付款凭证（线上转账必传凭证；现金一般由工作室直接登记）。
+ * 首次传凭证：订单 0 待收款 → 1 待确认收款；
+ * 凭证被工作室驳回（payment.status=2）后重传：订单保持 1，覆盖原凭证。
  */
 async function submitPaymentVoucher(userId, orderId, payload) {
   return sequelize.transaction(async (transaction) => {
@@ -423,8 +429,21 @@ async function submitPaymentVoucher(userId, orderId, payload) {
     if (!order) {
       return null;
     }
-    if (Number(order.status) !== 0) {
-      throw new Error("订单不是待收款状态，无法上传凭证");
+
+    // 首次传凭证：订单为 0 待收款；驳回后重传：订单为 1 待确认收款且当前凭证被驳回
+    let isResubmit = false;
+    const currentOrderStatus = Number(order.status);
+    if (currentOrderStatus === ORDER_STATUS.PAYMENT_REVIEW) {
+      const rejected = await Payment.findOne({
+        where: { order_id: orderId, status: 2 },
+        transaction
+      });
+      if (!rejected) {
+        throw new Error("凭证已提交，正在等待工作室核对");
+      }
+      isResubmit = true;
+    } else if (currentOrderStatus !== ORDER_STATUS.PENDING_PAYMENT) {
+      throw new Error("订单当前状态无法上传凭证");
     }
 
     const method = payload.pay_method;
@@ -477,6 +496,11 @@ async function submitPaymentVoucher(userId, orderId, payload) {
         },
         { transaction }
       );
+    }
+
+    // 首次传凭证：订单进入「待确认收款」（驳回重传时订单已在该状态）
+    if (!isResubmit) {
+      await order.update({ status: ORDER_STATUS.PAYMENT_REVIEW }, { transaction });
     }
 
     // 通知工作室核对（studio.user_id 为工作室主体账号）
@@ -536,7 +560,7 @@ async function getOrderDetail(userId, orderId) {
 
 
 
-/** 家长端：取消待收款订单（status 0 -> 2 已取消） */
+/** 家长端：取消待收款订单（status 0 待收款 -> 6 已取消） */
 async function cancelOrder(userId, orderId) {
   return sequelize.transaction(async (transaction) => {
     const order = await Order.findOne({
@@ -547,10 +571,10 @@ async function cancelOrder(userId, orderId) {
     if (!order) {
       return null;
     }
-    if (Number(order.status) !== 0) {
-      throw new Error("Order already paid or unavailable");
+    if (Number(order.status) !== ORDER_STATUS.PENDING_PAYMENT) {
+      throw new Error("订单已提交凭证或已处理，无法取消");
     }
-    await order.update({ status: 2, completed_at: new Date() }, { transaction });
+    await order.update({ status: ORDER_STATUS.CANCELLED, completed_at: new Date() }, { transaction });
     return getOrderWithDetails(orderId, { transaction });
   });
 }
@@ -558,9 +582,9 @@ async function cancelOrder(userId, orderId) {
 // 退款状态：0 待审核 / 1 待家长确认（工作室已退款传凭证）/ 2 已驳回 / 3 已退款（家长确认收到）
 const REFUND_STATUS_TEXT = { 0: "待审核", 1: "待家长确认", 2: "已驳回", 3: "已退款" };
 
-// 支付截止时间：待支付订单 = 订单创建时间 + 工作室支付超时小时数（默认 24h）
+// 支付截止时间：待收款订单 = 订单创建时间 + 工作室支付超时小时数（默认 24h）
 function payExpireAt(order) {
-  if (Number(order.status) !== 0 || !order.created_at) {
+  if (Number(order.status) !== ORDER_STATUS.PENDING_PAYMENT || !order.created_at) {
     return null;
   }
   const hours = Number(order.studio?.payment_expire_hours || 24);
@@ -580,9 +604,9 @@ function refundExpireAt(order) {
   return expireAt.toISOString();
 }
 
-// 是否可申请退款：仅已支付 + 无进行中/已退款 + 有余课 + 未超过退款有效期（已驳回可再次申请）
+// 是否可申请退款：仅已收款(status=2) + 无进行中/已退款 + 有余课 + 未超过退款有效期（已驳回可再次申请）
 function canApplyRefund(order, refundStatus, activeRefund) {
-  if (Number(order.status) !== 1) {
+  if (Number(order.status) !== ORDER_STATUS.PAID) {
     return false;
   }
   if (activeRefund || [1, 2].includes(Number(refundStatus))) {
@@ -733,8 +757,8 @@ async function createRefund(userId, orderId, payload) {
       return null;
     }
 
-    if (![1, 3].includes(Number(order.status))) {
-      throw new Error("Order is not refundable");
+    if (Number(order.status) !== ORDER_STATUS.PAID) {
+      throw new Error("订单不是已收款状态，无法申请退款");
     }
 
     // 退款有效期：订单创建时间 + 课程有效期天数，超过不可申请
@@ -790,6 +814,9 @@ async function createRefund(userId, orderId, payload) {
       },
       { transaction }
     );
+
+    // 订单进入「退款审核中」
+    await order.update({ status: ORDER_STATUS.REFUND_REVIEW }, { transaction });
 
     return {
       refund_id: String(refund.refund_id),
@@ -870,7 +897,7 @@ async function confirmRefundReceived(userId, refundId) {
       {
         refunded_lessons: Number(order.refunded_lessons || 0) + approvedLessons,
         refund_amount: Number(order.refund_amount || 0) + amount,
-        status: 3
+        status: ORDER_STATUS.REFUNDED
       },
       { transaction: tx }
     );

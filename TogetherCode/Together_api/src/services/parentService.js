@@ -14,9 +14,6 @@ const {
   CourseLesson
 } = require("../models");
 
-// 订单状态：1 支付成功（与 orderService 一致）
-const PAID_STATUS = 1;
-
 // 课时余额状态：1 使用中 / 2 已用完 / 3 已过期 / 4 已退款
 const BALANCE_STATUS_TEXT = {
   1: "使用中",

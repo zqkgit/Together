@@ -12,8 +12,9 @@ const { createNotification } = require("./messageService");
 const { generateId } = require("../utils/id");
 const { formatFen } = require("../utils/amount");
 
-// 订单状态：0 待支付 / 1 支付成功 / 3 已退款
-const PAID_STATUS = { [Op.ne]: 0 };
+// 订单成交状态集（曾确认收款），见 utils/orderStatus
+const { SETTLED_ORDER_STATUSES } = require("../utils/orderStatus");
+const PAID_STATUS = { [Op.in]: SETTLED_ORDER_STATUSES };
 
 const SETTLEMENT_STATUS = {
   0: "待结算",
