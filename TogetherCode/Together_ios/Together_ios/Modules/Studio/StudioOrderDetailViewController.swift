@@ -38,6 +38,9 @@ final class StudioOrderDetailViewController: BaseViewController {
     // 课时账本
     private let balanceSection = UIView()
 
+    // 退款记录
+    private let refundSection = UIView()
+
     // 底部按钮
     private let actionStack = UIStackView()
 
@@ -117,6 +120,10 @@ final class StudioOrderDetailViewController: BaseViewController {
         // 课时账本
         buildBalanceSection()
         stackView.addArrangedSubview(balanceSection)
+
+        // 退款记录
+        buildRefundSection()
+        stackView.addArrangedSubview(refundSection)
 
         // 底部操作栏
         bottomBar.backgroundColor = Theme.Color.surface
@@ -207,6 +214,13 @@ final class StudioOrderDetailViewController: BaseViewController {
         balanceSection.layer.cornerRadius = Theme.Radius.card
     }
 
+    // MARK: - 退款记录
+
+    private func buildRefundSection() {
+        refundSection.backgroundColor = Theme.Color.surface
+        refundSection.layer.cornerRadius = Theme.Radius.card
+    }
+
     // MARK: - 数据绑定
 
     private func bind(_ o: StudioOrder) {
@@ -234,6 +248,9 @@ final class StudioOrderDetailViewController: BaseViewController {
 
         // 课时账本
         rebuildBalanceSection(o)
+
+        // 退款记录
+        rebuildRefundSection(o)
 
         // 操作按钮
         rebuildActions(o)
@@ -431,6 +448,108 @@ final class StudioOrderDetailViewController: BaseViewController {
         lastView.snp.makeConstraints {
             $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
         }
+    }
+
+    private func rebuildRefundSection(_ o: StudioOrder) {
+        refundSection.subviews.forEach { $0.removeFromSuperview() }
+        guard let refunds = o.refunds, !refunds.isEmpty else {
+            refundSection.isHidden = true
+            return
+        }
+        refundSection.isHidden = false
+
+        let title = makeSectionTitle("退款记录")
+        refundSection.addSubview(title)
+        title.snp.makeConstraints {
+            $0.top.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+        }
+
+        var lastView: UIView = title
+        for (i, r) in refunds.enumerated() {
+            let card = makeRefundCard(r, isFirst: i == 0)
+            refundSection.addSubview(card)
+            card.snp.makeConstraints {
+                $0.top.equalTo(lastView.snp.bottom).offset(Theme.Spacing.m)
+                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            }
+            lastView = card
+        }
+        lastView.snp.makeConstraints {
+            $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
+        }
+    }
+
+    private func makeRefundCard(_ r: StudioOrderRefund, isFirst: Bool) -> UIView {
+        let card = UIView()
+        if !isFirst {
+            let sep = UIView()
+            sep.backgroundColor = Theme.Color.surfaceAlt
+            card.addSubview(sep)
+            sep.snp.makeConstraints {
+                $0.top.leading.trailing.equalToSuperview()
+                $0.height.equalTo(0.5)
+            }
+        }
+
+        // 状态 pill + 金额
+        let statusLabel = PaddingLabel()
+        statusLabel.font = .appLabel(11)
+        statusLabel.layer.cornerRadius = 10
+        statusLabel.clipsToBounds = true
+        statusLabel.textInsets = UIEdgeInsets(top: 2, left: 8, bottom: 2, right: 8)
+        statusLabel.text = r.status_text ?? "未知"
+        statusLabel.textColor = r.statusColor
+        statusLabel.backgroundColor = r.statusTintColor
+        card.addSubview(statusLabel)
+        statusLabel.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(isFirst ? 0 : 12)
+            $0.leading.equalToSuperview()
+        }
+
+        let amountLabel = UILabel()
+        amountLabel.text = "-\(r.amountText)"
+        amountLabel.font = .appSection(16)
+        amountLabel.textColor = Theme.Color.danger
+        card.addSubview(amountLabel)
+        amountLabel.snp.makeConstraints {
+            $0.centerY.equalTo(statusLabel)
+            $0.trailing.equalToSuperview()
+        }
+
+        // 退款原因
+        if let reason = r.reason, !reason.isEmpty {
+            let reasonLabel = UILabel()
+            reasonLabel.font = .appLabel(12)
+            reasonLabel.textColor = Theme.Color.sub
+            reasonLabel.numberOfLines = 0
+            reasonLabel.text = "原因：\(reason)"
+            card.addSubview(reasonLabel)
+            reasonLabel.snp.makeConstraints {
+                $0.top.equalTo(statusLabel.snp.bottom).offset(6)
+                $0.leading.trailing.equalToSuperview()
+                $0.bottom.equalToSuperview()
+            }
+        } else {
+            // 无原因时 statusLabel 下方就是 bottom
+            statusLabel.snp.makeConstraints {
+                $0.bottom.equalToSuperview()
+            }
+        }
+
+        // 退款课时
+        if let requested = r.requested_lessons, requested > 0 {
+            let lessonsLabel = UILabel()
+            lessonsLabel.font = .appLabel(12)
+            lessonsLabel.textColor = Theme.Color.muted
+            lessonsLabel.text = "退 \(requested) 节"
+            card.addSubview(lessonsLabel)
+            lessonsLabel.snp.makeConstraints {
+                $0.centerY.equalTo(statusLabel)
+                $0.leading.equalTo(statusLabel.snp.trailing).offset(8)
+            }
+        }
+
+        return card
     }
 
     private func rebuildActions(_ o: StudioOrder) {

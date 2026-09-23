@@ -223,16 +223,20 @@ struct StudioRefundOrder: Codable {
     let balance: StudioRefundBalance?
 }
 
-/// 工作室退款单：status 0 申请中 / 1 待打款 / 2 已驳回 / 3 已打款；金额单位「分」
+/// 工作室退款单：status 0 待审核 / 1 待家长确认 / 2 已驳回 / 3 已退款；金额单位「分」
 struct StudioRefund: Codable {
     let refund_id: String
     let order_id: String?
     let requested_lessons: Int?
+    let approved_lessons: Int?
     let refundable_lessons: Int?
     let unit_price: Int?
     let amount: Int?
     let reason: String?
     let status: Int
+    let refund_method: String?
+    let voucher_images: [String]?
+    let reject_reason: String?
     let reviewed_at: String?
     let refunded_at: String?
     let created_at: String?
@@ -249,10 +253,51 @@ struct StudioRefund: Codable {
     var remaining: Int { order?.balance?.remaining_lessons ?? 0 }
     var totalLessons: Int { order?.balance?.total_lessons ?? 0 }
     var reasonText: String { reason ?? "" }
+    var voucherImageList: [String] { voucher_images ?? [] }
+    var rejectReasonText: String { reject_reason ?? "" }
+
+    /// 退款方式文案
+    var refundMethodText: String {
+        guard let m = refund_method, !m.isEmpty else { return "" }
+        return PayMethodOption.all.first(where: { $0.value == m })?.label ?? m
+    }
 
     /// 金额文案（两位小数，对齐设计稿 ¥440.00）
     var amountText: String {
         String(format: "¥%.2f", Double(amountFen) / 100.0)
+    }
+
+    /// 状态文案
+    var statusText: String {
+        switch status {
+        case 0: return "待审核"
+        case 1: return "待家长确认"
+        case 2: return "已驳回"
+        case 3: return "已退款"
+        default: return "未知"
+        }
+    }
+
+    /// 状态颜色
+    var statusColor: UIColor {
+        switch status {
+        case 0: return Theme.Color.warn
+        case 1: return Theme.Color.brand
+        case 2: return Theme.Color.danger
+        case 3: return Theme.Color.success
+        default: return Theme.Color.muted
+        }
+    }
+
+    /// 状态背景色
+    var statusTintColor: UIColor {
+        switch status {
+        case 0: return Theme.Color.warnTint
+        case 1: return Theme.Color.brandSoft
+        case 2: return Theme.Color.dangerTint
+        case 3: return Theme.Color.successTint
+        default: return Theme.Color.bg
+        }
     }
 }
 
@@ -920,6 +965,27 @@ struct StudioOrderRefund: Codable {
     let created_at: String?
 
     var amountText: String { StudioAmount.text(amount ?? 0) }
+
+    /// 退款单状态颜色
+    var statusColor: UIColor {
+        switch status ?? 0 {
+        case 0: return Theme.Color.warn
+        case 1: return Theme.Color.brand
+        case 2: return Theme.Color.danger
+        case 3: return Theme.Color.muted
+        default: return Theme.Color.muted
+        }
+    }
+
+    var statusTintColor: UIColor {
+        switch status ?? 0 {
+        case 0: return Theme.Color.warnTint
+        case 1: return Theme.Color.brandSoft
+        case 2: return Theme.Color.dangerTint
+        case 3: return Theme.Color.surfaceAlt
+        default: return Theme.Color.surfaceAlt
+        }
+    }
 }
 
 /// 订单课时余额
@@ -1086,15 +1152,20 @@ enum StudioService {
         }
     }
 
-    /// 退款审核：action = approve 通过(→待打款) / reject 驳回(需 reason) / confirm 确认打款(→已打款)
+    /// 退款审核：action = approve 通过(→待家长确认) / reject 驳回(需 reason) / confirm 确认打款(→已退款)
+    /// approve 时需传 refund_method（必填）和 voucher_images（线上方式必填）
     static func reviewRefund(
         refundId: String,
         action: String,
         reason: String? = nil,
+        refundMethod: String? = nil,
+        voucherImages: [String]? = nil,
         completion: @escaping (Result<StudioRefund?, APIError>) -> Void
     ) {
         var body: [String: Any] = ["action": action]
         if let reason, !reason.isEmpty { body["reason"] = reason }
+        if let refundMethod, !refundMethod.isEmpty { body["refund_method"] = refundMethod }
+        if let voucherImages, !voucherImages.isEmpty { body["voucher_images"] = voucherImages }
         APIClient.shared.request("/studio/refunds/\(refundId)", method: .put, parameters: body) { result in
             switch result {
             case .success(let json):
