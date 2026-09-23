@@ -877,3 +877,56 @@ export async function replyStudioReview(
   const response = await request.put(`/studio/reviews/${reviewId}/reply`, payload);
   return response.data;
 }
+
+// ============ 佣金（分销返利）领取审核 ============
+
+export interface WithdrawalCommissionItem {
+  commission_id: string;
+  order_id: string;
+  amount: number;
+  rate: number;
+  status: number;
+  status_text: string;
+  created_at: string;
+}
+
+export interface WithdrawalItem {
+  withdraw_id: string;
+  user: { user_id: string; nickname: string; phone: string } | null;
+  studio: { studio_id: string; name: string; cover: string | null } | null;
+  amount: number;
+  amount_text: string;
+  method: string | null;
+  method_text: string;
+  account: string | null;
+  status: number;
+  status_text: string;
+  voucher_images: string[];
+  reject_reason?: string | null;
+  created_at: string;
+  processed_at: string | null;
+  confirmed_at: string | null;
+  can_confirm: boolean;
+  commissions: WithdrawalCommissionItem[];
+  steps: Array<{ title: string; done: boolean; current: boolean }>;
+}
+
+export async function fetchStudioCommissions(
+  params: { status?: number | ""; page?: number; page_size?: number } = {}
+): Promise<Paged<WithdrawalItem>> {
+  const response = await request.get("/studio/commissions", { params });
+  return response.data;
+}
+
+export async function reviewStudioCommission(
+  id: string,
+  payload: {
+    action: "approve" | "reject";
+    method?: PayMethod;
+    voucher_images?: string[];
+    reject_reason?: string;
+  }
+): Promise<WithdrawalItem> {
+  const response = await request.put(`/studio/commissions/${id}`, payload);
+  return response.data;
+}

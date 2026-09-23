@@ -21,27 +21,15 @@ const { createNotification } = require("./messageService");
 // 订单状态：0 待收款 / 1 已收款 / 2 已取消 / 3 已退款（退款终态由 Refund 聚合）
 const ORDER_STATUS_TEXT = { 0: "待收款", 1: "已收款", 2: "已取消", 3: "已退款" };
 // 线下支付方式（平台不碰资金，仅作文字/凭证记录，不跳转支付、不展示收款码）
-const PAY_METHODS = ["cash", "wechat", "alipay", "bank", "qrcode", "other"];
-const PAY_METHOD_TEXT = {
-  cash: "现金",
-  wechat: "微信转账",
-  alipay: "支付宝转账",
-  bank: "银行转账",
-  qrcode: "机构收款码",
-  other: "其他"
-};
-// 线上转账类必须上传付款凭证；现金可由工作室直接登记、免凭证
-const ONLINE_PAY_METHODS = ["wechat", "alipay", "bank", "qrcode"];
+const {
+  PAY_METHODS,
+  PAY_METHOD_TEXT,
+  ONLINE_PAY_METHODS,
+  payMethodText,
+  isOnlinePayMethod
+} = require("../utils/payMethods");
 // 收款凭证（Payment）状态：0 待工作室确认 / 1 已确认 / 2 已驳回
 const PAYMENT_STATUS_TEXT = { 0: "待确认", 1: "已确认", 2: "已驳回" };
-
-function payMethodText(method) {
-  return PAY_METHOD_TEXT[method] || (method ? String(method) : "");
-}
-
-function isOnlinePayMethod(method) {
-  return ONLINE_PAY_METHODS.includes(method);
-}
 
 function formatOrder(order) {
   const refundList = (order.refunds || []).map((item) => ({
@@ -334,7 +322,7 @@ function computeValidTo(validityDays) {
 /**
  * 工作室确认全款到账后发放课时（原"在线支付成功"履约逻辑，改为线下收款确认时触发）。
  * 仅对待收款订单（status=0）生效；调用方需先做归属与凭证校验。
- * 佣金此时只记"待结算"（settleImmediately=false），不入钱包余额。
+ * 佣金此时只记「待申请」，不入推广人钱包。
  */
 async function grantOrderLessons(order, { transaction, payMethod = null, operatorId = null, notify = true } = {}) {
   if (!order) {
@@ -400,8 +388,8 @@ async function grantOrderLessons(order, { transaction, payMethod = null, operato
     { transaction }
   );
 
-  // 佣金记为待结算（工作室后续线下打款、推广人确认后才入余额）
-  await settleCommissionForOrder(order, { transaction, settleImmediately: false });
+  // 佣金记为待申请（工作室后续线下打款、推广人确认后才到账）
+  await settleCommissionForOrder(order, { transaction });
 
   if (notify) {
     createNotification({

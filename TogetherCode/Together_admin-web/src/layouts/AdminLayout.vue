@@ -48,7 +48,7 @@ const platformMenus = [
   { path: "/admin-announcements", title: "公告管理", icon: Bell },
   { path: "/admin-config", title: "平台配置", icon: Setting },
   { path: "/admin-staff", title: "平台员工", icon: User },
-  { path: "/admin-withdrawals", title: "提现审核", icon: Money },
+  { path: "/admin-withdrawals", title: "提现监督", icon: Money },
   { path: "/admin-audit", title: "审计日志", icon: Monitor }
 ];
 
@@ -63,6 +63,7 @@ const studioMenus = [
   { path: "/studio-students", title: "学员管理", icon: User },
   { path: "/studio-orders", title: "订单管理", icon: Coin },
   { path: "/studio-refunds", title: "退款管理", icon: CreditCard },
+  { path: "/studio-commissions", title: "佣金审核", icon: Money },
   { path: "/studio-leaves", title: "请假审批", icon: Finished },
   { path: "/studio-finance", title: "财务对账", icon: DataLine },
   { path: "/studio-accounts", title: "结算账户", icon: Wallet },

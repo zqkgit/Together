@@ -53,8 +53,7 @@ const {
   putStaffStatus,
   putAnnouncementStatus,
   getWithdrawalsList,
-  exportWithdrawals,
-  putWithdrawalReview
+  exportWithdrawals
 } = require("../controllers/platformGovernanceController");
 const {
   handleReportValidators,
@@ -62,8 +61,7 @@ const {
   reprocessSettlementValidators,
   createAnnouncementValidators,
   createStaffValidators,
-  updateConfigValidators,
-  withdrawalReviewValidators
+  updateConfigValidators
 } = require("../validators/governanceValidator");
 
 const router = express.Router();
@@ -135,9 +133,8 @@ router.put("/staff/:id", moderatePostValidators, validateRequest, putStaffStatus
 // 全平台审计日志（P8）
 router.get("/audit", getAuditList);
 
-// 提现审核（分销闭环）：列表 / 通过·驳回
+// 提现（分销）：平台不碰资金，佣金由工作室审核打款；平台仅保留只读列表/导出供监督
 router.get("/withdrawals", getWithdrawalsList);
 router.get("/withdrawals/export", exportWithdrawals);
-router.put("/withdrawals/:id", withdrawalReviewValidators, validateRequest, putWithdrawalReview);
 
 module.exports = router;

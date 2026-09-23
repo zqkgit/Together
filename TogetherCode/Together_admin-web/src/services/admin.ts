@@ -564,17 +564,22 @@ export async function fetchAdminAudit(params: { page?: number; page_size?: numbe
   return response.data;
 }
 
-// ============ 提现审核 ============
+// ============ 提现监督（只读；佣金由工作室审核打款，平台不经手资金） ============
 
 export interface WithdrawalItem {
   withdraw_id: string;
   user: { user_id: string; nickname: string; phone: string } | null;
+  studio: { studio_id: string; name: string } | null;
   amount: number;
-  method: string;
+  method: string | null;
   account: string | null;
   status: number;
   status_text: string;
+  voucher_images: string[];
+  reject_reason?: string | null;
   created_at: string;
+  processed_at: string | null;
+  confirmed_at: string | null;
   reviewed_at: string | null;
 }
 
@@ -586,14 +591,6 @@ export async function fetchWithdrawals(params: { status?: number | ""; page?: nu
 // 提现单导出（全量）
 export async function fetchWithdrawalsExport(params: { status?: number | "" } = {}): Promise<PagedList<WithdrawalItem>> {
   const response = await request.get("/admin/withdrawals/export", { params });
-  return response.data;
-}
-
-export async function reviewWithdrawal(
-  id: string,
-  payload: { action: "approve" | "reject" }
-): Promise<{ withdraw_id: string; status: number; status_text: string }> {
-  const response = await request.put(`/admin/withdrawals/${id}`, payload);
   return response.data;
 }
 

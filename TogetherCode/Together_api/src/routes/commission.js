@@ -6,12 +6,16 @@ const {
   getCommissionSummaryHandler,
   getCommissionRecords,
   postCommissionWithdraw,
+  getMyWithdrawals,
+  getMyWithdrawalDetailHandler,
+  postConfirmWithdrawal,
   postWxacode
 } = require("../controllers/commissionController");
 const {
   createDistributionLinkValidators,
   listCommissionRecordsValidators,
   withdrawValidators,
+  listWithdrawalsValidators,
   wxacodeValidators
 } = require("../validators/commissionValidator");
 
@@ -25,5 +29,10 @@ router.post("/qrcode", wxacodeValidators, validateRequest, postWxacode);
 router.get("/commission/summary", getCommissionSummaryHandler);
 router.get("/commission/records", listCommissionRecordsValidators, validateRequest, getCommissionRecords);
 router.post("/commission/withdraw", withdrawValidators, validateRequest, postCommissionWithdraw);
+
+// 佣金领取单
+router.get("/commission/withdrawals", listWithdrawalsValidators, validateRequest, getMyWithdrawals);
+router.get("/commission/withdrawals/:id", getMyWithdrawalDetailHandler);
+router.post("/commission/withdrawals/:id/confirm", postConfirmWithdrawal);
 
 module.exports = router;

@@ -1,6 +1,6 @@
 const { Op } = require("sequelize");
 const bcrypt = require("bcryptjs");
-const { sequelize, Report, AuditLog, PlatformConfig, Announcement, AdminAccount, Post, Settlement, User, Withdrawal, Wallet } = require("../models");
+const { sequelize, Report, AuditLog, PlatformConfig, Announcement, AdminAccount, Post, Settlement, User, Withdrawal, Wallet, StudioProfile } = require("../models");
 const { generateId } = require("../utils/id");
 const { createNotification } = require("./messageService");
 
@@ -451,7 +451,7 @@ async function updateAnnouncementStatus(id, payload = {}) {
 }
 
 /**
- * 提现单列表（平台审核用）：分页 / 状态筛选。
+ * 提现单列表（平台只读监督用）：佣金由工作室审核打款，平台不经手资金。分页 / 状态筛选。
  */
 async function listWithdrawals(query = {}) {
   const page = Math.max(1, Number(query.page) || 1);
@@ -464,7 +464,10 @@ async function listWithdrawals(query = {}) {
     order: [["created_at", "DESC"]],
     offset: (page - 1) * pageSize,
     limit: pageSize,
-    include: [{ model: User, as: "user", attributes: ["user_id", "nickname", "phone"] }]
+    include: [
+      { model: User, as: "user", attributes: ["user_id", "nickname", "phone"] },
+      { model: StudioProfile, as: "studio", attributes: ["studio_id", "name"] }
+    ]
   });
   return {
     total: count,
@@ -475,22 +478,27 @@ async function listWithdrawals(query = {}) {
       user: r.user
         ? { user_id: String(r.user.user_id), nickname: r.user.nickname, phone: r.user.phone }
         : null,
+      studio: r.studio ? { studio_id: String(r.studio.studio_id), name: r.studio.name } : null,
       amount: Number(r.amount),
       method: r.method,
       account: r.account,
       status: Number(r.status),
       status_text: WITHDRAW_STATUS_TEXT[Number(r.status)] || "未知",
+      voucher_images: Array.isArray(r.voucher_images) ? r.voucher_images : [],
+      reject_reason: r.reject_reason || null,
       created_at: r.created_at,
+      processed_at: r.processed_at || null,
+      confirmed_at: r.confirmed_at || null,
       reviewed_at: r.reviewed_at
     }))
   };
 }
 
 const WITHDRAW_STATUS_TEXT = {
-  1: "待审核",
-  2: "处理中",
-  3: "已打款",
-  4: "已驳回"
+  0: "待工作室审核",
+  1: "待推广人确认",
+  2: "已驳回",
+  3: "已完成"
 };
 
 /**

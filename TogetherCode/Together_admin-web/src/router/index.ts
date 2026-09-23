@@ -164,6 +164,12 @@ const router = createRouter({
           meta: { title: "退款管理", requiresAuth: true, scopes: ["studio"] }
         },
         {
+          path: "/studio-commissions",
+          name: "studio-commissions",
+          component: () => import("../views/studio/commissions/IndexView.vue"),
+          meta: { title: "佣金审核", requiresAuth: true, scopes: ["studio"] }
+        },
+        {
           path: "/studio-leaves",
           name: "studio-leaves",
           component: () => import("../views/studio/leaves/IndexView.vue"),

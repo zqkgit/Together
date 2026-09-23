@@ -9,7 +9,12 @@ module.exports = (sequelize, DataTypes) => {
       amount: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
       method: { type: DataTypes.STRING(32), allowNull: false, defaultValue: "wechat" },
       account: { type: DataTypes.STRING(128), allowNull: true },
-      status: { type: DataTypes.TINYINT, allowNull: false, defaultValue: 1, comment: "1申请 2处理中 3成功 4失败" },
+      status: {
+        type: DataTypes.TINYINT,
+        allowNull: false,
+        defaultValue: 0,
+        comment: "0待工作室审核 1待推广人确认 2已驳回 3已完成"
+      },
       reviewed_at: { type: DataTypes.DATE, allowNull: true },
       // 付款工作室（佣金按订单归属工作室分别结算）
       studio_id: { type: DataTypes.BIGINT, allowNull: true },
@@ -30,6 +35,8 @@ module.exports = (sequelize, DataTypes) => {
 
   Withdrawal.associate = (models) => {
     Withdrawal.belongsTo(models.User, { foreignKey: "user_id", as: "user" });
+    Withdrawal.belongsTo(models.StudioProfile, { foreignKey: "studio_id", as: "studio" });
+    Withdrawal.hasMany(models.CommissionRecord, { foreignKey: "withdrawal_id", as: "commissions" });
   };
 
   Withdrawal.beforeValidate((instance) => {

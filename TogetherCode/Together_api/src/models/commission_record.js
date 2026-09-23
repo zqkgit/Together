@@ -8,9 +8,16 @@ module.exports = (sequelize, DataTypes) => {
       link_id: { type: DataTypes.BIGINT, allowNull: false },
       order_id: { type: DataTypes.BIGINT, allowNull: false },
       parent_user_id: { type: DataTypes.BIGINT, allowNull: false },
+      studio_id: { type: DataTypes.BIGINT, allowNull: true },
+      withdrawal_id: { type: DataTypes.BIGINT, allowNull: true },
       rate: { type: DataTypes.DECIMAL(5, 2), allowNull: false, defaultValue: 0 },
       amount: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 },
-      status: { type: DataTypes.TINYINT, allowNull: false, defaultValue: 1, comment: "1待结算 2已到账" },
+      status: {
+        type: DataTypes.TINYINT,
+        allowNull: false,
+        defaultValue: 1,
+        comment: "1待申请 2已到账 3申请中"
+      },
       settle_at: { type: DataTypes.DATE, allowNull: true }
     },
     {
@@ -24,6 +31,8 @@ module.exports = (sequelize, DataTypes) => {
     CommissionRecord.belongsTo(models.DistributionLink, { foreignKey: "link_id", as: "link" });
     CommissionRecord.belongsTo(models.Order, { foreignKey: "order_id", as: "order" });
     CommissionRecord.belongsTo(models.User, { foreignKey: "parent_user_id", as: "parent" });
+    CommissionRecord.belongsTo(models.StudioProfile, { foreignKey: "studio_id", as: "studio" });
+    CommissionRecord.belongsTo(models.Withdrawal, { foreignKey: "withdrawal_id", as: "withdrawal" });
   };
 
   CommissionRecord.beforeValidate((instance) => {

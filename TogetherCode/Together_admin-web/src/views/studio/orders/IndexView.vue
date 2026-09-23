@@ -7,6 +7,7 @@ import { ElMessage, ElMessageBox, type UploadRequestOptions } from "element-plus
 import { useAuthStore } from "../../../stores/auth";
 import {
   fetchStudioOrders,
+  fetchStudioOrderDetail,
   fetchStudioOrderContacts,
   fetchStudioCourses,
   fetchStudioClasses,
@@ -238,7 +239,6 @@ const createForm = reactive({
 });
 
 const createClasses = computed(() => classes.value.filter((c) => c.course_id === createForm.course_id));
-const selectedCourse = computed(() => courses.value.find((c) => c.course_id === createForm.course_id));
 const createNeedImage = computed(
   () => createForm.confirm === 1 && isOnline(createForm.pay_method) && createForm.voucher_images.length === 0
 );
