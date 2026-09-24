@@ -156,18 +156,30 @@ final class OrderDetailViewController: BaseViewController {
                     statusTitle = "凭证未通过"
                     statusDesc = "原因：\(reason)\n请重新上传付款凭证"
                     tone = .danger
-                } else if order.latestPayment?.statusValue == .pending {
-                    statusTitle = "待机构确认"
-                    statusDesc = "付款凭证已提交，等待机构确认，确认后课时自动到账"
-                    tone = .warn
                 } else {
                     statusTitle = "待付款"
                     statusDesc = "请与机构线下完成付款，并上传付款凭证；机构确认后发放课时"
                     tone = .warn
                 }
+            case .paymentReview:
+                statusTitle = "待机构确认"
+                statusDesc = "付款凭证已提交，等待机构确认，确认后课时自动到账"
+                tone = .warn
             case .collected:
                 statusTitle = "已报名 · 学习中"
                 statusDesc = "已完成\(order.consumed_lessons ?? 0)/\(order.total_lessons ?? 0)节 · 剩余\(order.remaining_lessons ?? 0)节"
+                tone = .brand
+            case .refundReview:
+                statusTitle = "退款审核中"
+                statusDesc = "退款申请正在审核中，请等待机构处理"
+                tone = .warn
+            case .refundConfirm:
+                statusTitle = "待确认退款"
+                statusDesc = "机构已审核通过退款，请确认退款信息"
+                tone = .warn
+            case .refunded:
+                statusTitle = "已退款"
+                statusDesc = "退款已完成"
                 tone = .brand
             case .cancelled:
                 statusTitle = "已取消"
@@ -243,18 +255,16 @@ final class OrderDetailViewController: BaseViewController {
         secondaryButton.isHidden = false
         switch order.statusValue {
         case .pendingCollect:
-            if order.isVoucherUnderReview {
-                // 凭证审核中：不可重复上传、不可取消，仅展示等待状态
-                secondaryButton.isHidden = true
-                primaryButton.setTitle("凭证审核中 · 等待机构确认", for: .normal)
-                primaryButton.backgroundColor = Theme.Color.line
-                primaryButton.isEnabled = false
-            } else {
-                let hasRejected = order.rejectedPayment != nil
-                secondaryButton.setTitle("取消订单", for: .normal)
-                primaryButton.setTitle(hasRejected ? "重新上传凭证" : "上传付款凭证", for: .normal)
-                primaryButton.isEnabled = true
-            }
+            let hasRejected = order.rejectedPayment != nil
+            secondaryButton.setTitle("取消订单", for: .normal)
+            primaryButton.setTitle(hasRejected ? "重新上传凭证" : "上传付款凭证", for: .normal)
+            primaryButton.isEnabled = true
+        case .paymentReview:
+            // 凭证审核中：不可重复上传、不可取消，仅展示等待状态
+            secondaryButton.isHidden = true
+            primaryButton.setTitle("凭证审核中 · 等待机构确认", for: .normal)
+            primaryButton.backgroundColor = Theme.Color.line
+            primaryButton.isEnabled = false
         case .collected:
             primaryButton.setTitle("去学习", for: .normal)
             primaryButton.isEnabled = true
@@ -264,6 +274,14 @@ final class OrderDetailViewController: BaseViewController {
             } else {
                 secondaryButton.isHidden = true
             }
+        case .refundReview, .refundConfirm:
+            secondaryButton.isHidden = true
+            primaryButton.setTitle("查看退款", for: .normal)
+            primaryButton.isEnabled = true
+        case .refunded:
+            secondaryButton.isHidden = true
+            primaryButton.setTitle("查看退款", for: .normal)
+            primaryButton.isEnabled = true
         case .cancelled:
             primaryButton.setTitle("重新报名", for: .normal)
             primaryButton.isEnabled = true
@@ -295,8 +313,15 @@ final class OrderDetailViewController: BaseViewController {
             let vc = PaymentVoucherViewController(order: order)
             vc.onSubmitted = { [weak self] in self?.loadData() }
             navigationController?.pushViewController(vc, animated: true)
+        case .paymentReview:
+            break // 审核中，按钮已禁用
         case .collected:
             goStudy(order)
+        case .refundReview, .refundConfirm, .refunded:
+            guard let refundId = order.latestRefundId else {
+                showToast("退款单不存在"); return
+            }
+            navigationController?.pushViewController(RefundDetailViewController(refundId: refundId), animated: true)
         case .cancelled:
             guard let courseId = order.course?.course_id else {
                 showToast("课程信息缺失"); return
@@ -337,7 +362,7 @@ final class OrderDetailViewController: BaseViewController {
         case .collected:
             let vc = OrderRefundViewController(order: order) { [weak self] in self?.loadData() }
             navigationController?.pushViewController(vc, animated: true)
-        case .cancelled:
+        case .paymentReview, .refundReview, .refundConfirm, .refunded, .cancelled:
             break
         }
     }

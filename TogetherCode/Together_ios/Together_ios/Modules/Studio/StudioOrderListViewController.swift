@@ -394,10 +394,13 @@ final class StudioOrderCell: UITableViewCell {
     private func configureStatus(_ status: StudioOrderStatus) {
         let config: (String, UIColor, UIColor)
         switch status {
-        case .pending:   config = ("待收款", Theme.Color.warn, Theme.Color.warnTint)
-        case .paid:      config = ("已收款", Theme.Color.success, Theme.Color.successTint)
-        case .cancelled: config = ("已取消", Theme.Color.muted, Theme.Color.surfaceAlt)
-        case .refunded:  config = ("已退款", Theme.Color.danger, Theme.Color.dangerTint)
+        case .pending:        config = ("待收款", Theme.Color.warn, Theme.Color.warnTint)
+        case .paymentReview:  config = ("待确认收款", Theme.Color.warn, Theme.Color.warnTint)
+        case .collected:      config = ("已收款", Theme.Color.success, Theme.Color.successTint)
+        case .refundReview:   config = ("退款审核中", Theme.Color.warn, Theme.Color.warnTint)
+        case .refundConfirm:  config = ("待确认退款", Theme.Color.warn, Theme.Color.warnTint)
+        case .refunded:       config = ("已退款", Theme.Color.danger, Theme.Color.dangerTint)
+        case .cancelled:      config = ("已取消", Theme.Color.muted, Theme.Color.surfaceAlt)
         }
         statusPill.text = config.0
         statusPill.textColor = config.1

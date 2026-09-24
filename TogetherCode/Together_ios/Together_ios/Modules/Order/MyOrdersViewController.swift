@@ -3,17 +3,19 @@ import SnapKit
 import ESPullToRefresh
 
 /// 我的订单（家长端 · 线下收款模式）
-/// Tab：全部 / 待付款 / 已报名 / 已退款
+/// Tab：全部 / 待付款 / 待确认 / 已报名 / 已取消 / 已退款
 /// 平台不经手资金：待付款订单线下付款后上传凭证，机构确认收款发课时。
 final class MyOrdersViewController: BaseViewController {
 
     private enum Tab: Int, CaseIterable {
-        case all, pending, enrolled, refunded
+        case all, pending, paymentReview, enrolled, cancelled, refunded
         var title: String {
             switch self {
             case .all: return "全部"
             case .pending: return "待付款"
+            case .paymentReview: return "待确认"
             case .enrolled: return "已报名"
+            case .cancelled: return "已取消"
             case .refunded: return "已退款"
             }
         }
@@ -21,8 +23,10 @@ final class MyOrdersViewController: BaseViewController {
             switch self {
             case .all: return nil
             case .pending: return 0
-            case .enrolled: return 1
-            case .refunded: return 3
+            case .paymentReview: return 1
+            case .enrolled: return 2
+            case .cancelled: return 6
+            case .refunded: return 5
             }
         }
     }
@@ -297,8 +301,16 @@ final class OrderCell: UITableViewCell {
             switch order.statusValue {
             case .pendingCollect:
                 badgeText = "待付款"; badgeColor = Theme.Color.warn; badgeBg = Theme.Color.warnTint
+            case .paymentReview:
+                badgeText = "待确认"; badgeColor = Theme.Color.warn; badgeBg = Theme.Color.warnTint
             case .collected:
                 badgeText = "已报名"; badgeColor = Theme.Color.brand; badgeBg = Theme.Color.brandSoft
+            case .refundReview:
+                badgeText = "退款审核中"; badgeColor = Theme.Color.warn; badgeBg = Theme.Color.warnTint
+            case .refundConfirm:
+                badgeText = "待确认退款"; badgeColor = Theme.Color.warn; badgeBg = Theme.Color.warnTint
+            case .refunded:
+                badgeText = "已退款"; badgeColor = Theme.Color.brand; badgeBg = Theme.Color.brandSoft
             case .cancelled:
                 badgeText = "已取消"; badgeColor = Theme.Color.muted; badgeBg = Theme.Color.surfaceAlt
             }
@@ -321,13 +333,19 @@ final class OrderCell: UITableViewCell {
             case .pendingCollect:
                 if order.rejectedPayment != nil {
                     hint = ("付款凭证未通过，请重新上传", Theme.Color.danger)
-                } else if order.latestPayment?.statusValue == .pending {
-                    hint = ("凭证已提交，等待机构确认", Theme.Color.warn)
                 } else {
                     hint = ("请线下付款后上传凭证，机构确认后发课时", Theme.Color.warn)
                 }
+            case .paymentReview:
+                hint = ("凭证已提交，等待机构确认", Theme.Color.warn)
             case .collected:
                 hint = ("报名成功，课时已到账", Theme.Color.brand)
+            case .refundReview:
+                hint = ("退款审核中，请等待机构处理", Theme.Color.warn)
+            case .refundConfirm:
+                hint = ("请确认退款信息", Theme.Color.warn)
+            case .refunded:
+                hint = nil
             case .cancelled:
                 hint = nil
             }
@@ -364,11 +382,16 @@ final class OrderCell: UITableViewCell {
         }
         switch order.statusValue {
         case .pendingCollect:
-            // 凭证审核中：不允许重复上传或取消，仅展示等待提示
-            if order.isVoucherUnderReview { return [] }
             return [.cancel, .voucher]
+        case .paymentReview:
+            // 凭证审核中：不允许重复上传或取消，仅展示等待提示
+            return []
         case .collected:
             return [.study]
+        case .refundReview, .refundConfirm:
+            return [.refundDetail]
+        case .refunded:
+            return []
         case .cancelled:
             return [.reorder]
         }

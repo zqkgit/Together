@@ -21,7 +21,7 @@ const submitVoucherValidators = [
 
 const orderIdValidators = [param("id").isString().notEmpty().withMessage("order id is required")];
 
-const listOrderValidators = [query("status").optional({ values: "falsy" }).isInt({ min: 0, max: 5 })];
+const listOrderValidators = [query("status").optional({ values: "falsy" }).isInt({ min: 0, max: 6 })];
 
 const cancelOrderValidators = [param("id").isString().notEmpty().withMessage("order id is required")];
 
@@ -32,14 +32,14 @@ const createRefundValidators = [
 ];
 
 const studioListOrderValidators = [
-  query("status").optional({ values: "falsy" }).isInt({ min: 0, max: 5 }),
+  query("status").optional({ values: "falsy" }).isInt({ min: 0, max: 6 }),
   query("q").optional({ values: "falsy" }).isString().isLength({ max: 64 })
 ];
 
 const studioOrderIdValidators = [param("id").isString().notEmpty().withMessage("order id is required")];
 
 const studioListRefundValidators = [
-  query("status").optional({ values: "falsy" }).isInt({ min: 0, max: 5 })
+  query("status").optional({ values: "falsy" }).isInt({ min: 0, max: 6 })
 ];
 
 // 工作室手动建单（老学员续费 / 线下现金报名）
@@ -59,10 +59,7 @@ const createStudioOrderValidators = [
 // 工作室确认收款（确认家长凭证 / 直接登记现金收款）
 const studioPaymentValidators = [
   param("id").isString().notEmpty().withMessage("order id is required"),
-  body("pay_method").isIn(PAY_METHODS).withMessage("请选择支付方式"),
-  body("voucher_images").optional({ values: "falsy" }).isArray({ max: 9 }),
-  body("voucher_images.*").optional().isString(),
-  body("note").optional({ values: "falsy" }).isString().isLength({ max: 255 })
+  body("pay_method").optional({ values: "falsy" }).isIn(PAY_METHODS),
 ];
 
 // 工作室驳回家长付款凭证

@@ -555,22 +555,34 @@ final class StudioOrderDetailViewController: BaseViewController {
     private func rebuildActions(_ o: StudioOrder) {
         actionStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
-        // 待收款：可确认凭证 / 驳回凭证 / 取消订单
+        // 待收款(status=0)：无凭证时可确认收款/取消；有待确认凭证时可确认/驳回
         if o.isPending {
             if o.hasPendingPayment {
                 actionStack.addArrangedSubview(makeButton(title: "驳回凭证", style: .outline, action: #selector(tapReject)))
                 actionStack.addArrangedSubview(makeButton(title: "确认收款", style: .primary, action: #selector(tapConfirm)))
             } else {
+                actionStack.addArrangedSubview(makeButton(title: "确认收款", style: .primary, action: #selector(tapConfirmNoVoucher)))
                 actionStack.addArrangedSubview(makeButton(title: "取消订单", style: .danger, action: #selector(tapCancel)))
             }
+        }
+        // 待确认收款(status=1)：家长已上传凭证，可确认/驳回/取消
+        else if o.isPaymentReview {
+            actionStack.addArrangedSubview(makeButton(title: "驳回凭证", style: .outline, action: #selector(tapReject)))
+            actionStack.addArrangedSubview(makeButton(title: "确认收款", style: .primary, action: #selector(tapConfirm)))
+            actionStack.addArrangedSubview(makeButton(title: "取消订单", style: .danger, action: #selector(tapCancel)))
         }
     }
 
     // MARK: - 操作
 
     @objc private func tapConfirm() {
-        guard let o = order, let payment = o.pendingPayment else { return }
-        showConfirmPaymentSheet(payment: payment)
+        guard order != nil else { return }
+        showConfirmDialog()
+    }
+
+    @objc private func tapConfirmNoVoucher() {
+        // 待收款但无凭证时，工作室直接登记收款
+        showConfirmDialog()
     }
 
     @objc private func tapReject() {
@@ -591,25 +603,14 @@ final class StudioOrderDetailViewController: BaseViewController {
 
     // MARK: - 确认收款弹窗
 
-    private func showConfirmPaymentSheet(payment: StudioPayment) {
-        let methods = PayMethodOption.all
-        let actions: [(String, Bool)] = methods.map { ($0.label, false) }
-        let sheet = ThemeActionSheet(title: "确认收款", actions: actions)
-        sheet.onSelect = { [weak self] index in
-            guard let self, index < methods.count else { return }
-            self.showVoucherUpload(payMethod: methods[index].value)
-        }
-        present(sheet, animated: false)
-    }
-
-    private func showVoucherUpload(payMethod: String) {
+    private func showConfirmDialog() {
         ThemeInputAlertView.show(
             title: "确认收款",
             placeholder: "备注（选填）",
             maxCount: 200,
             confirmTitle: "确认"
         ) { [weak self] note in
-            self?.performConfirm(payMethod: payMethod, note: note)
+            self?.performConfirm(note: note)
         }
     }
 
@@ -646,13 +647,13 @@ final class StudioOrderDetailViewController: BaseViewController {
         }
     }
 
-    private func performConfirm(payMethod: String, note: String?) {
+    private func performConfirm(note: String?) {
         guard !isOperating else { return }
         isOperating = true
         showLoading()
         StudioService.confirmPayment(
             orderId: orderId,
-            payMethod: payMethod,
+            payMethod: nil,
             note: note
         ) { [weak self] result in
             guard let self else { return }
@@ -708,10 +709,13 @@ final class StudioOrderDetailViewController: BaseViewController {
 
     private func statusConfig(_ status: StudioOrderStatus) -> (String, UIColor, UIColor) {
         switch status {
-        case .pending:   return ("待收款", Theme.Color.warn, Theme.Color.warnTint)
-        case .paid:      return ("已收款", Theme.Color.success, Theme.Color.successTint)
-        case .cancelled: return ("已取消", Theme.Color.muted, Theme.Color.surfaceAlt)
-        case .refunded:  return ("已退款", Theme.Color.danger, Theme.Color.dangerTint)
+        case .pending:        return ("待收款", Theme.Color.warn, Theme.Color.warnTint)
+        case .paymentReview:  return ("待确认收款", Theme.Color.warn, Theme.Color.warnTint)
+        case .collected:      return ("已收款", Theme.Color.success, Theme.Color.successTint)
+        case .refundReview:   return ("退款审核中", Theme.Color.warn, Theme.Color.warnTint)
+        case .refundConfirm:  return ("待确认退款", Theme.Color.warn, Theme.Color.warnTint)
+        case .refunded:       return ("已退款", Theme.Color.danger, Theme.Color.dangerTint)
+        case .cancelled:      return ("已取消", Theme.Color.muted, Theme.Color.surfaceAlt)
         }
     }
 

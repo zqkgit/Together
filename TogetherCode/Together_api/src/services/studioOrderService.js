@@ -726,10 +726,7 @@ async function confirmStudioPayment(studioId, orderId, payload, operator = {}) {
       throw new Error("订单不是待收款 / 待确认收款状态");
     }
 
-    const method = payload.pay_method;
-    if (!PAY_METHODS.includes(method)) {
-      throw new Error("请选择支付方式");
-    }
+    const method = payload.pay_method && PAY_METHODS.includes(payload.pay_method) ? payload.pay_method : (prior && prior.pay_method) || "cash";
     const images = normalizeImages(payload.voucher_images);
 
     const prior = await Payment.findOne({
@@ -805,7 +802,7 @@ async function rejectStudioPayment(studioId, orderId, payload, operator = {}) {
     if (!order) {
       return null;
     }
-    // 订单须为「待确认收款」（status=1，家长已上传凭证）；驳回是该状态的子状态，订单保持 1
+    // 订单须为「待确认收款」（status=1，家长已上传凭证）；驳回后订单回到待收款（status=0），用户可重新提交
     if (Number(order.status) !== ORDER_STATUS.PAYMENT_REVIEW) {
       throw new Error("订单不是待确认收款状态");
     }
@@ -822,6 +819,8 @@ async function rejectStudioPayment(studioId, orderId, payload, operator = {}) {
       { status: 2, reject_reason: reason, confirm_by: operator.adminId || null },
       { transaction }
     );
+    // 订单回到待收款，用户可重新上传凭证
+    await order.update({ status: ORDER_STATUS.PENDING_PAYMENT }, { transaction });
     if (order.user?.user_id) {
       createNotification({
         userId: order.user.user_id,

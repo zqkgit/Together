@@ -30,12 +30,15 @@ const status = ref<number | "">("");
 const keyword = ref("");
 const orders = ref<OrderItem[]>([]);
 
-// 订单状态：0 待收款 / 1 已收款 / 2 已取消 / 3 已退款
+// 订单状态：0 待收款 / 1 待确认收款 / 2 已收款 / 3 退款审核中 / 4 待家长确认退款 / 5 已退款 / 6 已取消
 const statusMeta: Record<number, { text: string; type: "info" | "success" | "danger" | "warning" }> = {
   0: { text: "待收款", type: "warning" },
-  1: { text: "已收款", type: "success" },
-  2: { text: "已取消", type: "info" },
-  3: { text: "已退款", type: "danger" }
+  1: { text: "待确认收款", type: "warning" },
+  2: { text: "已收款", type: "success" },
+  3: { text: "退款审核中", type: "warning" },
+  4: { text: "待家长确认退款", type: "warning" },
+  5: { text: "已退款", type: "danger" },
+  6: { text: "已取消", type: "info" }
 };
 
 const sourceMeta: Record<number, { text: string; type: "info" | "primary" }> = {
@@ -359,7 +362,7 @@ async function exportOrders() {
         parent_phone: o.user?.phone ?? "-",
         course: o.course?.title ?? "-",
         class_name: o.class?.name ?? "-",
-        pay_method: o.status === 1 ? payMethodText(o.pay_method) : "-",
+        pay_method: o.status === 2 ? payMethodText(o.pay_method) : "-",
         paid_at: o.paid_at ? fmtTime(o.paid_at) : "-",
         created_at: fmtTime(o.created_at)
       }))
@@ -384,9 +387,10 @@ onMounted(loadData);
             <el-radio-group v-model="status" size="small" @change="loadData">
               <el-radio-button :value="''">全部</el-radio-button>
               <el-radio-button :value="0">待收款</el-radio-button>
-              <el-radio-button :value="1">已收款</el-radio-button>
-              <el-radio-button :value="2">已取消</el-radio-button>
-              <el-radio-button :value="3">已退款</el-radio-button>
+              <el-radio-button :value="1">待确认</el-radio-button>
+              <el-radio-button :value="2">已收款</el-radio-button>
+              <el-radio-button :value="6">已取消</el-radio-button>
+              <el-radio-button :value="5">已退款</el-radio-button>
             </el-radio-group>
             <el-input
               v-model="keyword"
@@ -425,7 +429,7 @@ onMounted(loadData);
         <el-table-column label="金额 / 方式" width="150" align="right">
           <template #default="{ row }">
             <div class="amount-cell">{{ fen2yuan(row.total_amount) }}</div>
-            <div class="cell-sub">{{ row.status === 1 ? payMethodText(row.pay_method) : "线下结算" }}</div>
+            <div class="cell-sub">{{ row.status === 2 ? payMethodText(row.pay_method) : "线下结算" }}</div>
           </template>
         </el-table-column>
         <el-table-column label="课时" width="110" align="center">
@@ -433,12 +437,15 @@ onMounted(loadData);
             <span class="cell-sub">剩 {{ row.remaining_lessons }} / 共 {{ row.total_lessons }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="凭证" width="100" align="center">
+        <el-table-column label="凭证" width="80" align="center">
           <template #default="{ row }">
-            <el-tag v-if="pendingPayment(row)" type="warning" size="small">待确认</el-tag>
-            <el-tag v-else-if="(row.payments || []).some((p: any) => p.status === 2)" type="danger" size="small">
-              已驳回
-            </el-tag>
+            <template v-if="pendingPayment(row)?.voucher_images?.length">
+              <el-image
+                v-for="(img, i) in pendingPayment(row).voucher_images.slice(0, 1)" :key="i"
+                :src="img" :preview-src-list="pendingPayment(row).voucher_images" :initial-index="i"
+                fit="cover" style="width:32px;height:32px;border-radius:4px;cursor:pointer"
+              />
+            </template>
             <span v-else class="cell-sub">-</span>
           </template>
         </el-table-column>
@@ -452,8 +459,8 @@ onMounted(loadData);
         <el-table-column label="操作" width="210" fixed="right">
           <template #default="{ row }">
             <el-button text type="primary" size="small" @click="openDetail(row)">详情</el-button>
-            <template v-if="row.status === 0">
-              <el-button text type="success" size="small" @click="openConfirm(row)">确认收款</el-button>
+            <template v-if="row.status === 0 || row.status === 1">
+              <el-button text type="success" size="small" @click="openConfirm(row)">{{ row.status === 1 ? '确认凭证' : '确认收款' }}</el-button>
               <el-dropdown trigger="click" @command="(cmd: string) => cmd === 'reject' ? rejectPayment(row) : cancelOrder(row)">
                 <el-button text type="info" size="small">更多<i class="el-icon-arrow-down" /></el-button>
                 <template #dropdown>
@@ -493,7 +500,7 @@ onMounted(loadData);
           <el-descriptions-item label="订单金额">{{ fen2yuan(detail.total_amount) }}</el-descriptions-item>
           <el-descriptions-item label="实收金额">
             <span class="amount-cell">{{ fen2yuan(detail.paid_amount) }}</span>
-            <span v-if="detail.status === 1" class="cell-sub ml8">{{ payMethodText(detail.pay_method) }}</span>
+            <span v-if="detail.status === 2" class="cell-sub ml8">{{ payMethodText(detail.pay_method) }}</span>
           </el-descriptions-item>
           <el-descriptions-item label="收款时间">{{ detail.paid_at ? fmtTime(detail.paid_at) : "-" }}</el-descriptions-item>
           <el-descriptions-item label="下单时间">{{ fmtTime(detail.created_at) }}</el-descriptions-item>
@@ -540,8 +547,8 @@ onMounted(loadData);
         </el-descriptions>
         <el-empty v-else description="确认收款后发放课时" :image-size="70" />
 
-        <div v-if="detail.status === 0" class="detail-actions">
-          <el-button type="success" plain @click="openConfirm(detail)">确认收款 / 登记</el-button>
+        <div v-if="detail.status === 0 || detail.status === 1" class="detail-actions">
+          <el-button type="success" plain @click="openConfirm(detail)">{{ detail.status === 1 ? '确认凭证 / 登记' : '确认收款 / 登记' }}</el-button>
           <el-button v-if="pendingPayment(detail)" type="danger" plain @click="rejectPayment(detail)">
             驳回凭证
           </el-button>

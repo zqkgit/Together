@@ -797,17 +797,23 @@ struct StudioTeacherInviteResult: Codable {
 
 /// 订单状态：0 待收款 / 1 已收款 / 2 已取消 / 3 已退款
 enum StudioOrderStatus: Int, CaseIterable {
-    case pending = 0
-    case paid = 1
-    case cancelled = 2
-    case refunded = 3
+    case pending = 0           // 待收款
+    case paymentReview = 1    // 待确认收款（家长已上传凭证）
+    case collected = 2        // 已收款
+    case refundReview = 3     // 退款审核中
+    case refundConfirm = 4    // 待家长确认退款
+    case refunded = 5         // 已退款
+    case cancelled = 6        // 已取消
 
     var title: String {
         switch self {
         case .pending: return "待收款"
-        case .paid: return "已收款"
-        case .cancelled: return "已取消"
+        case .paymentReview: return "待确认收款"
+        case .collected: return "已收款"
+        case .refundReview: return "退款审核中"
+        case .refundConfirm: return "待确认退款"
         case .refunded: return "已退款"
+        case .cancelled: return "已取消"
         }
     }
 
@@ -820,9 +826,12 @@ enum StudioOrderStatus: Int, CaseIterable {
     var emptyText: String {
         switch self {
         case .pending: return "暂无待收款订单"
-        case .paid: return "暂无已收款订单"
-        case .cancelled: return "暂无已取消订单"
+        case .paymentReview: return "暂无待确认收款订单"
+        case .collected: return "暂无已收款订单"
+        case .refundReview: return "暂无退款审核中订单"
+        case .refundConfirm: return "暂无待确认退款订单"
         case .refunded: return "暂无已退款订单"
+        case .cancelled: return "暂无已取消订单"
         }
     }
 }
@@ -831,15 +840,17 @@ enum StudioOrderStatus: Int, CaseIterable {
 enum StudioOrderFilter: Int, CaseIterable {
     case all = -1
     case pending = 0
-    case paid = 1
-    case cancelled = 2
-    case refunded = 3
+    case paymentReview = 1
+    case collected = 2
+    case cancelled = 6
+    case refunded = 5
 
     var title: String {
         switch self {
         case .all: return "全部"
         case .pending: return "待收款"
-        case .paid: return "已收款"
+        case .paymentReview: return "待确认"
+        case .collected: return "已收款"
         case .cancelled: return "已取消"
         case .refunded: return "已退款"
         }
@@ -857,7 +868,8 @@ enum StudioOrderFilter: Int, CaseIterable {
         switch self {
         case .all: return "暂无订单"
         case .pending: return "暂无待收款订单"
-        case .paid: return "暂无已收款订单"
+        case .paymentReview: return "暂无待确认收款订单"
+        case .collected: return "暂无已收款订单"
         case .cancelled: return "暂无已取消订单"
         case .refunded: return "暂无已退款订单"
         }
@@ -1046,7 +1058,8 @@ struct StudioOrder: Codable {
     }
 
     var isPending: Bool { orderStatus == .pending }
-    var isPaid: Bool { orderStatus == .paid }
+    var isPaymentReview: Bool { orderStatus == .paymentReview }
+    var isCollected: Bool { orderStatus == .collected }
     var isCancelled: Bool { orderStatus == .cancelled }
     var isRefunded: Bool { orderStatus == .refunded }
 
@@ -1502,12 +1515,13 @@ enum StudioService {
     /// body: { pay_method, voucher_images?, note? }
     static func confirmPayment(
         orderId: String,
-        payMethod: String,
+        payMethod: String? = nil,
         voucherImages: [String]? = nil,
         note: String? = nil,
         completion: @escaping (Result<StudioOrder?, APIError>) -> Void
     ) {
-        var body: [String: Any] = ["pay_method": payMethod]
+        var body: [String: Any] = [:]
+        if let payMethod { body["pay_method"] = payMethod }
         if let voucherImages, !voucherImages.isEmpty { body["voucher_images"] = voucherImages }
         if let note, !note.isEmpty { body["note"] = note }
         APIClient.shared.request(

@@ -1,16 +1,24 @@
 import Foundation
 
-// MARK: - 订单状态（对齐后端 orders.status：0 待收款 / 1 已收款 / 2 已取消；已退款由 refunds 聚合展示）
+// MARK: - 订单状态（对齐后端 orders.status：0 待收款 / 1 待确认收款 / 2 已收款 / 3 退款审核中 / 4 待家长确认退款 / 5 已退款 / 6 已取消）
 
 enum OrderStatus: Int {
     case pendingCollect = 0   // 待收款（线下付款后传凭证，等待机构确认）
-    case collected = 1        // 已收款（机构确认到账，已发课时）
-    case cancelled = 2        // 已取消
+    case paymentReview = 1    // 待确认收款（家长已上传凭证，等待机构确认）
+    case collected = 2        // 已收款（机构确认到账，已发课时）
+    case refundReview = 3     // 退款审核中
+    case refundConfirm = 4    // 待家长确认退款
+    case refunded = 5         // 已退款
+    case cancelled = 6        // 已取消
 
     var text: String {
         switch self {
         case .pendingCollect: return "待付款"
+        case .paymentReview: return "待确认"
         case .collected: return "已报名"
+        case .refundReview: return "退款审核中"
+        case .refundConfirm: return "待确认退款"
+        case .refunded: return "已退款"
         case .cancelled: return "已取消"
         }
     }
@@ -177,7 +185,7 @@ struct OrderItem: Codable {
 
     /// 付款凭证已提交、等待机构确认：此时不可重复上传凭证，也不可取消订单
     var isVoucherUnderReview: Bool {
-        statusValue == .pendingCollect && latestPayment?.statusValue == .pending
+        statusValue == .paymentReview
     }
 
     /// 最近一笔退款单（详情页跳转退款进度用）
