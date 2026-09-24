@@ -434,7 +434,7 @@ async function confirmRefundPaid(studioId, refundId, operator = {}) {
       {
         refunded_lessons: Number(balance.refunded_lessons || 0) + requestedLessons,
         remaining_lessons: remainingAfter,
-        status: remainingAfter === 0 ? 2 : 1
+        status: remainingAfter === 0 ? 4 : 1
       },
       { transaction }
     );

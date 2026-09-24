@@ -905,7 +905,7 @@ async function confirmRefundReceived(userId, refundId) {
       {
         refunded_lessons: Number(balance.refunded_lessons || 0) + approvedLessons,
         remaining_lessons: remainingAfter,
-        status: remainingAfter === 0 ? 2 : 1
+        status: remainingAfter === 0 ? 4 : 1
       },
       { transaction: tx }
     );

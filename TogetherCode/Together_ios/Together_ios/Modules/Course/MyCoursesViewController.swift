@@ -36,6 +36,11 @@ final class MyCoursesViewController: BaseViewController {
         loadData()
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        if !allItems.isEmpty { loadData() }
+    }
+
     private func setupUI() {
         view.backgroundColor = Theme.Color.bg
         tableView.backgroundColor = .clear

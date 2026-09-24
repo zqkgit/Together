@@ -54,6 +54,7 @@ final class ChildHomeViewController: BaseViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         configureImmersiveNav(titleColor: .white, backBackground: UIColor.black.withAlphaComponent(0.28), backTint: .white)
+        if !courses.isEmpty { loadData() }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -147,11 +148,13 @@ final class ChildHomeViewController: BaseViewController {
                 course_id: balance.course_id ?? "",
                 course_title: balance.course_title ?? "未命名课程",
                 studio_name: balance.studio_name,
-                total: 0, consumed: 0, remaining: 0
+                total: 0, consumed: 0, remaining: 0, isRefunded: true
             )
             item.total += balance.total_lessons
             item.consumed += balance.consumed_lessons
             item.remaining += balance.remaining_lessons
+            // 只要有一个 balance 不是已退款(4)，整个课程就不标记为已退款
+            if balance.status != 4 { item.isRefunded = false }
             aggregateMap[key] = item
         }
         courses = aggregateMap.values
@@ -502,6 +505,7 @@ final class ChildCourseCell: UITableViewCell {
     private let card = UIView()
     private let titleLabel = UILabel()
     private let detailLabel = UILabel()
+    private let refundTag = UILabel()
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -525,7 +529,22 @@ final class ChildCourseCell: UITableViewCell {
         card.addSubview(titleLabel)
         titleLabel.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.m)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+        }
+
+        refundTag.font = .appLabel(11)
+        refundTag.textColor = .white
+        refundTag.textAlignment = .center
+        refundTag.backgroundColor = Theme.Color.sub
+        refundTag.layer.cornerRadius = 4
+        refundTag.layer.masksToBounds = true
+        refundTag.isHidden = true
+        card.addSubview(refundTag)
+        refundTag.snp.makeConstraints {
+            $0.centerY.equalTo(titleLabel)
+            $0.leading.equalTo(titleLabel.snp.trailing).offset(8)
+            $0.width.equalTo(38)
+            $0.height.equalTo(18)
         }
 
         detailLabel.font = .appLabel(12)
@@ -550,6 +569,10 @@ final class ChildCourseCell: UITableViewCell {
         titleLabel.text = course.course_title
         let studio = course.studio_name ?? "艺术工坊"
         detailLabel.text = "\(studio) · 剩余\(course.remaining)/\(course.total)节"
+        refundTag.text = "已退款"
+        refundTag.isHidden = !course.isRefunded
+        card.isUserInteractionEnabled = !course.isRefunded
+        titleLabel.textColor = course.isRefunded ? Theme.Color.sub : Theme.Color.ink
     }
 }
 
@@ -691,4 +714,5 @@ struct ChildCourseAggregate {
     var total: Int
     var consumed: Int
     var remaining: Int
+    var isRefunded: Bool
 }
