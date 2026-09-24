@@ -25,8 +25,8 @@ final class RefundDetailViewController: BaseViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         configureImmersiveNav(title: "退款详情")
-        setupTableView()
         setupBottomBar()
+        setupTableView()
         loadData()
     }
 

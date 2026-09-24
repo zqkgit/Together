@@ -48,6 +48,11 @@ final class OrderDetailViewController: BaseViewController {
         loadData()
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        if order != nil { loadData() }
+    }
+
     // MARK: - UI
 
     private func setupTableView() {
