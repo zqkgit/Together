@@ -375,7 +375,7 @@ async function applyLessonConsumptionWithTransaction(childId, payload, options =
   }
 
   const { order, balance } = context;
-  if (![1, 3].includes(Number(order.status))) {
+  if (![2, 3].includes(Number(order.status))) {
     throw new Error("Order is not available for lesson consumption");
   }
 

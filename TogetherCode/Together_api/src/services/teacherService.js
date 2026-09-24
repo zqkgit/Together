@@ -1489,10 +1489,12 @@ async function teacherAttendSchedule(userId, scheduleId, payload) {
   const teacher = await ensureTeacherProfile(userId);
   const schedule = await Schedule.findByPk(scheduleId, {
     include: [
-      { model: Course, as: "course", attributes: ["course_id", "studio_id"] }
+      { model: Course, as: "course", attributes: ["course_id", "studio_id"] },
+      { model: Class, as: "classItem", attributes: ["class_id", "teacher_id", "name"] }
     ]
   });
-  if (!schedule || String(schedule.teacher_id) !== String(teacher.teacher_id)) {
+  const ownerTeacherId = schedule?.teacher_id || schedule?.classItem?.teacher_id;
+  if (!schedule || String(ownerTeacherId || "") !== String(teacher.teacher_id)) {
     throw new Error("Schedule does not belong to teacher");
   }
 
@@ -1517,8 +1519,13 @@ async function teacherAttendSchedule(userId, scheduleId, payload) {
 
 async function teacherUndoAttendance(userId, scheduleId, childIds) {
   const teacher = await ensureTeacherProfile(userId);
-  const schedule = await Schedule.findByPk(scheduleId, { attributes: ["schedule_id", "teacher_id", "is_makeup"] });
-  if (!schedule || String(schedule.teacher_id) !== String(teacher.teacher_id)) {
+  const schedule = await Schedule.findByPk(scheduleId, {
+    include: [
+      { model: Class, as: "classItem", attributes: ["class_id", "teacher_id"] }
+    ]
+  });
+  const ownerTeacherId = schedule?.teacher_id || schedule?.classItem?.teacher_id;
+  if (!schedule || String(ownerTeacherId || "") !== String(teacher.teacher_id)) {
     throw new Error("Schedule does not belong to teacher");
   }
 
@@ -1563,10 +1570,7 @@ async function teacherUndoAttendance(userId, scheduleId, childIds) {
         },
         { transaction }
       );
-      // 已完成订单（课时恰好用完）撤销后恢复为已支付
-      if (Number(order.status) === 2 && remainingAfter > 0) {
-        await order.update({ status: 1 }, { transaction });
-      }
+      // 撤销消课不改变订单主状态（已收款/退款审核中均保持原态）
       await balance.update(
         {
           consumed_lessons: Math.max(Number(balance.consumed_lessons || 0) - delta, 0),
