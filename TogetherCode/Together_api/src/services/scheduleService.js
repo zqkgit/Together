@@ -257,6 +257,16 @@ async function updateStudioClass(classId, payload) {
       await classItem.update(updates, { transaction });
     }
 
+    // 班级换老师时，同步更新该班级下所有未消课排课的老师
+    let updatedSchedules = 0;
+    if (updates.teacher_id && String(classItem.teacher_id) !== String(updates.teacher_id)) {
+      const [count] = await Schedule.update(
+        { teacher_id: updates.teacher_id },
+        { where: { class_id: classId, status: 0 }, transaction }
+      );
+      updatedSchedules = count;
+    }
+
     const row = await Class.findByPk(classItem.class_id, {
       transaction,
       include: [
@@ -273,7 +283,11 @@ async function updateStudioClass(classId, payload) {
       ]
     });
 
-    return normalizeClassItem(row);
+    const result = normalizeClassItem(row);
+    if (updatedSchedules > 0) {
+      result.updated_schedules = updatedSchedules;
+    }
+    return result;
   });
 }
 
@@ -378,6 +392,100 @@ async function createStudioSchedule(payload) {
           as: "teacher",
           attributes: ["teacher_id", "real_name"]
         }
+      ]
+    });
+
+    return normalizeScheduleItem(row);
+  });
+}
+
+/// 编辑排课：可修改日期/时间/地点/课时标题/老师；已消课排课不允许换老师
+async function updateStudioSchedule(scheduleId, payload) {
+  return sequelize.transaction(async (transaction) => {
+    const schedule = await Schedule.findByPk(scheduleId, {
+      transaction,
+      include: [
+        { model: Class, as: "classItem", attributes: ["class_id", "name", "capacity", "enrolled"] },
+        { model: Course, as: "course", attributes: ["course_id", "studio_id", "title", "duration_min"] },
+        { model: TeacherProfile, as: "teacher", attributes: ["teacher_id", "real_name"] }
+      ]
+    });
+    if (!schedule) {
+      return null;
+    }
+
+    const updates = {};
+    if (payload.lesson_date !== undefined) {
+      updates.lesson_date = payload.lesson_date;
+    }
+    if (payload.start_time !== undefined) {
+      updates.start_time = payload.start_time;
+    }
+    if (payload.end_time !== undefined) {
+      updates.end_time = payload.end_time;
+    }
+    if (payload.location !== undefined) {
+      updates.location = payload.location || null;
+    }
+    if (payload.remark !== undefined) {
+      updates.remark = payload.remark || null;
+    }
+    if (payload.teacher_id !== undefined) {
+      // 已消课排课不允许换老师
+      if (Number(schedule.status) !== 0) {
+        throw new Error("已消课排课不允许更换老师");
+      }
+      await ensureTeacher(payload.teacher_id, String(schedule.studio_id), transaction);
+      updates.teacher_id = payload.teacher_id;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return normalizeScheduleItem(schedule);
+    }
+
+    // 时间冲突检测（日期或时间有变更时）
+    const newDate = updates.lesson_date || schedule.lesson_date;
+    const newStart = updates.start_time || schedule.start_time;
+    const newEnd = updates.end_time || schedule.end_time;
+    const newTeacherId = updates.teacher_id || schedule.teacher_id;
+
+    if (updates.lesson_date || updates.start_time || updates.end_time || updates.teacher_id) {
+      const startMinutes = parseTimeToMinutes(newStart);
+      const endMinutes = parseTimeToMinutes(newEnd);
+      if (endMinutes <= startMinutes) {
+        throw new Error("结束时间必须晚于开始时间");
+      }
+
+      const conflictWhere = {
+        studio_id: schedule.studio_id,
+        lesson_date: newDate,
+        schedule_id: { [Op.ne]: scheduleId },
+        [Op.or]: []
+      };
+      if (newTeacherId) {
+        conflictWhere[Op.or].push({ teacher_id: newTeacherId });
+      }
+      conflictWhere[Op.or].push({ class_id: schedule.class_id });
+
+      const existing = await Schedule.findAll({ where: conflictWhere, transaction });
+      const conflicts = existing.filter((item) => {
+        const itemStart = parseTimeToMinutes(item.start_time);
+        const itemEnd = parseTimeToMinutes(item.end_time);
+        return startMinutes < itemEnd && endMinutes > itemStart;
+      });
+      if (conflicts.length) {
+        throw new Error("Schedule conflict detected");
+      }
+    }
+
+    await schedule.update(updates, { transaction });
+
+    const row = await Schedule.findByPk(scheduleId, {
+      transaction,
+      include: [
+        { model: Class, as: "classItem", attributes: ["class_id", "name", "capacity", "enrolled"] },
+        { model: Course, as: "course", attributes: ["course_id", "title", "duration_min"] },
+        { model: TeacherProfile, as: "teacher", attributes: ["teacher_id", "real_name"] }
       ]
     });
 
@@ -642,6 +750,7 @@ module.exports = {
   createStudioClass,
   updateStudioClass,
   createStudioSchedule,
+  updateStudioSchedule,
   batchCreateStudioSchedules,
   listStudioSchedules,
   createTeacherSchedule

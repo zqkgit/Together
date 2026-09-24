@@ -288,7 +288,7 @@ async function findRosterByCourse(courseId, studioId, transaction) {
         required: true,
         where: {
           studio_id: studioId,
-          status: 1
+          status: { [Op.in]: [2, 3, 4] }
         },
         attributes: ["order_id", "status", "created_at"]
       }

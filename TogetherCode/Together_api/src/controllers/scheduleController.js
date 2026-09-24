@@ -4,6 +4,7 @@ const {
   createStudioClass,
   updateStudioClass,
   createStudioSchedule,
+  updateStudioSchedule,
   batchCreateStudioSchedules,
   listStudioSchedules,
   createTeacherSchedule
@@ -94,6 +95,20 @@ async function postScheduleAttendance(req, res) {
   }
 }
 
+// PUT /studio/schedules/:id · 编辑排课
+async function putStudioSchedule(req, res) {
+  try {
+    const data = await updateStudioSchedule(req.params.id, req.body);
+    if (!data) {
+      return fail(res, 404, 40441, "Schedule not found");
+    }
+    return ok(res, data, "schedule updated");
+  } catch (error) {
+    const status = /not found|conflict|not allowed|greater than/i.test(error.message) ? 400 : 500;
+    return fail(res, status, status === 400 ? 40041 : 50000, error.message || "Internal server error");
+  }
+}
+
 // POST /studio/schedules/batch · 批量排课
 async function postStudioScheduleBatch(req, res) {
   try {
@@ -112,6 +127,7 @@ module.exports = {
   getClassStudents,
   getStudioSchedules,
   postStudioSchedule,
+  putStudioSchedule,
   postStudioScheduleBatch,
   postTeacherSchedule,
   postScheduleAttendance

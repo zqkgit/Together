@@ -93,12 +93,23 @@ const batchCreateStudioScheduleValidators = [
   body("end_date").optional({ values: "falsy" }).isISO8601().withMessage("end_date is invalid")
 ];
 
+const updateStudioScheduleValidators = [
+  param("id").isString().notEmpty().withMessage("schedule id is required"),
+  body("lesson_date").optional({ values: "falsy" }).isISO8601().withMessage("lesson_date is invalid"),
+  body("start_time").optional({ values: "falsy" }).matches(/^\d{2}:\d{2}$/).withMessage("start_time must be HH:mm"),
+  body("end_time").optional({ values: "falsy" }).matches(/^\d{2}:\d{2}$/).withMessage("end_time must be HH:mm"),
+  body("location").optional({ values: "falsy" }).isString().isLength({ max: 120 }),
+  body("teacher_id").optional({ values: "falsy" }).isString(),
+  body("remark").optional({ values: "falsy" }).isString().isLength({ max: 255 })
+];
+
 module.exports = {
   createStudioClassValidators,
   listStudioClassesValidators,
   createStudioClassValidators,
   updateStudioClassValidators,
   createStudioScheduleValidators,
+  updateStudioScheduleValidators,
   batchCreateStudioScheduleValidators,
   listStudioSchedulesValidators,
   createTeacherScheduleValidators

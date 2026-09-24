@@ -1,7 +1,7 @@
 const express = require("express");
-const { getStudioSchedules, postStudioSchedule, postStudioScheduleBatch, postScheduleAttendance } = require("../controllers/scheduleController");
+const { getStudioSchedules, postStudioSchedule, putStudioSchedule, postStudioScheduleBatch, postScheduleAttendance } = require("../controllers/scheduleController");
 const { validateRequest } = require("../middlewares/validate");
-const { createStudioScheduleValidators, batchCreateStudioScheduleValidators, listStudioSchedulesValidators } = require("../validators/scheduleValidator");
+const { createStudioScheduleValidators, updateStudioScheduleValidators, batchCreateStudioScheduleValidators, listStudioSchedulesValidators } = require("../validators/scheduleValidator");
 const { scheduleAttendanceValidators } = require("../validators/studentValidator");
 
 const router = express.Router();
@@ -10,6 +10,7 @@ const router = express.Router();
 // 已实现接口：排课列表、新增排课、批量排课、按排课提交出勤消课。
 router.get("/", listStudioSchedulesValidators, validateRequest, getStudioSchedules);
 router.post("/", createStudioScheduleValidators, validateRequest, postStudioSchedule);
+router.put("/:id", updateStudioScheduleValidators, validateRequest, putStudioSchedule);
 router.post("/batch", batchCreateStudioScheduleValidators, validateRequest, postStudioScheduleBatch);
 router.post("/:id/attendance", scheduleAttendanceValidators, validateRequest, postScheduleAttendance);
 

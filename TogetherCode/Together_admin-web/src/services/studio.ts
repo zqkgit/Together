@@ -401,6 +401,21 @@ export async function createStudioSchedule(payload: {
   return response.data;
 }
 
+export async function updateStudioSchedule(
+  id: string,
+  payload: {
+    lesson_date?: string;
+    start_time?: string;
+    end_time?: string;
+    location?: string;
+    teacher_id?: string;
+    remark?: string;
+  }
+): Promise<ScheduleItem> {
+  const response = await request.put(`/studio/schedules/${id}`, payload);
+  return response.data;
+}
+
 /** 批量排课：dates（多日期）或 weekdays + start_date/end_date（每周几展开）二选一 */
 export async function batchCreateStudioSchedules(payload: {
   studio_id: string;

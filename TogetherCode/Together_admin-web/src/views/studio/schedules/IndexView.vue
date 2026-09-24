@@ -6,6 +6,7 @@ import {
   fetchStudioSchedules,
   fetchStudioClasses,
   createStudioSchedule,
+  updateStudioSchedule,
   batchCreateStudioSchedules,
   fetchStudioTeachers,
   fetchStudioCourses,
@@ -210,6 +211,70 @@ async function submitCreate() {
     // 忽略
   } finally {
     submitting.value = false;
+  }
+}
+
+// ============ 编辑排课 ============
+const editVisible = ref(false);
+const editSubmitting = ref(false);
+const editForm = ref({
+  schedule_id: "",
+  class_name: "",
+  course_title: "",
+  teacher_id: "",
+  teacher_name: "",
+  lesson_date: "",
+  start_time: "18:30",
+  end_time: "20:00",
+  location: "",
+  remark: ""
+});
+
+async function openEdit(item: ScheduleItem) {
+  editForm.value = {
+    schedule_id: item.schedule_id,
+    class_name: item.class?.name || "-",
+    course_title: item.course?.title || "",
+    teacher_id: item.teacher_id || "",
+    teacher_name: item.teacher?.real_name || "",
+    lesson_date: item.lesson_date,
+    start_time: item.start_time,
+    end_time: item.end_time,
+    location: item.location || "",
+    remark: item.remark || ""
+  };
+  // 加载老师列表供选择
+  try {
+    const data = await fetchStudioTeachers();
+    teachers.value = data.staff;
+  } catch {
+    teachers.value = [];
+  }
+  editVisible.value = true;
+}
+
+async function submitEdit() {
+  if (!editForm.value.lesson_date) {
+    ElMessage.warning("请选择上课日期");
+    return;
+  }
+  editSubmitting.value = true;
+  try {
+    await updateStudioSchedule(editForm.value.schedule_id, {
+      lesson_date: editForm.value.lesson_date,
+      start_time: editForm.value.start_time,
+      end_time: editForm.value.end_time,
+      location: editForm.value.location || undefined,
+      teacher_id: editForm.value.teacher_id || undefined,
+      remark: editForm.value.remark || undefined
+    });
+    ElMessage.success("排课已更新");
+    editVisible.value = false;
+    loadData();
+  } catch {
+    // 拦截器已提示
+  } finally {
+    editSubmitting.value = false;
   }
 }
 
@@ -460,6 +525,9 @@ onMounted(loadData);
                 老师：{{ item.teacher.real_name }}
               </div>
               <div class="schedule-actions">
+                <el-button text size="small" type="primary" @click="openEdit(item)">
+                  编辑
+                </el-button>
                 <el-button text size="small" type="primary" @click="openAttendance(item)">
                   出勤消课
                 </el-button>
@@ -526,6 +594,46 @@ onMounted(loadData);
       <template #footer>
         <el-button @click="createVisible = false">取消</el-button>
         <el-button type="primary" :loading="submitting" @click="submitCreate">确认排课</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 编辑排课 -->
+    <el-dialog v-model="editVisible" title="编辑排课" width="500px">
+      <el-form label-width="100px">
+        <el-form-item label="班级">
+          <el-input :model-value="editForm.class_name" disabled style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="课程">
+          <el-input :model-value="editForm.course_title" disabled style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="授课老师">
+          <el-select v-model="editForm.teacher_id" style="width: 100%" placeholder="选择老师" clearable>
+            <el-option
+              v-for="t in teachers"
+              :key="t.teacher_id"
+              :label="t.real_name"
+              :value="t.teacher_id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="上课日期" required>
+          <el-date-picker v-model="editForm.lesson_date" type="date" value-format="YYYY-MM-DD" style="width: 180px" />
+        </el-form-item>
+        <el-form-item label="时间" required>
+          <el-time-select v-model="editForm.start_time" start="08:00" step="00:30" end="21:00" style="width: 130px" />
+          ~
+          <el-time-select v-model="editForm.end_time" start="08:00" step="00:30" end="22:00" style="width: 130px" />
+        </el-form-item>
+        <el-form-item label="上课地点">
+          <el-input v-model="editForm.location" placeholder="如：3 号教室" />
+        </el-form-item>
+        <el-form-item label="课时标题">
+          <el-input v-model="editForm.remark" type="textarea" :rows="2" maxlength="255" placeholder="如：水彩第一课·认识三原色（家长端每节课显示此标题，不填显示第N课）" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editVisible = false">取消</el-button>
+        <el-button type="primary" :loading="editSubmitting" @click="submitEdit">保存修改</el-button>
       </template>
     </el-dialog>
 
