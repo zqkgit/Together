@@ -768,6 +768,11 @@ async function createParentPost(userId, payload) {
         model: Child,
         as: "child",
         attributes: ["child_id", "nickname", "avatar"]
+      },
+      {
+        model: Course,
+        as: "course",
+        attributes: ["course_id", "title", "studio_id", "price"]
       }
     ]
   });

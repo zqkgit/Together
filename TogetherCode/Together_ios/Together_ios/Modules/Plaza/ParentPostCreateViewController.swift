@@ -1,7 +1,7 @@
 import UIKit
 import SnapKit
 
-/// 家长发布动态
+/// 家长发布动态/孩子作品
 /// 流程：正文 + 图片 + 关联孩子(单选) + 可选关联课程 + 话题 + 谁可以看 + 位置(选填)
 /// 发布：POST /posts（createPost，不扣课时）
 final class ParentPostCreateViewController: BasePostCreateViewController {
@@ -214,16 +214,24 @@ final class ParentPostCreateViewController: BasePostCreateViewController {
     // MARK: - 关联课程
 
     private var selectedParentCourseTitle: String? {
-        guard let selectedChildId else { return nil }
-        let child = childList.first(where: { $0.child_id == selectedChildId })
-        let course = child?.balances?.first(where: { $0.status == 1 }) ?? child?.balances?.first
-        return course?.course_title
+        let balances = activeBalances
+        guard !balances.isEmpty else { return nil }
+        if let idx = selectedParentCourseIndex, idx < balances.count {
+            return balances[idx].course_title
+        }
+        return balances.first?.course_title
+    }
+
+    /// 孩子有效课程（排除已退款/已过期）
+    private var activeBalances: [ChildBalance] {
+        guard let selectedChildId,
+              let child = childList.first(where: { $0.child_id == selectedChildId }) else { return [] }
+        return (child.balances ?? []).filter { $0.status == 1 || $0.status == 2 }
     }
 
     private func presentParentCoursePicker() {
-        guard let selectedChildId,
-              let child = childList.first(where: { $0.child_id == selectedChildId }),
-              let balances = child.balances, !balances.isEmpty else {
+        let balances = activeBalances
+        guard !balances.isEmpty else {
             showToast("该孩子暂无课程")
             return
         }
@@ -238,9 +246,8 @@ final class ParentPostCreateViewController: BasePostCreateViewController {
     }
 
     private func selectedParentCourseId() -> String? {
-        guard let selectedParentCourseIndex,
-              let child = childList.first(where: { $0.child_id == selectedChildId }),
-              let balances = child.balances, selectedParentCourseIndex < balances.count else { return nil }
+        let balances = activeBalances
+        guard let selectedParentCourseIndex, selectedParentCourseIndex < balances.count else { return nil }
         return balances[selectedParentCourseIndex].course_id
     }
 }

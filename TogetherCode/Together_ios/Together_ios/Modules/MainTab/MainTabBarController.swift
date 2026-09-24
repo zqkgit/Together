@@ -92,7 +92,7 @@ extension MainTabBarController: UITabBarControllerDelegate {
             }
             present(sheet, animated: false)
         } else {
-            let vc = ParentPostCreateViewController()
+            let vc = ParentPostCreateViewController(postType: 2)
             let publish = BaseNavigationController(rootViewController: vc)
             publish.modalPresentationStyle = .fullScreen
             present(publish, animated: true)
