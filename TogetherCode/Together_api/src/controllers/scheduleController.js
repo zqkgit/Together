@@ -5,6 +5,7 @@ const {
   updateStudioClass,
   createStudioSchedule,
   updateStudioSchedule,
+  deleteStudioSchedule,
   batchCreateStudioSchedules,
   listStudioSchedules,
   createTeacherSchedule
@@ -66,7 +67,7 @@ async function postStudioSchedule(req, res) {
     const data = await createStudioSchedule(req.body);
     return ok(res, data, "schedule created");
   } catch (error) {
-    const status = /not found|does not belong|conflict|greater than/i.test(error.message) ? 400 : 500;
+    const status = /not found|does not belong|conflict|greater than|排课日期数|超过/i.test(error.message) ? 400 : 500;
     return fail(res, status, status === 400 ? 40041 : 50000, error.message || "Internal server error");
   }
 }
@@ -77,7 +78,7 @@ async function postTeacherSchedule(req, res) {
     const data = await createTeacherSchedule(req.user.userId, req.body);
     return ok(res, data, "schedule created");
   } catch (error) {
-    const status = /not found|does not belong|conflict|greater than/i.test(error.message) ? 400 : 500;
+    const status = /not found|does not belong|conflict|greater than|排课日期数|超过/i.test(error.message) ? 400 : 500;
     return fail(res, status, status === 400 ? 40041 : 50000, error.message || "Internal server error");
   }
 }
@@ -104,7 +105,7 @@ async function putStudioSchedule(req, res) {
     }
     return ok(res, data, "schedule updated");
   } catch (error) {
-    const status = /not found|conflict|not allowed|greater than/i.test(error.message) ? 400 : 500;
+    const status = /not found|conflict|not allowed|greater than|已消课|已开始/i.test(error.message) ? 400 : 500;
     return fail(res, status, status === 400 ? 40041 : 50000, error.message || "Internal server error");
   }
 }
@@ -115,8 +116,22 @@ async function postStudioScheduleBatch(req, res) {
     const data = await batchCreateStudioSchedules(req.body);
     return ok(res, data, "schedules created");
   } catch (error) {
-    const status = /not found|does not belong|conflict|greater than/i.test(error.message) ? 400 : 500;
+    const status = /not found|does not belong|conflict|greater than|排课日期数|超过/i.test(error.message) ? 400 : 500;
     return fail(res, status, status === 400 ? 40041 : 50000, error.message || "Internal server error");
+  }
+}
+
+// DELETE /studio/schedules/:id · 删除排课（仅未消课可删）
+async function deleteStudioScheduleHandler(req, res) {
+  try {
+    const data = await deleteStudioSchedule(req.params.id);
+    if (!data) {
+      return fail(res, 404, 40442, "Schedule not found");
+    }
+    return ok(res, data, "schedule deleted");
+  } catch (error) {
+    const status = /not found|not allowed|已消课|已开始/i.test(error.message) ? 400 : 500;
+    return fail(res, status, status === 400 ? 40042 : 50000, error.message || "Internal server error");
   }
 }
 
@@ -128,6 +143,7 @@ module.exports = {
   getStudioSchedules,
   postStudioSchedule,
   putStudioSchedule,
+  deleteStudioScheduleHandler,
   postStudioScheduleBatch,
   postTeacherSchedule,
   postScheduleAttendance

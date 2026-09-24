@@ -1,5 +1,5 @@
 const express = require("express");
-const { getStudioSchedules, postStudioSchedule, putStudioSchedule, postStudioScheduleBatch, postScheduleAttendance } = require("../controllers/scheduleController");
+const { getStudioSchedules, postStudioSchedule, putStudioSchedule, deleteStudioScheduleHandler, postStudioScheduleBatch, postScheduleAttendance } = require("../controllers/scheduleController");
 const { validateRequest } = require("../middlewares/validate");
 const { createStudioScheduleValidators, updateStudioScheduleValidators, batchCreateStudioScheduleValidators, listStudioSchedulesValidators } = require("../validators/scheduleValidator");
 const { scheduleAttendanceValidators } = require("../validators/studentValidator");
@@ -11,6 +11,7 @@ const router = express.Router();
 router.get("/", listStudioSchedulesValidators, validateRequest, getStudioSchedules);
 router.post("/", createStudioScheduleValidators, validateRequest, postStudioSchedule);
 router.put("/:id", updateStudioScheduleValidators, validateRequest, putStudioSchedule);
+router.delete("/:id", deleteStudioScheduleHandler);
 router.post("/batch", batchCreateStudioScheduleValidators, validateRequest, postStudioScheduleBatch);
 router.post("/:id/attendance", scheduleAttendanceValidators, validateRequest, postScheduleAttendance);
 

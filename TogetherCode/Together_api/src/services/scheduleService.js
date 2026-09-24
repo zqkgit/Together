@@ -77,6 +77,15 @@ function parseTimeToMinutes(time) {
   return hour * 60 + minute;
 }
 
+/** 判断排课是否已开始（当前时间 >= 上课日期+开始时间） */
+function isScheduleStarted(schedule) {
+  const now = new Date(Date.now() + 8 * 60 * 60 * 1000); // UTC+8
+  const today = now.toISOString().slice(0, 10);
+  if (schedule.lesson_date < today) return true;
+  if (schedule.lesson_date > today) return false;
+  return parseTimeToMinutes(schedule.start_time) <= (now.getUTCHours() * 60 + now.getUTCMinutes());
+}
+
 function getWeekRange(week) {
   if (week) {
     const parts = String(week).slice(0, 10).split("-").map((value) => Number(value));
@@ -414,14 +423,30 @@ async function updateStudioSchedule(scheduleId, payload) {
       return null;
     }
 
+    // 已消课排课不允许编辑
+    if (Number(schedule.status) !== 0) {
+      throw new Error("已消课排课不允许编辑");
+    }
+
     const updates = {};
+    const started = isScheduleStarted(schedule);
+
     if (payload.lesson_date !== undefined) {
+      if (started) {
+        throw new Error("已开始的排课不允许修改上课日期");
+      }
       updates.lesson_date = payload.lesson_date;
     }
     if (payload.start_time !== undefined) {
+      if (started) {
+        throw new Error("已开始的排课不允许修改上课时间");
+      }
       updates.start_time = payload.start_time;
     }
     if (payload.end_time !== undefined) {
+      if (started) {
+        throw new Error("已开始的排课不允许修改上课时间");
+      }
       updates.end_time = payload.end_time;
     }
     if (payload.location !== undefined) {
@@ -431,9 +456,8 @@ async function updateStudioSchedule(scheduleId, payload) {
       updates.remark = payload.remark || null;
     }
     if (payload.teacher_id !== undefined) {
-      // 已消课排课不允许换老师
-      if (Number(schedule.status) !== 0) {
-        throw new Error("已消课排课不允许更换老师");
+      if (started) {
+        throw new Error("已开始的排课不允许更换老师");
       }
       await ensureTeacher(payload.teacher_id, String(schedule.studio_id), transaction);
       updates.teacher_id = payload.teacher_id;
@@ -491,6 +515,23 @@ async function updateStudioSchedule(scheduleId, payload) {
 
     return normalizeScheduleItem(row);
   });
+}
+
+async function deleteStudioSchedule(scheduleId) {
+  const schedule = await Schedule.findByPk(scheduleId);
+  if (!schedule) {
+    return null;
+  }
+  // 已消课排课不允许删除
+  if (Number(schedule.status) !== 0) {
+    throw new Error("已消课排课不允许删除");
+  }
+  // 已开始的排课不允许删除
+  if (isScheduleStarted(schedule)) {
+    throw new Error("已开始的排课不允许删除");
+  }
+  await schedule.destroy();
+  return { schedule_id: String(scheduleId), deleted: true };
 }
 
 async function listStudioSchedules(query = {}) {  const range = getWeekRange(query.week);
@@ -623,7 +664,7 @@ async function createTeacherSchedule(userId, payload) {
   });
 }
 
-function expandDates(payload) {
+function expandDates(payload, classItem) {
   const dates = [];
   if (Array.isArray(payload.dates) && payload.dates.length) {
     for (const raw of payload.dates) {
@@ -632,15 +673,19 @@ function expandDates(payload) {
         dates.push(d);
       }
     }
-  } else if (
-    Array.isArray(payload.weekdays) &&
-    payload.weekdays.length &&
-    payload.start_date &&
-    payload.end_date
-  ) {
+  } else if (Array.isArray(payload.weekdays) && payload.weekdays.length) {
     const weekdays = new Set(payload.weekdays.map((w) => Number(w)));
-    const start = new Date(`${payload.start_date}T00:00:00`);
-    const end = new Date(`${payload.end_date}T00:00:00`);
+    // start_date 必须由前端传入；end_date 自动取班级的开课结束日期
+    const startDate = payload.start_date;
+    const endDate = payload.end_date || (classItem && classItem.end_date ? String(classItem.end_date).slice(0, 10) : null);
+    if (!startDate) {
+      throw new Error("每周固定排课需要选择开始日期");
+    }
+    if (!endDate) {
+      throw new Error("班级未设置开课结束日期，请先在班级管理中设置");
+    }
+    const start = new Date(`${startDate}T00:00:00`);
+    const end = new Date(`${endDate}T00:00:00`);
     const cursor = new Date(start);
     while (cursor <= end) {
       let wd = cursor.getDay(); // 0=周日
@@ -662,9 +707,21 @@ function expandDates(payload) {
  * 冲突/已存在的日期自动跳过，不中断整批。
  */
 async function batchCreateStudioSchedules(payload) {
-  const dates = expandDates(payload);
+  // 先查班级信息供 expandDates 使用
+  const classItem = await Class.findByPk(payload.class_id, {
+    include: [{ model: Course, as: "course" }]
+  });
+  const dates = expandDates(payload, classItem);
   if (!dates.length) {
     throw new Error("No valid dates provided");
+  }
+
+  // 批量排课日期数不能超过课程总课时数
+  if (classItem && classItem.course && classItem.course.total_lessons) {
+    const totalLessons = Number(classItem.course.total_lessons);
+    if (dates.length > totalLessons) {
+      throw new Error(`排课日期数（${dates.length}）超过课程总课时数（${totalLessons}）`);
+    }
   }
 
   const startMinutes = parseTimeToMinutes(payload.start_time);
@@ -675,10 +732,6 @@ async function batchCreateStudioSchedules(payload) {
 
   return sequelize.transaction(async (transaction) => {
     await ensureStudio(payload.studio_id, transaction);
-    const classItem = await Class.findByPk(payload.class_id, {
-      transaction,
-      include: [{ model: Course, as: "course" }]
-    });
     if (!classItem || !classItem.teacher_id) {
       throw new Error("请先为班级指定授课老师");
     }
@@ -753,5 +806,6 @@ module.exports = {
   updateStudioSchedule,
   batchCreateStudioSchedules,
   listStudioSchedules,
-  createTeacherSchedule
+  createTeacherSchedule,
+  deleteStudioSchedule
 };

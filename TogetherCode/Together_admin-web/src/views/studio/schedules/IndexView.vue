@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { Plus } from "@element-plus/icons-vue";
 import {
   fetchStudioSchedules,
   fetchStudioClasses,
   createStudioSchedule,
   updateStudioSchedule,
+  deleteStudioSchedule,
   batchCreateStudioSchedules,
   fetchStudioTeachers,
   fetchStudioCourses,
@@ -130,6 +132,23 @@ function applyClassTeacher(target: "form" | "batch") {
   }
 }
 
+// 模拟后端 expandDates：根据 weekdays + start_date + class end_date 计算展开日期数
+function expandWeeklyDates(weekdays: number[], startDate: string, endDate: string): string[] {
+  const dates: string[] = [];
+  const wdSet = new Set(weekdays.map(w => Number(w)));
+  const cursor = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
+  while (cursor <= end) {
+    let wd = cursor.getDay(); // 0=周日
+    if (wd === 0) wd = 7;
+    if (wdSet.has(wd)) {
+      dates.push(formatDate(cursor));
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return dates;
+}
+
 // 当前班级课程的总课次数（无课时标题时按课时数兜底）
 function currentLessonCount(classId: string): number {
   const cls = classes.value.find((c) => c.class_id === classId);
@@ -137,6 +156,18 @@ function currentLessonCount(classId: string): number {
   if (lessons?.length) return lessons.length;
   // 列表课程没带 lessons 时用班级课程时长兜底：默认 24
   return 24;
+}
+
+// 当前班级已排课的课次集合（用于排课时过滤已排课次）
+function scheduledLessonNos(classId: string): Set<number> {
+  const set = new Set<number>();
+  for (const s of schedules.value) {
+    if (s.class_id === classId && s.remark) {
+      const m = s.remark.match(/^第(\d+)课/);
+      if (m) set.add(Number(m[1]));
+    }
+  }
+  return set;
 }
 
 function lessonTitleOf(classId: string, no: number): string {
@@ -227,10 +258,15 @@ const editForm = ref({
   start_time: "18:30",
   end_time: "20:00",
   location: "",
-  remark: ""
+  remark: "",
+  started: false,
+  consumed: false
 });
 
 async function openEdit(item: ScheduleItem) {
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const isStarted = item.lesson_date < today || (item.lesson_date === today && item.start_time <= `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
   editForm.value = {
     schedule_id: item.schedule_id,
     class_name: item.class?.name || "-",
@@ -241,7 +277,9 @@ async function openEdit(item: ScheduleItem) {
     start_time: item.start_time,
     end_time: item.end_time,
     location: item.location || "",
-    remark: item.remark || ""
+    remark: item.remark || "",
+    started: isStarted,
+    consumed: item.status !== 0
   };
   // 加载老师列表供选择
   try {
@@ -278,6 +316,29 @@ async function submitEdit() {
   }
 }
 
+async function handleDelete(item: ScheduleItem) {
+  if (item.status !== 0) {
+    ElMessage.warning("已消课排课不允许删除");
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(
+      `确认删除 ${item.lesson_date} ${item.start_time || ""}-${item.end_time || ""} 的排课？`,
+      "删除排课",
+      { confirmButtonText: "删除", cancelButtonText: "取消", type: "warning" }
+    );
+  } catch {
+    return;
+  }
+  try {
+    await deleteStudioSchedule(item.schedule_id);
+    ElMessage.success("排课已删除");
+    loadData();
+  } catch {
+    // 拦截器已提示
+  }
+}
+
 // ============ 批量排课 ============
 const batchVisible = ref(false);
 const batchSubmitting = ref(false);
@@ -293,8 +354,7 @@ const batchForm = ref({
   mode: "dates" as "dates" | "weekly",
   dates: [] as string[],
   weekdays: [] as number[],
-  start_date: "",
-  end_date: ""
+  start_date: ""
 });
 
 const WEEK_OPTIONS = [
@@ -320,8 +380,7 @@ async function openBatch() {
     mode: "dates",
     dates: [],
     weekdays: [],
-    start_date: "",
-    end_date: ""
+    start_date: ""
   };
   try {
     const [classData, teacherData, courseData] = await Promise.all([
@@ -346,6 +405,7 @@ async function submitBatch() {
     ElMessage.warning("请选择班级");
     return;
   }
+  const maxLessons = currentLessonCount(batchForm.value.class_id);
   const payload: Record<string, unknown> = {
     studio_id: studioId.value,
     class_id: batchForm.value.class_id,
@@ -359,19 +419,31 @@ async function submitBatch() {
       ElMessage.warning("请选择上课日期");
       return;
     }
+    if (batchForm.value.dates.length > maxLessons) {
+      ElMessage.warning(`所选日期数（${batchForm.value.dates.length}）超过课程总课时数（${maxLessons}）`);
+      return;
+    }
     payload.dates = batchForm.value.dates;
   } else {
     if (!batchForm.value.weekdays.length) {
       ElMessage.warning("请选择每周几上课");
       return;
     }
-    if (!batchForm.value.start_date || !batchForm.value.end_date) {
-      ElMessage.warning("请选择起止日期");
+    if (!batchForm.value.start_date) {
+      ElMessage.warning("请选择开始日期");
       return;
+    }
+    // weekly �模式：展开日期数校验
+    const cls = classes.value.find((c) => c.class_id === batchForm.value.class_id);
+    if (cls?.end_date) {
+      const expandedDates = expandWeeklyDates(batchForm.value.weekdays, batchForm.value.start_date, String(cls.end_date).slice(0, 10));
+      if (expandedDates.length > maxLessons) {
+        ElMessage.warning(`每周固定展开日期数（${expandedDates.length}）超过课程总课时数（${maxLessons}）`);
+        return;
+      }
     }
     payload.weekdays = batchForm.value.weekdays;
     payload.start_date = batchForm.value.start_date;
-    payload.end_date = batchForm.value.end_date;
   }
   batchSubmitting.value = true;
   try {
@@ -528,6 +600,9 @@ onMounted(loadData);
                 <el-button text size="small" type="primary" @click="openEdit(item)">
                   编辑
                 </el-button>
+                <el-button v-if="item.status === 0" text size="small" type="danger" @click="handleDelete(item)">
+                  删除
+                </el-button>
                 <el-button text size="small" type="primary" @click="openAttendance(item)">
                   出勤消课
                 </el-button>
@@ -565,6 +640,7 @@ onMounted(loadData);
               :key="i"
               :label="`第${i}课${lessonTitleOf(form.class_id, i) ? ' · ' + lessonTitleOf(form.class_id, i) : ''}`"
               :value="i"
+              :disabled="scheduledLessonNos(form.class_id).has(i)"
             />
           </el-select>
         </el-form-item>
@@ -599,6 +675,8 @@ onMounted(loadData);
 
     <!-- 编辑排课 -->
     <el-dialog v-model="editVisible" title="编辑排课" width="500px">
+      <el-alert v-if="editForm.consumed" type="warning" :closable="false" style="margin-bottom: 12px">已消课排课不可编辑</el-alert>
+      <el-alert v-else-if="editForm.started" type="info" :closable="false" style="margin-bottom: 12px">已开始的排课仅可修改地点和课时标题</el-alert>
       <el-form label-width="100px">
         <el-form-item label="班级">
           <el-input :model-value="editForm.class_name" disabled style="width: 100%" />
@@ -607,7 +685,7 @@ onMounted(loadData);
           <el-input :model-value="editForm.course_title" disabled style="width: 100%" />
         </el-form-item>
         <el-form-item label="授课老师">
-          <el-select v-model="editForm.teacher_id" style="width: 100%" placeholder="选择老师" clearable>
+          <el-select v-model="editForm.teacher_id" style="width: 100%" placeholder="选择老师" clearable :disabled="editForm.consumed || editForm.started">
             <el-option
               v-for="t in teachers"
               :key="t.teacher_id"
@@ -617,23 +695,23 @@ onMounted(loadData);
           </el-select>
         </el-form-item>
         <el-form-item label="上课日期" required>
-          <el-date-picker v-model="editForm.lesson_date" type="date" value-format="YYYY-MM-DD" style="width: 180px" />
+          <el-date-picker v-model="editForm.lesson_date" type="date" value-format="YYYY-MM-DD" style="width: 180px" :disabled="editForm.consumed || editForm.started" />
         </el-form-item>
         <el-form-item label="时间" required>
-          <el-time-select v-model="editForm.start_time" start="08:00" step="00:30" end="21:00" style="width: 130px" />
+          <el-time-select v-model="editForm.start_time" start="08:00" step="00:30" end="21:00" style="width: 130px" :disabled="editForm.consumed || editForm.started" />
           ~
-          <el-time-select v-model="editForm.end_time" start="08:00" step="00:30" end="22:00" style="width: 130px" />
+          <el-time-select v-model="editForm.end_time" start="08:00" step="00:30" end="22:00" style="width: 130px" :disabled="editForm.consumed || editForm.started" />
         </el-form-item>
         <el-form-item label="上课地点">
-          <el-input v-model="editForm.location" placeholder="如：3 号教室" />
+          <el-input v-model="editForm.location" placeholder="如：3 号教室" :disabled="editForm.consumed" />
         </el-form-item>
         <el-form-item label="课时标题">
-          <el-input v-model="editForm.remark" type="textarea" :rows="2" maxlength="255" placeholder="如：水彩第一课·认识三原色（家长端每节课显示此标题，不填显示第N课）" />
+          <el-input v-model="editForm.remark" type="textarea" :rows="2" maxlength="255" placeholder="如：水彩第一课·认识三原色（家长端每节课显示此标题，不填显示第N课）" :disabled="editForm.consumed" />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="editVisible = false">取消</el-button>
-        <el-button type="primary" :loading="editSubmitting" @click="submitEdit">保存修改</el-button>
+        <el-button type="primary" :loading="editSubmitting" :disabled="editForm.consumed" @click="submitEdit">保存修改</el-button>
       </template>
     </el-dialog>
 
@@ -712,6 +790,7 @@ onMounted(loadData);
               :key="i"
               :label="`第${i}课${lessonTitleOf(batchForm.class_id, i) ? ' · ' + lessonTitleOf(batchForm.class_id, i) : ''}`"
               :value="i"
+              :disabled="scheduledLessonNos(batchForm.class_id).has(i)"
             />
           </el-select>
         </el-form-item>
@@ -751,22 +830,15 @@ onMounted(loadData);
               </el-checkbox>
             </el-checkbox-group>
           </el-form-item>
-          <el-form-item label="起止日期" required>
+          <el-form-item label="开始日期" required>
             <el-date-picker
               v-model="batchForm.start_date"
               type="date"
               value-format="YYYY-MM-DD"
-              style="width: 160px"
-              placeholder="开始"
+              style="width: 180px"
+              placeholder="从哪天开始"
             />
-            ~
-            <el-date-picker
-              v-model="batchForm.end_date"
-              type="date"
-              value-format="YYYY-MM-DD"
-              style="width: 160px"
-              placeholder="结束"
-            />
+            <span style="margin-left: 8px; color: #909399; font-size: 12px">结束日期取班级开课结束日期</span>
           </el-form-item>
         </template>
         <el-form-item label="上课地点">

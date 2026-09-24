@@ -416,6 +416,12 @@ export async function updateStudioSchedule(
   return response.data;
 }
 
+/** 删除排课（仅未消课可删） */
+export async function deleteStudioSchedule(id: string): Promise<{ schedule_id: string; deleted: boolean }> {
+  const response = await request.delete(`/studio/schedules/${id}`);
+  return response.data;
+}
+
 /** 批量排课：dates（多日期）或 weekdays + start_date/end_date（每周几展开）二选一 */
 export async function batchCreateStudioSchedules(payload: {
   studio_id: string;
