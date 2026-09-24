@@ -197,6 +197,9 @@ final class OrderDetailViewController: BaseViewController {
 
         // 订单信息
         infoRows = [.row(title: "订单号", value: order.order_no ?? "-", brand: false)]
+        if let childName = order.childName, !childName.isEmpty {
+            infoRows.append(.row(title: "上课孩子", value: childName, brand: false))
+        }
         if let source = order.source_text, !source.isEmpty {
             infoRows.append(.row(title: "报名来源", value: source, brand: false))
         }

@@ -166,6 +166,7 @@ extension MyCoursesViewController: UITableViewDataSource, UITableViewDelegate {
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "MyCourseCell", for: indexPath) as! MyCourseCell
+        cell.showsChildName = childId == nil || childId?.isEmpty == true
         cell.configure(filteredItems[indexPath.row])
         return cell
     }
@@ -189,11 +190,15 @@ final class MyCourseCell: UITableViewCell {
     private let card = UIView()
     private let titleLabel = UILabel()
     private let countLabel = UILabel()
-    private let studioLabel = UILabel()
+    private let childTag = PaddingLabel()
+    private let studioLabel = PaddingLabel()
     private let nextLabel = UILabel()
     private let progressTrack = UIView()
     private let progressFill = UIView()
     private let percentLabel = UILabel()
+
+    /// 是否展示孩子名称标签（多孩子模式时由 VC 设置）
+    var showsChildName = false
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -226,13 +231,38 @@ final class MyCourseCell: UITableViewCell {
         let row1 = UIStackView(arrangedSubviews: [titleLabel, countLabel])
         row1.spacing = Theme.Spacing.m
 
-        studioLabel.font = .appLabel(13)
-        studioLabel.textColor = Theme.Color.sub
-
         nextLabel.font = .appLabel(13)
         nextLabel.textColor = Theme.Color.brand
 
-        [row1, studioLabel, nextLabel].forEach(stack.addArrangedSubview)
+        [row1, nextLabel].forEach(stack.addArrangedSubview)
+
+        // 行2：孩子名称标签 + 工作室标签（自适应宽度，水平排列）
+        childTag.textInsets = UIEdgeInsets(top: 4, left: 10, bottom: 4, right: 10)
+        childTag.font = .appLabel(11)
+        childTag.textColor = Theme.Color.brand
+        childTag.textAlignment = .center
+        childTag.backgroundColor = Theme.Color.brand.withAlphaComponent(0.1)
+        childTag.layer.cornerRadius = 4
+        childTag.layer.masksToBounds = true
+        childTag.isHidden = true
+        card.addSubview(childTag)
+
+        studioLabel.textInsets = UIEdgeInsets(top: 4, left: 10, bottom: 4, right: 10)
+        studioLabel.font = .appLabel(11)
+        studioLabel.textColor = Theme.Color.sub
+        studioLabel.textAlignment = .center
+        studioLabel.backgroundColor = Theme.Color.surfaceAlt
+        studioLabel.layer.cornerRadius = 4
+        studioLabel.layer.masksToBounds = true
+        card.addSubview(studioLabel)
+        studioLabel.snp.makeConstraints {
+            $0.top.equalTo(row1.snp.bottom).offset(8)
+            $0.leading.equalTo(stack)
+        }
+        childTag.snp.makeConstraints {
+            $0.centerY.equalTo(studioLabel)
+            $0.leading.equalTo(studioLabel.snp.trailing).offset(8)
+        }
 
         // 行4：进度条 + 百分比（手动约束，避免 stack 压缩导致文字截断）
         progressTrack.backgroundColor = Theme.Color.surfaceAlt
@@ -269,6 +299,12 @@ final class MyCourseCell: UITableViewCell {
     func configure(_ item: MyCourseItem) {
         titleLabel.text = item.course_title ?? "未命名课程"
         countLabel.text = "\(item.consumed_lessons)/\(item.total_lessons)节"
+        if showsChildName, let name = item.child_name, !name.isEmpty {
+            childTag.text = name
+            childTag.isHidden = false
+        } else {
+            childTag.isHidden = true
+        }
         studioLabel.text = item.studioTeacherText
         nextLabel.text = item.nextLessonText
         let percent = min(max(item.percent, 0), 100)
