@@ -193,7 +193,7 @@ extension RefundDetailViewController: UITableViewDataSource, UITableViewDelegate
 
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         switch sectionKind(indexPath.section) {
-        case .status: return 108
+        case .status: return UITableView.automaticDimension
         case .info: return UITableView.automaticDimension
         case .voucher: return 112
         case .steps: return 64

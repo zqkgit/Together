@@ -161,6 +161,7 @@ async function exportRefunds() {
       { key: "amount", label: "退款金额(分)" },
       { key: "refund_method", label: "退款方式" },
       { key: "reason", label: "申请原因" },
+      { key: "reject_reason", label: "驳回原因" },
       { key: "created_at", label: "申请时间" },
       { key: "reviewed_at", label: "审核时间" }
     ], list.map((r: any) => ({
@@ -228,6 +229,12 @@ async function exportRefunds() {
           </template>
         </el-table-column>
         <el-table-column prop="reason" label="申请原因" min-width="140" show-overflow-tooltip />
+        <el-table-column label="驳回原因" min-width="140" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span v-if="row.status === 2 && row.reject_reason" class="cell-danger">{{ row.reject_reason }}</span>
+            <span v-else class="cell-sub">-</span>
+          </template>
+        </el-table-column>
         <el-table-column label="退款凭证" width="110" align="center">
           <template #default="{ row }">
             <div v-if="(row.voucher_images || []).length" class="voucher-cell">
@@ -466,6 +473,10 @@ async function exportRefunds() {
   color: #d97706;
   font-size: 12px;
   margin-top: 2px;
+}
+.cell-danger {
+  color: #dc2626;
+  font-size: 13px;
 }
 
 .voucher-cell {

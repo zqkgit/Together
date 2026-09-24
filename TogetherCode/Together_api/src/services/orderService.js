@@ -40,6 +40,7 @@ function formatOrder(order) {
     status: item.status,
     status_text: REFUND_STATUS_TEXT[Number(item.status)] || "未知",
     reason: item.reason,
+    reject_reason: item.reject_reason || null,
     created_at: item.created_at
   }));
   // 订单层退款聚合状态：0 无 / 1 退款中 / 2 已退款 / 3 已驳回

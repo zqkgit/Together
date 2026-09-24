@@ -207,7 +207,7 @@ async function reviewStudioRefund(studioId, refundId, payload, operator = {}) {
           status: 2,
           reviewed_by: operator.adminId || null,
           reviewed_at: new Date(),
-          reason: payload.reason || refund.reason
+          reject_reason: payload.reason || "退款申请未通过"
         },
         { transaction }
       );
