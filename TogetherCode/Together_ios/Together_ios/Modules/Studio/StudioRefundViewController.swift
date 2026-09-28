@@ -327,15 +327,29 @@ private final class StudioRefundCell: UITableViewCell {
     var onVoucherTap: (([String], Int) -> Void)?
 
     private let card = UIView()
+    private let cardStack = UIStackView()
+
+    // 头部：头像 / 家长称呼 / 课程副标题 / 金额
+    private let headerBlock = UIView()
     private let avatarView = UIImageView()
     private let nameLabel = UILabel()
     private let subLabel = UILabel()
     private let amountLabel = UILabel()
+
+    // 退款原因（家长申请原因，浅黄）
+    private let reasonBlock = UIView()
     private let reasonBar = UIView()
     private let reasonIcon = UIImageView()
-    private let reasonLabel = UILabel()
-    /// 动态信息区（退款方式+凭证 / 驳回原因）
+    private let reasonTitle = UILabel()
+    private let reasonContent = UILabel()
+
+    // 动态信息区（退款方式+凭证 / 驳回原因）
+    private let infoBlock = UIView()
     private let infoWrap = UIView()
+    private let infoStack = UIStackView()
+
+    // 操作区
+    private let actionBlock = UIView()
     private let actionWrap = UIView()
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
@@ -357,54 +371,80 @@ private final class StudioRefundCell: UITableViewCell {
             $0.bottom.equalToSuperview().offset(-6)
         }
 
-        // 头像
+        cardStack.axis = .vertical
+        cardStack.alignment = .fill
+        cardStack.distribution = .fill
+        card.addSubview(cardStack)
+        cardStack.snp.makeConstraints {
+            $0.leading.trailing.equalToSuperview()
+            $0.top.bottom.equalToSuperview().inset(Theme.Spacing.l)
+        }
+
+        setupHeader()
+        setupReason()
+        setupInfo()
+        setupAction()
+
+        cardStack.addArrangedSubview(headerBlock)
+        cardStack.addArrangedSubview(reasonBlock)
+        cardStack.addArrangedSubview(infoBlock)
+        cardStack.addArrangedSubview(actionBlock)
+        cardStack.setCustomSpacing(Theme.Spacing.m, after: headerBlock)
+        cardStack.setCustomSpacing(Theme.Spacing.m, after: reasonBlock)
+        cardStack.setCustomSpacing(Theme.Spacing.l, after: infoBlock)
+    }
+
+    // MARK: 头部
+    private func setupHeader() {
         avatarView.contentMode = .scaleAspectFill
         avatarView.layer.cornerRadius = 21
         avatarView.clipsToBounds = true
         avatarView.backgroundColor = Theme.Color.brandSoft
-        card.addSubview(avatarView)
-        avatarView.snp.makeConstraints {
-            $0.leading.top.equalToSuperview().inset(Theme.Spacing.l)
-            $0.width.height.equalTo(42)
-        }
 
-        // 家长称呼
         nameLabel.font = .appSection(15)
         nameLabel.textColor = Theme.Color.ink
-        card.addSubview(nameLabel)
-        nameLabel.snp.makeConstraints {
-            $0.leading.equalTo(avatarView.snp.trailing).offset(Theme.Spacing.m)
-            $0.top.equalTo(avatarView).offset(2)
-            $0.trailing.lessThanOrEqualToSuperview().inset(96)
-        }
 
-        // 副标题：课程 · 剩余 x/y 节 / 时间
         subLabel.font = .appLabel(12)
         subLabel.textColor = Theme.Color.muted
         subLabel.numberOfLines = 2
-        card.addSubview(subLabel)
+
+        amountLabel.textAlignment = .right
+
+        // 先全部加入层级，避免建立约束时引用到尚未挂载的视图
+        [avatarView, nameLabel, subLabel, amountLabel].forEach { headerBlock.addSubview($0) }
+
+        avatarView.snp.makeConstraints {
+            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.top.equalToSuperview()
+            $0.width.height.equalTo(42)
+        }
+        nameLabel.snp.makeConstraints {
+            $0.leading.equalTo(avatarView.snp.trailing).offset(Theme.Spacing.m)
+            $0.top.equalTo(avatarView).offset(2)
+            $0.trailing.lessThanOrEqualTo(amountLabel.snp.leading).offset(-8)
+        }
         subLabel.snp.makeConstraints {
             $0.leading.equalTo(nameLabel)
             $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
             $0.top.equalTo(nameLabel.snp.bottom).offset(4)
+            $0.bottom.equalToSuperview()
         }
-
-        // 右上金额
-        amountLabel.textAlignment = .right
-        card.addSubview(amountLabel)
         amountLabel.snp.makeConstraints {
             $0.top.equalTo(avatarView).offset(2)
             $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
         }
+    }
 
-        // 退款原因条（浅黄）
-        reasonBar.backgroundColor = Theme.Color.warnTint
-        reasonBar.layer.cornerRadius = Theme.Radius.icon
-        card.addSubview(reasonBar)
+    // MARK: 退款原因
+    private func setupReason() {
+        reasonBlock.addSubview(reasonBar)
         reasonBar.snp.makeConstraints {
-            $0.top.equalTo(avatarView.snp.bottom).offset(Theme.Spacing.m)
+            $0.top.bottom.equalToSuperview()
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
         }
+        reasonBar.backgroundColor = Theme.Color.warnTint
+        reasonBar.layer.cornerRadius = Theme.Radius.icon
+
         reasonIcon.image = UIImage(systemName: "text.bubble.fill")
         reasonIcon.tintColor = Theme.Color.warn
         reasonIcon.contentMode = .scaleAspectFit
@@ -413,30 +453,50 @@ private final class StudioRefundCell: UITableViewCell {
             $0.leading.top.equalToSuperview().inset(Theme.Spacing.m)
             $0.width.height.equalTo(16)
         }
-        reasonLabel.font = .appLabel(12.5)
-        reasonLabel.textColor = Theme.Color.sub
-        reasonLabel.numberOfLines = 0
-        reasonBar.addSubview(reasonLabel)
-        reasonLabel.snp.makeConstraints {
+
+        reasonTitle.font = .appSection(12.5)
+        reasonTitle.textColor = Theme.Color.warn
+        reasonTitle.text = "退款原因"
+        reasonBar.addSubview(reasonTitle)
+        reasonTitle.snp.makeConstraints {
             $0.leading.equalTo(reasonIcon.snp.trailing).offset(Theme.Spacing.s)
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.m)
-            $0.top.bottom.equalToSuperview().inset(Theme.Spacing.m)
             $0.centerY.equalTo(reasonIcon)
         }
 
-        // 动态信息区
-        card.addSubview(infoWrap)
+        reasonContent.font = .appLabel(12.5)
+        reasonContent.textColor = Theme.Color.sub
+        reasonContent.numberOfLines = 0
+        reasonContent.setContentCompressionResistancePriority(.required, for: .vertical)
+        reasonBar.addSubview(reasonContent)
+        reasonContent.snp.makeConstraints {
+            $0.leading.equalTo(reasonTitle)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.m)
+            $0.top.equalTo(reasonIcon.snp.bottom).offset(Theme.Spacing.s)
+            $0.bottom.equalToSuperview().inset(Theme.Spacing.m)
+        }
+    }
+
+    // MARK: 动态信息区
+    private func setupInfo() {
+        infoBlock.addSubview(infoWrap)
         infoWrap.snp.makeConstraints {
-            $0.top.equalTo(reasonBar.snp.bottom).offset(Theme.Spacing.m)
+            $0.top.bottom.equalToSuperview()
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
         }
+        infoStack.axis = .vertical
+        infoStack.alignment = .fill
+        infoStack.distribution = .fill
+        infoStack.spacing = Theme.Spacing.s
+        infoWrap.addSubview(infoStack)
+        infoStack.snp.makeConstraints { $0.edges.equalToSuperview() }
+    }
 
-        // 操作区
-        card.addSubview(actionWrap)
+    // MARK: 操作区
+    private func setupAction() {
+        actionBlock.addSubview(actionWrap)
         actionWrap.snp.makeConstraints {
-            $0.top.equalTo(infoWrap.snp.bottom).offset(Theme.Spacing.l)
+            $0.top.bottom.equalToSuperview()
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
-            $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
         }
     }
 
@@ -453,7 +513,7 @@ private final class StudioRefundCell: UITableViewCell {
         amountLabel.attributedText = StudioRefundAmountText(refund.amountText)
 
         // 退款原因
-        reasonLabel.text = refund.reasonText.isEmpty ? "家长未填写退款原因" : refund.reasonText
+        reasonContent.text = refund.reasonText.isEmpty ? "家长未填写退款原因" : refund.reasonText
 
         // 存储凭证图片用于点击预览
         currentVoucherImages = refund.voucherImageList
@@ -469,129 +529,123 @@ private final class StudioRefundCell: UITableViewCell {
     // MARK: - 动态信息区
 
     private func rebuildInfoArea(_ refund: StudioRefund) {
-        infoWrap.subviews.forEach { $0.removeFromSuperview() }
+        infoStack.arrangedSubviews.forEach {
+            infoStack.removeArrangedSubview($0)
+            $0.removeFromSuperview()
+        }
 
         switch refund.status {
         case 1, 3:
-            // 待家长确认 / 已退款：展示退款方式 + 凭证缩略图
-            var lastView: UIView = infoWrap
-            var isFirst = true
-
-            // 退款方式
+            // 待家长确认 / 已退款：退款方式 + 凭证缩略图
             let methodText = refund.refundMethodText
             if !methodText.isEmpty {
                 let methodLabel = UILabel()
                 methodLabel.font = .appLabel(12)
                 methodLabel.textColor = Theme.Color.sub
+                methodLabel.numberOfLines = 0
                 methodLabel.text = "退款方式：\(methodText)"
-                infoWrap.addSubview(methodLabel)
-                methodLabel.snp.makeConstraints {
-                    if isFirst {
-                        $0.top.leading.trailing.equalToSuperview()
-                        isFirst = false
-                    } else {
-                        $0.top.equalTo(lastView.snp.bottom).offset(Theme.Spacing.s)
-                        $0.leading.trailing.equalToSuperview()
-                    }
-                }
-                lastView = methodLabel
+                infoStack.addArrangedSubview(methodLabel)
             }
-
-            // 凭证缩略图
             let images = refund.voucherImageList
             if !images.isEmpty {
-                let voucherRow = UIView()
-                infoWrap.addSubview(voucherRow)
-                voucherRow.snp.makeConstraints {
-                    if isFirst {
-                        $0.top.leading.trailing.equalToSuperview()
-                        isFirst = false
-                    } else {
-                        $0.top.equalTo(lastView.snp.bottom).offset(Theme.Spacing.s)
-                        $0.leading.trailing.equalToSuperview()
-                    }
-                    $0.height.equalTo(56)
-                }
-                lastView = voucherRow
-
-                let thumbSize: CGFloat = 48
-                let spacing: CGFloat = 6
-                var prevThumb: UIView?
-                for (idx, urlString) in images.prefix(5).enumerated() {
-                    let iv = UIImageView()
-                    iv.contentMode = .scaleAspectFill
-                    iv.layer.cornerRadius = 6
-                    iv.clipsToBounds = true
-                    iv.backgroundColor = Theme.Color.bg
-                    if let url = URL(string: urlString) {
-                        iv.kf.setImage(with: url)
-                    }
-                    iv.isUserInteractionEnabled = true
-                    iv.tag = idx
-                    iv.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapVoucher(_:))))
-                    voucherRow.addSubview(iv)
-                    iv.snp.makeConstraints {
-                        $0.top.equalToSuperview()
-                        $0.width.height.equalTo(thumbSize)
-                        if let prev = prevThumb {
-                            $0.leading.equalTo(prev.snp.trailing).offset(spacing)
-                        } else {
-                            $0.leading.equalToSuperview()
-                        }
-                    }
-                    prevThumb = iv
-                }
-                // 超过5张显示+N
-                if images.count > 5 {
-                    let moreLabel = UILabel()
-                    moreLabel.font = .appLabel(11)
-                    moreLabel.textColor = Theme.Color.muted
-                    moreLabel.text = "+\(images.count - 5)"
-                    voucherRow.addSubview(moreLabel)
-                    moreLabel.snp.makeConstraints {
-                        if let prev = prevThumb {
-                            $0.leading.equalTo(prev.snp.trailing).offset(spacing)
-                        }
-                        $0.centerY.equalToSuperview()
-                    }
-                }
+                infoStack.addArrangedSubview(makeVoucherRow(images))
             }
-
-            // 驳回原因（status 2）
         case 2:
+            // 已驳回：驳回原因（红条，多行自适应）
             if !refund.rejectReasonText.isEmpty {
-                let rejectBar = UIView()
-                rejectBar.backgroundColor = Theme.Color.dangerTint
-                rejectBar.layer.cornerRadius = Theme.Radius.icon
-                infoWrap.addSubview(rejectBar)
-                rejectBar.snp.makeConstraints {
-                    $0.top.leading.trailing.equalToSuperview()
-                }
-                let icon = UIImageView()
-                icon.image = UIImage(systemName: "xmark.circle.fill")
-                icon.tintColor = Theme.Color.danger
-                icon.contentMode = .scaleAspectFit
-                rejectBar.addSubview(icon)
-                icon.snp.makeConstraints {
-                    $0.leading.top.equalToSuperview().inset(Theme.Spacing.m)
-                    $0.width.height.equalTo(16)
-                }
-                let label = UILabel()
-                label.font = .appLabel(12.5)
-                label.textColor = Theme.Color.danger
-                label.numberOfLines = 0
-                label.text = refund.rejectReasonText
-                rejectBar.addSubview(label)
-                label.snp.makeConstraints {
-                    $0.leading.equalTo(icon.snp.trailing).offset(Theme.Spacing.s)
-                    $0.trailing.equalToSuperview().inset(Theme.Spacing.m)
-                    $0.top.bottom.equalToSuperview().inset(Theme.Spacing.m)
-                    $0.centerY.equalTo(icon)
-                }
+                infoStack.addArrangedSubview(makeRejectBar(refund.rejectReasonText))
             }
         default:
             break
         }
+        // 无内容时折叠整块（含相邻间距）
+        infoBlock.isHidden = infoStack.arrangedSubviews.isEmpty
+    }
+
+    /// 凭证缩略图行（最多显示 5 张，超出显示 +N）
+    private func makeVoucherRow(_ images: [String]) -> UIView {
+        let voucherRow = UIView()
+        voucherRow.snp.makeConstraints { $0.height.equalTo(56) }
+
+        let thumbSize: CGFloat = 48
+        let spacing: CGFloat = 6
+        var prevThumb: UIView?
+        for (idx, urlString) in images.prefix(5).enumerated() {
+            let iv = UIImageView()
+            iv.contentMode = .scaleAspectFill
+            iv.layer.cornerRadius = 6
+            iv.clipsToBounds = true
+            iv.backgroundColor = Theme.Color.bg
+            if let url = URL(string: urlString) { iv.kf.setImage(with: url) }
+            iv.isUserInteractionEnabled = true
+            iv.tag = idx
+            iv.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapVoucher(_:))))
+            voucherRow.addSubview(iv)
+            iv.snp.makeConstraints {
+                $0.centerY.equalToSuperview()
+                $0.width.height.equalTo(thumbSize)
+                if let prev = prevThumb {
+                    $0.leading.equalTo(prev.snp.trailing).offset(spacing)
+                } else {
+                    $0.leading.equalToSuperview()
+                }
+            }
+            prevThumb = iv
+        }
+        if images.count > 5, let prev = prevThumb {
+            let moreLabel = UILabel()
+            moreLabel.font = .appLabel(11)
+            moreLabel.textColor = Theme.Color.muted
+            moreLabel.text = "+\(images.count - 5)"
+            voucherRow.addSubview(moreLabel)
+            moreLabel.snp.makeConstraints {
+                $0.leading.equalTo(prev.snp.trailing).offset(spacing)
+                $0.centerY.equalToSuperview()
+            }
+        }
+        return voucherRow
+    }
+
+    /// 驳回原因条（红底，标题+多行内容，全部显示）
+    private func makeRejectBar(_ text: String) -> UIView {
+        let rejectBar = UIView()
+        rejectBar.backgroundColor = Theme.Color.dangerTint
+        rejectBar.layer.cornerRadius = Theme.Radius.icon
+
+        let icon = UIImageView()
+        icon.image = UIImage(systemName: "xmark.circle.fill")
+        icon.tintColor = Theme.Color.danger
+        icon.contentMode = .scaleAspectFit
+        rejectBar.addSubview(icon)
+        icon.snp.makeConstraints {
+            $0.leading.top.equalToSuperview().inset(Theme.Spacing.m)
+            $0.width.height.equalTo(16)
+        }
+
+        let title = UILabel()
+        title.font = .appSection(12.5)
+        title.textColor = Theme.Color.danger
+        title.text = "驳回原因"
+        rejectBar.addSubview(title)
+        title.snp.makeConstraints {
+            $0.leading.equalTo(icon.snp.trailing).offset(Theme.Spacing.s)
+            $0.centerY.equalTo(icon)
+        }
+
+        let label = UILabel()
+        label.font = .appLabel(12.5)
+        label.textColor = Theme.Color.danger
+        label.numberOfLines = 0
+        label.setContentCompressionResistancePriority(.required, for: .vertical)
+        label.text = text
+        rejectBar.addSubview(label)
+        label.snp.makeConstraints {
+            $0.leading.equalTo(title)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.m)
+            $0.top.equalTo(icon.snp.bottom).offset(Theme.Spacing.s)
+            $0.bottom.equalToSuperview().inset(Theme.Spacing.m)
+        }
+        return rejectBar
     }
 
     @objc private func tapVoucher(_ gesture: UITapGestureRecognizer) {
@@ -646,14 +700,13 @@ private final class StudioRefundCell: UITableViewCell {
                 $0.leading.trailing.bottom.equalToSuperview()
                 $0.height.equalTo(40)
             }
-        default:
-            // 2 已驳回 / 3 已退款：仅状态标签
-            let done = refund.status == 3
+        case 3:
+            // 已退款：状态标签
             let pill = PaddingLabel()
-            pill.text = done ? "已退款" : "已驳回"
+            pill.text = "已退款"
             pill.font = .appLabel(12)
-            pill.textColor = done ? Theme.Color.success : Theme.Color.danger
-            pill.backgroundColor = done ? Theme.Color.successTint : Theme.Color.dangerTint
+            pill.textColor = Theme.Color.success
+            pill.backgroundColor = Theme.Color.successTint
             pill.layer.cornerRadius = 12
             pill.clipsToBounds = true
             pill.textInsets = UIEdgeInsets(top: 4, left: 12, bottom: 4, right: 12)
@@ -662,7 +715,14 @@ private final class StudioRefundCell: UITableViewCell {
                 $0.leading.top.bottom.equalToSuperview()
                 $0.height.equalTo(24)
             }
+        case 2:
+            // 已驳回：底部不显示状态标签（驳回原因已在上方说明）
+            break
+        default:
+            break
         }
+        // 无操作内容时折叠整块（含相邻间距）
+        actionBlock.isHidden = actionWrap.subviews.isEmpty
     }
 
     private func makeButton(title: String, filled: Bool, action: Selector) -> UIButton {
