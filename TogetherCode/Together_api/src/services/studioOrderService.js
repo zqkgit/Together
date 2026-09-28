@@ -726,14 +726,13 @@ async function confirmStudioPayment(studioId, orderId, payload, operator = {}) {
       throw new Error("订单不是待收款 / 待确认收款状态");
     }
 
-    const method = payload.pay_method && PAY_METHODS.includes(payload.pay_method) ? payload.pay_method : (prior && prior.pay_method) || "cash";
-    const images = normalizeImages(payload.voucher_images);
-
     const prior = await Payment.findOne({
       where: { order_id: orderId, status: 0 },
       transaction,
       order: [["created_at", "DESC"]]
     });
+    const method = payload.pay_method && PAY_METHODS.includes(payload.pay_method) ? payload.pay_method : (prior && prior.pay_method) || "cash";
+    const images = normalizeImages(payload.voucher_images);
     const priorImages = prior && Array.isArray(prior.voucher_images) ? prior.voucher_images : [];
     if (isOnlinePayMethod(method) && images.length === 0 && priorImages.length === 0) {
       throw new Error("线上转账须有付款凭证（家长上传或工作室代传）；现金可直接登记");
