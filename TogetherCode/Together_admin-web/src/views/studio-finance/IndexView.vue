@@ -14,11 +14,15 @@ function fenToYuan(fen: number): string {
   return (fen / 100).toFixed(2);
 }
 
-const statusMeta: Record<number, { text: string; type: "warning" | "success" | "info" }> = {
-  0: { text: "待支付", type: "warning" },
-  1: { text: "已支付", type: "success" },
-  2: { text: "已取消", type: "info" },
-  3: { text: "已退款", type: "info" }
+// 订单状态：0 待收款 / 1 待确认收款 / 2 已收款 / 3 退款审核中 / 4 待家长确认退款 / 5 已退款 / 6 已取消
+const statusMeta: Record<number, { text: string; type: "warning" | "success" | "danger" | "info" }> = {
+  0: { text: "待收款", type: "warning" },
+  1: { text: "待确认收款", type: "warning" },
+  2: { text: "已收款", type: "success" },
+  3: { text: "退款审核中", type: "warning" },
+  4: { text: "待家长确认退款", type: "warning" },
+  5: { text: "已退款", type: "danger" },
+  6: { text: "已取消", type: "info" }
 };
 
 async function loadData() {
@@ -137,7 +141,7 @@ async function exportFinance() {
         </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="statusMeta[row.status]?.type" size="small">{{ statusMeta[row.status]?.text }}</el-tag>
+            <el-tag :type="statusMeta[row.status]?.type || 'info'" size="small">{{ statusMeta[row.status]?.text || row.status }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="paid_at" :formatter="timeFormatter" label="支付时间" width="170" />

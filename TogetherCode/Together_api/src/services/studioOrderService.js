@@ -148,7 +148,8 @@ async function listStudioRefunds(studioId, query = {}) {
         as: "order",
         required: true,
         where: {
-          studio_id: studioId
+          studio_id: studioId,
+          status: { [Op.notIn]: [0, 6] }
         },
         include: [
           { model: Child, as: "child", attributes: ["child_id", "nickname", "avatar", "birthday"] },
