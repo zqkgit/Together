@@ -73,7 +73,7 @@ async function handleLogin() {
         <ul class="brand-points">
           <li><span class="point-dot"></span>工作室认证入驻与生命周期管理</li>
           <li><span class="point-dot"></span>全平台经营数据实时看板</li>
-          <li><span class="point-dot"></span>结算分账与抽成对账闭环</li>
+          <li><span class="point-dot"></span>内容审核与平台治理闭环</li>
         </ul>
 
         <div class="brand-foot">Together Admin Console</div>

@@ -27,11 +27,9 @@ async function getDashboardOverview() {
   dayStart30.setDate(dayStart30.getDate() - 29);
   dayStart30.setHours(0, 0, 0, 0);
 
-  const [studioPending, refundCount, settlementRows, studioCount, studioNewMonth, courseTotal, childTotal, orderMonth, studentActive, gmvMonth] =
+  const [studioPending, studioCount, studioNewMonth, courseTotal, childTotal, orderMonth, studentActive, gmvMonth] =
     await Promise.all([
       StudioApplication.count({ where: { status: 0 } }),
-      Settlement.count({ where: { refund: { [Op.gt]: 0 } } }),
-      Settlement.findAll(),
       StudioProfile.count(),
       StudioProfile.count({ where: { created_at: { [Op.gte]: monthStart } } }),
       Course.count(),
@@ -48,12 +46,6 @@ async function getDashboardOverview() {
         raw: true
       })
     ]);
-
-  const totalIncome = settlementRows.reduce((sum, item) => sum + Number(item.income || 0), 0);
-  const totalPendingPayable = settlementRows
-    .filter((item) => Number(item.status) !== 2)
-    .reduce((sum, item) => sum + Number(item.payable_amount || 0), 0);
-  const abnormalCount = settlementRows.filter((item) => Number(item.status) === 3).length;
 
   // 近 30 天 GMV 趋势（有效订单按天聚合）
   const trendRows = await sequelize.query(
@@ -78,10 +70,8 @@ async function getDashboardOverview() {
 
   return {
     statCards: [
-      { label: "本月 GMV", value: formatFen(totalIncome), trend: `${studioCount} 家工作室` },
-      { label: "待审核工作室", value: String(studioPending), trend: "实时" },
-      { label: "异常结算单", value: String(abnormalCount), trend: "需复核" },
-      { label: "待结算金额", value: formatFen(totalPendingPayable), trend: `${refundCount} 笔含退款` }
+      { label: "本月 GMV", value: formatFen(monthGmv), trend: `${studioCount} 家工作室` },
+      { label: "待审核工作室", value: String(studioPending), trend: "实时" }
     ],
     summary: {
       studio_total: studioCount,
@@ -95,12 +85,11 @@ async function getDashboardOverview() {
     },
     trend30d,
     timeline: [
-      { timestamp: "今日", content: "认证申请、结算状态与工作室数据均来自数据库" },
+      { timestamp: "今日", content: "认证申请与工作室经营数据均来自数据库" },
       { timestamp: "本周", content: "完成后台接口模型化与 Docker 化运行" }
     ],
     todos: [
-      { label: "待审核工作室", count: studioPending },
-      { label: "异常结算单", count: abnormalCount }
+      { label: "待审核工作室", count: studioPending }
     ]
   };
 }

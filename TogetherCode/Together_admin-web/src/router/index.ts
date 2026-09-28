@@ -50,12 +50,6 @@ const router = createRouter({
           meta: { title: "话题管理", requiresAuth: true, scopes: ["platform"] }
         },
         {
-          path: "/settlements",
-          name: "settlements",
-          component: () => import("../views/settlements/IndexView.vue"),
-          meta: { title: "结算分账", requiresAuth: true, scopes: ["platform"] }
-        },
-        {
           path: "/admin-reviews",
           name: "admin-reviews",
           component: () => import("../views/admin-reviews/IndexView.vue"),
