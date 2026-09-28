@@ -473,27 +473,6 @@ function onBatchWeeklyChange() {
 }
 
 // dates 模式：按周顺延填充日期快捷按钮
-function fillBatchDatesByWeek() {
-  if (!batchForm.value.start_date) {
-    ElMessage.warning("请先选择开始日期");
-    return;
-  }
-  const startDate = batchForm.value.start_date;
-  const items = batchForm.value.lesson_items;
-  const filledDates = new Set(items.filter((it) => it.lesson_date).map((it) => it.lesson_date));
-  let cursor = new Date(`${startDate}T00:00:00`);
-  for (const item of items) {
-    if (!item.lesson_date) {
-      while (filledDates.has(formatDate(cursor))) {
-        cursor.setDate(cursor.getDate() + 1);
-      }
-      item.lesson_date = formatDate(cursor);
-      filledDates.add(item.lesson_date);
-      cursor.setDate(cursor.getDate() + 1);
-    }
-  }
-}
-
 async function submitBatch() {
   if (!batchForm.value.class_id) {
     ElMessage.warning("请选择班级");
@@ -928,19 +907,6 @@ onMounted(loadData);
             <span style="margin-left: 8px; color: #909399; font-size: 12px">结束日期取班级开课结束日期</span>
           </el-form-item>
         </template>
-        <!-- dates 模式：按周顺延填充日期按钮 -->
-        <el-form-item v-if="batchForm.mode === 'dates' && batchForm.selected_lessons.length" label="">
-          <el-button size="small" @click="fillBatchDatesByWeek" :disabled="!batchForm.start_date">
-            按周顺延填充日期
-          </el-button>
-          <el-date-picker
-            v-model="batchForm.start_date"
-            type="date"
-            value-format="YYYY-MM-DD"
-            style="width: 160px; margin-left: 8px"
-            placeholder="起始日期"
-          />
-        </el-form-item>
         <!-- 排课明细表格 -->
         <el-form-item v-if="batchForm.lesson_items.length" label="排课明细">
           <el-table :data="batchForm.lesson_items" size="small" border class="batch-detail-table">
