@@ -75,7 +75,7 @@ async function getUserProfile(userId) {
 }
 
 /**
- * 老师主页：档案详情 + 绑定工作室 + 近期作品
+ * 老师主页：档案详情 + 绑定工作室 + 在售课程 + 近期作品
  */
 async function getTeacherHomepage(userId, query = {}) {
   const page = Math.max(1, Number(query.page) || 1);
@@ -102,6 +102,14 @@ async function getTeacherHomepage(userId, query = {}) {
         attributes: ["studio_id", "name", "cover", "address", "plan_tier"]
       }
     ]
+  });
+
+  // 老师在售课程
+  const courses = await Course.findAll({
+    where: { teacher_id: teacher.teacher_id, status: 1 },
+    attributes: ["course_id", "title", "cover", "price", "age_min", "age_max", "total_lessons", "rating", "sales", "studio_id"],
+    order: [["sales", "DESC"]],
+    limit: 20
   });
 
   const works = await Post.findAndCountAll({
@@ -143,6 +151,18 @@ async function getTeacherHomepage(userId, query = {}) {
       cover: binding.studio.cover,
       address: binding.studio.address,
       plan_tier: binding.studio.plan_tier
+    })),
+    courses: courses.map((c) => ({
+      course_id: String(c.course_id),
+      title: c.title,
+      cover: c.cover,
+      price: Number(c.price || 0),
+      age_min: c.age_min,
+      age_max: c.age_max,
+      total_lessons: c.total_lessons,
+      rating: Number(c.rating || 0),
+      sales: Number(c.sales || 0),
+      studio_id: String(c.studio_id)
     })),
     works: {
       total: works.count,

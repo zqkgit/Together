@@ -303,8 +303,9 @@ extension StudioHomepageViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let row = rows[indexPath.row]
         switch row {
-        case .teacher:
-            showToast("老师主页开发中")
+        case .teacher(let t):
+            let vc = TeacherProfileViewController(teacherId: t.teacher_id)
+            navigationController?.pushViewController(vc, animated: true)
         default:
             break
         }
