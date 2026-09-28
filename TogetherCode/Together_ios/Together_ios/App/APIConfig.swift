@@ -9,9 +9,9 @@ enum AppEnvironment {
     var baseURL: String {
         switch self {
         case .debug:
-            // 真机测试：默认走 Mac 局域网 IP；模拟器也能用同一地址（共享 Mac 网络栈）。
-            // 切回本机可改 UserDefaults custom_base_url = http://127.0.0.1:3001
-            return UserDefaults.standard.string(forKey: "custom_base_url") ?? "http://10.6.3.59:3001"
+            // 真机测试：默认走 Mac 局域网 IP（换网络后需更新为当前 Mac IP）。
+            // 临时覆盖可改 UserDefaults custom_base_url，如 http://127.0.0.1:3001
+            return UserDefaults.standard.string(forKey: "custom_base_url") ?? "http://10.6.2.40:3001"
         case .staging:
             return "https://staging-api.example.com"
         case .production:
