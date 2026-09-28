@@ -108,13 +108,9 @@ onMounted(loadData);
             <template #default="{ row }">¥{{ fenToYuan(row.amount) }}</template>
           </el-table-column>
           <el-table-column label="状态" width="100">
-            <template #default="{ row }">
-              <el-tag :type="row.status === 3 ? 'success' : 'info'" size="small">
-                {{ row.status === 3 ? "已退款" : "已驳回" }}
-              </el-tag>
-            </template>
+            <el-tag type="success" size="small">已退款</el-tag>
           </el-table-column>
-          <el-table-column prop="reviewed_at" :formatter="timeFormatter" label="处理时间" width="170" />
+          <el-table-column prop="refunded_at" :formatter="timeFormatter" label="退款时间" width="170" />
         </el-table>
         <el-empty v-if="!data.recent_refunds.length" description="暂无退款流水" :image-size="64" />
       </el-card>

@@ -200,13 +200,13 @@ async function getStudioReports(studioId) {
       // 本月退款（原始 SQL：sum+include 会被 Sequelize 带出非聚合列，only_full_group_by 下报错）
       sequelize.query(
         `SELECT COALESCE(SUM(r.amount),0) AS total FROM refunds r JOIN orders o ON o.order_id = r.order_id
-         WHERE o.studio_id = ? AND r.status IN (2,3) AND r.reviewed_at BETWEEN ? AND ?`,
+         WHERE o.studio_id = ? AND r.status = 3 AND r.refunded_at BETWEEN ? AND ?`,
         { replacements: [studioId, monthStart, monthEnd], type: sequelize.QueryTypes.SELECT }
       ),
       // 累计退款
       sequelize.query(
         `SELECT COALESCE(SUM(r.amount),0) AS total FROM refunds r JOIN orders o ON o.order_id = r.order_id
-         WHERE o.studio_id = ? AND r.status IN (2,3)`,
+         WHERE o.studio_id = ? AND r.status = 3`,
         { replacements: [studioId], type: sequelize.QueryTypes.SELECT }
       ),
       // 总售出课时
@@ -243,11 +243,11 @@ async function getStudioReports(studioId) {
       ),
       // 近期退款流水
       Refund.findAll({
-        where: { status: { [Op.in]: [2, 3] } },
+        where: { status: 3 },
         include: [
           { model: Order, as: "order", where: { studio_id: studioId }, required: true, attributes: ["order_id", "order_no"] }
         ],
-        order: [["reviewed_at", "DESC"]],
+        order: [["refunded_at", "DESC"]],
         limit: 10
       })
     ]);
@@ -284,7 +284,7 @@ async function getStudioReports(studioId) {
       refund_id: String(item.refund_id),
       amount: Number(item.amount),
       status: item.status,
-      reviewed_at: item.reviewed_at
+      refunded_at: item.refunded_at
     }))
   };
 }

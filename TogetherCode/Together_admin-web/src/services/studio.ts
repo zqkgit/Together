@@ -851,7 +851,7 @@ export interface StudioReportData {
   lessons: { sold: number; consumed: number; remaining: number };
   students: { total: number; active: number; month_new: number };
   operations: { courses: number; classes: number; teachers: number };
-  recent_refunds: Array<{ refund_id: string; amount: number; status: number; reviewed_at: string | null }>;
+  recent_refunds: Array<{ refund_id: string; amount: number; status: number; refunded_at: string | null }>;
 }
 
 export async function fetchStudioReport(): Promise<StudioReportData> {
