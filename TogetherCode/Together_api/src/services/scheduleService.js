@@ -44,6 +44,7 @@ function normalizeScheduleItem(item) {
     is_makeup: Boolean(item.is_makeup),
     makeup_from: item.makeup_from ? String(item.makeup_from) : null,
     status: item.status,
+    lesson_no: item.lesson_no != null ? Number(item.lesson_no) : null,
     remark: item.remark,
     class: item.classItem
       ? {
@@ -364,6 +365,17 @@ async function createStudioSchedule(payload) {
       throw new Error("Schedule conflict detected");
     }
 
+    // 同一班级不允许重复排同一课次
+    if (payload.lesson_no != null) {
+      const dupLesson = await Schedule.findOne({
+        where: { class_id: payload.class_id, lesson_no: Number(payload.lesson_no) },
+        transaction
+      });
+      if (dupLesson) {
+        throw new Error(`第${payload.lesson_no}课已排课，不允许重复排课`);
+      }
+    }
+
     const schedule = await Schedule.create(
       {
         schedule_id: generateId(),
@@ -378,6 +390,7 @@ async function createStudioSchedule(payload) {
         is_makeup: Boolean(payload.is_makeup || payload.makeup_from),
         makeup_from: payload.makeup_from || null,
         status: payload.status !== undefined ? Number(payload.status) : 0,
+        lesson_no: payload.lesson_no != null ? Number(payload.lesson_no) : null,
         remark: payload.remark || null
       },
       { transaction }
@@ -782,6 +795,7 @@ async function batchCreateStudioSchedules(payload) {
           is_makeup: false,
           makeup_from: null,
           status: 0,
+          lesson_no: payload.lesson_no != null ? Number(payload.lesson_no) : null,
           remark: payload.remark || null
         },
         { transaction }

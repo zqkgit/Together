@@ -79,6 +79,12 @@ function schedulesOf(date: string): ScheduleItem[] {
   return schedules.value.filter((item) => item.lesson_date === date);
 }
 
+function isScheduleEnded(item: ScheduleItem): boolean {
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  return item.lesson_date < today || (item.lesson_date === today && item.end_time <= `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
+}
+
 async function loadData() {
   loading.value = true;
   try {
@@ -162,9 +168,8 @@ function currentLessonCount(classId: string): number {
 function scheduledLessonNos(classId: string): Set<number> {
   const set = new Set<number>();
   for (const s of schedules.value) {
-    if (s.class_id === classId && s.remark) {
-      const m = s.remark.match(/^第(\d+)课/);
-      if (m) set.add(Number(m[1]));
+    if (s.class_id === classId && s.lesson_no != null) {
+      set.add(s.lesson_no);
     }
   }
   return set;
@@ -233,6 +238,7 @@ async function submitCreate() {
       start_time: form.value.start_time,
       end_time: form.value.end_time,
       location: form.value.location || undefined,
+      lesson_no: form.value.lesson_no || undefined,
       remark: form.value.remark || undefined
     });
     ElMessage.success("排课成功");
@@ -252,12 +258,15 @@ const editForm = ref({
   schedule_id: "",
   class_name: "",
   course_title: "",
+  course_id: "",
+  class_id: "",
   teacher_id: "",
   teacher_name: "",
   lesson_date: "",
   start_time: "18:30",
   end_time: "20:00",
   location: "",
+  lesson_no: null as number | null,
   remark: "",
   started: false,
   consumed: false
@@ -271,20 +280,29 @@ async function openEdit(item: ScheduleItem) {
     schedule_id: item.schedule_id,
     class_name: item.class?.name || "-",
     course_title: item.course?.title || "",
+    course_id: item.course_id || "",
+    class_id: item.class_id || "",
     teacher_id: item.teacher_id || "",
     teacher_name: item.teacher?.real_name || "",
     lesson_date: item.lesson_date,
     start_time: item.start_time,
     end_time: item.end_time,
     location: item.location || "",
+    lesson_no: item.lesson_no,
     remark: item.remark || "",
     started: isStarted,
     consumed: item.status !== 0
   };
-  // 加载老师列表供选择
+  // 加载老师列表和课程课时信息
   try {
-    const data = await fetchStudioTeachers();
-    teachers.value = data.staff;
+    const [teacherData, courseData] = await Promise.all([
+      fetchStudioTeachers(),
+      fetchStudioCourses({ studio_id: studioId.value })
+    ]);
+    teachers.value = teacherData.staff;
+    courseLessonsMap.value = Object.fromEntries(
+      courseData.map((c) => [c.course_id, (c.lessons || []).sort((a, b) => a.lesson_no - b.lesson_no)])
+    );
   } catch {
     teachers.value = [];
   }
@@ -319,6 +337,14 @@ async function submitEdit() {
 async function handleDelete(item: ScheduleItem) {
   if (item.status !== 0) {
     ElMessage.warning("已消课排课不允许删除");
+    return;
+  }
+  // 课时已结束不允许删除
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const isEnded = item.lesson_date < today || (item.lesson_date === today && item.end_time <= `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
+  if (isEnded) {
+    ElMessage.warning("课时已结束，不允许删除");
     return;
   }
   try {
@@ -412,6 +438,7 @@ async function submitBatch() {
     start_time: batchForm.value.start_time,
     end_time: batchForm.value.end_time,
     location: batchForm.value.location || undefined,
+    lesson_no: batchForm.value.lesson_no || undefined,
     remark: batchForm.value.remark || undefined
   };
   if (batchForm.value.mode === "dates") {
@@ -593,6 +620,7 @@ onMounted(loadData);
               <div class="schedule-time">{{ item.start_time }}-{{ item.end_time }}</div>
               <div class="schedule-title">{{ item.class?.name || "-" }}</div>
               <div class="schedule-sub">{{ item.course?.title || "" }}</div>
+              <div class="schedule-lesson" v-if="item.lesson_no">第{{ item.lesson_no }}课<template v-if="item.remark"> · {{ item.remark }}</template></div>
               <div class="schedule-teacher" v-if="item.teacher">
                 老师：{{ item.teacher.real_name }}
               </div>
@@ -600,7 +628,7 @@ onMounted(loadData);
                 <el-button text size="small" type="primary" @click="openEdit(item)">
                   编辑
                 </el-button>
-                <el-button v-if="item.status === 0" text size="small" type="danger" @click="handleDelete(item)">
+                <el-button v-if="item.status === 0 && !isScheduleEnded(item)" text size="small" type="danger" @click="handleDelete(item)">
                   删除
                 </el-button>
                 <el-button text size="small" type="primary" @click="openAttendance(item)">
@@ -683,6 +711,13 @@ onMounted(loadData);
         </el-form-item>
         <el-form-item label="课程">
           <el-input :model-value="editForm.course_title" disabled style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="课次">
+          <el-input
+            :model-value="editForm.lesson_no ? `第${editForm.lesson_no}课${lessonTitleOf(editForm.class_id, editForm.lesson_no) ? ' · ' + lessonTitleOf(editForm.class_id, editForm.lesson_no) : ''}` : '未指定'"
+            disabled
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="授课老师">
           <el-select v-model="editForm.teacher_id" style="width: 100%" placeholder="选择老师" clearable :disabled="editForm.consumed || editForm.started">
@@ -1039,6 +1074,12 @@ onMounted(loadData);
 .schedule-teacher {
   font-size: 11px;
   color: #2f5d45;
+  margin-top: 2px;
+}
+
+.schedule-lesson {
+  font-size: 11px;
+  color: #b76e2a;
   margin-top: 2px;
 }
 

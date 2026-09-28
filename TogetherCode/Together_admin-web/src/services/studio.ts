@@ -370,6 +370,7 @@ export interface ScheduleItem {
   is_makeup: boolean;
   makeup_from: string | null;
   status: number;
+  lesson_no: number | null;
   remark: string | null;
   class: { class_id: string; name: string; capacity: number; enrolled: number } | null;
   course: { course_id: string; title: string } | null;
@@ -395,6 +396,7 @@ export async function createStudioSchedule(payload: {
   location?: string;
   is_makeup?: boolean;
   makeup_from?: string;
+  lesson_no?: number;
   remark?: string;
 }): Promise<ScheduleItem> {
   const response = await request.post("/studio/schedules", payload);
@@ -430,6 +432,7 @@ export async function batchCreateStudioSchedules(payload: {
   start_time: string;
   end_time: string;
   location?: string;
+  lesson_no?: number;
   remark?: string;
   dates?: string[];
   weekdays?: number[];

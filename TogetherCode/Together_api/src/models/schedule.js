@@ -54,6 +54,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.BIGINT,
         allowNull: true
       },
+      lesson_no: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+      },
       remark: {
         type: DataTypes.STRING(255),
         allowNull: true
