@@ -172,7 +172,7 @@ async function listStudioAudit(studioId, query = {}) {
       target_id: r.target_id,
       detail: r.detail,
       ip: r.ip,
-      created_at: r.created_at
+      created_at: r.createdAt
     }))
   };
 }
@@ -239,7 +239,7 @@ async function listStudioStaff(studioId, query = {}) {
       username: r.username,
       role: r.role,
       status: Number(r.status),
-      created_at: r.created_at
+      created_at: r.createdAt
     }))
   };
 }

@@ -13,6 +13,7 @@ const {
   reviewTeacherApplication,
   releaseTeacher
 } = require("../services/studioTeacherService");
+const { recordAudit } = require("../utils/audit");
 
 function getStudioId(req) {
   return req.admin.studioId;
@@ -35,6 +36,7 @@ async function putTeacherReview(req, res) {
     if (data?.error) {
       return fail(res, data.error.status || 400, 40000, data.error.message);
     }
+    await recordAudit({ actor: req.admin, studioId: getStudioId(req), action: "teacher.review", targetType: "teacher_application", targetId: req.params.id, ip: req.ip });
     return ok(res, data);
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");
@@ -47,6 +49,7 @@ async function deleteTeacherBinding(req, res) {
     if (data?.error) {
       return fail(res, data.error.status || 400, 40000, data.error.message);
     }
+    await recordAudit({ actor: req.admin, studioId: getStudioId(req), action: "teacher.unbind", targetType: "teacher", targetId: req.params.teacherId, ip: req.ip });
     return ok(res, data);
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");
@@ -87,6 +90,7 @@ async function postAccount(req, res) {
     if (data?.error) {
       return fail(res, data.error.status || 400, 40000, data.error.message);
     }
+    await recordAudit({ actor: req.admin, studioId: getStudioId(req), action: "studio.account.upsert", targetType: "studio_account", targetId: req.params.id, ip: req.ip });
     return ok(res, data);
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");
@@ -117,6 +121,7 @@ async function postStaff(req, res) {
     if (data?.error) {
       return fail(res, data.error.status || 400, 40000, data.error.message);
     }
+    await recordAudit({ actor: req.admin, studioId: getStudioId(req), action: "studio.staff.create", targetType: "admin_account", targetId: data.data?.admin_id, ip: req.ip });
     return ok(res, data);
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");
@@ -129,6 +134,7 @@ async function putStaffStatus(req, res) {
     if (data?.error) {
       return fail(res, data.error.status || 400, 40000, data.error.message);
     }
+    await recordAudit({ actor: req.admin, studioId: getStudioId(req), action: req.body.status === 0 ? "studio.staff.disable" : "studio.staff.enable", targetType: "admin_account", targetId: req.params.id, ip: req.ip });
     return ok(res, data);
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");

@@ -1,5 +1,6 @@
 const { ok, fail } = require("../utils/response");
 const { getStudioProfile, updateStudioProfile, reviewStudioLeave } = require("../services/studioService");
+const { recordAudit } = require("../utils/audit");
 
 async function getMyStudioProfile(req, res) {
   try {
@@ -21,6 +22,7 @@ async function putMyStudioProfile(req, res) {
       return fail(res, 404, 40480, "Studio not found");
     }
 
+    await recordAudit({ actor: req.admin, studioId: req.admin.studioId, action: "studio.profile", targetType: "studio", targetId: req.admin.studioId, ip: req.ip });
     return ok(res, data, "studio profile updated");
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");
@@ -34,6 +36,7 @@ async function reviewLeave(req, res) {
     if (!data) {
       return fail(res, 404, 40481, "Leave request not found");
     }
+    await recordAudit({ actor: req.admin, studioId: req.admin.studioId, action: "leave.review", targetType: "leave", targetId: req.params.id, ip: req.ip });
     return ok(res, data, "leave reviewed");
   } catch (error) {
     return fail(res, 400, 40062, error.message || "Internal server error");

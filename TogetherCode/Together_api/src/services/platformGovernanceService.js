@@ -91,7 +91,7 @@ async function listReports(query = {}) {
       status_text: REPORT_STATUS[Number(r.status)],
       handle_note: r.handle_note,
       handled_at: r.handled_at,
-      created_at: r.created_at
+      created_at: r.createdAt
     }))
   };
 }
@@ -234,7 +234,7 @@ async function listAnnouncements(query = {}) {
       status: Number(r.status),
       publish_at: r.publish_at,
       expire_at: r.expire_at,
-      created_at: r.created_at
+      created_at: r.createdAt
     }))
   };
 }
@@ -339,7 +339,7 @@ async function listPlatformAudit(query = {}) {
       target_id: r.target_id,
       detail: r.detail,
       ip: r.ip,
-      created_at: r.created_at
+      created_at: r.createdAt
     }))
   };
 }
@@ -381,7 +381,7 @@ async function listPosts(query = {}) {
       share_count: Number(r.share_count),
       status: Number(r.status),
       visibility: Number(r.visibility),
-      created_at: r.created_at
+      created_at: r.createdAt
     }))
   };
 }
@@ -410,7 +410,7 @@ async function listPlatformStaff(query = {}) {
       username: r.username,
       role: r.role,
       status: Number(r.status),
-      created_at: r.created_at
+      created_at: r.createdAt
     }))
   };
 }
@@ -486,7 +486,7 @@ async function listWithdrawals(query = {}) {
       status_text: WITHDRAW_STATUS_TEXT[Number(r.status)] || "未知",
       voucher_images: Array.isArray(r.voucher_images) ? r.voucher_images : [],
       reject_reason: r.reject_reason || null,
-      created_at: r.created_at,
+      created_at: r.createdAt,
       processed_at: r.processed_at || null,
       confirmed_at: r.confirmed_at || null,
       reviewed_at: r.reviewed_at

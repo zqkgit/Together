@@ -7,6 +7,7 @@ const {
   bindMakeupSchedule,
   cancelMyLeaveRequest
 } = require("../services/leaveService");
+const { recordAudit } = require("../utils/audit");
 
 async function getMyLeaves(req, res) {
   try {
@@ -52,6 +53,7 @@ async function putStudioLeave(req, res) {
     if (!data) {
       return fail(res, 404, 40450, "Leave request not found");
     }
+    await recordAudit({ actor: req.admin, studioId: req.admin.studioId, action: "leave.review", targetType: "leave", targetId: req.params.id, ip: req.ip });
     return ok(res, data, "leave handled");
   } catch (error) {
     const status = /already handled|already consumed|not found/i.test(error.message) ? 400 : 500;
@@ -65,6 +67,7 @@ async function putStudioLeaveMakeup(req, res) {
     if (!data) {
       return fail(res, 404, 40450, "Leave request not found");
     }
+    await recordAudit({ actor: req.admin, studioId: req.admin.studioId, action: "leave.makeup", targetType: "leave", targetId: req.params.id, ip: req.ip });
     return ok(res, data, "leave makeup updated");
   } catch (error) {
     const status = /not approved|not found|does not belong|already assigned|missing|completed|canceled|later/i.test(error.message) ? 400 : 500;

@@ -1,5 +1,6 @@
 const { ok, fail } = require("../utils/response");
 const { listCourses, listStudioCourses, getCourseDetail, createCourse, updateCourse } = require("../services/courseService");
+const { recordAudit } = require("../utils/audit");
 
 async function getCourses(req, res) {
   try {
@@ -35,6 +36,7 @@ async function getCourse(req, res) {
 async function postCourse(req, res) {
   try {
     const data = await createCourse(req.body);
+    await recordAudit({ actor: req.admin, studioId: req.admin.studioId, action: "course.create", targetType: "course", targetId: data?.course_id, ip: req.ip });
     return ok(res, data, "course created");
   } catch (error) {
     const status = /not found|does not belong/i.test(error.message) ? 400 : 500;
@@ -49,7 +51,7 @@ async function putCourse(req, res) {
     if (!data) {
       return fail(res, 404, 40410, "Course not found");
     }
-
+    await recordAudit({ actor: req.admin, studioId: req.admin.studioId, action: "course.update", targetType: "course", targetId: req.params.id, ip: req.ip });
     return ok(res, data, "course updated");
   } catch (error) {
     const status = /not found|does not belong/i.test(error.message) ? 400 : 500;

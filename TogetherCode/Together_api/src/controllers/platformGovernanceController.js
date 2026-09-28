@@ -54,7 +54,6 @@ async function putReportHandle(req, res) {
       action: "report.handle",
       targetType: "report",
       targetId: req.params.id,
-      detail: { status: result.data.status },
       ip: req.ip
     });
     return ok(res, result.data, result.message);
@@ -121,7 +120,6 @@ async function putConfig(req, res) {
       actor: req.admin,
       role: req.admin.role,
       action: "platform.config",
-      detail: { keys: result.data.updated },
       ip: req.ip
     });
     return ok(res, result.data, result.message);
@@ -280,7 +278,6 @@ async function putWithdrawalReview(req, res) {
       action: result.data.status === 3 ? "withdrawal.approve" : "withdrawal.reject",
       targetType: "withdrawal",
       targetId: req.params.id,
-      detail: { amount: req.body.amount },
       ip: req.ip
     });
     return ok(res, result.data, result.message);

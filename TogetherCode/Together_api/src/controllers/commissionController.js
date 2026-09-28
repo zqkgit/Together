@@ -12,6 +12,7 @@ const {
   setStudioDistributeRate
 } = require("../services/commissionService");
 const { createWxacodeForCode } = require("../services/wxCodeService");
+const { recordAudit } = require("../utils/audit");
 
 /* ===================== 家长 / 推广人 ===================== */
 
@@ -122,6 +123,7 @@ async function putStudioWithdrawalReview(req, res) {
       return fail(res, result.error.status, result.error.code, result.error.message);
     }
     const msg = req.body.action === "reject" ? "已驳回" : "已登记打款";
+    await recordAudit({ actor: req.admin, studioId: req.admin.studioId, action: req.body.action === "reject" ? "commission.reject" : "commission.approve", targetType: "withdrawal", targetId: req.params.id, ip: req.ip });
     return ok(res, result, msg);
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");
@@ -135,6 +137,7 @@ async function putStudioDistributeRate(req, res) {
     if (result.error) {
       return fail(res, result.error.status, result.error.code, result.error.message);
     }
+    await recordAudit({ actor: req.admin, studioId: req.admin?.studioId || req.body.studio_id, action: "commission.set_rate", targetType: "studio", ip: req.ip });
     return ok(res, result.data, "返利比例已更新");
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");

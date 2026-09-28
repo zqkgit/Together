@@ -11,6 +11,7 @@ const {
   createTeacherSchedule
 } = require("../services/scheduleService");
 const { listClassStudents, attendSchedule } = require("../services/studentService");
+const { recordAudit } = require("../utils/audit");
 
 async function getStudioClasses(req, res) {
   try {
@@ -24,6 +25,7 @@ async function getStudioClasses(req, res) {
 async function postStudioClass(req, res) {
   try {
     const data = await createStudioClass(req.body);
+    await recordAudit({ actor: req.admin, studioId: req.admin.studioId, action: "class.create", targetType: "class", targetId: data?.class_id, ip: req.ip });
     return ok(res, data, "class created");
   } catch (error) {
     const status = /not found|does not belong/i.test(error.message) ? 400 : 500;
@@ -34,6 +36,7 @@ async function postStudioClass(req, res) {
 async function putStudioClass(req, res) {
   try {
     const data = await updateStudioClass(req.params.id, req.body);
+    await recordAudit({ actor: req.admin, studioId: req.admin.studioId, action: "class.update", targetType: "class", targetId: req.params.id, ip: req.ip });
     return ok(res, data, "class updated");
   } catch (error) {
     const status = /not found|does not belong/i.test(error.message) ? 400 : 500;
@@ -65,6 +68,7 @@ async function getStudioSchedules(req, res) {
 async function postStudioSchedule(req, res) {
   try {
     const data = await createStudioSchedule(req.body);
+    await recordAudit({ actor: req.admin, studioId: req.admin.studioId, action: "schedule.create", targetType: "schedule", targetId: data?.schedule_id, ip: req.ip });
     return ok(res, data, "schedule created");
   } catch (error) {
     const status = /not found|does not belong|conflict|greater than|排课日期数|超过/i.test(error.message) ? 400 : 500;
@@ -89,6 +93,7 @@ async function postScheduleAttendance(req, res) {
     if (!data) {
       return fail(res, 404, 40441, "Schedule not found");
     }
+    await recordAudit({ actor: req.admin, studioId: req.admin.studioId, action: "schedule.attendance", targetType: "schedule", targetId: req.params.id, ip: req.ip });
     return ok(res, data, "attendance submitted");
   } catch (error) {
     const status = /not found|not available|exceed|already/i.test(error.message) ? 400 : 500;
@@ -103,6 +108,7 @@ async function putStudioSchedule(req, res) {
     if (!data) {
       return fail(res, 404, 40441, "Schedule not found");
     }
+    await recordAudit({ actor: req.admin, studioId: req.admin.studioId, action: "schedule.update", targetType: "schedule", targetId: req.params.id, ip: req.ip });
     return ok(res, data, "schedule updated");
   } catch (error) {
     const status = /not found|conflict|not allowed|greater than|已消课|已开始/i.test(error.message) ? 400 : 500;
@@ -114,6 +120,7 @@ async function putStudioSchedule(req, res) {
 async function postStudioScheduleBatch(req, res) {
   try {
     const data = await batchCreateStudioSchedules(req.body);
+    await recordAudit({ actor: req.admin, studioId: req.admin.studioId, action: "schedule.batch_create", targetType: "schedule", ip: req.ip });
     return ok(res, data, "schedules created");
   } catch (error) {
     const status = /not found|does not belong|conflict|greater than|排课日期数|超过/i.test(error.message) ? 400 : 500;
@@ -128,6 +135,7 @@ async function deleteStudioScheduleHandler(req, res) {
     if (!data) {
       return fail(res, 404, 40442, "Schedule not found");
     }
+    await recordAudit({ actor: req.admin, studioId: req.admin.studioId, action: "schedule.delete", targetType: "schedule", targetId: req.params.id, ip: req.ip });
     return ok(res, data, "schedule deleted");
   } catch (error) {
     const status = /not found|not allowed|已消课|已开始/i.test(error.message) ? 400 : 500;

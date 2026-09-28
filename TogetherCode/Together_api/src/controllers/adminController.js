@@ -72,8 +72,7 @@ async function putStudioBan(req, res) {
       actor: req.admin,
       action: "studio.ban",
       target_type: "studio",
-      target_id: req.params.id,
-      detail: { reason: req.body.reason || "" }
+      target_id: req.params.id
     });
     return ok(res, data);
   } catch (error) {
@@ -148,8 +147,7 @@ async function putTeacherApplicationReview(req, res) {
       actor: req.admin,
       action: `teacher_application.${req.body.action || "review"}`,
       target_type: "teacher_application",
-      target_id: req.params.id,
-      detail: { reason: req.body.reason || "" }
+      target_id: req.params.id
     });
     return ok(res, result);
   } catch (error) {
@@ -263,8 +261,7 @@ async function putCourseReviewAudit(req, res) {
       actor: req.admin,
       action: req.body.action === "approve" ? "course_review.approve" : "course_review.reject",
       target_type: "course_review",
-      target_id: req.params.id,
-      detail: { reason: req.body.reason || "" }
+      target_id: req.params.id
     });
     return ok(res, result, req.body.action === "approve" ? "评价已通过" : "评价已驳回");
   } catch (error) {

@@ -11,6 +11,7 @@ const {
   rejectStudioPayment,
   cancelStudioOrder
 } = require("../services/studioOrderService");
+const { recordAudit } = require("../utils/audit");
 
 async function getStudioOrders(req, res) {
   try {
@@ -53,6 +54,7 @@ async function putStudioRefund(req, res) {
       return fail(res, 404, 40491, "Refund not found");
     }
 
+    await recordAudit({ actor: req.admin, studioId: req.admin.studioId, action: isConfirm ? "studio.refund.confirm" : "studio.refund.review", targetType: "refund", targetId: req.params.id, ip: req.ip });
     return ok(res, data, isConfirm ? "refund paid" : "refund handled");
   } catch (error) {
     const status = /already handled|exceed|not found|awaiting|请选择|凭证|退款方式|驳回|原因|必填/i.test(error.message) ? 400 : 500;
@@ -74,6 +76,7 @@ async function getStudioOrderContacts(req, res) {
 async function postStudioOrder(req, res) {
   try {
     const data = await createStudioOrder(req.admin.studioId, req.body, req.admin);
+    await recordAudit({ actor: req.admin, studioId: req.admin.studioId, action: "order.create", targetType: "order", targetId: data?.order_id, ip: req.ip });
     return ok(res, data, "order created");
   } catch (error) {
     const status = /不存在|不属于|联系人库|重复|待收款|满员|金额|凭证|支付方式|未上架/i.test(error.message) ? 400 : 500;
@@ -88,6 +91,7 @@ async function postStudioPaymentConfirm(req, res) {
     if (!data) {
       return fail(res, 404, 40490, "Order not found");
     }
+    await recordAudit({ actor: req.admin, studioId: req.admin.studioId, action: "order.payment_confirm", targetType: "order", targetId: req.params.id, ip: req.ip });
     return ok(res, data, "payment confirmed");
   } catch (error) {
     const status = /不是待收款|不是待确认收款|支付方式|凭证|请选择|现金/i.test(error.message) ? 400 : 500;
@@ -102,6 +106,7 @@ async function postStudioPaymentReject(req, res) {
     if (!data) {
       return fail(res, 404, 40490, "Order not found");
     }
+    await recordAudit({ actor: req.admin, studioId: req.admin.studioId, action: "order.payment_reject", targetType: "order", targetId: req.params.id, ip: req.ip });
     return ok(res, data, "payment voucher rejected");
   } catch (error) {
     const status = /不是待收款|不是待确认收款|凭证|没有待审核/i.test(error.message) ? 400 : 500;
@@ -116,6 +121,7 @@ async function postStudioOrderCancel(req, res) {
     if (!data) {
       return fail(res, 404, 40490, "Order not found");
     }
+    await recordAudit({ actor: req.admin, studioId: req.admin.studioId, action: "order.cancel", targetType: "order", targetId: req.params.id, ip: req.ip });
     return ok(res, data, "order cancelled");
   } catch (error) {
     const status = /待收款|待确认收款|仅待收款/i.test(error.message) ? 400 : 500;

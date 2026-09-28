@@ -4,6 +4,7 @@ const {
   consumeStudentLessons,
   listStudentLessonLogs
 } = require("../services/studentService");
+const { recordAudit } = require("../utils/audit");
 
 async function getStudentLessonLogs(req, res) {
   try {
@@ -33,7 +34,7 @@ async function postConsumeLessons(req, res) {
     if (!data) {
       return fail(res, 404, 40430, "Student order not found");
     }
-
+    await recordAudit({ actor: req.admin, studioId: req.admin.studioId, action: "student.consume", targetType: "student_order", targetId: req.params.id, ip: req.ip });
     return ok(res, data, "lesson consumed");
   } catch (error) {
     const status = /not available|not found|exceed/i.test(error.message) ? 400 : 500;
