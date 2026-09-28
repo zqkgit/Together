@@ -179,7 +179,10 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
         case .studio(let item):
             let cell = tableView.dequeueReusableCell(withIdentifier: "HomeStudioCell", for: indexPath) as! HomeStudioCell
             cell.configure(item: item)
-            cell.onTap = { [weak self] in self?.showToast("工作室主页开发中") }
+            cell.onTap = { [weak self] in
+                let vc = StudioHomepageViewController(studioId: item.studio_id)
+                self?.navigationController?.pushViewController(vc, animated: true)
+            }
             return cell
         case .postHeader:
             let cell = tableView.dequeueReusableCell(withIdentifier: "HomeSectionCell", for: indexPath) as! HomeSectionCell

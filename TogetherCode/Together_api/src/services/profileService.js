@@ -194,6 +194,14 @@ async function getStudioHomepage(studioId, query = {}) {
     ]
   });
 
+  // 计算工作室评分（老师平均分）
+  const teacherList = teachers
+    .map((binding) => binding.teacher)
+    .filter(Boolean);
+  const rating = teacherList.length
+    ? Number((teacherList.reduce((sum, t) => sum + Number(t.rating || 0), 0) / teacherList.length).toFixed(1))
+    : 0;
+
   return {
     studio: {
       studio_id: String(studio.studio_id),
@@ -205,7 +213,10 @@ async function getStudioHomepage(studioId, query = {}) {
       phone: studio.phone || null,
       hours: studio.hours || null,
       photos: studio.photos || [],
-      plan_tier: studio.plan_tier
+      plan_tier: studio.plan_tier,
+      rating,
+      course_count: courses.count,
+      teacher_count: teacherList.length
     },
     courses: {
       total: courses.count,
@@ -223,10 +234,7 @@ async function getStudioHomepage(studioId, query = {}) {
         status: course.status
       }))
     },
-    teachers: teachers
-      .map((binding) => binding.teacher)
-      .filter(Boolean)
-      .map((teacher) => ({
+    teachers: teacherList.map((teacher) => ({
         teacher_id: String(teacher.teacher_id),
         user_id: teacher.user ? String(teacher.user.user_id) : null,
         nickname: teacher.user?.nickname || teacher.real_name || "老师",
