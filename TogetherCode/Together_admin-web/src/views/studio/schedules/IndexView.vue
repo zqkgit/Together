@@ -124,9 +124,15 @@ function applyClassTeacher(target: "form" | "batch") {
   // 排课老师固定为班级授课老师，不可更换
   model.teacher_id = teacher?.teacher_id || cls?.teacher_id || "";
   model.teacher_name = teacher?.real_name || "";
-  // 默认第 1 节课，自动带出对应课时标题
-  model.lesson_no = 1;
-  model.remark = courseLessonsMap.value[cls?.course_id || ""]?.[0]?.title || "";
+  if (target === "form") {
+    // 单条排课：默认第 1 节课，自动带出对应课时标题
+    model.lesson_no = 1;
+    model.remark = courseLessonsMap.value[cls?.course_id || ""]?.[0]?.title || "";
+  } else {
+    // 批量排课：切换班级时清空已选课次和明细
+    batchForm.value.selected_lessons = [];
+    batchForm.value.lesson_items = [];
+  }
   // 自动带入班级上课时段
   const ruleTime = cls?.schedule_rule?.time;
   if (ruleTime && ruleTime.includes("-")) {
@@ -180,12 +186,11 @@ function lessonTitleOf(classId: string, no: number): string {
   return courseLessonsMap.value[cls?.course_id || ""]?.find((l) => l.lesson_no === no)?.title || "";
 }
 
-function onLessonNoChange(target: "form" | "batch") {
-  const model = target === "form" ? form.value : batchForm.value;
-  const cls = classes.value.find((c) => c.class_id === model.class_id);
-  const title = courseLessonsMap.value[cls?.course_id || ""]?.find((l) => l.lesson_no === model.lesson_no)?.title;
+function onLessonNoChange() {
+  const cls = classes.value.find((c) => c.class_id === form.value.class_id);
+  const title = courseLessonsMap.value[cls?.course_id || ""]?.find((l) => l.lesson_no === form.value.lesson_no)?.title;
   if (title) {
-    model.remark = title;
+    form.value.remark = title;
   }
 }
 
@@ -375,10 +380,9 @@ const batchForm = ref({
   start_time: "18:30",
   end_time: "20:00",
   location: "",
-  remark: "",
-  lesson_no: 1,
   mode: "dates" as "dates" | "weekly",
-  dates: [] as string[],
+  selected_lessons: [] as number[],
+  lesson_items: [] as { lesson_no: number; lesson_date: string; title: string }[],
   weekdays: [] as number[],
   start_date: ""
 });
@@ -401,10 +405,9 @@ async function openBatch() {
     start_time: "18:30",
     end_time: "20:00",
     location: "",
-    remark: "",
-    lesson_no: 1,
     mode: "dates",
-    dates: [],
+    selected_lessons: [],
+    lesson_items: [],
     weekdays: [],
     start_date: ""
   };
@@ -426,55 +429,115 @@ async function openBatch() {
   batchVisible.value = true;
 }
 
+// 批量排课：weekly 模式下根据 weekdays + start_date + 班级结束日期自动算出日期列表
+const batchWeeklyDates = computed(() => {
+  if (!batchForm.value.class_id || !batchForm.value.start_date || !batchForm.value.weekdays.length) return [];
+  const cls = classes.value.find((c) => c.class_id === batchForm.value.class_id);
+  const endDate = cls?.end_date ? String(cls.end_date).slice(0, 10) : addDays(batchForm.value.start_date, 180);
+  return expandWeeklyDates(batchForm.value.weekdays, batchForm.value.start_date, endDate);
+});
+
+// 课次多选变化时，重建 lesson_items（保留已有日期和标题）
+function onBatchLessonChange() {
+  const existing = new Map(batchForm.value.lesson_items.map((it) => [it.lesson_no, it]));
+  const items: { lesson_no: number; lesson_date: string; title: string }[] = [];
+  for (const no of batchForm.value.selected_lessons) {
+    const prev = existing.get(no);
+    items.push({
+      lesson_no: no,
+      lesson_date: prev?.lesson_date || "",
+      title: prev?.title || lessonTitleOf(batchForm.value.class_id, no)
+    });
+  }
+  batchForm.value.lesson_items = items;
+  // weekly 模式下自动填充日期
+  if (batchForm.value.mode === "weekly" && batchWeeklyDates.value.length > 0) {
+    fillBatchWeeklyDates();
+  }
+}
+
+// weekly 模式：将计算出的日期按顺序填入 lesson_items
+function fillBatchWeeklyDates() {
+  const dates = batchWeeklyDates.value;
+  const items = batchForm.value.lesson_items;
+  for (let i = 0; i < items.length && i < dates.length; i++) {
+    items[i].lesson_date = dates[i];
+  }
+}
+
+// weekly 模式下 weekdays 或 start_date 变化时自动填充日期
+function onBatchWeeklyChange() {
+  if (batchForm.value.mode === "weekly" && batchWeeklyDates.value.length > 0) {
+    fillBatchWeeklyDates();
+  }
+}
+
+// dates 模式：按周顺延填充日期快捷按钮
+function fillBatchDatesByWeek() {
+  if (!batchForm.value.start_date) {
+    ElMessage.warning("请先选择开始日期");
+    return;
+  }
+  const startDate = batchForm.value.start_date;
+  const items = batchForm.value.lesson_items;
+  const filledDates = new Set(items.filter((it) => it.lesson_date).map((it) => it.lesson_date));
+  let cursor = new Date(`${startDate}T00:00:00`);
+  for (const item of items) {
+    if (!item.lesson_date) {
+      while (filledDates.has(formatDate(cursor))) {
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      item.lesson_date = formatDate(cursor);
+      filledDates.add(item.lesson_date);
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  }
+}
+
 async function submitBatch() {
   if (!batchForm.value.class_id) {
     ElMessage.warning("请选择班级");
     return;
   }
+  if (!batchForm.value.selected_lessons.length) {
+    ElMessage.warning("请选择课次");
+    return;
+  }
+  // 校验每项都有日期
+  const missingDate = batchForm.value.lesson_items.find((it) => !it.lesson_date);
+  if (missingDate) {
+    ElMessage.warning(`第${missingDate.lesson_no}课未设置上课日期`);
+    return;
+  }
+  // 校验日期不重复
+  const dateSet = new Set<string>();
+  for (const it of batchForm.value.lesson_items) {
+    if (dateSet.has(it.lesson_date)) {
+      ElMessage.warning(`日期 ${it.lesson_date} 重复，请检查`);
+      return;
+    }
+    dateSet.add(it.lesson_date);
+  }
+  // 校验课次数不超过课程总课时数
   const maxLessons = currentLessonCount(batchForm.value.class_id);
-  const payload: Record<string, unknown> = {
-    studio_id: studioId.value,
-    class_id: batchForm.value.class_id,
-    start_time: batchForm.value.start_time,
-    end_time: batchForm.value.end_time,
-    location: batchForm.value.location || undefined,
-    lesson_no: batchForm.value.lesson_no || undefined,
-    remark: batchForm.value.remark || undefined
-  };
-  if (batchForm.value.mode === "dates") {
-    if (!batchForm.value.dates.length) {
-      ElMessage.warning("请选择上课日期");
-      return;
-    }
-    if (batchForm.value.dates.length > maxLessons) {
-      ElMessage.warning(`所选日期数（${batchForm.value.dates.length}）超过课程总课时数（${maxLessons}）`);
-      return;
-    }
-    payload.dates = batchForm.value.dates;
-  } else {
-    if (!batchForm.value.weekdays.length) {
-      ElMessage.warning("请选择每周几上课");
-      return;
-    }
-    if (!batchForm.value.start_date) {
-      ElMessage.warning("请选择开始日期");
-      return;
-    }
-    // weekly �模式：展开日期数校验
-    const cls = classes.value.find((c) => c.class_id === batchForm.value.class_id);
-    if (cls?.end_date) {
-      const expandedDates = expandWeeklyDates(batchForm.value.weekdays, batchForm.value.start_date, String(cls.end_date).slice(0, 10));
-      if (expandedDates.length > maxLessons) {
-        ElMessage.warning(`每周固定展开日期数（${expandedDates.length}）超过课程总课时数（${maxLessons}）`);
-        return;
-      }
-    }
-    payload.weekdays = batchForm.value.weekdays;
-    payload.start_date = batchForm.value.start_date;
+  if (batchForm.value.lesson_items.length > maxLessons) {
+    ElMessage.warning(`所选课次数（${batchForm.value.lesson_items.length}）超过课程总课时数（${maxLessons}）`);
+    return;
   }
   batchSubmitting.value = true;
   try {
-    const result = await batchCreateStudioSchedules(payload as never);
+    const result = await batchCreateStudioSchedules({
+      studio_id: studioId.value,
+      class_id: batchForm.value.class_id,
+      start_time: batchForm.value.start_time,
+      end_time: batchForm.value.end_time,
+      location: batchForm.value.location || undefined,
+      items: batchForm.value.lesson_items.map((it) => ({
+        lesson_no: it.lesson_no,
+        lesson_date: it.lesson_date,
+        title: it.title || undefined
+      }))
+    });
     ElMessage.success(
       result.created > 0
         ? `已生成 ${result.created} 条排课${result.skipped > 0 ? `，跳过 ${result.skipped} 条冲突` : ""}`
@@ -661,7 +724,7 @@ onMounted(loadData);
             style="width: 100%"
             placeholder="选择第几节课"
             :disabled="!form.class_id"
-            @change="onLessonNoChange('form')"
+            @change="onLessonNoChange()"
           >
             <el-option
               v-for="i in currentLessonCount(form.class_id)"
@@ -800,7 +863,7 @@ onMounted(loadData);
     </el-dialog>
 
     <!-- 批量排课 -->
-    <el-dialog v-model="batchVisible" title="批量排课" width="560px">
+    <el-dialog v-model="batchVisible" title="批量排课" width="700px">
       <el-form label-width="100px">
         <el-form-item label="班级" required>
           <el-select v-model="batchForm.class_id" style="width: 100%" placeholder="选择班级" @change="applyClassTeacher('batch')">
@@ -813,21 +876,17 @@ onMounted(loadData);
           </el-select>
         </el-form-item>
         <el-form-item label="课次" required>
-          <el-select
-            v-model="batchForm.lesson_no"
-            style="width: 100%"
-            placeholder="选择第几节课"
-            :disabled="!batchForm.class_id"
-            @change="onLessonNoChange('batch')"
-          >
-            <el-option
+          <div v-if="!batchForm.class_id" class="batch-hint">请先选择班级</div>
+          <el-checkbox-group v-else v-model="batchForm.selected_lessons" @change="onBatchLessonChange">
+            <el-checkbox
               v-for="i in currentLessonCount(batchForm.class_id)"
               :key="i"
-              :label="`第${i}课${lessonTitleOf(batchForm.class_id, i) ? ' · ' + lessonTitleOf(batchForm.class_id, i) : ''}`"
               :value="i"
               :disabled="scheduledLessonNos(batchForm.class_id).has(i)"
-            />
-          </el-select>
+            >
+              第{{ i }}课<template v-if="lessonTitleOf(batchForm.class_id, i)"> · {{ lessonTitleOf(batchForm.class_id, i) }}</template>
+            </el-checkbox>
+          </el-checkbox-group>
         </el-form-item>
         <el-form-item label="授课老师">
           <el-input
@@ -848,18 +907,10 @@ onMounted(loadData);
             <el-radio-button value="weekly">每周固定</el-radio-button>
           </el-radio-group>
         </el-form-item>
-        <el-form-item v-if="batchForm.mode === 'dates'" label="上课日期" required>
-          <el-date-picker
-            v-model="batchForm.dates"
-            type="dates"
-            value-format="YYYY-MM-DD"
-            style="width: 100%"
-            placeholder="可多选日期"
-          />
-        </el-form-item>
-        <template v-else>
+        <!-- weekly 模式：选每周几 + 开始日期 -->
+        <template v-if="batchForm.mode === 'weekly'">
           <el-form-item label="每周" required>
-            <el-checkbox-group v-model="batchForm.weekdays">
+            <el-checkbox-group v-model="batchForm.weekdays" @change="onBatchWeeklyChange">
               <el-checkbox v-for="w in WEEK_OPTIONS" :key="w.value" :value="w.value">
                 {{ w.label }}
               </el-checkbox>
@@ -872,15 +923,51 @@ onMounted(loadData);
               value-format="YYYY-MM-DD"
               style="width: 180px"
               placeholder="从哪天开始"
+              @change="onBatchWeeklyChange"
             />
             <span style="margin-left: 8px; color: #909399; font-size: 12px">结束日期取班级开课结束日期</span>
           </el-form-item>
         </template>
+        <!-- dates 模式：按周顺延填充日期按钮 -->
+        <el-form-item v-if="batchForm.mode === 'dates' && batchForm.selected_lessons.length" label="">
+          <el-button size="small" @click="fillBatchDatesByWeek" :disabled="!batchForm.start_date">
+            按周顺延填充日期
+          </el-button>
+          <el-date-picker
+            v-model="batchForm.start_date"
+            type="date"
+            value-format="YYYY-MM-DD"
+            style="width: 160px; margin-left: 8px"
+            placeholder="起始日期"
+          />
+        </el-form-item>
+        <!-- 排课明细表格 -->
+        <el-form-item v-if="batchForm.lesson_items.length" label="排课明细">
+          <el-table :data="batchForm.lesson_items" size="small" border class="batch-detail-table">
+            <el-table-column label="课次" width="80" align="center">
+              <template #default="{ row }">第{{ row.lesson_no }}课</template>
+            </el-table-column>
+            <el-table-column label="上课日期" min-width="160">
+              <template #default="{ row }">
+                <el-date-picker
+                  v-model="row.lesson_date"
+                  type="date"
+                  value-format="YYYY-MM-DD"
+                  style="width: 100%"
+                  placeholder="选择日期"
+                  :disabled="batchForm.mode === 'weekly'"
+                />
+              </template>
+            </el-table-column>
+            <el-table-column label="课时标题" min-width="200">
+              <template #default="{ row }">
+                <el-input v-model="row.title" placeholder="如：水彩第一课·认识三原色" maxlength="255" />
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-form-item>
         <el-form-item label="上课地点">
           <el-input v-model="batchForm.location" placeholder="如：3 号教室" />
-        </el-form-item>
-        <el-form-item label="课时标题">
-          <el-input v-model="batchForm.remark" type="textarea" :rows="2" maxlength="255" placeholder="批量排课的课时标题（家长端每节课显示此标题，不填显示第N课）" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -1115,5 +1202,14 @@ onMounted(loadData);
   .week-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+.batch-hint {
+  color: #9c9385;
+  font-size: 13px;
+}
+
+.batch-detail-table {
+  width: 100%;
 }
 </style>

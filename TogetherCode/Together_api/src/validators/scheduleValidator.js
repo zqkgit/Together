@@ -87,13 +87,18 @@ const batchCreateStudioScheduleValidators = [
     .matches(/^\d{2}:\d{2}$/)
     .withMessage("end_time must be HH:mm"),
   body("location").optional({ values: "falsy" }).isString().isLength({ max: 120 }),
-  body("lesson_no").optional({ values: "falsy" }).isInt({ min: 1 }).withMessage("lesson_no must be a positive integer"),
-  body("remark").optional({ values: "falsy" }).isString().isLength({ max: 255 }),
-  // 两种批量方式二选一：dates 直接给日期数组；或 weekdays + start_date/end_date 按每周几展开
+  // items 模式：每项含 lesson_no + lesson_date + title
+  body("items").optional().isArray({ min: 1 }).withMessage("items must be a non-empty array"),
+  body("items.*.lesson_no").optional({ values: "falsy" }).isInt({ min: 1 }).withMessage("items.*.lesson_no must be a positive integer"),
+  body("items.*.lesson_date").if(body("items").exists()).isISO8601().withMessage("items.*.lesson_date is required and must be a valid date"),
+  body("items.*.title").optional({ values: "falsy" }).isString().isLength({ max: 255 }),
+  // 兼容旧模式：dates 直接给日期数组；或 weekdays + start_date/end_date 按每周几展开
   body("dates").optional().isArray().withMessage("dates must be an array"),
   body("weekdays").optional().isArray().withMessage("weekdays must be an array"),
   body("start_date").optional({ values: "falsy" }).isISO8601().withMessage("start_date is invalid"),
-  body("end_date").optional({ values: "falsy" }).isISO8601().withMessage("end_date is invalid")
+  body("end_date").optional({ values: "falsy" }).isISO8601().withMessage("end_date is invalid"),
+  body("lesson_no").optional({ values: "falsy" }).isInt({ min: 1 }).withMessage("lesson_no must be a positive integer"),
+  body("remark").optional({ values: "falsy" }).isString().isLength({ max: 255 })
 ];
 
 const updateStudioScheduleValidators = [

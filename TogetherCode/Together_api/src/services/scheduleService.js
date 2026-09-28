@@ -720,27 +720,59 @@ function expandDates(payload, classItem) {
  * 冲突/已存在的日期自动跳过，不中断整批。
  */
 async function batchCreateStudioSchedules(payload) {
-  // 先查班级信息供 expandDates 使用
+  // 先查班级信息
   const classItem = await Class.findByPk(payload.class_id, {
     include: [{ model: Course, as: "course" }]
   });
-  const dates = expandDates(payload, classItem);
-  if (!dates.length) {
-    throw new Error("No valid dates provided");
-  }
-
-  // 批量排课日期数不能超过课程总课时数
-  if (classItem && classItem.course && classItem.course.total_lessons) {
-    const totalLessons = Number(classItem.course.total_lessons);
-    if (dates.length > totalLessons) {
-      throw new Error(`排课日期数（${dates.length}）超过课程总课时数（${totalLessons}）`);
-    }
-  }
 
   const startMinutes = parseTimeToMinutes(payload.start_time);
   const endMinutes = parseTimeToMinutes(payload.end_time);
   if (endMinutes <= startMinutes) {
     throw new Error("Schedule end time must be greater than start time");
+  }
+
+  // 判断是否为 items 模式（新：每项含 lesson_no + lesson_date + title）
+  const isItemsMode = Array.isArray(payload.items) && payload.items.length > 0;
+
+  // 构建 items 列表：统一为 { lesson_no, lesson_date, title } 结构
+  let items = [];
+  if (isItemsMode) {
+    items = payload.items.map((it) => ({
+      lesson_no: it.lesson_no != null ? Number(it.lesson_no) : null,
+      lesson_date: String(it.lesson_date).slice(0, 10),
+      title: it.title || null
+    }));
+  } else {
+    // 兼容旧模式：dates / weekdays + start_date
+    const dates = expandDates(payload, classItem);
+    if (!dates.length) {
+      throw new Error("No valid dates provided");
+    }
+    // 批量排课日期数不能超过课程总课时数
+    if (classItem && classItem.course && classItem.course.total_lessons) {
+      const totalLessons = Number(classItem.course.total_lessons);
+      if (dates.length > totalLessons) {
+        throw new Error(`排课日期数（${dates.length}）超过课程总课时数（${totalLessons}）`);
+      }
+    }
+    items = dates.map((d) => ({
+      lesson_no: payload.lesson_no != null ? Number(payload.lesson_no) : null,
+      lesson_date: d,
+      title: payload.remark || null
+    }));
+  }
+
+  if (!items.length) {
+    throw new Error("No valid schedule items provided");
+  }
+
+  // items 模式：校验课次不重复
+  if (isItemsMode) {
+    const lessonNos = items.map((it) => it.lesson_no).filter(Boolean);
+    const uniqueNos = new Set(lessonNos);
+    if (uniqueNos.size < lessonNos.length) {
+      throw new Error("排课明细中存在重复课次");
+    }
   }
 
   return sequelize.transaction(async (transaction) => {
@@ -758,11 +790,11 @@ async function batchCreateStudioSchedules(payload) {
 
     const created = [];
     const skipped = [];
-    for (const lessonDate of dates) {
+    for (const item of items) {
       // 同一班级/老师 同日同时段冲突检测
       const conflictWhere = {
         studio_id: payload.studio_id,
-        lesson_date: lessonDate,
+        lesson_date: item.lesson_date,
         [Op.or]: []
       };
       if (teacherId) {
@@ -771,13 +803,13 @@ async function batchCreateStudioSchedules(payload) {
       conflictWhere[Op.or].push({ class_id: payload.class_id });
 
       const existing = await Schedule.findAll({ where: conflictWhere, transaction });
-      const hasConflict = existing.some((item) => {
-        const itemStart = parseTimeToMinutes(item.start_time);
-        const itemEnd = parseTimeToMinutes(item.end_time);
+      const hasConflict = existing.some((row) => {
+        const itemStart = parseTimeToMinutes(row.start_time);
+        const itemEnd = parseTimeToMinutes(row.end_time);
         return startMinutes < itemEnd && endMinutes > itemStart;
       });
       if (hasConflict) {
-        skipped.push(lessonDate);
+        skipped.push(item.lesson_date);
         continue;
       }
 
@@ -788,15 +820,15 @@ async function batchCreateStudioSchedules(payload) {
           class_id: payload.class_id,
           course_id: classItem.course_id,
           teacher_id: teacherId,
-          lesson_date: lessonDate,
+          lesson_date: item.lesson_date,
           start_time: payload.start_time,
           end_time: payload.end_time,
           location: payload.location || null,
           is_makeup: false,
           makeup_from: null,
           status: 0,
-          lesson_no: payload.lesson_no != null ? Number(payload.lesson_no) : null,
-          remark: payload.remark || null
+          lesson_no: item.lesson_no,
+          remark: item.title || null
         },
         { transaction }
       );
@@ -804,7 +836,7 @@ async function batchCreateStudioSchedules(payload) {
     }
 
     return {
-      total: dates.length,
+      total: items.length,
       created: created.length,
       skipped: skipped.length,
       skipped_dates: skipped

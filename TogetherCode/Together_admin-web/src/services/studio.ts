@@ -432,6 +432,9 @@ export async function batchCreateStudioSchedules(payload: {
   start_time: string;
   end_time: string;
   location?: string;
+  /** 新模式：每项含独立课次+日期+标题 */
+  items?: { lesson_no: number; lesson_date: string; title?: string }[];
+  /** 兼容旧模式 */
   lesson_no?: number;
   remark?: string;
   dates?: string[];
