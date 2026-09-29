@@ -325,9 +325,15 @@ final class CustomDateRangeViewController: UIViewController {
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             title: "取消", style: .plain, target: self, action: #selector(dismissSelf)
         )
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            title: "确定", style: .done, target: self, action: #selector(confirm)
-        )
+        let confirmBtn = UIButton(type: .system)
+        confirmBtn.setTitle("确定", for: .normal)
+        confirmBtn.titleLabel?.font = .appSection(14)
+        confirmBtn.setTitleColor(.white, for: .normal)
+        confirmBtn.backgroundColor = Theme.Color.brand
+        confirmBtn.layer.cornerRadius = 14
+        confirmBtn.frame = CGRect(x: 0, y: 0, width: 56, height: 28)
+        confirmBtn.addTarget(self, action: #selector(confirm), for: .touchUpInside)
+        navigationItem.rightBarButtonItem = UIBarButtonItem(customView: confirmBtn)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
