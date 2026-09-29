@@ -9,6 +9,7 @@ import ESPullToRefresh
 final class CommissionWithdrawalsViewController: BaseViewController, UITableViewDataSource, UITableViewDelegate {
 
     private let tableView = UITableView(frame: .zero, style: .insetGrouped)
+    private let emptyView = EmptyStateView()
     private var rows: [CommissionWithdrawal] = []
     private var page = 1
     private var total = 0
@@ -19,6 +20,7 @@ final class CommissionWithdrawalsViewController: BaseViewController, UITableView
     override func viewDidLoad() {
         super.viewDidLoad()
         setupTableView()
+        setupEmptyView()
         loadData(reset: true)
         NotificationCenter.default.addObserver(
             self, selector: #selector(handleUpdated), name: .commissionUpdated, object: nil
@@ -55,10 +57,30 @@ final class CommissionWithdrawalsViewController: BaseViewController, UITableView
         }
     }
 
+    private func setupEmptyView() {
+        emptyView.isHidden = true
+        view.addSubview(emptyView)
+        emptyView.snp.makeConstraints {
+            $0.center.equalTo(tableView)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.xl)
+        }
+    }
+
+    private func updateEmptyState() {
+        if rows.isEmpty {
+            emptyView.isHidden = false
+            emptyView.show(style: .empty("暂无领取记录\n分享课程获得佣金后，可在此发起领取"))
+            view.bringSubviewToFront(emptyView)
+        } else {
+            emptyView.isHidden = true
+        }
+    }
+
     private func loadData(reset: Bool) {
         if reset { page = 1 }
         guard !isLoading else { return }
         isLoading = true
+        if reset { emptyView.show(style: .loading); emptyView.isHidden = false }
         CommissionService.fetchWithdrawals(page: page, pageSize: pageSize) { [weak self] result in
             guard let self else { return }
             self.isLoading = false
@@ -70,40 +92,36 @@ final class CommissionWithdrawalsViewController: BaseViewController, UITableView
                 if reset { self.rows = data.list } else { self.rows.append(contentsOf: data.list) }
                 self.page += 1
                 self.tableView.reloadData()
+                self.updateEmptyState()
             case .failure(let error):
                 self.showToast(error.message)
+                self.emptyView.isHidden = false
+                self.emptyView.show(style: .error(error.message) { [weak self] in self?.loadData(reset: true) })
             }
         }
     }
 
     // 每单一个 section（独立白卡）
-    func numberOfSections(in tableView: UITableView) -> Int { max(rows.count, 1) }
+    func numberOfSections(in tableView: UITableView) -> Int { rows.count }
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { 1 }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: WithdrawalRowCell.reuseID, for: indexPath) as! WithdrawalRowCell
-        if rows.isEmpty {
-            cell.configureEmpty()
-        } else {
-            cell.configure(with: rows[indexPath.section])
-        }
+        cell.configure(with: rows[indexPath.section])
         return cell
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        guard !rows.isEmpty else { return }
         navigationController?.pushViewController(
             CommissionWithdrawalDetailViewController(item: rows[indexPath.section]), animated: true
         )
     }
 
-    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        rows.isEmpty ? 180 : UITableView.automaticDimension
-    }
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat { UITableView.automaticDimension }
     func tableView(_ tableView: UITableView, estimatedHeightForRowAt indexPath: IndexPath) -> CGFloat { 130 }
 
-    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat { section == 0 ? 8 : 8 }
+    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat { 8 }
     func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
         section == numberOfSections(in: tableView) - 1 ? 24 : 8
     }
@@ -197,15 +215,6 @@ private final class WithdrawalRowCell: UITableViewCell {
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
-    func configureEmpty() {
-        nameLabel.text = "暂无领取记录"
-        statusTag.isHidden = true
-        amountLabel.text = ""
-        methodLabel.text = ""
-        timeLabel.text = "分享课程获得佣金后，可在此发起领取"
-        confirmButton.isHidden = true
-    }
 
     func configure(with item: CommissionWithdrawal) {
         nameLabel.text = item.studio?.name ?? "历史提现"
