@@ -83,6 +83,9 @@ extension StudioRevenueViewController: UITableViewDataSource, UITableViewDelegat
         if indexPath.row == 0 {
             let cell = tableView.dequeueReusableCell(withIdentifier: StudioFinanceHeaderCell.reuseID, for: indexPath) as! StudioFinanceHeaderCell
             cell.configure(with: finance?.summary, period: finance?.period)
+            cell.onCardTap = { [weak self] in
+                self?.navigationController?.pushViewController(CommissionWithdrawalsViewController(), animated: true)
+            }
             return cell
         }
         let cell = tableView.dequeueReusableCell(withIdentifier: StudioFinanceDetailCell.reuseID, for: indexPath) as! StudioFinanceDetailCell
@@ -100,9 +103,12 @@ extension StudioRevenueViewController: UITableViewDataSource, UITableViewDelegat
 private final class StudioFinanceHeaderCell: UITableViewCell {
     static let reuseID = "StudioFinanceHeaderCell"
 
+    var onCardTap: (() -> Void)?
+
     private let card = UIView()
     private let titleLabel = UILabel()
     private let periodLabel = UILabel()
+    private let chevron = UIImageView()
     private let gmvLabel = UILabel()
     private let gmvCaption = UILabel()
     private let columns: [FinanceColumn] = [FinanceColumn(), FinanceColumn(), FinanceColumn(), FinanceColumn()]
@@ -116,6 +122,8 @@ private final class StudioFinanceHeaderCell: UITableViewCell {
         card.backgroundColor = Theme.Color.brandDark
         card.layer.cornerRadius = Theme.Radius.card
         card.layer.masksToBounds = true
+        card.isUserInteractionEnabled = true
+        card.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(didTapCard)))
         contentView.addSubview(card)
         card.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.s)
@@ -131,12 +139,25 @@ private final class StudioFinanceHeaderCell: UITableViewCell {
             $0.top.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
         }
 
+        // 右上角：期间 + 箭头（点击查看领取记录）
         periodLabel.font = .appLabel(11)
         periodLabel.textColor = UIColor.white.withAlphaComponent(0.6)
         card.addSubview(periodLabel)
+
+        chevron.image = UIImage(systemName: "chevron.right")?
+            .withConfiguration(UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold))
+        chevron.tintColor = UIColor.white.withAlphaComponent(0.5)
+        chevron.contentMode = .scaleAspectFit
+        card.addSubview(chevron)
+        chevron.snp.makeConstraints {
+            $0.trailing.equalToSuperview().offset(-Theme.Spacing.cardInner)
+            $0.centerY.equalTo(titleLabel)
+            $0.width.equalTo(8)
+            $0.height.equalTo(12)
+        }
         periodLabel.snp.makeConstraints {
             $0.centerY.equalTo(titleLabel)
-            $0.trailing.equalToSuperview().offset(-Theme.Spacing.cardInner)
+            $0.trailing.equalTo(chevron.snp.leading).offset(-4)
         }
 
         gmvLabel.font = .appHero(28)
@@ -171,6 +192,10 @@ private final class StudioFinanceHeaderCell: UITableViewCell {
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    @objc private func didTapCard() {
+        onCardTap?()
+    }
 
     func configure(with summary: StudioFinanceSummary?, period: StudioFinancePeriod?) {
         let s = summary ?? StudioFinanceSummary(

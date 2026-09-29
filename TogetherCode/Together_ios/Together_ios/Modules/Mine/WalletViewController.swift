@@ -13,15 +13,9 @@ final class WalletViewController: BaseViewController, UITableViewDataSource, UIT
     private var summary: CommissionSummary?
     private var hasLoaded = false
 
-    /// 中间分组数（工作室卡片；无数据时 1 个空态占位）
-    private var middleCount: Int {
-        max(summary?.studios?.count ?? 0, 1)
-    }
+    /// 分组数：概览卡 + 工作室卡片（无数据时 1 个空态占位）
     private var totalSections: Int {
-        1 + middleCount + 1
-    }
-    private var entrySection: Int {
-        totalSections - 1
+        1 + max(summary?.studios?.count ?? 0, 1)
     }
 
     override func viewDidLoad() {
@@ -51,7 +45,6 @@ final class WalletViewController: BaseViewController, UITableViewDataSource, UIT
         tableView.register(OverviewCardCell.self, forCellReuseIdentifier: OverviewCardCell.reuseID)
         tableView.register(StudioWalletCell.self, forCellReuseIdentifier: StudioWalletCell.reuseID)
         tableView.register(WalletEmptyCell.self, forCellReuseIdentifier: WalletEmptyCell.reuseID)
-        tableView.register(MenuEntryCell.self, forCellReuseIdentifier: MenuEntryCell.reuseID)
         view.addSubview(tableView)
         tableView.snp.makeConstraints {
             $0.top.equalTo(view.safeAreaLayoutGuide)
@@ -91,14 +84,12 @@ final class WalletViewController: BaseViewController, UITableViewDataSource, UIT
         if indexPath.section == 0 {
             let cell = tableView.dequeueReusableCell(withIdentifier: OverviewCardCell.reuseID, for: indexPath) as! OverviewCardCell
             cell.configure(with: summary)
+            cell.onCardTap = { [weak self] in
+                self?.navigationController?.pushViewController(CommissionWithdrawalsViewController(), animated: true)
+            }
             return cell
         }
-        if indexPath.section == entrySection {
-            let cell = tableView.dequeueReusableCell(withIdentifier: MenuEntryCell.reuseID, for: indexPath) as! MenuEntryCell
-            cell.configure(title: "领取记录")
-            return cell
-        }
-        // 中间：工作室卡片 或 空态
+        // 工作室卡片 或 空态
         let studios = summary?.studios ?? []
         if studios.isEmpty {
             return tableView.dequeueReusableCell(withIdentifier: WalletEmptyCell.reuseID, for: indexPath)
@@ -114,10 +105,6 @@ final class WalletViewController: BaseViewController, UITableViewDataSource, UIT
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        if indexPath.section == entrySection {
-            navigationController?.pushViewController(CommissionWithdrawalsViewController(), animated: true)
-            return
-        }
         let studios = summary?.studios ?? []
         if !studios.isEmpty, indexPath.section >= 1, indexPath.section <= studios.count {
             navigationController?.pushViewController(
@@ -129,7 +116,6 @@ final class WalletViewController: BaseViewController, UITableViewDataSource, UIT
 
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         if indexPath.section == 0 { return 156 }
-        if indexPath.section == entrySection { return 52 }
         if (summary?.studios ?? []).isEmpty { return 200 }
         return UITableView.automaticDimension
     }
@@ -138,9 +124,7 @@ final class WalletViewController: BaseViewController, UITableViewDataSource, UIT
 
     // 显式设置 section header / footer，避免默认大间距（相邻卡片间距 16）
     func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat { 8 }
-    func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
-        section == entrySection ? 24 : 8
-    }
+    func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat { 8 }
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? { UIView() }
     func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? { UIView() }
 }
@@ -150,8 +134,11 @@ final class WalletViewController: BaseViewController, UITableViewDataSource, UIT
 private final class OverviewCardCell: UITableViewCell {
     static let reuseID = "OverviewCardCell"
 
+    var onCardTap: (() -> Void)?
+
     private let card = UIView()
     private let titleLabel = UILabel()
+    private let chevron = UIImageView()
     private let totalLabel = UILabel()
     private let columnStack = UIStackView()
     private let columns: [MiniColumn] = [MiniColumn(), MiniColumn(), MiniColumn()]
@@ -165,6 +152,8 @@ private final class OverviewCardCell: UITableViewCell {
         card.backgroundColor = Theme.Color.brandDark
         card.layer.cornerRadius = Theme.Radius.card
         card.layer.masksToBounds = true
+        card.isUserInteractionEnabled = true
+        card.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(didTapCard)))
         contentView.addSubview(card)
         card.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.s)
@@ -178,6 +167,19 @@ private final class OverviewCardCell: UITableViewCell {
         card.addSubview(titleLabel)
         titleLabel.snp.makeConstraints {
             $0.top.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
+        }
+
+        // 右上角箭头（点击查看领取记录）
+        chevron.image = UIImage(systemName: "chevron.right")?
+            .withConfiguration(UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold))
+        chevron.tintColor = UIColor.white.withAlphaComponent(0.5)
+        chevron.contentMode = .scaleAspectFit
+        card.addSubview(chevron)
+        chevron.snp.makeConstraints {
+            $0.trailing.equalToSuperview().offset(-Theme.Spacing.cardInner)
+            $0.centerY.equalTo(titleLabel)
+            $0.width.equalTo(8)
+            $0.height.equalTo(12)
         }
 
         totalLabel.font = .appHero(32)
@@ -201,6 +203,10 @@ private final class OverviewCardCell: UITableViewCell {
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    @objc private func didTapCard() {
+        onCardTap?()
+    }
 
     func configure(with summary: CommissionSummary?) {
         let stats = summary?.stats
@@ -422,49 +428,4 @@ private final class WalletEmptyCell: UITableViewCell {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 }
 
-// MARK: - 菜单入口 cell
 
-private final class MenuEntryCell: UITableViewCell {
-    static let reuseID = "MenuEntryCell"
-
-    private let titleLabel = UILabel()
-    private let chevron = UIImageView()
-
-    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
-        super.init(style: style, reuseIdentifier: reuseIdentifier)
-        backgroundColor = .clear
-        contentView.backgroundColor = .clear
-
-        let card = UIView()
-        card.backgroundColor = Theme.Color.surface
-        card.layer.cornerRadius = Theme.Radius.card
-        card.layer.masksToBounds = true
-        contentView.addSubview(card)
-        card.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(Theme.Spacing.s)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
-            $0.bottom.equalToSuperview().offset(-Theme.Spacing.s)
-        }
-
-        titleLabel.font = .appSection(15)
-        titleLabel.textColor = Theme.Color.ink
-        card.addSubview(titleLabel)
-        titleLabel.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
-            $0.centerY.equalToSuperview()
-        }
-
-        chevron.image = UIImage(systemName: "chevron.right")
-        chevron.tintColor = Theme.Color.muted
-        card.addSubview(chevron)
-        chevron.snp.makeConstraints {
-            $0.trailing.equalToSuperview().offset(-Theme.Spacing.cardInner)
-            $0.centerY.equalToSuperview()
-            $0.size.equalTo(CGSize(width: 10, height: 16))
-        }
-    }
-
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
-    func configure(title: String) { titleLabel.text = title }
-}
