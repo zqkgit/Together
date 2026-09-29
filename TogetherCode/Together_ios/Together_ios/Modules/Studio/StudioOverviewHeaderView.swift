@@ -88,7 +88,7 @@ final class StudioOverviewHeaderView: UIView {
     private func setupRevenueCard() {
         revenueCard.layer.cornerRadius = 18
         revenueCard.layer.masksToBounds = true
-        revenueCard.backgroundColor = Theme.Color.brandDark
+        revenueCard.backgroundColor = Theme.Color.brand
         addSubview(revenueCard)
         revenueCard.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(Theme.Spacing.l)
@@ -96,11 +96,11 @@ final class StudioOverviewHeaderView: UIView {
             $0.height.equalTo(178)
         }
 
-        // 深绿渐变（brand → brandDark），与「我的」封面同源
+        // 清新绿渐变（左上 brand → 右下亮绿）：顶部文字落在 brand 上保证清晰，右下角提亮透气
         let gradient = CAGradientLayer()
-        gradient.colors = [Theme.Color.brand.cgColor, Theme.Color.brandDark.cgColor]
+        gradient.colors = [Theme.Color.brand.cgColor, UIColor(hex: 0x5BAE85).cgColor]
         gradient.startPoint = CGPoint(x: 0, y: 0)
-        gradient.endPoint = CGPoint(x: 0.7, y: 1)
+        gradient.endPoint = CGPoint(x: 1, y: 1)
         gradient.frame = CGRect(x: 0, y: 0, width: 375, height: 178)
         revenueCard.layer.insertSublayer(gradient, at: 0)
         revenueGradient = gradient
@@ -319,7 +319,7 @@ final class OverviewStatCard: UIView {
         layer.shadowOffset = CGSize(width: 0, height: 6)
 
         valueLabel.font = .appHero(24)
-        valueLabel.textColor = Theme.Color.brandDark
+        valueLabel.textColor = Theme.Color.brand
         valueLabel.textAlignment = .center
         valueLabel.text = "0"
         addSubview(valueLabel)

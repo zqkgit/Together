@@ -21,12 +21,12 @@ enum Theme {
         /// 占位 / 禁用
         static let muted = UIColor(hex: 0x9C948A)
 
-        /// 品牌主色（深松绿）：主按钮 / 选中态 / Tab 选中 pill
-        static let brand = UIColor(hex: 0x2F5D45)
-        /// 品牌深色
-        static let brandDark = UIColor(hex: 0x22422F)
+        /// 品牌主色（清新嫩芽绿）：主按钮 / 选中态 / Tab 选中 pill
+        static let brand = UIColor(hex: 0x3D8B63)
+        /// 品牌深色（按压态 / 渐变深端）
+        static let brandDark = UIColor(hex: 0x2F7350)
         /// 品牌绿 tint（标签底）
-        static let brandSoft = UIColor(hex: 0xE8F0EA)
+        static let brandSoft = UIColor(hex: 0xE7F3EC)
 
         /// 木色（第二主色）：头像占位、功能图标
         static let wood = UIColor(hex: 0xA87A3E)
@@ -57,7 +57,7 @@ enum Theme {
 
         /// 柔和预设色板（主色 + 浅色成对）
         private static let palette: [(main: UIColor, soft: UIColor)] = [
-            (UIColor(hex: 0x2F5D45), UIColor(hex: 0xE8F0EA)), // 品牌绿
+            (UIColor(hex: 0x3D8B63), UIColor(hex: 0xE7F3EC)), // 品牌绿
             (UIColor(hex: 0x3A6B96), UIColor(hex: 0xE7EFF7)), // 蓝
             (UIColor(hex: 0x7C3AED), UIColor(hex: 0xF5F3FF)), // 紫
             (UIColor(hex: 0xC15F2C), UIColor(hex: 0xFAEDE5)), // 陶橙
