@@ -140,3 +140,34 @@ struct TeacherProfileWork: Codable {
         return "💬 \(c)"
     }
 }
+
+// MARK: - 老师公开评价
+
+/// GET /v1/profile/teacher/:id/reviews 响应
+struct TeacherReviewsData: Codable {
+    let total: Int?
+    let average: Double?
+    let rating_distribution: [String: Int]?
+    let list: [TeacherProfileReview]?
+}
+
+/// 单条评价
+struct TeacherProfileReview: Codable {
+    let review_id: String?
+    let rating: Int?
+    let content: String?
+    let created_at: String?
+    let user: TeacherReviewUser?
+    let course: TeacherReviewCourse?
+
+    /// 格式化日期
+    var dateText: String {
+        guard let time = created_at, time.count >= 10 else { return "" }
+        return String(time.prefix(10))
+    }
+    /// 评分星星文本
+    var ratingText: String {
+        let r = rating ?? 0
+        return String(repeating: "⭐", count: r)
+    }
+}

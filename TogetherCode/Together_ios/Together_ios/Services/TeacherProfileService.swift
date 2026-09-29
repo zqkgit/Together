@@ -25,4 +25,23 @@ final class TeacherProfileService {
             }
         }
     }
+
+    /// 获取老师公开评价列表
+    func fetchReviews(teacherId: String, page: Int = 1, size: Int = 10,
+                      completion: @escaping (Result<TeacherReviewsData, APIError>) -> Void) {
+        let params: [String: Any] = ["page": page, "size": size]
+        APIClient.shared.request("/profile/teacher/\(teacherId)/reviews",
+                                 method: .get,
+                                 parameters: params,
+                                 encoding: URLEncoding.default) { result in
+            switch result {
+            case .success(let json):
+                let data = JSONKit.decode(TeacherReviewsData.self, from: json)
+                    ?? TeacherReviewsData(total: 0, average: 0, rating_distribution: nil, list: nil)
+                completion(.success(data))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
 }
