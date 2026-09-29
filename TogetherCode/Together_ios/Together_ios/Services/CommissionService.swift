@@ -8,6 +8,10 @@ import SwiftyJSON
 
 /// 收益总览
 struct CommissionSummary: Codable {
+    struct Period: Codable {
+        let start_date: String?
+        let end_date: String?
+    }
     struct WalletInfo: Codable {
         let balance: Double?
         let frozen: Double?
@@ -34,6 +38,7 @@ struct CommissionSummary: Codable {
         let name: String?
         let cover: String?
     }
+    let period: Period?
     let wallet: WalletInfo?
     let stats: Stats?
     let studios: [StudioGroup]?
@@ -96,8 +101,18 @@ struct CommissionWithdrawal: Codable {
 enum CommissionService {
 
     /// 收益总览（含按工作室分组）
-    static func fetchSummary(completion: @escaping (Result<CommissionSummary, APIError>) -> Void) {
-        APIClient.shared.request("/distribution/commission/summary", method: .get) { result in
+    /// - Parameters:
+    ///   - startDate: 区间起始日期（yyyy-MM-dd），默认不限制
+    ///   - endDate: 区间结束日期（yyyy-MM-dd），默认不限制
+    static func fetchSummary(
+        startDate: String? = nil,
+        endDate: String? = nil,
+        completion: @escaping (Result<CommissionSummary, APIError>) -> Void
+    ) {
+        var params: [String: Any] = [:]
+        if let startDate { params["start_date"] = startDate }
+        if let endDate { params["end_date"] = endDate }
+        APIClient.shared.request("/distribution/commission/summary", method: .get, parameters: params, encoding: URLEncoding.default) { result in
             switch result {
             case .success(let json):
                 if let summary = JSONKit.decode(CommissionSummary.self, from: json) {

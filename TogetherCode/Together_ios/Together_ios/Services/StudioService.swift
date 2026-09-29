@@ -1398,8 +1398,18 @@ enum StudioService {
     // MARK: - 收益中心（财务对账 + 佣金审核）
 
     /// 财务对账数据（GET /studio/finance）
-    static func fetchFinance(completion: @escaping (Result<StudioFinanceData, APIError>) -> Void) {
-        APIClient.shared.request("/studio/finance", method: .get) { result in
+    /// - Parameters:
+    ///   - startDate: 区间起始日期（yyyy-MM-dd），默认本月1号
+    ///   - endDate: 区间结束日期（yyyy-MM-dd），默认本月最后一天
+    static func fetchFinance(
+        startDate: String? = nil,
+        endDate: String? = nil,
+        completion: @escaping (Result<StudioFinanceData, APIError>) -> Void
+    ) {
+        var params: [String: Any] = [:]
+        if let startDate { params["start_date"] = startDate }
+        if let endDate { params["end_date"] = endDate }
+        APIClient.shared.request("/studio/finance", method: .get, parameters: params, encoding: URLEncoding.default) { result in
             switch result {
             case .success(let json):
                 let data = JSONKit.decode(StudioFinanceData.self, from: json)

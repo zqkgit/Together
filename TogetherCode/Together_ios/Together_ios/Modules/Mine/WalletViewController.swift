@@ -13,6 +13,11 @@ final class WalletViewController: BaseViewController, UITableViewDataSource, UIT
     private var summary: CommissionSummary?
     private var hasLoaded = false
 
+    // 日期筛选状态
+    private var startDate: String = DateRangePreset.thisMonth.dates().0
+    private var endDate: String = DateRangePreset.thisMonth.dates().1
+    private var selectedPreset: DateRangePreset = .thisMonth
+
     /// 分组数：概览卡 + 工作室卡片（无数据时 1 个空态占位）
     private var totalSections: Int {
         1 + max(summary?.studios?.count ?? 0, 1)
@@ -20,7 +25,7 @@ final class WalletViewController: BaseViewController, UITableViewDataSource, UIT
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupTableView()
+        setupUI()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -37,7 +42,7 @@ final class WalletViewController: BaseViewController, UITableViewDataSource, UIT
 
     // MARK: - 布局
 
-    private func setupTableView() {
+    private func setupUI() {
         tableView.backgroundColor = Theme.Color.bg
         tableView.separatorStyle = .none
         tableView.dataSource = self
@@ -60,7 +65,7 @@ final class WalletViewController: BaseViewController, UITableViewDataSource, UIT
 
     private func loadData(silent: Bool) {
         if !silent { showLoading() }
-        CommissionService.fetchSummary { [weak self] result in
+        CommissionService.fetchSummary(startDate: startDate, endDate: endDate) { [weak self] result in
             guard let self else { return }
             self.hideLoading()
             self.tableView.es.stopPullToRefresh()
@@ -74,6 +79,46 @@ final class WalletViewController: BaseViewController, UITableViewDataSource, UIT
         }
     }
 
+    // MARK: - 日期筛选
+
+    private func showDateFilter() {
+        let titles = DateRangePreset.allCases.map { $0.title }
+        let sheet = ThemeActionSheet(
+            title: "选择时间范围",
+            actions: titles.map { ($0, false) }
+        )
+        sheet.onSelect = { [weak self] index in
+            guard let self, let preset = DateRangePreset.allCases[safe: index] else { return }
+            if case .custom = preset {
+                self.presentCustomDatePicker()
+            } else {
+                let (s, e) = preset.dates()
+                self.selectedPreset = preset
+                self.startDate = s
+                self.endDate = e
+                self.loadData(silent: false)
+            }
+        }
+        present(sheet, animated: false)
+    }
+
+    private func presentCustomDatePicker() {
+        let pickerVC = CustomDateRangeViewController(start: startDate, end: endDate)
+        pickerVC.onConfirm = { [weak self] start, end in
+            self?.selectedPreset = .custom
+            self?.startDate = start
+            self?.endDate = end
+            self?.loadData(silent: false)
+        }
+        let nav = UINavigationController(rootViewController: pickerVC)
+        nav.modalPresentationStyle = .pageSheet
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium()]
+            sheet.prefersGrabberVisible = true
+        }
+        present(nav, animated: true)
+    }
+
     // MARK: - TableView
 
     func numberOfSections(in tableView: UITableView) -> Int { totalSections }
@@ -83,9 +128,12 @@ final class WalletViewController: BaseViewController, UITableViewDataSource, UIT
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         if indexPath.section == 0 {
             let cell = tableView.dequeueReusableCell(withIdentifier: OverviewCardCell.reuseID, for: indexPath) as! OverviewCardCell
-            cell.configure(with: summary)
+            cell.configure(with: summary, preset: selectedPreset)
             cell.onCardTap = { [weak self] in
                 self?.navigationController?.pushViewController(CommissionWithdrawalsViewController(), animated: true)
+            }
+            cell.onPeriodTap = { [weak self] in
+                self?.showDateFilter()
             }
             return cell
         }
@@ -135,10 +183,11 @@ private final class OverviewCardCell: UITableViewCell {
     static let reuseID = "OverviewCardCell"
 
     var onCardTap: (() -> Void)?
+    var onPeriodTap: (() -> Void)?
 
     private let card = UIView()
     private let titleLabel = UILabel()
-    private let chevron = UIImageView()
+    private let periodButton = UIButton(type: .system)
     private let totalLabel = UILabel()
     private let columnStack = UIStackView()
     private let columns: [MiniColumn] = [MiniColumn(), MiniColumn(), MiniColumn()]
@@ -169,17 +218,21 @@ private final class OverviewCardCell: UITableViewCell {
             $0.top.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
         }
 
-        // 右上角箭头（点击查看领取记录）
-        chevron.image = UIImage(systemName: "chevron.right")?
-            .withConfiguration(UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold))
-        chevron.tintColor = UIColor.white.withAlphaComponent(0.5)
-        chevron.contentMode = .scaleAspectFit
-        card.addSubview(chevron)
-        chevron.snp.makeConstraints {
+        // 右上角：时间筛选按钮（期间 + 下箭头）
+        periodButton.titleLabel?.font = .appLabel(11)
+        periodButton.setTitleColor(UIColor.white.withAlphaComponent(0.7), for: .normal)
+        periodButton.setImage(UIImage(systemName: "chevron.down")?
+            .withConfiguration(UIImage.SymbolConfiguration(pointSize: 8, weight: .semibold)),
+            for: .normal)
+        periodButton.tintColor = UIColor.white.withAlphaComponent(0.5)
+        periodButton.semanticContentAttribute = .forceRightToLeft
+        periodButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: 2, bottom: 0, right: 0)
+        periodButton.titleEdgeInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: -2)
+        periodButton.addTarget(self, action: #selector(didTapPeriod), for: .touchUpInside)
+        card.addSubview(periodButton)
+        periodButton.snp.makeConstraints {
             $0.trailing.equalToSuperview().offset(-Theme.Spacing.cardInner)
             $0.centerY.equalTo(titleLabel)
-            $0.width.equalTo(8)
-            $0.height.equalTo(12)
         }
 
         totalLabel.font = .appHero(32)
@@ -208,9 +261,24 @@ private final class OverviewCardCell: UITableViewCell {
         onCardTap?()
     }
 
-    func configure(with summary: CommissionSummary?) {
+    @objc private func didTapPeriod() {
+        onPeriodTap?()
+    }
+
+    func configure(with summary: CommissionSummary?, preset: DateRangePreset?) {
         let stats = summary?.stats
         totalLabel.text = CommissionService.yuan(stats?.total_commission)
+        // 右上角按钮文案
+        if let preset {
+            periodButton.setTitle(preset.title, for: .normal)
+        } else if let start = summary?.period?.start_date, let end = summary?.period?.end_date,
+                  !start.isEmpty, !end.isEmpty {
+            let s = String(start.suffix(5))
+            let e = String(end.suffix(5))
+            periodButton.setTitle("\(s)~\(e)", for: .normal)
+        } else {
+            periodButton.setTitle("本月", for: .normal)
+        }
         let items: [(String, Double?)] = [
             ("待申请", stats?.receivable_commission),
             ("申请中", stats?.applying_commission),

@@ -11,9 +11,14 @@ final class StudioRevenueViewController: BaseViewController {
     private var finance: StudioFinanceData?
     private var firstLoad = true
 
+    // 日期筛选状态
+    private var startDate: String = DateRangePreset.thisMonth.dates().0
+    private var endDate: String = DateRangePreset.thisMonth.dates().1
+    private var selectedPreset: DateRangePreset = .thisMonth
+
     // MARK: - 视图
 
-    private let tableView = UITableView(frame: .zero, style: .plain)
+    private let tableView = UITableView(frame: .zero, style: .insetGrouped)
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -43,12 +48,10 @@ final class StudioRevenueViewController: BaseViewController {
         tableView.delegate = self
         tableView.register(StudioFinanceHeaderCell.self, forCellReuseIdentifier: StudioFinanceHeaderCell.reuseID)
         tableView.register(StudioFinanceDetailCell.self, forCellReuseIdentifier: StudioFinanceDetailCell.reuseID)
-        tableView.rowHeight = UITableView.automaticDimension
-        tableView.estimatedRowHeight = 120
         view.addSubview(tableView)
         tableView.snp.makeConstraints {
-            $0.top.equalTo(view.safeAreaLayoutGuide).offset(Theme.Spacing.m)
-            $0.leading.trailing.bottom.equalTo(view.safeAreaLayoutGuide)
+            $0.top.equalTo(view.safeAreaLayoutGuide)
+            $0.leading.trailing.bottom.equalToSuperview()
         }
 
         tableView.es.addPullToRefresh(animator: BrandRefreshHeader()) { [weak self] in
@@ -58,8 +61,8 @@ final class StudioRevenueViewController: BaseViewController {
 
     // MARK: - 数据加载
 
-    private func loadFinance() {
-        StudioService.fetchFinance { [weak self] result in
+    private func loadFinance(silent: Bool = false) {
+        StudioService.fetchFinance(startDate: startDate, endDate: endDate) { [weak self] result in
             guard let self else { return }
             self.firstLoad = false
             self.tableView.es.stopPullToRefresh()
@@ -68,6 +71,46 @@ final class StudioRevenueViewController: BaseViewController {
             }
             self.tableView.reloadData()
         }
+    }
+
+    // MARK: - 日期筛选
+
+    private func showDateFilter() {
+        let titles = DateRangePreset.allCases.map { $0.title }
+        let sheet = ThemeActionSheet(
+            title: "选择时间范围",
+            actions: titles.map { ($0, false) }
+        )
+        sheet.onSelect = { [weak self] index in
+            guard let self, let preset = DateRangePreset.allCases[safe: index] else { return }
+            if case .custom = preset {
+                self.presentCustomDatePicker()
+            } else {
+                let (s, e) = preset.dates()
+                self.selectedPreset = preset
+                self.startDate = s
+                self.endDate = e
+                self.loadFinance()
+            }
+        }
+        present(sheet, animated: false)
+    }
+
+    private func presentCustomDatePicker() {
+        let pickerVC = CustomDateRangeViewController(start: startDate, end: endDate)
+        pickerVC.onConfirm = { [weak self] start, end in
+            self?.selectedPreset = .custom
+            self?.startDate = start
+            self?.endDate = end
+            self?.loadFinance()
+        }
+        let nav = UINavigationController(rootViewController: pickerVC)
+        nav.modalPresentationStyle = .pageSheet
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium()]
+            sheet.prefersGrabberVisible = true
+        }
+        present(nav, animated: true)
     }
 }
 
@@ -82,9 +125,12 @@ extension StudioRevenueViewController: UITableViewDataSource, UITableViewDelegat
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         if indexPath.row == 0 {
             let cell = tableView.dequeueReusableCell(withIdentifier: StudioFinanceHeaderCell.reuseID, for: indexPath) as! StudioFinanceHeaderCell
-            cell.configure(with: finance?.summary, period: finance?.period)
+            cell.configure(with: finance?.summary, preset: selectedPreset, period: finance?.period)
             cell.onCardTap = { [weak self] in
                 self?.navigationController?.pushViewController(CommissionWithdrawalsViewController(), animated: true)
+            }
+            cell.onPeriodTap = { [weak self] in
+                self?.showDateFilter()
             }
             return cell
         }
@@ -96,6 +142,12 @@ extension StudioRevenueViewController: UITableViewDataSource, UITableViewDelegat
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
     }
+
+    // 显式设置 section header / footer，避免默认大间距
+    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat { 8 }
+    func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat { 8 }
+    func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? { UIView() }
+    func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? { UIView() }
 }
 
 // MARK: - 营收概览卡
@@ -104,11 +156,11 @@ private final class StudioFinanceHeaderCell: UITableViewCell {
     static let reuseID = "StudioFinanceHeaderCell"
 
     var onCardTap: (() -> Void)?
+    var onPeriodTap: (() -> Void)?
 
     private let card = UIView()
     private let titleLabel = UILabel()
-    private let periodLabel = UILabel()
-    private let chevron = UIImageView()
+    private let periodButton = UIButton(type: .system)
     private let gmvLabel = UILabel()
     private let gmvCaption = UILabel()
     private let columns: [FinanceColumn] = [FinanceColumn(), FinanceColumn(), FinanceColumn(), FinanceColumn()]
@@ -139,25 +191,21 @@ private final class StudioFinanceHeaderCell: UITableViewCell {
             $0.top.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
         }
 
-        // 右上角：期间 + 箭头（点击查看领取记录）
-        periodLabel.font = .appLabel(11)
-        periodLabel.textColor = UIColor.white.withAlphaComponent(0.6)
-        card.addSubview(periodLabel)
-
-        chevron.image = UIImage(systemName: "chevron.right")?
-            .withConfiguration(UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold))
-        chevron.tintColor = UIColor.white.withAlphaComponent(0.5)
-        chevron.contentMode = .scaleAspectFit
-        card.addSubview(chevron)
-        chevron.snp.makeConstraints {
+        // 右上角：时间筛选按钮（期间 + 下箭头）
+        periodButton.titleLabel?.font = .appLabel(11)
+        periodButton.setTitleColor(UIColor.white.withAlphaComponent(0.7), for: .normal)
+        periodButton.setImage(UIImage(systemName: "chevron.down")?
+            .withConfiguration(UIImage.SymbolConfiguration(pointSize: 8, weight: .semibold)),
+            for: .normal)
+        periodButton.tintColor = UIColor.white.withAlphaComponent(0.5)
+        periodButton.semanticContentAttribute = .forceRightToLeft
+        periodButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: 2, bottom: 0, right: 0)
+        periodButton.titleEdgeInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: -2)
+        periodButton.addTarget(self, action: #selector(didTapPeriod), for: .touchUpInside)
+        card.addSubview(periodButton)
+        periodButton.snp.makeConstraints {
             $0.trailing.equalToSuperview().offset(-Theme.Spacing.cardInner)
             $0.centerY.equalTo(titleLabel)
-            $0.width.equalTo(8)
-            $0.height.equalTo(12)
-        }
-        periodLabel.snp.makeConstraints {
-            $0.centerY.equalTo(titleLabel)
-            $0.trailing.equalTo(chevron.snp.leading).offset(-4)
         }
 
         gmvLabel.font = .appHero(28)
@@ -197,17 +245,26 @@ private final class StudioFinanceHeaderCell: UITableViewCell {
         onCardTap?()
     }
 
-    func configure(with summary: StudioFinanceSummary?, period: StudioFinancePeriod?) {
+    @objc private func didTapPeriod() {
+        onPeriodTap?()
+    }
+
+    func configure(with summary: StudioFinanceSummary?, preset: DateRangePreset?, period: StudioFinancePeriod? = nil) {
         let s = summary ?? StudioFinanceSummary(
             gmv_total: nil, gmv_period: nil, refund_total: nil, refund_period: nil,
             distribution_total: nil, net_total: nil, net_period: nil
         )
         gmvLabel.text = StudioAmount.text(s.gmvTotal)
-        // 区间
-        if let start = period?.start_date, let end = period?.end_date {
-            periodLabel.text = "\(start) ~ \(end)"
+        // 右上角按钮文案
+        if let preset {
+            periodButton.setTitle(preset.title, for: .normal)
+        } else if let start = period?.start_date, let end = period?.end_date,
+                  !start.isEmpty, !end.isEmpty {
+            let s = String(start.suffix(5))
+            let e = String(end.suffix(5))
+            periodButton.setTitle("\(s)~\(e)", for: .normal)
         } else {
-            periodLabel.text = ""
+            periodButton.setTitle("本月", for: .normal)
         }
         let items: [(String, Int)] = [
             ("本月营收", s.gmvPeriod),

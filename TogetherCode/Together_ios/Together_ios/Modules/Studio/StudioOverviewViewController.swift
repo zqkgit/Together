@@ -89,9 +89,8 @@ final class StudioOverviewViewController: BaseViewController {
         headerView.onBell = { [weak self] in
             self?.tabBarController?.selectedIndex = 3
         }
-        headerView.onWithdraw = { [weak self] in
-            self?.openPlaceholder(title: "提现", icon: "yensign.circle.fill",
-                                  tip: "课程收入结算、提现与账单明细将在下一阶段开放。")
+        headerView.onCardTap = { [weak self] in
+            self?.navigationController?.pushViewController(StudioRevenueViewController(), animated: true)
         }
         headerView.onAllTodos = { [weak self] in self?.didTapAllTodos() }
     }

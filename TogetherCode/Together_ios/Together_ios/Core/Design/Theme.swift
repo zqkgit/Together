@@ -168,3 +168,11 @@ extension UIFont {
         .systemFont(ofSize: size, weight: .medium)
     }
 }
+
+// MARK: - Array 安全下标
+
+extension Array {
+    subscript(safe index: Int) -> Element? {
+        indices.contains(index) ? self[index] : nil
+    }
+}

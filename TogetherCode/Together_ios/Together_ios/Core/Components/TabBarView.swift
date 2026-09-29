@@ -93,8 +93,4 @@ final class TabBarView: UIView {
     }
 }
 
-private extension Array {
-    subscript(safe index: Int) -> Element? {
-        indices.contains(index) ? self[index] : nil
-    }
-}
+

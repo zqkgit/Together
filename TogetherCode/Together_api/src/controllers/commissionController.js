@@ -30,7 +30,7 @@ async function postDistributionLink(req, res) {
 
 async function getCommissionSummaryHandler(req, res) {
   try {
-    const result = await getCommissionSummary(req.user.userId);
+    const result = await getCommissionSummary(req.user.userId, req.query);
     return ok(res, result.data);
   } catch (error) {
     return fail(res, 500, 50000, error.message || "Internal server error");

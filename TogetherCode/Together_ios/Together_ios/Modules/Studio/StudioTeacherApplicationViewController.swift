@@ -470,11 +470,3 @@ private func StudioApplicationAvatarTint(_ id: String) -> UIColor {
     for u in id.unicodeScalars { hash = (hash &* 31) &+ Int(u.value) }
     return UIColor(hex: palette[abs(hash) % palette.count])
 }
-
-// MARK: - 便捷下标
-
-private extension Array {
-    subscript(safe index: Int) -> Element? {
-        indices.contains(index) ? self[index] : nil
-    }
-}

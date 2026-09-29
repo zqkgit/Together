@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const { Op } = require("sequelize");
 const { sequelize, DistributionLink, CommissionRecord, Wallet, Withdrawal, Order, Course, Post, StudioProfile, User } = require("../models");
 const { generateId } = require("../utils/id");
 const { createNotification } = require("./messageService");
@@ -170,10 +171,17 @@ async function settleCommissionForOrder(order, { transaction } = {}) {
 
 /**
  * 收益中心概览（按工作室分组）
+ * 支持时间筛选：start_date / end_date（格式 yyyy-MM-dd），默认不限制
  */
-async function getCommissionSummary(userId) {
+async function getCommissionSummary(userId, query = {}) {
   const wallet = await Wallet.findByPk(userId);
-  const rows = await CommissionRecord.findAll({ where: { parent_user_id: userId } });
+  const where = { parent_user_id: userId };
+  if (query.start_date || query.end_date) {
+    where.created_at = {};
+    if (query.start_date) where.created_at[Op.gte] = new Date(`${query.start_date}T00:00:00`);
+    if (query.end_date) where.created_at[Op.lte] = new Date(`${query.end_date}T23:59:59`);
+  }
+  const rows = await CommissionRecord.findAll({ where });
 
   const total = r2(rows.reduce((a, b) => a + Number(b.amount), 0));
   const sumStatus = (s) => r2(rows.filter((r) => Number(r.status) === s).reduce((a, b) => a + Number(b.amount), 0));
@@ -201,6 +209,10 @@ async function getCommissionSummary(userId) {
 
   return {
     data: {
+      period: {
+        start_date: query.start_date || null,
+        end_date: query.end_date || null
+      },
       wallet: {
         balance: r2(wallet?.balance),
         frozen: r2(wallet?.frozen),
