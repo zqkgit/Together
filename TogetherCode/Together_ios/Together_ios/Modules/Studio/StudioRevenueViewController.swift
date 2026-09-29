@@ -128,7 +128,7 @@ private final class StudioFinanceHeaderCell: UITableViewCell {
         titleLabel.textColor = UIColor.white.withAlphaComponent(0.85)
         card.addSubview(titleLabel)
         titleLabel.snp.makeConstraints {
-            $0.top.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.top.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
         }
 
         periodLabel.font = .appLabel(11)
@@ -136,7 +136,7 @@ private final class StudioFinanceHeaderCell: UITableViewCell {
         card.addSubview(periodLabel)
         periodLabel.snp.makeConstraints {
             $0.centerY.equalTo(titleLabel)
-            $0.trailing.equalToSuperview().offset(-Theme.Spacing.l)
+            $0.trailing.equalToSuperview().offset(-Theme.Spacing.cardInner)
         }
 
         gmvLabel.font = .appHero(28)
@@ -145,7 +145,7 @@ private final class StudioFinanceHeaderCell: UITableViewCell {
         card.addSubview(gmvLabel)
         gmvLabel.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(Theme.Spacing.xs)
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
         }
 
         gmvCaption.text = "累计营收"
@@ -162,7 +162,7 @@ private final class StudioFinanceHeaderCell: UITableViewCell {
         columnStack.distribution = .fillEqually
         card.addSubview(columnStack)
         columnStack.snp.makeConstraints {
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.top.equalTo(gmvLabel.snp.bottom).offset(Theme.Spacing.l)
             $0.bottom.equalToSuperview().offset(-Theme.Spacing.l)
             $0.height.equalTo(38)
@@ -224,7 +224,7 @@ private final class StudioFinanceDetailCell: UITableViewCell {
         stack.spacing = 0
         card.addSubview(stack)
         stack.snp.makeConstraints {
-            $0.edges.equalToSuperview().inset(Theme.Spacing.l)
+            $0.edges.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
         rows.forEach { stack.addArrangedSubview($0) }
     }

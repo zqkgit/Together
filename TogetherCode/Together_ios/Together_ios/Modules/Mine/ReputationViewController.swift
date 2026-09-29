@@ -146,7 +146,7 @@ private final class ReviewOverviewView: UIView {
         let leftWrap = UIView()
         container.addSubview(leftWrap)
         leftWrap.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
             $0.centerY.equalToSuperview()
         }
 

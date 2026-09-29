@@ -582,7 +582,7 @@ final class StudioCourseCardCell: UITableViewCell {
         coverView.backgroundColor = Theme.Color.surfaceAlt
         card.addSubview(coverView)
         coverView.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
             $0.top.equalToSuperview().offset(Theme.Spacing.m)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.m)
             $0.width.height.equalTo(72)
@@ -595,7 +595,7 @@ final class StudioCourseCardCell: UITableViewCell {
         titleLabel.snp.makeConstraints {
             $0.top.equalTo(coverView).offset(2)
             $0.leading.equalTo(coverView.snp.trailing).offset(12)
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         detailLabel.font = .appLabel(12)
@@ -664,7 +664,7 @@ final class StudioTeacherCardCell: UITableViewCell {
         avatarView.backgroundColor = Theme.Color.brandSoft
         card.addSubview(avatarView)
         avatarView.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
             $0.top.equalToSuperview().offset(Theme.Spacing.m)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.m)
             $0.width.height.equalTo(44)
@@ -676,7 +676,7 @@ final class StudioTeacherCardCell: UITableViewCell {
         nameLabel.snp.makeConstraints {
             $0.top.equalTo(avatarView).offset(4)
             $0.leading.equalTo(avatarView.snp.trailing).offset(12)
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.xl)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         subtitleLabel.font = .appLabel(12)
@@ -695,7 +695,7 @@ final class StudioTeacherCardCell: UITableViewCell {
         card.addSubview(arrowLabel)
         arrowLabel.snp.makeConstraints {
             $0.centerY.equalToSuperview()
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
     }
 
@@ -742,7 +742,7 @@ final class StudioIntroTextCell: UITableViewCell {
         card.addSubview(titleLabel)
         titleLabel.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.l)
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
         }
 
         introLabel.font = .appBody(14)
@@ -751,7 +751,7 @@ final class StudioIntroTextCell: UITableViewCell {
         card.addSubview(introLabel)
         introLabel.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(Theme.Spacing.s)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
         }
     }
@@ -790,7 +790,7 @@ final class StudioDetailInfoCell: UITableViewCell {
         card.addSubview(stackView)
         stackView.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.l)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
         }
     }
@@ -879,7 +879,7 @@ final class StudioPhotoSectionCell: UITableViewCell {
         card.addSubview(titleLabel)
         titleLabel.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.l)
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
         }
 
         countLabel.font = .appLabel(12)
@@ -905,7 +905,7 @@ final class StudioPhotoSectionCell: UITableViewCell {
     func configure(urls: [String]) {
         countLabel.text = "(\(urls.count))"
         scrollView.subviews.forEach { $0.removeFromSuperview() }
-        var offsetX: CGFloat = Theme.Spacing.l
+        var offsetX: CGFloat = Theme.Spacing.cardInner
         for urlString in urls {
             guard let url = URL(string: urlString) else { continue }
             let img = UIImageView()

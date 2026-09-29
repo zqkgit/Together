@@ -600,7 +600,7 @@ final class ChildCourseCell: UITableViewCell {
         card.addSubview(refundTag)
         refundTag.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.m + 2)
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.width.equalTo(38)
             $0.height.equalTo(18)
         }
@@ -611,7 +611,7 @@ final class ChildCourseCell: UITableViewCell {
         card.addSubview(titleLabel)
         titleLabel.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.m)
-            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.trailing.equalTo(refundTag.snp.leading).offset(-8)
         }
 
@@ -621,7 +621,7 @@ final class ChildCourseCell: UITableViewCell {
         card.addSubview(studioLabel)
         studioLabel.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(4)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         // 进度条
@@ -642,13 +642,13 @@ final class ChildCourseCell: UITableViewCell {
         card.addSubview(progressLabel)
         progressLabel.snp.makeConstraints {
             $0.centerY.equalTo(progressTrack)
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         // 进度条约束（trailing 连到 progressLabel 左侧，自动填充）
         progressTrack.snp.makeConstraints {
             $0.top.equalTo(studioLabel.snp.bottom).offset(Theme.Spacing.s)
-            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.trailing.equalTo(progressLabel.snp.leading).offset(-8)
             $0.height.equalTo(6)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.m)
@@ -721,7 +721,7 @@ final class ChildDynamicCell: UITableViewCell {
         card.addSubview(avatarView)
         avatarView.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.l)
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
             $0.width.height.equalTo(36)
         }
 
@@ -761,7 +761,7 @@ final class ChildDynamicCell: UITableViewCell {
         card.addSubview(bodyLabel)
         bodyLabel.snp.makeConstraints {
             $0.top.equalTo(avatarView.snp.bottom).offset(Theme.Spacing.s)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         // 关联课程标签

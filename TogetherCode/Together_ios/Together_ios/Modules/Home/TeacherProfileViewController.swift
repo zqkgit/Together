@@ -557,7 +557,7 @@ final class TeacherWorkListCell: UITableViewCell {
         coverView.backgroundColor = Theme.Color.surfaceAlt
         card.addSubview(coverView)
         coverView.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
             $0.top.equalToSuperview().offset(Theme.Spacing.m)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.m)
             $0.width.height.equalTo(80)
@@ -570,7 +570,7 @@ final class TeacherWorkListCell: UITableViewCell {
         contentLabel.snp.makeConstraints {
             $0.top.equalTo(coverView).offset(2)
             $0.leading.equalTo(coverView.snp.trailing).offset(12)
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         dateLabel.font = .appLabel(11)
@@ -644,7 +644,7 @@ final class TeacherStudioListCell: UITableViewCell {
         coverView.backgroundColor = Theme.Color.surfaceAlt
         card.addSubview(coverView)
         coverView.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
             $0.top.equalToSuperview().offset(Theme.Spacing.m)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.m)
             $0.width.height.equalTo(72)
@@ -675,7 +675,7 @@ final class TeacherStudioListCell: UITableViewCell {
         card.addSubview(arrowLabel)
         arrowLabel.snp.makeConstraints {
             $0.centerY.equalToSuperview()
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
     }
 
@@ -729,7 +729,7 @@ final class TeacherReviewCell: UITableViewCell {
         card.addSubview(avatarView)
         avatarView.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.l)
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
             $0.width.height.equalTo(36)
         }
 
@@ -762,7 +762,7 @@ final class TeacherReviewCell: UITableViewCell {
         dateLabel.textColor = Theme.Color.muted
         card.addSubview(dateLabel)
         dateLabel.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.centerY.equalTo(nameLabel)
         }
 
@@ -773,7 +773,7 @@ final class TeacherReviewCell: UITableViewCell {
         card.addSubview(contentLabel)
         contentLabel.snp.makeConstraints {
             $0.top.equalTo(avatarView.snp.bottom).offset(Theme.Spacing.s)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         // 关联课程标签
@@ -818,7 +818,7 @@ final class TeacherReviewCell: UITableViewCell {
         if (review.content ?? "").isEmpty {
             courseTag.snp.remakeConstraints {
                 $0.top.equalTo(avatarView.snp.bottom).offset(Theme.Spacing.s)
-                $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+                $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
                 $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
                 $0.height.equalTo(22)
             }

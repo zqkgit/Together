@@ -112,6 +112,9 @@ enum Theme {
         static let xl: CGFloat = 24
         static let xxl: CGFloat = 32
         static let xxxl: CGFloat = 48
+
+        /// 卡片内容左右内边距（统一 12pt）
+        static let cardInner: CGFloat = 12
     }
 
     // MARK: - 阴影

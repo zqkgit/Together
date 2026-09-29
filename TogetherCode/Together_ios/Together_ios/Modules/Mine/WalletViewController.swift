@@ -177,7 +177,7 @@ private final class OverviewCardCell: UITableViewCell {
         titleLabel.textColor = UIColor.white.withAlphaComponent(0.85)
         card.addSubview(titleLabel)
         titleLabel.snp.makeConstraints {
-            $0.top.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.top.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
         }
 
         totalLabel.font = .appHero(32)
@@ -186,14 +186,14 @@ private final class OverviewCardCell: UITableViewCell {
         card.addSubview(totalLabel)
         totalLabel.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(Theme.Spacing.xs)
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
         }
 
         columnStack.axis = .horizontal
         columnStack.distribution = .fillEqually
         card.addSubview(columnStack)
         columnStack.snp.makeConstraints {
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.bottom.equalToSuperview().offset(-Theme.Spacing.l)
             $0.height.equalTo(38)
         }
@@ -450,7 +450,7 @@ private final class MenuEntryCell: UITableViewCell {
         titleLabel.textColor = Theme.Color.ink
         card.addSubview(titleLabel)
         titleLabel.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
             $0.centerY.equalToSuperview()
         }
 
@@ -458,7 +458,7 @@ private final class MenuEntryCell: UITableViewCell {
         chevron.tintColor = Theme.Color.muted
         card.addSubview(chevron)
         chevron.snp.makeConstraints {
-            $0.trailing.equalToSuperview().offset(-Theme.Spacing.l)
+            $0.trailing.equalToSuperview().offset(-Theme.Spacing.cardInner)
             $0.centerY.equalToSuperview()
             $0.size.equalTo(CGSize(width: 10, height: 16))
         }

@@ -224,7 +224,7 @@ private final class StudioSummaryCell: UITableViewCell {
         cardStack.axis = .vertical
         cardStack.spacing = Theme.Spacing.m
         card.addSubview(cardStack)
-        cardStack.snp.makeConstraints { $0.edges.equalToSuperview().inset(Theme.Spacing.l) }
+        cardStack.snp.makeConstraints { $0.edges.equalToSuperview().inset(Theme.Spacing.cardInner) }
 
         let headerRow = UIStackView()
         headerRow.axis = .horizontal
@@ -308,7 +308,7 @@ private final class CourseCommissionCell: UITableViewCell {
         cardStack.axis = .vertical
         cardStack.spacing = Theme.Spacing.m
         card.addSubview(cardStack)
-        cardStack.snp.makeConstraints { $0.edges.equalToSuperview().inset(Theme.Spacing.l) }
+        cardStack.snp.makeConstraints { $0.edges.equalToSuperview().inset(Theme.Spacing.cardInner) }
 
         // 课程头部
         let headerRow = UIStackView()

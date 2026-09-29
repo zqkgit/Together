@@ -146,12 +146,12 @@ private final class WithdrawalRowCell: UITableViewCell {
         card.addSubview(nameLabel)
         nameLabel.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.l)
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
         }
 
         card.addSubview(statusTag)
         statusTag.snp.makeConstraints {
-            $0.trailing.equalToSuperview().offset(-Theme.Spacing.l)
+            $0.trailing.equalToSuperview().offset(-Theme.Spacing.cardInner)
             $0.centerY.equalTo(nameLabel)
             $0.leading.greaterThanOrEqualTo(nameLabel.snp.trailing).offset(Theme.Spacing.s)
         }
@@ -168,7 +168,7 @@ private final class WithdrawalRowCell: UITableViewCell {
         methodLabel.textColor = Theme.Color.sub
         card.addSubview(methodLabel)
         methodLabel.snp.makeConstraints {
-            $0.trailing.equalToSuperview().offset(-Theme.Spacing.l)
+            $0.trailing.equalToSuperview().offset(-Theme.Spacing.cardInner)
             $0.centerY.equalTo(amountLabel)
         }
 
@@ -189,7 +189,7 @@ private final class WithdrawalRowCell: UITableViewCell {
         confirmButton.addTarget(self, action: #selector(didTapConfirm), for: .touchUpInside)
         card.addSubview(confirmButton)
         confirmButton.snp.makeConstraints {
-            $0.trailing.equalToSuperview().offset(-Theme.Spacing.l)
+            $0.trailing.equalToSuperview().offset(-Theme.Spacing.cardInner)
             $0.centerY.equalTo(timeLabel)
             $0.width.equalTo(104)
             $0.height.equalTo(36)
@@ -510,7 +510,7 @@ private final class StepsCell: UITableViewCell {
         card.addSubview(statusLabel)
         statusLabel.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.l)
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
         }
 
         amountLabel.font = .appHero(22)
@@ -518,7 +518,7 @@ private final class StepsCell: UITableViewCell {
         card.addSubview(amountLabel)
         amountLabel.snp.makeConstraints {
             $0.centerY.equalTo(statusLabel)
-            $0.trailing.equalToSuperview().offset(-Theme.Spacing.l)
+            $0.trailing.equalToSuperview().offset(-Theme.Spacing.cardInner)
         }
 
         dotsStack.axis = .horizontal
@@ -632,7 +632,7 @@ private final class PaymentCell: UITableViewCell {
         titleLabel.textColor = Theme.Color.ink
         card.addSubview(titleLabel)
         titleLabel.snp.makeConstraints {
-            $0.top.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.top.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
         }
 
         rowsStack.axis = .vertical
@@ -640,7 +640,7 @@ private final class PaymentCell: UITableViewCell {
         card.addSubview(rowsStack)
         rowsStack.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(Theme.Spacing.m)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         voucherScroll.showsHorizontalScrollIndicator = false
@@ -792,7 +792,7 @@ private final class CommissionLineCell: UITableViewCell {
         card.addSubview(orderLabel)
         orderLabel.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.s)
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
         }
 
         rateLabel.font = .appBody(11)
@@ -815,7 +815,7 @@ private final class CommissionLineCell: UITableViewCell {
         amountLabel.textColor = Theme.Color.ink
         card.addSubview(amountLabel)
         amountLabel.snp.makeConstraints {
-            $0.trailing.equalToSuperview().offset(-Theme.Spacing.l)
+            $0.trailing.equalToSuperview().offset(-Theme.Spacing.cardInner)
             $0.centerY.equalToSuperview()
             $0.leading.greaterThanOrEqualTo(statusLabel.snp.trailing).offset(Theme.Spacing.m)
         }
@@ -870,7 +870,7 @@ private final class RejectCell: UITableViewCell {
         title.textColor = Theme.Color.danger
         card.addSubview(title)
         title.snp.makeConstraints {
-            $0.top.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.top.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
         }
 
         let body = UILabel()
@@ -881,7 +881,7 @@ private final class RejectCell: UITableViewCell {
         card.addSubview(body)
         body.snp.makeConstraints {
             $0.top.equalTo(title.snp.bottom).offset(Theme.Spacing.s)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.bottom.equalToSuperview().offset(-Theme.Spacing.l)
         }
     }

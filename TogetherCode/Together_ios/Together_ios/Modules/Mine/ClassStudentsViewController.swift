@@ -106,7 +106,7 @@ private final class ClassStudentCell: UITableViewCell {
         avatarView.clipsToBounds = true
         container.addSubview(avatarView)
         avatarView.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
             $0.centerY.equalToSuperview()
             $0.width.height.equalTo(40)
         }
