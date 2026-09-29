@@ -299,14 +299,27 @@ final class CustomDateRangeViewController: UIViewController {
 
     var onConfirm: ((_ startDate: String, _ endDate: String) -> Void)?
 
-    private let startDatePicker = UIDatePicker()
-    private let endDatePicker = UIDatePicker()
-    private let startLabel = UILabel()
-    private let endLabel = UILabel()
+    private static let minDate: Date = {
+        let cal = Calendar.current
+        return cal.date(from: DateComponents(year: 2026, month: 1, day: 1))!
+    }()
+
     private let fmt = DateFormatter()
+    private var startDate: Date
+    private var endDate: Date
+    private var activeField: ActiveField = .start
+
+    private let startField = UIButton(type: .system)
+    private let endField = UIButton(type: .system)
+    private let dashLabel = UILabel()
+    private let datePicker = UIDatePicker()
+
+    private enum ActiveField { case start, end }
 
     init(start: String, end: String) {
         fmt.dateFormat = "yyyy-MM-dd"
+        self.startDate = fmt.date(from: start) ?? Date()
+        self.endDate = fmt.date(from: end) ?? Date()
         super.init(nibName: nil, bundle: nil)
         title = "选择日期区间"
         navigationItem.leftBarButtonItem = UIBarButtonItem(
@@ -315,19 +328,6 @@ final class CustomDateRangeViewController: UIViewController {
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             title: "确定", style: .done, target: self, action: #selector(confirm)
         )
-
-        // 初始化 picker
-        startDatePicker.datePickerMode = .date
-        startDatePicker.preferredDatePickerStyle = .wheels
-        startDatePicker.locale = Locale(identifier: "zh_CN")
-        startDatePicker.maximumDate = Date()
-        if let d = fmt.date(from: start) { startDatePicker.date = d }
-
-        endDatePicker.datePickerMode = .date
-        endDatePicker.preferredDatePickerStyle = .wheels
-        endDatePicker.locale = Locale(identifier: "zh_CN")
-        endDatePicker.maximumDate = Date()
-        if let d = fmt.date(from: end) { endDatePicker.date = d }
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -336,41 +336,119 @@ final class CustomDateRangeViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = Theme.Color.bg
 
-        let stack = UIStackView()
-        stack.axis = .vertical
-        stack.spacing = Theme.Spacing.l
-        view.addSubview(stack)
-        stack.snp.makeConstraints {
+        // 日期选择行：[开始日期] — [结束日期]
+        let row = UIStackView()
+        row.axis = .horizontal
+        row.alignment = .center
+        row.spacing = 0
+        view.addSubview(row)
+        row.snp.makeConstraints {
             $0.top.equalTo(view.safeAreaLayoutGuide).offset(Theme.Spacing.l)
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.height.equalTo(44)
         }
 
-        // 开始日期
-        startLabel.text = "开始日期"
-        startLabel.font = .appSection(14)
-        startLabel.textColor = Theme.Color.ink
-        stack.addArrangedSubview(startLabel)
-        stack.addArrangedSubview(startDatePicker)
+        // 开始日期框
+        configureFieldButton(startField)
+        startField.addTarget(self, action: #selector(tapStartField), for: .touchUpInside)
+        row.addArrangedSubview(startField)
+        startField.snp.makeConstraints { $0.height.equalTo(44) }
 
-        // 结束日期
-        endLabel.text = "结束日期"
-        endLabel.font = .appSection(14)
-        endLabel.textColor = Theme.Color.ink
-        stack.addArrangedSubview(endLabel)
-        stack.addArrangedSubview(endDatePicker)
+        // 连接线
+        dashLabel.text = "—"
+        dashLabel.font = .appBody(16)
+        dashLabel.textColor = Theme.Color.muted
+        dashLabel.textAlignment = .center
+        dashLabel.setContentHuggingPriority(.required, for: .horizontal)
+        dashLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+        row.addArrangedSubview(dashLabel)
+        dashLabel.snp.makeConstraints { $0.width.equalTo(24) }
+
+        // 结束日期框
+        configureFieldButton(endField)
+        endField.addTarget(self, action: #selector(tapEndField), for: .touchUpInside)
+        row.addArrangedSubview(endField)
+        endField.snp.makeConstraints { $0.height.equalTo(44) }
+
+        // 开始/结束等宽
+        startField.snp.makeConstraints { $0.width.equalTo(endField) }
+
+        // DatePicker
+        datePicker.datePickerMode = .date
+        datePicker.preferredDatePickerStyle = .wheels
+        datePicker.locale = Locale(identifier: "zh_CN")
+        datePicker.minimumDate = Self.minDate
+        datePicker.maximumDate = Date()
+        datePicker.addTarget(self, action: #selector(pickerChanged), for: .valueChanged)
+        view.addSubview(datePicker)
+        datePicker.snp.makeConstraints {
+            $0.top.equalTo(row.snp.bottom).offset(Theme.Spacing.m)
+            $0.leading.trailing.equalToSuperview()
+        }
+
+        updateFieldDisplay()
+        selectField(.start)
     }
 
-    @objc private func dismissSelf() {
-        dismiss(animated: true)
+    private func configureFieldButton(_ btn: UIButton) {
+        btn.titleLabel?.font = .appSection(15)
+        btn.setTitleColor(Theme.Color.ink, for: .normal)
+        btn.backgroundColor = Theme.Color.surface
+        btn.layer.cornerRadius = 8
+        btn.layer.borderWidth = 1.5
+        btn.layer.borderColor = UIColor.clear.cgColor
     }
+
+    private func updateFieldDisplay() {
+        startField.setTitle(fmt.string(from: startDate), for: .normal)
+        endField.setTitle(fmt.string(from: endDate), for: .normal)
+    }
+
+    private func selectField(_ field: ActiveField) {
+        activeField = field
+        // 高亮选中框
+        startField.layer.borderColor = field == .start ? Theme.Color.brand.cgColor : UIColor.clear.cgColor
+        endField.layer.borderColor = field == .end ? Theme.Color.brand.cgColor : UIColor.clear.cgColor
+        startField.setTitleColor(field == .start ? Theme.Color.brand : Theme.Color.ink, for: .normal)
+        endField.setTitleColor(field == .end ? Theme.Color.brand : Theme.Color.ink, for: .normal)
+        // 同步 picker
+        switch field {
+        case .start:
+            datePicker.date = startDate
+            datePicker.minimumDate = Self.minDate
+            datePicker.maximumDate = endDate
+        case .end:
+            datePicker.date = endDate
+            datePicker.minimumDate = max(startDate, Self.minDate)
+            datePicker.maximumDate = Date()
+        }
+    }
+
+    @objc private func tapStartField() { selectField(.start) }
+    @objc private func tapEndField() { selectField(.end) }
+
+    @objc private func pickerChanged() {
+        switch activeField {
+        case .start:
+            startDate = datePicker.date
+            // 如果开始日期超过结束日期，自动调整结束日期
+            if startDate > endDate { endDate = startDate }
+        case .end:
+            endDate = datePicker.date
+            // 如果结束日期早于开始日期，自动调整开始日期
+            if endDate < startDate { startDate = endDate }
+        }
+        updateFieldDisplay()
+        selectField(activeField) // 刷新 minimumDate/maximumDate
+    }
+
+    @objc private func dismissSelf() { dismiss(animated: true) }
 
     @objc private func confirm() {
-        var start = startDatePicker.date
-        var end = endDatePicker.date
-        // 确保 start <= end
-        if start > end { swap(&start, &end) }
-        let s = fmt.string(from: start)
-        let e = fmt.string(from: end)
+        // 保证 end >= start
+        if endDate < startDate { swap(&startDate, &endDate) }
+        let s = fmt.string(from: startDate)
+        let e = fmt.string(from: endDate)
         onConfirm?(s, e)
         dismiss(animated: true)
     }
