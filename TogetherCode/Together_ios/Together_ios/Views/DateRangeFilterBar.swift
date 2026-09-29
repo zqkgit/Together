@@ -326,7 +326,7 @@ final class CustomDateRangeViewController: UIViewController {
         cancelBtn.setTitle("取消", for: .normal)
         cancelBtn.titleLabel?.font = .appBody(14)
         cancelBtn.setTitleColor(Theme.Color.sub, for: .normal)
-        cancelBtn.snp.makeConstraints { $0.width.equalTo(72); $0.height.equalTo(32) }
+        cancelBtn.snp.makeConstraints { $0.width.equalTo(60); $0.height.equalTo(32) }
         cancelBtn.addTarget(self, action: #selector(dismissSelf), for: .touchUpInside)
         navigationItem.leftBarButtonItem = UIBarButtonItem(customView: cancelBtn)
 
@@ -336,7 +336,7 @@ final class CustomDateRangeViewController: UIViewController {
         confirmBtn.setTitleColor(.white, for: .normal)
         confirmBtn.backgroundColor = Theme.Color.brand
         confirmBtn.layer.cornerRadius = 16
-        confirmBtn.snp.makeConstraints { $0.width.equalTo(72); $0.height.equalTo(32) }
+        confirmBtn.snp.makeConstraints { $0.width.equalTo(60); $0.height.equalTo(32) }
         confirmBtn.addTarget(self, action: #selector(confirm), for: .touchUpInside)
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: confirmBtn)
     }
