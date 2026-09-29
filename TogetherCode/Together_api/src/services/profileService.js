@@ -236,6 +236,8 @@ async function getStudioHomepage(studioId, query = {}) {
       hours: studio.hours || null,
       photos: studio.photos || [],
       plan_tier: studio.plan_tier,
+      city: studio.city || null,
+      business_type: studio.business_type || null,
       rating,
       course_count: courses.count,
       teacher_count: teacherList.length

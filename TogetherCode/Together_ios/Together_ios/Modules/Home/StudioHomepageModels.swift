@@ -21,6 +21,8 @@ struct StudioHomepageInfo: Codable {
     let hours: String?
     let photos: [String]?
     let plan_tier: Int?
+    let city: String?
+    let business_type: String?
     let rating: Double?
     let course_count: Int?
     let teacher_count: Int?
@@ -32,6 +34,13 @@ struct StudioHomepageInfo: Codable {
     }
     var tagsText: String {
         (type_tags ?? []).prefix(3).joined(separator: " · ")
+    }
+    /// 城市与类型组合文本
+    var locationText: String {
+        var parts: [String] = []
+        if let city, !city.isEmpty { parts.append(city) }
+        if let bt = business_type, !bt.isEmpty { parts.append(bt) }
+        return parts.joined(separator: " · ")
     }
     /// 统计行：「⭐ 4.8 · 12门课 · 8位老师」
     var statsText: String {

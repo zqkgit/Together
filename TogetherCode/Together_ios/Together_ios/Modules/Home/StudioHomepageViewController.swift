@@ -155,7 +155,7 @@ final class StudioHomepageViewController: BaseViewController {
         introTableView.dataSource = self
         introTableView.delegate = self
         introTableView.register(StudioIntroTextCell.self, forCellReuseIdentifier: "StudioIntroTextCell")
-        introTableView.register(StudioAddressInfoCell.self, forCellReuseIdentifier: "StudioAddressInfoCell")
+        introTableView.register(StudioDetailInfoCell.self, forCellReuseIdentifier: "StudioDetailInfoCell")
         introTableView.register(StudioPhotoSectionCell.self, forCellReuseIdentifier: "StudioPhotoSectionCell")
         introTableView.rowHeight = UITableView.automaticDimension
         introTableView.estimatedRowHeight = 60
@@ -321,8 +321,11 @@ extension StudioHomepageViewController: UITableViewDataSource {
 
     private var introRowCount: Int {
         var count = 0
-        if studio?.intro != nil, !(studio?.intro ?? "").isEmpty { count += 1 }
-        if studio?.address != nil || studio?.hours != nil { count += 1 }
+        // 介绍
+        if let intro = studio?.intro, !intro.isEmpty { count += 1 }
+        // 详情信息（地址/营业时间/城市/类型，至少有一项）
+        if studio?.address != nil || studio?.hours != nil || studio?.city != nil || studio?.business_type != nil { count += 1 }
+        // 环境照片
         if !photos.isEmpty { count += 1 }
         return count
     }
@@ -338,10 +341,10 @@ extension StudioHomepageViewController: UITableViewDataSource {
             }
             row += 1
         }
-        // 地址 + 营业时间
-        if studio?.address != nil || studio?.hours != nil {
+        // 详情信息
+        if studio?.address != nil || studio?.hours != nil || studio?.city != nil || studio?.business_type != nil {
             if row == indexPath.row {
-                let cell = tableView.dequeueReusableCell(withIdentifier: "StudioAddressInfoCell", for: indexPath) as! StudioAddressInfoCell
+                let cell = tableView.dequeueReusableCell(withIdentifier: "StudioDetailInfoCell", for: indexPath) as! StudioDetailInfoCell
                 cell.configure(studio: studio)
                 return cell
             }
@@ -379,6 +382,7 @@ final class StudioHeaderView: UIView {
     private let coverImageView = UIImageView()
     private let nameLabel = UILabel()
     private let tagsLabel = UILabel()
+    private let cityLabel = UILabel()
     private let courseValue = UILabel()
     private let teacherValue = UILabel()
     private let ratingValue = UILabel()
@@ -439,6 +443,15 @@ final class StudioHeaderView: UIView {
         tagsLabel.snp.makeConstraints {
             $0.leading.equalTo(nameLabel)
             $0.top.equalTo(nameLabel.snp.bottom).offset(3)
+        }
+
+        // 城市·类型
+        cityLabel.font = .appLabel(12)
+        cityLabel.textColor = .white.withAlphaComponent(0.7)
+        addSubview(cityLabel)
+        cityLabel.snp.makeConstraints {
+            $0.leading.equalTo(nameLabel)
+            $0.top.equalTo(tagsLabel.snp.bottom).offset(2)
         }
 
         // 统计卡
@@ -512,6 +525,9 @@ final class StudioHeaderView: UIView {
         guard let studio else { return }
         nameLabel.text = studio.displayName
         tagsLabel.text = studio.tagsText
+        tagsLabel.isHidden = studio.tagsText.isEmpty
+        cityLabel.text = studio.locationText
+        cityLabel.isHidden = studio.locationText.isEmpty
 
         if let cover = studio.cover, !cover.isEmpty, let url = URL(string: cover) {
             coverImageView.kf.setImage(with: url)
@@ -747,15 +763,12 @@ final class StudioIntroTextCell: UITableViewCell {
     }
 }
 
-// MARK: - StudioAddressInfoCell（地址 + 营业时间）
+// MARK: - StudioDetailInfoCell（详情信息：地址/营业时间/城市/类型）
 
-final class StudioAddressInfoCell: UITableViewCell {
+final class StudioDetailInfoCell: UITableViewCell {
 
     private let card = UIView()
-    private let addressIcon = UIImageView()
-    private let addressLabel = UILabel()
-    private let hoursIcon = UIImageView()
-    private let hoursLabel = UILabel()
+    private let stackView = UIStackView()
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -772,41 +785,12 @@ final class StudioAddressInfoCell: UITableViewCell {
         card.backgroundColor = Theme.Color.surface
         card.layer.cornerRadius = Theme.Radius.card
 
-        addressIcon.image = UIImage(systemName: "location.fill")
-        addressIcon.tintColor = Theme.Color.brand
-        addressIcon.snp.makeConstraints { $0.width.height.equalTo(16) }
-        card.addSubview(addressIcon)
-        addressIcon.snp.makeConstraints {
+        stackView.axis = .vertical
+        stackView.spacing = 12
+        card.addSubview(stackView)
+        stackView.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.l)
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
-        }
-
-        addressLabel.font = .appBody(14)
-        addressLabel.textColor = Theme.Color.ink
-        addressLabel.numberOfLines = 2
-        card.addSubview(addressLabel)
-        addressLabel.snp.makeConstraints {
-            $0.centerY.equalTo(addressIcon)
-            $0.leading.equalTo(addressIcon.snp.trailing).offset(8)
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
-        }
-
-        hoursIcon.image = UIImage(systemName: "clock.fill")
-        hoursIcon.tintColor = Theme.Color.brand
-        hoursIcon.snp.makeConstraints { $0.width.height.equalTo(16) }
-        card.addSubview(hoursIcon)
-        hoursIcon.snp.makeConstraints {
-            $0.top.equalTo(addressIcon.snp.bottom).offset(12)
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
-        }
-
-        hoursLabel.font = .appBody(14)
-        hoursLabel.textColor = Theme.Color.sub
-        card.addSubview(hoursLabel)
-        hoursLabel.snp.makeConstraints {
-            $0.centerY.equalTo(hoursIcon)
-            $0.leading.equalTo(hoursIcon.snp.trailing).offset(8)
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
         }
     }
@@ -815,12 +799,53 @@ final class StudioAddressInfoCell: UITableViewCell {
 
     func configure(studio: StudioHomepageInfo?) {
         guard let studio else { return }
-        addressLabel.text = studio.address ?? ""
-        addressIcon.isHidden = studio.address == nil
-        addressLabel.isHidden = studio.address == nil
-        hoursLabel.text = studio.hours ?? ""
-        hoursIcon.isHidden = studio.hours == nil
-        hoursLabel.isHidden = studio.hours == nil
+        stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+
+        // 地址
+        if let address = studio.address, !address.isEmpty {
+            stackView.addArrangedSubview(makeRow(icon: "location.fill", text: address))
+        }
+        // 营业时间
+        if let hours = studio.hours, !hours.isEmpty {
+            stackView.addArrangedSubview(makeRow(icon: "clock.fill", text: hours))
+        }
+        // 城市
+        if let city = studio.city, !city.isEmpty {
+            stackView.addArrangedSubview(makeRow(icon: "building.2", text: city))
+        }
+        // 经营类型
+        if let bt = studio.business_type, !bt.isEmpty {
+            stackView.addArrangedSubview(makeRow(icon: "tag.fill", text: bt))
+        }
+        // 联系电话
+        if let phone = studio.phone, !phone.isEmpty {
+            stackView.addArrangedSubview(makeRow(icon: "phone.fill", text: phone))
+        }
+    }
+
+    private func makeRow(icon: String, text: String) -> UIView {
+        let row = UIView()
+        let iconView = UIImageView()
+        iconView.image = UIImage(systemName: icon)
+        iconView.tintColor = Theme.Color.brand
+        iconView.snp.makeConstraints { $0.width.height.equalTo(16) }
+        row.addSubview(iconView)
+        iconView.snp.makeConstraints {
+            $0.leading.equalToSuperview()
+            $0.centerY.equalToSuperview()
+        }
+
+        let label = UILabel()
+        label.font = .appBody(14)
+        label.textColor = Theme.Color.ink
+        label.numberOfLines = 2
+        label.text = text
+        row.addSubview(label)
+        label.snp.makeConstraints {
+            $0.leading.equalTo(iconView.snp.trailing).offset(8)
+            $0.top.trailing.bottom.equalToSuperview()
+        }
+        return row
     }
 }
 
@@ -830,6 +855,7 @@ final class StudioPhotoSectionCell: UITableViewCell {
 
     private let card = UIView()
     private let titleLabel = UILabel()
+    private let countLabel = UILabel()
     private let scrollView = UIScrollView()
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
@@ -856,12 +882,20 @@ final class StudioPhotoSectionCell: UITableViewCell {
             $0.leading.equalToSuperview().offset(Theme.Spacing.l)
         }
 
+        countLabel.font = .appLabel(12)
+        countLabel.textColor = Theme.Color.muted
+        card.addSubview(countLabel)
+        countLabel.snp.makeConstraints {
+            $0.centerY.equalTo(titleLabel)
+            $0.leading.equalTo(titleLabel.snp.trailing).offset(6)
+        }
+
         scrollView.showsHorizontalScrollIndicator = false
         card.addSubview(scrollView)
         scrollView.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(Theme.Spacing.s)
             $0.leading.trailing.equalToSuperview()
-            $0.height.equalTo(140)
+            $0.height.equalTo(180)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.m)
         }
     }
@@ -869,6 +903,7 @@ final class StudioPhotoSectionCell: UITableViewCell {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     func configure(urls: [String]) {
+        countLabel.text = "(\(urls.count))"
         scrollView.subviews.forEach { $0.removeFromSuperview() }
         var offsetX: CGFloat = Theme.Spacing.l
         for urlString in urls {
@@ -882,11 +917,11 @@ final class StudioPhotoSectionCell: UITableViewCell {
             img.snp.makeConstraints {
                 $0.leading.equalTo(offsetX)
                 $0.top.equalToSuperview()
-                $0.width.equalTo(200)
-                $0.height.equalTo(130)
+                $0.width.equalTo(240)
+                $0.height.equalTo(170)
             }
-            offsetX += 200 + 8
+            offsetX += 240 + 8
         }
-        scrollView.contentSize = CGSize(width: offsetX + Theme.Spacing.l, height: 140)
+        scrollView.contentSize = CGSize(width: offsetX + Theme.Spacing.l, height: 180)
     }
 }
