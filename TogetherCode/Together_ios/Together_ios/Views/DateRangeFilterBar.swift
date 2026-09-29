@@ -322,16 +322,21 @@ final class CustomDateRangeViewController: UIViewController {
         self.endDate = fmt.date(from: end) ?? Date()
         super.init(nibName: nil, bundle: nil)
         title = "选择日期区间"
-        navigationItem.leftBarButtonItem = UIBarButtonItem(
-            title: "取消", style: .plain, target: self, action: #selector(dismissSelf)
-        )
+        let cancelBtn = UIButton(type: .system)
+        cancelBtn.setTitle("取消", for: .normal)
+        cancelBtn.titleLabel?.font = .appBody(14)
+        cancelBtn.setTitleColor(Theme.Color.sub, for: .normal)
+        cancelBtn.snp.makeConstraints { $0.width.equalTo(72); $0.height.equalTo(32) }
+        cancelBtn.addTarget(self, action: #selector(dismissSelf), for: .touchUpInside)
+        navigationItem.leftBarButtonItem = UIBarButtonItem(customView: cancelBtn)
+
         let confirmBtn = UIButton(type: .system)
         confirmBtn.setTitle("确定", for: .normal)
-        confirmBtn.titleLabel?.font = .appSection(14)
+        confirmBtn.titleLabel?.font = .appBody(14)
         confirmBtn.setTitleColor(.white, for: .normal)
         confirmBtn.backgroundColor = Theme.Color.brand
-        confirmBtn.layer.cornerRadius = 14
-        confirmBtn.frame = CGRect(x: 0, y: 0, width: 56, height: 28)
+        confirmBtn.layer.cornerRadius = 16
+        confirmBtn.snp.makeConstraints { $0.width.equalTo(72); $0.height.equalTo(32) }
         confirmBtn.addTarget(self, action: #selector(confirm), for: .touchUpInside)
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: confirmBtn)
     }
