@@ -36,7 +36,6 @@ final class OrderDetailViewController: BaseViewController {
     init(orderId: String) {
         self.orderId = orderId
         super.init(nibName: nil, bundle: nil)
-        hidesBottomBarWhenPushed = true
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 

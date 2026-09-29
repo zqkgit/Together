@@ -40,7 +40,6 @@ final class PostDetailViewController: BaseViewController {
     init(postId: String) {
         self.postId = postId
         super.init(nibName: nil, bundle: nil)
-        hidesBottomBarWhenPushed = true
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 

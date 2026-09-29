@@ -10,14 +10,11 @@ final class BaseNavigationController: UINavigationController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        delegate = self
         setupGlobalNavBarAppearance()
     }
 
     override func pushViewController(_ viewController: UIViewController, animated: Bool) {
-        // 非根页面自动隐藏底部 tabBar（pop 回根时系统自动恢复显示）
-        if viewControllers.count > 0 {
-            viewController.hidesBottomBarWhenPushed = true
-        }
         super.pushViewController(viewController, animated: animated)
     }
 
@@ -44,5 +41,40 @@ final class BaseNavigationController: UINavigationController {
         navigationBar.isTranslucent = true
         // 返回箭头默认墨色；图片头 / 深色头页面可在 configureImmersiveNav 里改成白色
         navigationBar.tintColor = Theme.Color.ink
+    }
+}
+
+// MARK: - UINavigationControllerDelegate
+
+/// 透明 TabBar 下系统 hidesBottomBarWhenPushed 失效且会干扰手动控制，
+/// 改为完全由 delegate 控制显隐，并带滑出/滑入动画
+extension BaseNavigationController: UINavigationControllerDelegate {
+    func navigationController(_ navigationController: UINavigationController, willShow viewController: UIViewController, animated: Bool) {
+        let isRoot = viewController === navigationController.viewControllers.first
+        if !isRoot {
+            // push：tabBar 向下滑出
+            animateTabBar(navigationController.tabBarController?.tabBar, show: false)
+        }
+    }
+
+    func navigationController(_ navigationController: UINavigationController, didShow viewController: UIViewController, animated: Bool) {
+        let isRoot = viewController === navigationController.viewControllers.first
+        if isRoot {
+            // pop 回根：tabBar 向上滑入
+            animateTabBar(navigationController.tabBarController?.tabBar, show: true)
+        }
+    }
+
+    private func animateTabBar(_ tabBar: UITabBar?, show: Bool) {
+        guard let tabBar else { return }
+        if show {
+            tabBar.isHidden = false
+            tabBar.alpha = 0
+        }
+        UIView.animate(withDuration: 0.2, delay: 0, options: .curveEaseOut) {
+            tabBar.alpha = show ? 1 : 0
+        } completion: { _ in
+            if !show { tabBar.isHidden = true }
+        }
     }
 }

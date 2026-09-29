@@ -23,7 +23,6 @@ final class PaymentVoucherViewController: BaseViewController {
     init(order: OrderItem) {
         self.order = order
         super.init(nibName: nil, bundle: nil)
-        hidesBottomBarWhenPushed = true
         // 凭证被驳回后重新上传：预选上次选择的支付方式（凭证图需重新上传）
         if let raw = order.rejectedPayment?.pay_method ?? order.rejectedPayment?.channel,
            let previous = PayMethod.from(raw) {

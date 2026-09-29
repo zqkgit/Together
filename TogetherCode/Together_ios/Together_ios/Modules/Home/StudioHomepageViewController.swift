@@ -52,7 +52,6 @@ final class StudioHomepageViewController: BaseViewController {
     init(studioId: String) {
         self.studioId = studioId
         super.init(nibName: nil, bundle: nil)
-        hidesBottomBarWhenPushed = true
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }

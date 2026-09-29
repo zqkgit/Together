@@ -38,13 +38,11 @@ final class ReviewComposeViewController: BaseViewController {
     init(courseId: String, courseTitle: String) {
         self.mode = .create(courseId: courseId, courseTitle: courseTitle)
         super.init(nibName: nil, bundle: nil)
-        hidesBottomBarWhenPushed = true
     }
 
     init(review: MyReviewItem) {
         self.mode = .edit(review: review)
         super.init(nibName: nil, bundle: nil)
-        hidesBottomBarWhenPushed = true
         rating = review.rating ?? 5
         contentText = review.content ?? ""
         originImageUrls = review.images ?? []

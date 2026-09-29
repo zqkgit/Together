@@ -22,7 +22,6 @@ final class CourseEnrollViewController: BaseViewController {
     init(courseId: String) {
         self.courseId = courseId
         super.init(nibName: nil, bundle: nil)
-        hidesBottomBarWhenPushed = true
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 

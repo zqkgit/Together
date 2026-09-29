@@ -62,7 +62,6 @@ final class TeacherProfileViewController: BaseViewController {
     init(teacherId: String) {
         self.teacherId = teacherId
         super.init(nibName: nil, bundle: nil)
-        hidesBottomBarWhenPushed = true
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
