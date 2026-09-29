@@ -153,7 +153,10 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
             let cell = tableView.dequeueReusableCell(withIdentifier: "HomeHeroCell", for: indexPath) as! HomeHeroCell
             cell.reload(children: data.children)
             cell.onAddChild = { [weak self] in self?.showToast("添加孩子开发中") }
-            cell.onChildTap = { [weak self] _ in self?.showToast("孩子成长页开发中") }
+            cell.onChildTap = { [weak self] child in
+                let vc = ChildHomeViewController(child: child)
+                self?.navigationController?.pushViewController(vc, animated: true)
+            }
             return cell
         case .notice:
             let cell = tableView.dequeueReusableCell(withIdentifier: "HomeNoticeCell", for: indexPath) as! HomeNoticeCell

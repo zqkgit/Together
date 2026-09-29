@@ -1,6 +1,7 @@
 import UIKit
 import SnapKit
 import Kingfisher
+import ESPullToRefresh
 
 /// 孩子主页（PR 图2/3/4）：深绿头部 + 统计 + 作品/课程/动态三 tab
 final class ChildHomeViewController: BaseViewController {
@@ -16,6 +17,9 @@ final class ChildHomeViewController: BaseViewController {
     // 作品网格
     private var worksCollectionView: UICollectionView!
     private var works: [ChildWorkItem] = []
+    private var workPage = 1
+    private var hasMoreWorks = true
+    private var isLoadingWorks = false
 
     // 课程列表
     private var coursesTableView: UITableView!
@@ -24,6 +28,9 @@ final class ChildHomeViewController: BaseViewController {
     // 动态列表
     private var dynamicsTableView: UITableView!
     private var dynamics: [ChildGrowthEvent] = []
+    private var growthPage = 1
+    private var hasMoreGrowth = true
+    private var isLoadingGrowth = false
 
     private let worksEmpty: EmptyStateView = {
         let view = EmptyStateView()
@@ -99,6 +106,12 @@ final class ChildHomeViewController: BaseViewController {
         worksCollectionView.delegate = self
         worksCollectionView.register(ChildWorkCell.self, forCellWithReuseIdentifier: "ChildWorkCell")
         worksCollectionView.alwaysBounceVertical = true
+        worksCollectionView.es.addPullToRefresh(animator: BrandRefreshHeader()) { [weak self] in
+            self?.refreshAll()
+        }
+        worksCollectionView.es.addInfiniteScrolling { [weak self] in
+            self?.loadMoreWorks()
+        }
         view.addSubview(worksCollectionView)
         worksCollectionView.snp.makeConstraints {
             $0.top.equalTo(segmentControl.snp.bottom)
@@ -116,6 +129,9 @@ final class ChildHomeViewController: BaseViewController {
         coursesTableView.estimatedRowHeight = 84
         coursesTableView.isHidden = true
         coursesTableView.contentInset = UIEdgeInsets(top: Theme.Spacing.m, left: 0, bottom: 0, right: 0)
+        coursesTableView.es.addPullToRefresh(animator: BrandRefreshHeader()) { [weak self] in
+            self?.refreshAll()
+        }
         view.addSubview(coursesTableView)
         coursesTableView.snp.makeConstraints {
             $0.top.equalTo(segmentControl.snp.bottom)
@@ -132,6 +148,12 @@ final class ChildHomeViewController: BaseViewController {
         dynamicsTableView.rowHeight = UITableView.automaticDimension
         dynamicsTableView.estimatedRowHeight = 120
         dynamicsTableView.isHidden = true
+        dynamicsTableView.es.addPullToRefresh(animator: BrandRefreshHeader()) { [weak self] in
+            self?.refreshAll()
+        }
+        dynamicsTableView.es.addInfiniteScrolling { [weak self] in
+            self?.loadMoreGrowth()
+        }
         view.addSubview(dynamicsTableView)
         dynamicsTableView.snp.makeConstraints {
             $0.top.equalTo(segmentControl.snp.bottom)
@@ -141,30 +163,13 @@ final class ChildHomeViewController: BaseViewController {
 
     private func loadData() {
         // 课程：来自孩子课包（同课程聚合）
-        var aggregateMap: [String: ChildCourseAggregate] = [:]
-        for balance in child.balances ?? [] {
-            let key = balance.course_id ?? balance.course_title ?? UUID().uuidString
-            var item = aggregateMap[key] ?? ChildCourseAggregate(
-                course_id: balance.course_id ?? "",
-                course_title: balance.course_title ?? "未命名课程",
-                studio_name: balance.studio_name,
-                total: 0, consumed: 0, remaining: 0, isRefunded: true
-            )
-            item.total += balance.total_lessons
-            item.consumed += balance.consumed_lessons
-            item.remaining += balance.remaining_lessons
-            // 只要有一个 balance 不是已退款(4)，整个课程就不标记为已退款
-            if balance.status != 4 { item.isRefunded = false }
-            aggregateMap[key] = item
-        }
-        courses = aggregateMap.values
-            .filter { $0.total > 0 }
-            .sorted { $0.course_title < $1.course_title }
-        coursesTableView.reloadData()
+        reloadCourses()
 
         // 作品
         ChildService.fetchChildWorks(childId: child.child_id) { [weak self] result in
             guard let self else { return }
+            self.worksCollectionView.es.stopPullToRefresh()
+            self.worksCollectionView.es.stopLoadingMore()
             switch result {
             case .success(let list):
                 self.works = list
@@ -179,15 +184,72 @@ final class ChildHomeViewController: BaseViewController {
         // 动态
         ChildService.fetchChildGrowth(childId: child.child_id) { [weak self] result in
             guard let self else { return }
+            self.dynamicsTableView.es.stopPullToRefresh()
+            self.dynamicsTableView.es.stopLoadingMore()
             switch result {
             case .success(let list):
                 self.dynamics = list
+                self.hasMoreGrowth = list.count >= 20
                 self.dynamicsTableView.reloadData()
                 self.dynamicsTableView.backgroundView = list.isEmpty ? self.dynamicsEmpty : nil
             case .failure:
                 self.dynamicsTableView.backgroundView = self.dynamicsEmpty
             }
         }
+    }
+
+    private func refreshAll() {
+        workPage = 1
+        growthPage = 1
+        loadData()
+    }
+
+    private func loadMoreWorks() {
+        guard hasMoreWorks, !isLoadingWorks else {
+            worksCollectionView.es.stopLoadingMore()
+            return
+        }
+        isLoadingWorks = true
+        workPage += 1
+        // TODO: 作品分页接口待后端支持，目前一次加载全部
+        isLoadingWorks = false
+        worksCollectionView.es.stopLoadingMore()
+        hasMoreWorks = false
+    }
+
+    private func loadMoreGrowth() {
+        guard hasMoreGrowth, !isLoadingGrowth else {
+            dynamicsTableView.es.stopLoadingMore()
+            return
+        }
+        isLoadingGrowth = true
+        growthPage += 1
+        // TODO: 成长动态分页接口待后端支持，目前一次加载全部
+        isLoadingGrowth = false
+        dynamicsTableView.es.stopLoadingMore()
+        hasMoreGrowth = false
+    }
+
+    private func reloadCourses() {
+        var aggregateMap: [String: ChildCourseAggregate] = [:]
+        for balance in child.balances ?? [] {
+            let key = balance.course_id ?? balance.course_title ?? UUID().uuidString
+            var item = aggregateMap[key] ?? ChildCourseAggregate(
+                course_id: balance.course_id ?? "",
+                course_title: balance.course_title ?? "未命名课程",
+                studio_name: balance.studio_name,
+                total: 0, consumed: 0, remaining: 0, isRefunded: true
+            )
+            item.total += balance.total_lessons
+            item.consumed += balance.consumed_lessons
+            item.remaining += balance.remaining_lessons
+            if balance.status != 4 { item.isRefunded = false }
+            aggregateMap[key] = item
+        }
+        courses = aggregateMap.values
+            .filter { $0.total > 0 }
+            .sorted { $0.course_title < $1.course_title }
+        coursesTableView.reloadData()
     }
 
     @objc private func segmentChanged() {
@@ -219,12 +281,12 @@ extension ChildHomeViewController: UICollectionViewDataSource, UICollectionViewD
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let item = works[indexPath.item]
-        guard let url = item.images?.first else {
-            showToast(item.content ?? "作品")
+        guard let postId = item.post_id, !postId.isEmpty else {
+            showToast("暂无详情")
             return
         }
-        let preview = ImagePreviewViewController(images: [url], startIndex: 0)
-        present(preview, animated: true)
+        let vc = PostDetailViewController(postId: postId)
+        navigationController?.pushViewController(vc, animated: true)
     }
 }
 
@@ -298,14 +360,14 @@ final class ChildHeaderView: UIView {
             $0.width.height.equalTo(100)
         }
 
-        // 头像（leading 60 为悬浮返回按钮让位）
+        // 头像
         avatarView.backgroundColor = .white
         avatarView.layer.cornerRadius = 28
         avatarView.layer.masksToBounds = true
         addSubview(avatarView)
         avatarView.snp.makeConstraints {
             $0.top.equalTo(safeAreaLayoutGuide).offset(Theme.Spacing.s)
-            $0.leading.equalToSuperview().offset(60)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
             $0.width.height.equalTo(56)
         }
 
@@ -504,8 +566,11 @@ final class ChildCourseCell: UITableViewCell {
 
     private let card = UIView()
     private let titleLabel = UILabel()
-    private let detailLabel = UILabel()
+    private let studioLabel = UILabel()
     private let refundTag = UILabel()
+    private let progressTrack = UIView()
+    private let progressFill = UIView()
+    private let progressLabel = UILabel()
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -524,14 +589,7 @@ final class ChildCourseCell: UITableViewCell {
         card.backgroundColor = Theme.Color.surface
         card.layer.cornerRadius = Theme.Radius.card
 
-        titleLabel.font = .appSection(15)
-        titleLabel.textColor = Theme.Color.ink
-        card.addSubview(titleLabel)
-        titleLabel.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(Theme.Spacing.m)
-            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
-        }
-
+        // 退款标签（右对齐）
         refundTag.font = .appLabel(11)
         refundTag.textColor = .white
         refundTag.textAlignment = .center
@@ -541,18 +599,58 @@ final class ChildCourseCell: UITableViewCell {
         refundTag.isHidden = true
         card.addSubview(refundTag)
         refundTag.snp.makeConstraints {
-            $0.centerY.equalTo(titleLabel)
-            $0.leading.equalTo(titleLabel.snp.trailing).offset(8)
+            $0.top.equalToSuperview().offset(Theme.Spacing.m + 2)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
             $0.width.equalTo(38)
             $0.height.equalTo(18)
         }
 
-        detailLabel.font = .appLabel(12)
-        detailLabel.textColor = Theme.Color.sub
-        card.addSubview(detailLabel)
-        detailLabel.snp.makeConstraints {
-            $0.top.equalTo(titleLabel.snp.bottom).offset(Theme.Spacing.s)
+        // 课程标题
+        titleLabel.font = .appSection(15)
+        titleLabel.textColor = Theme.Color.ink
+        card.addSubview(titleLabel)
+        titleLabel.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(Theme.Spacing.m)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalTo(refundTag.snp.leading).offset(-8)
+        }
+
+        // 工作室名
+        studioLabel.font = .appLabel(12)
+        studioLabel.textColor = Theme.Color.muted
+        card.addSubview(studioLabel)
+        studioLabel.snp.makeConstraints {
+            $0.top.equalTo(titleLabel.snp.bottom).offset(4)
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+        }
+
+        // 进度条
+        progressTrack.backgroundColor = UIColor(hex: 0xE8E8E8)
+        progressTrack.layer.cornerRadius = 3
+        card.addSubview(progressTrack)
+
+        progressFill.backgroundColor = Theme.Color.brand
+        progressFill.layer.cornerRadius = 3
+        progressTrack.addSubview(progressFill)
+        progressFill.snp.makeConstraints {
+            $0.leading.top.bottom.equalToSuperview()
+        }
+
+        // 进度文字（先设约束，供 progressTrack 引用）
+        progressLabel.font = .appLabel(11)
+        progressLabel.textColor = Theme.Color.muted
+        card.addSubview(progressLabel)
+        progressLabel.snp.makeConstraints {
+            $0.centerY.equalTo(progressTrack)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+        }
+
+        // 进度条约束（trailing 连到 progressLabel 左侧，自动填充）
+        progressTrack.snp.makeConstraints {
+            $0.top.equalTo(studioLabel.snp.bottom).offset(Theme.Spacing.s)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalTo(progressLabel.snp.leading).offset(-8)
+            $0.height.equalTo(6)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.m)
         }
     }
@@ -567,12 +665,24 @@ final class ChildCourseCell: UITableViewCell {
 
     func configure(with course: ChildCourseAggregate) {
         titleLabel.text = course.course_title
-        let studio = course.studio_name ?? "艺术工坊"
-        detailLabel.text = "\(studio) · 剩余\(course.remaining)/\(course.total)节"
+        studioLabel.text = course.studio_name ?? "艺术工坊"
+
+        // 进度
+        let total = max(course.total, 1)
+        let consumed = min(course.consumed, total)
+        let ratio = CGFloat(consumed) / CGFloat(total)
+        progressFill.snp.remakeConstraints {
+            $0.leading.top.bottom.equalToSuperview()
+            $0.width.equalTo(self.progressTrack).multipliedBy(ratio)
+        }
+        progressLabel.text = "已上\(consumed)/\(course.total)节"
+
+        // 退款状态
         refundTag.text = "已退款"
         refundTag.isHidden = !course.isRefunded
         card.isUserInteractionEnabled = !course.isRefunded
         titleLabel.textColor = course.isRefunded ? Theme.Color.sub : Theme.Color.ink
+        progressFill.backgroundColor = course.isRefunded ? Theme.Color.sub : Theme.Color.brand
     }
 }
 
@@ -585,6 +695,7 @@ final class ChildDynamicCell: UITableViewCell {
     private let avatarLabel = UILabel()
     private let sourceLabel = UILabel()
     private let timeLabel = UILabel()
+    private let eventIconLabel = UILabel()
     private let bodyLabel = UILabel()
     private let courseTag = UIView()
     private let courseTagLabel = UILabel()
@@ -628,17 +739,25 @@ final class ChildDynamicCell: UITableViewCell {
             $0.top.equalTo(avatarView).offset(1)
         }
 
+        // 事件类型图标（emoji）
+        eventIconLabel.font = .appBody(13)
+        card.addSubview(eventIconLabel)
+        eventIconLabel.snp.makeConstraints {
+            $0.leading.equalTo(sourceLabel.snp.trailing).offset(6)
+            $0.centerY.equalTo(sourceLabel)
+        }
+
         timeLabel.font = .appLabel(11)
         timeLabel.textColor = Theme.Color.muted
         card.addSubview(timeLabel)
         timeLabel.snp.makeConstraints {
-            $0.leading.equalTo(sourceLabel.snp.trailing).offset(Theme.Spacing.s)
+            $0.leading.equalTo(eventIconLabel.snp.trailing).offset(Theme.Spacing.s)
             $0.centerY.equalTo(sourceLabel)
         }
 
         bodyLabel.font = .appBody(14)
         bodyLabel.textColor = Theme.Color.ink
-        bodyLabel.numberOfLines = 2
+        bodyLabel.numberOfLines = 5
         card.addSubview(bodyLabel)
         bodyLabel.snp.makeConstraints {
             $0.top.equalTo(avatarView.snp.bottom).offset(Theme.Spacing.s)
@@ -674,6 +793,9 @@ final class ChildDynamicCell: UITableViewCell {
         avatarLabel.text = String(source.prefix(1))
         bodyLabel.text = event.bodyText
 
+        // 事件类型图标
+        eventIconLabel.text = eventTypeIcon(event.event_type)
+
         // 时间：ISO(Z 结尾转本地) / 本地格式直接用
         if let time = event.occurred_at, time.count >= 16 {
             if time.hasSuffix("Z") {
@@ -701,6 +823,17 @@ final class ChildDynamicCell: UITableViewCell {
             courseTag.isHidden = false
         } else {
             courseTag.isHidden = true
+        }
+    }
+
+    /// 根据事件类型返回对应 emoji 图标
+    private func eventTypeIcon(_ type: String?) -> String {
+        switch type {
+        case "consume": return "📖"
+        case "refund": return "💰"
+        case "post": return "🎨"
+        case "enroll": return "✨"
+        default: return ""
         }
     }
 }
