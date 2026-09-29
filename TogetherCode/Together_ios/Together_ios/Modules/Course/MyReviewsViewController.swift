@@ -176,8 +176,9 @@ final class MyReviewCell: UITableViewCell {
         courseLabel.numberOfLines = 1
         cardView.addSubview(courseLabel)
         courseLabel.snp.makeConstraints {
-            $0.top.leading.equalToSuperview().inset(Theme.Spacing.l)
-            $0.trailing.lessThanOrEqualToSuperview().inset(Theme.Spacing.l)
+            $0.top.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
+            $0.trailing.lessThanOrEqualToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         starLabel.font = .appBody(14)
@@ -194,7 +195,7 @@ final class MyReviewCell: UITableViewCell {
         statusLabel.textAlignment = .center
         cardView.addSubview(statusLabel)
         statusLabel.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.centerY.equalTo(starLabel)
             $0.width.equalTo(52)
             $0.height.equalTo(20)
@@ -206,7 +207,7 @@ final class MyReviewCell: UITableViewCell {
         cardView.addSubview(contentLabel)
         contentLabel.snp.makeConstraints {
             $0.top.equalTo(starLabel.snp.bottom).offset(Theme.Spacing.s)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         replyStack.axis = .vertical
@@ -216,7 +217,7 @@ final class MyReviewCell: UITableViewCell {
         cardView.addSubview(replyStack)
         replyStack.snp.makeConstraints {
             $0.top.equalTo(contentLabel.snp.bottom).offset(Theme.Spacing.s)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         timeLabel.font = .appLabel(11)
@@ -224,7 +225,7 @@ final class MyReviewCell: UITableViewCell {
         cardView.addSubview(timeLabel)
         timeLabel.snp.makeConstraints {
             $0.top.equalTo(replyStack.snp.bottom).offset(Theme.Spacing.s)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
         }
     }

@@ -540,7 +540,7 @@ final class HomeNoticeCard: UIView {
         icon.image = UIImage(systemName: "megaphone.fill")
         icon.tintColor = Theme.Color.clay
         addSubview(icon)
-        icon.snp.makeConstraints { $0.leading.equalToSuperview().inset(Theme.Spacing.l); $0.centerY.equalToSuperview(); $0.width.height.equalTo(16) }
+        icon.snp.makeConstraints { $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner); $0.centerY.equalToSuperview(); $0.width.height.equalTo(16) }
 
         label.font = .appBody(13)
         label.textColor = Theme.Color.ink

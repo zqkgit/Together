@@ -281,7 +281,8 @@ final class CourseEnrollHeaderView: UIView {
         titleLabel.numberOfLines = 0
         addSubview(titleLabel)
         titleLabel.snp.makeConstraints {
-            $0.top.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.top.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         studioLabel.font = .appBody(13)
@@ -289,7 +290,7 @@ final class CourseEnrollHeaderView: UIView {
         addSubview(studioLabel)
         studioLabel.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(6)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         priceLabel.font = .appTitle(16)
@@ -297,7 +298,7 @@ final class CourseEnrollHeaderView: UIView {
         addSubview(priceLabel)
         priceLabel.snp.makeConstraints {
             $0.top.equalTo(studioLabel.snp.bottom).offset(10)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
         }
     }

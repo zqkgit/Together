@@ -209,7 +209,7 @@ private final class StudioTodoCell: UITableViewCell {
         iconBox.layer.cornerRadius = Theme.Radius.icon
         card.addSubview(iconBox)
         iconBox.snp.makeConstraints {
-            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.centerY.equalToSuperview()
             $0.width.height.equalTo(40)
         }

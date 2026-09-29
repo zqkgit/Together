@@ -104,7 +104,7 @@ final class MineViewController: BaseViewController {
         contentView.addSubview(menuCard)
         menuCard.snp.makeConstraints {
             $0.top.equalToSuperview().offset(6)
-            $0.leading.trailing.equalToSuperview().inset(18)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
         }
 
         // 底部「开通老师/工作室身份」开通条

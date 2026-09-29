@@ -178,7 +178,7 @@ final class StudioAuthViewController: BaseViewController {
             icon.contentMode = .scaleAspectFit
             rejectBar!.addSubview(icon)
             icon.snp.makeConstraints {
-                $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+                $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
                 $0.centerY.equalToSuperview()
                 $0.width.height.equalTo(18)
             }
@@ -190,8 +190,8 @@ final class StudioAuthViewController: BaseViewController {
             rejectBar!.addSubview(label)
             label.snp.makeConstraints {
                 $0.leading.equalTo(icon.snp.trailing).offset(Theme.Spacing.s)
-                $0.trailing.equalToSuperview().offset(-Theme.Spacing.l)
-                $0.top.bottom.equalToSuperview().inset(Theme.Spacing.l)
+                $0.trailing.equalToSuperview().offset(-Theme.Spacing.cardInner)
+                $0.top.bottom.equalToSuperview().inset(Theme.Spacing.cardInner)
             }
             scrollView.addSubview(rejectBar!)
             rejectBar!.snp.makeConstraints {
@@ -207,7 +207,7 @@ final class StudioAuthViewController: BaseViewController {
         heroIcon.contentMode = .scaleAspectFit
         hero.addSubview(heroIcon)
         heroIcon.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
             $0.top.equalToSuperview().offset(Theme.Spacing.l)
             $0.width.height.equalTo(22)
         }

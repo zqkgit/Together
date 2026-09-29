@@ -218,7 +218,8 @@ final class MyCourseCell: UITableViewCell {
         stack.spacing = 8
         card.addSubview(stack)
         stack.snp.makeConstraints {
-            $0.top.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.top.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.bottom.lessThanOrEqualToSuperview().inset(Theme.Spacing.l)
         }
 
@@ -281,7 +282,7 @@ final class MyCourseCell: UITableViewCell {
         card.addSubview(percentLabel)
         percentLabel.snp.makeConstraints {
             $0.top.equalTo(nextLabel.snp.bottom).offset(10)
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.width.equalTo(64)
             $0.height.equalTo(20)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
@@ -289,7 +290,7 @@ final class MyCourseCell: UITableViewCell {
         card.addSubview(progressTrack)
         progressTrack.snp.makeConstraints {
             $0.centerY.equalTo(percentLabel)
-            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.trailing.equalTo(percentLabel.snp.leading).offset(-Theme.Spacing.m)
             $0.height.equalTo(6)
         }

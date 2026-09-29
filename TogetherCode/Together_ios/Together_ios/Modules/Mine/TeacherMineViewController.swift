@@ -93,7 +93,7 @@ final class TeacherMineViewController: BaseViewController {
         contentView.addSubview(menuCard)
         menuCard.snp.makeConstraints {
             $0.top.equalToSuperview().offset(6)
-            $0.leading.trailing.equalToSuperview().inset(18)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
             $0.bottom.equalToSuperview().inset(24)
         }
     }

@@ -111,7 +111,8 @@ final class ReviewComposeViewController: BaseViewController {
         title.textColor = Theme.Color.sub
         card.addSubview(title)
         title.snp.makeConstraints {
-            $0.top.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.top.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         starStack.axis = .horizontal
@@ -160,7 +161,8 @@ final class ReviewComposeViewController: BaseViewController {
         title.textColor = Theme.Color.sub
         card.addSubview(title)
         title.snp.makeConstraints {
-            $0.top.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.top.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         let placeholder = UILabel()
@@ -170,7 +172,7 @@ final class ReviewComposeViewController: BaseViewController {
         card.addSubview(placeholder)
         placeholder.snp.makeConstraints {
             $0.top.equalTo(title.snp.bottom).offset(Theme.Spacing.m)
-            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         textView.font = .appBody(14)
@@ -181,7 +183,7 @@ final class ReviewComposeViewController: BaseViewController {
         card.addSubview(textView)
         textView.snp.makeConstraints {
             $0.top.equalTo(title.snp.bottom).offset(Theme.Spacing.m)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.height.equalTo(100)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
         }
@@ -207,7 +209,8 @@ final class ReviewComposeViewController: BaseViewController {
         title.textColor = Theme.Color.sub
         card.addSubview(title)
         title.snp.makeConstraints {
-            $0.top.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.top.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         imageGridStack.axis = .vertical
@@ -215,7 +218,7 @@ final class ReviewComposeViewController: BaseViewController {
         card.addSubview(imageGridStack)
         imageGridStack.snp.makeConstraints {
             $0.top.equalTo(title.snp.bottom).offset(Theme.Spacing.m)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
         }
         renderImageGrid()

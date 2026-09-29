@@ -363,7 +363,8 @@ final class CourseDetailInfoCell: UITableViewCell {
         tagStack.spacing = Theme.Spacing.s
         cardView.addSubview(tagStack)
         tagStack.snp.makeConstraints {
-            $0.top.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.top.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         titleLabel.font = .appTitle(19)
@@ -372,7 +373,7 @@ final class CourseDetailInfoCell: UITableViewCell {
         cardView.addSubview(titleLabel)
         titleLabel.snp.makeConstraints {
             $0.top.equalTo(tagStack.snp.bottom).offset(Theme.Spacing.s)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         subtitleLabel.font = .appBody(13)
@@ -381,7 +382,7 @@ final class CourseDetailInfoCell: UITableViewCell {
         cardView.addSubview(subtitleLabel)
         subtitleLabel.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(Theme.Spacing.s)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
         }
     }
@@ -443,7 +444,8 @@ final class CourseIntroCell: UITableViewCell {
         titleLabel.text = "课程介绍"
         cardView.addSubview(titleLabel)
         titleLabel.snp.makeConstraints {
-            $0.top.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.top.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         introLabel.font = .appBody(14)
@@ -452,7 +454,7 @@ final class CourseIntroCell: UITableViewCell {
         cardView.addSubview(introLabel)
         introLabel.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(Theme.Spacing.s)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
         }
     }
@@ -498,7 +500,8 @@ final class CourseLessonsCell: UITableViewCell {
         titleLabel.text = "课时安排"
         cardView.addSubview(titleLabel)
         titleLabel.snp.makeConstraints {
-            $0.top.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.top.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         stack.axis = .vertical
@@ -506,7 +509,7 @@ final class CourseLessonsCell: UITableViewCell {
         cardView.addSubview(stack)
         stack.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(Theme.Spacing.s)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
         }
     }
@@ -577,7 +580,8 @@ final class CourseReviewCell: UITableViewCell {
         avatarView.contentMode = .scaleAspectFill
         cardView.addSubview(avatarView)
         avatarView.snp.makeConstraints {
-            $0.top.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.top.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.width.height.equalTo(32)
         }
 
@@ -608,7 +612,7 @@ final class CourseReviewCell: UITableViewCell {
         cardView.addSubview(bodyStack)
         bodyStack.snp.makeConstraints {
             $0.top.equalTo(avatarView.snp.bottom).offset(Theme.Spacing.s)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
         }
     }

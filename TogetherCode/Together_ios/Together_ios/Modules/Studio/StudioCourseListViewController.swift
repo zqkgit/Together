@@ -95,7 +95,7 @@ final class StudioCourseListViewController: BaseViewController {
         fab.addTarget(self, action: #selector(tapCreate), for: .touchUpInside)
         view.addSubview(fab)
         fab.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.bottom.equalTo(view.safeAreaLayoutGuide).offset(-Theme.Spacing.xl)
             $0.width.height.equalTo(56)
         }
@@ -265,7 +265,7 @@ private final class StudioCourseCell: UITableViewCell {
         card.addSubview(statusPill)
         statusPill.snp.makeConstraints {
             $0.top.equalTo(coverView).offset(0)
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         // 标题
@@ -286,7 +286,7 @@ private final class StudioCourseCell: UITableViewCell {
         card.addSubview(subLabel)
         subLabel.snp.makeConstraints {
             $0.leading.equalTo(titleLabel)
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.top.equalTo(titleLabel.snp.bottom).offset(6)
         }
 
@@ -304,7 +304,7 @@ private final class StudioCourseCell: UITableViewCell {
         card.addSubview(divider)
         divider.snp.makeConstraints {
             $0.top.equalTo(coverView.snp.bottom).offset(Theme.Spacing.l)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.height.equalTo(1)
         }
 
@@ -315,7 +315,7 @@ private final class StudioCourseCell: UITableViewCell {
         card.addSubview(buttonRow)
         buttonRow.snp.makeConstraints {
             $0.top.equalTo(divider.snp.bottom).offset(Theme.Spacing.m)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
             $0.height.equalTo(34)
         }

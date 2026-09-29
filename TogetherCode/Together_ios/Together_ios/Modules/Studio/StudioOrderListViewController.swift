@@ -294,7 +294,7 @@ final class StudioOrderCell: UITableViewCell {
         card.addSubview(statusPill)
         statusPill.snp.makeConstraints {
             $0.top.equalToSuperview().inset(Theme.Spacing.l)
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         // 订单号
@@ -302,7 +302,7 @@ final class StudioOrderCell: UITableViewCell {
         orderNoLabel.textColor = Theme.Color.muted
         card.addSubview(orderNoLabel)
         orderNoLabel.snp.makeConstraints {
-            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.top.equalToSuperview().inset(Theme.Spacing.l)
             $0.trailing.lessThanOrEqualTo(statusPill.snp.leading).offset(-8)
         }
@@ -323,7 +323,7 @@ final class StudioOrderCell: UITableViewCell {
         parentLabel.snp.makeConstraints {
             $0.leading.equalTo(orderNoLabel)
             $0.top.equalTo(sourceLabel.snp.bottom).offset(Theme.Spacing.s)
-            $0.trailing.lessThanOrEqualToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.lessThanOrEqualToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         // 课程
@@ -333,7 +333,7 @@ final class StudioOrderCell: UITableViewCell {
         courseLabel.snp.makeConstraints {
             $0.leading.equalTo(orderNoLabel)
             $0.top.equalTo(parentLabel.snp.bottom).offset(4)
-            $0.trailing.lessThanOrEqualToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.lessThanOrEqualToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         // 金额（右下）
@@ -342,7 +342,7 @@ final class StudioOrderCell: UITableViewCell {
         amountLabel.textAlignment = .right
         card.addSubview(amountLabel)
         amountLabel.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.top.equalTo(parentLabel)
         }
 
@@ -352,7 +352,7 @@ final class StudioOrderCell: UITableViewCell {
         lessonsLabel.textAlignment = .right
         card.addSubview(lessonsLabel)
         lessonsLabel.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.top.equalTo(amountLabel.snp.bottom).offset(4)
         }
 
@@ -373,7 +373,7 @@ final class StudioOrderCell: UITableViewCell {
         pendingHint.isHidden = true
         card.addSubview(pendingHint)
         pendingHint.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.centerY.equalTo(dateLabel)
         }
     }

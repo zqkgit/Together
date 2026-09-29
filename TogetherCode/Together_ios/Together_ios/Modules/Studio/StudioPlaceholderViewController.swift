@@ -47,7 +47,7 @@ final class StudioPlaceholderViewController: BaseViewController {
         card.addSubview(titleLabel)
         titleLabel.snp.makeConstraints {
             $0.top.equalTo(iconView.snp.bottom).offset(Theme.Spacing.l)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         let tipLabel = UILabel()
@@ -59,7 +59,7 @@ final class StudioPlaceholderViewController: BaseViewController {
         card.addSubview(tipLabel)
         tipLabel.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(Theme.Spacing.s)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.bottom.equalToSuperview().offset(-Theme.Spacing.xxl)
         }
     }

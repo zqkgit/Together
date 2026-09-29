@@ -551,12 +551,12 @@ final class OrderDetailCell: UITableViewCell {
             valueLabel.numberOfLines = 0
             valueLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
             titleLabel.snp.makeConstraints {
-                $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+                $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
                 $0.top.equalToSuperview().inset(13)
                 $0.bottom.lessThanOrEqualToSuperview().inset(13)
             }
             valueLabel.snp.makeConstraints {
-                $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+                $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
                 $0.centerY.equalTo(titleLabel)
                 $0.leading.greaterThanOrEqualTo(titleLabel.snp.trailing).offset(Theme.Spacing.m)
                 $0.top.bottom.equalToSuperview().inset(13)
@@ -628,11 +628,11 @@ final class PaymentRecordCell: UITableViewCell {
         }
         methodLabel.snp.makeConstraints {
             $0.top.equalToSuperview().inset(Theme.Spacing.l)
-            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
         amountLabel.snp.makeConstraints {
             $0.centerY.equalTo(methodLabel)
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.leading.greaterThanOrEqualTo(methodLabel.snp.trailing).offset(8)
         }
         statusBadge.snp.makeConstraints {

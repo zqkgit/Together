@@ -40,7 +40,7 @@ final class MineMenuCardView: UIView {
                 stack.addArrangedSubview(divider)
                 divider.snp.makeConstraints {
                     $0.height.equalTo(0.5)
-                    $0.leading.trailing.equalToSuperview().inset(18)
+                    $0.leading.trailing.equalToSuperview()
                 }
                 let spacer = UIView()
                 spacer.snp.makeConstraints { $0.height.equalTo(6) }
@@ -93,7 +93,7 @@ final class MineMenuRow: UIControl {
         iconTile.isUserInteractionEnabled = false
         addSubview(iconTile)
         iconTile.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(18)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
             $0.centerY.equalToSuperview()
             $0.width.height.equalTo(34)
         }
@@ -117,7 +117,7 @@ final class MineMenuRow: UIControl {
         chevron.isUserInteractionEnabled = false
         addSubview(chevron)
         chevron.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(16)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.centerY.equalToSuperview()
             $0.width.equalTo(8)
             $0.height.equalTo(14)

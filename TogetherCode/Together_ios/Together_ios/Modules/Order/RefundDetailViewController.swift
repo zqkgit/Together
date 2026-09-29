@@ -367,13 +367,13 @@ private final class RefundRowCell: UITableViewCell {
         contentView.addSubview(titleLabel)
         contentView.addSubview(valueLabel)
         titleLabel.snp.makeConstraints {
-            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.top.equalToSuperview().offset(12)
             $0.bottom.lessThanOrEqualToSuperview().offset(-12)
         }
         valueLabel.snp.makeConstraints {
             $0.top.equalToSuperview().offset(12)
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.leading.greaterThanOrEqualTo(titleLabel.snp.trailing).offset(Theme.Spacing.m)
             $0.bottom.equalToSuperview().offset(-12)
         }
@@ -474,7 +474,7 @@ private final class RefundStepCell: UITableViewCell {
         dot.layer.cornerRadius = 5
         contentView.addSubview(dot)
         dot.snp.makeConstraints {
-            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.top.equalToSuperview().offset(18)
             $0.width.height.equalTo(10)
         }

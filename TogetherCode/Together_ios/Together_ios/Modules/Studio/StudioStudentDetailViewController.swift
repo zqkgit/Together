@@ -56,7 +56,7 @@ final class StudioStudentDetailViewController: BaseViewController {
         scrollView.addSubview(contentStack)
         contentStack.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.s)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.bottom.equalToSuperview().offset(-Theme.Spacing.xl)
             $0.width.equalTo(scrollView).offset(-Theme.Spacing.l * 2)
         }
@@ -129,7 +129,8 @@ final class StudioStudentDetailViewController: BaseViewController {
         }
         card.addSubview(avatar)
         avatar.snp.makeConstraints {
-            $0.leading.top.equalToSuperview().inset(Theme.Spacing.l)
+            $0.top.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.width.height.equalTo(52)
         }
 
@@ -163,7 +164,7 @@ final class StudioStudentDetailViewController: BaseViewController {
         remainingValue.textAlignment = .right
         card.addSubview(remainingValue)
         remainingValue.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.centerY.equalTo(avatar)
         }
 
@@ -174,7 +175,7 @@ final class StudioStudentDetailViewController: BaseViewController {
         caption.textAlignment = .right
         card.addSubview(caption)
         caption.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.top.equalTo(remainingValue.snp.bottom).offset(2)
         }
 
@@ -182,7 +183,7 @@ final class StudioStudentDetailViewController: BaseViewController {
         card.addSubview(divider)
         divider.snp.makeConstraints {
             $0.top.equalTo(avatar.snp.bottom).offset(Theme.Spacing.l)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.height.equalTo(1)
         }
 
@@ -198,7 +199,7 @@ final class StudioStudentDetailViewController: BaseViewController {
         card.addSubview(rows)
         rows.snp.makeConstraints {
             $0.top.equalTo(divider.snp.bottom).offset(Theme.Spacing.l)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.bottom.equalToSuperview().offset(-Theme.Spacing.l)
         }
 

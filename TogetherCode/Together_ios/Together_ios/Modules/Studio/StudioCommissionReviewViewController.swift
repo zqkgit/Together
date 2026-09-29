@@ -343,7 +343,7 @@ final class StudioCommissionCell: UITableViewCell {
         card.addSubview(amountLabel)
         amountLabel.snp.makeConstraints {
             $0.top.equalTo(avatarView).offset(2)
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         // 收款方式
@@ -351,7 +351,7 @@ final class StudioCommissionCell: UITableViewCell {
         methodLabel.textColor = Theme.Color.sub
         card.addSubview(methodLabel)
         methodLabel.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.top.equalTo(amountLabel.snp.bottom).offset(4)
         }
 
@@ -370,7 +370,7 @@ final class StudioCommissionCell: UITableViewCell {
         card.addSubview(actionWrap)
         actionWrap.snp.makeConstraints {
             $0.top.equalTo(statusPill.snp.bottom).offset(Theme.Spacing.l)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
         }
     }

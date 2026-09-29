@@ -336,7 +336,7 @@ final class WorkbenchScheduleCell: UITableViewCell {
         container.addSubview(timeLabel)
         timeLabel.snp.makeConstraints {
             $0.top.equalToSuperview().inset(Theme.Spacing.m)
-            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         titleLabel.font = .appBody(15)
@@ -356,7 +356,7 @@ final class WorkbenchScheduleCell: UITableViewCell {
         statusLabel.textAlignment = .center
         container.addSubview(statusLabel)
         statusLabel.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.centerY.equalTo(titleLabel)
             $0.width.greaterThanOrEqualTo(52)
             $0.height.equalTo(22)
@@ -366,7 +366,7 @@ final class WorkbenchScheduleCell: UITableViewCell {
         container.addSubview(lineView)
         lineView.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(Theme.Spacing.m)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.height.equalTo(1)
         }
 
@@ -375,7 +375,7 @@ final class WorkbenchScheduleCell: UITableViewCell {
         container.addSubview(studentsStack)
         studentsStack.snp.makeConstraints {
             $0.top.equalTo(lineView.snp.bottom)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         submitButton.titleLabel?.font = .appBody(14)
@@ -385,7 +385,7 @@ final class WorkbenchScheduleCell: UITableViewCell {
         container.addSubview(submitButton)
         submitButton.snp.makeConstraints {
             $0.top.equalTo(studentsStack.snp.bottom).offset(Theme.Spacing.m)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.m)
             $0.height.equalTo(40)
         }

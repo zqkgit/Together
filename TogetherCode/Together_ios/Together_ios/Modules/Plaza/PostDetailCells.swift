@@ -368,7 +368,7 @@ final class PostStudentCell: UITableViewCell {
             card.addSubview(row)
             row.snp.makeConstraints {
                 $0.top.equalTo(previous.snp.bottom).offset(Theme.Spacing.s)
-                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
                 $0.height.equalTo(40)
             }
             rows.append(row)

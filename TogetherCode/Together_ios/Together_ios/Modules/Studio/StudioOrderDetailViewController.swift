@@ -157,7 +157,7 @@ final class StudioOrderDetailViewController: BaseViewController {
         statusCard.addSubview(statusPill)
         statusPill.snp.makeConstraints {
             $0.top.equalToSuperview().inset(Theme.Spacing.l)
-            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         orderNoLabel.font = .appBody(14)
@@ -166,7 +166,7 @@ final class StudioOrderDetailViewController: BaseViewController {
         orderNoLabel.snp.makeConstraints {
             $0.top.equalTo(statusPill.snp.bottom).offset(Theme.Spacing.m)
             $0.leading.equalTo(statusPill)
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         createdLabel.font = .appLabel(12)
@@ -263,7 +263,8 @@ final class StudioOrderDetailViewController: BaseViewController {
         let title = makeSectionTitle("学员信息")
         infoCard.addSubview(title)
         title.snp.makeConstraints {
-            $0.top.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.top.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         var lastView: UIView = title
@@ -272,7 +273,7 @@ final class StudioOrderDetailViewController: BaseViewController {
             infoCard.addSubview(row)
             row.snp.makeConstraints {
                 $0.top.equalTo(lastView.snp.bottom).offset(Theme.Spacing.m)
-                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             }
             lastView = row
         }
@@ -281,7 +282,7 @@ final class StudioOrderDetailViewController: BaseViewController {
             infoCard.addSubview(row)
             row.snp.makeConstraints {
                 $0.top.equalTo(lastView.snp.bottom).offset(Theme.Spacing.m)
-                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             }
             lastView = row
             if let phone = user.phone, !phone.isEmpty {
@@ -289,7 +290,7 @@ final class StudioOrderDetailViewController: BaseViewController {
                 infoCard.addSubview(phoneRow)
                 phoneRow.snp.makeConstraints {
                     $0.top.equalTo(lastView.snp.bottom).offset(Theme.Spacing.m)
-                    $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+                    $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
                 }
                 lastView = phoneRow
             }
@@ -304,7 +305,8 @@ final class StudioOrderDetailViewController: BaseViewController {
         let title = makeSectionTitle("课程信息")
         courseCard.addSubview(title)
         title.snp.makeConstraints {
-            $0.top.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.top.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         var lastView: UIView = title
@@ -312,7 +314,7 @@ final class StudioOrderDetailViewController: BaseViewController {
         courseCard.addSubview(courseRow)
         courseRow.snp.makeConstraints {
             $0.top.equalTo(lastView.snp.bottom).offset(Theme.Spacing.m)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
         lastView = courseRow
 
@@ -321,7 +323,7 @@ final class StudioOrderDetailViewController: BaseViewController {
             courseCard.addSubview(pkgRow)
             pkgRow.snp.makeConstraints {
                 $0.top.equalTo(lastView.snp.bottom).offset(Theme.Spacing.m)
-                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             }
             lastView = pkgRow
         }
@@ -330,7 +332,7 @@ final class StudioOrderDetailViewController: BaseViewController {
             courseCard.addSubview(clsRow)
             clsRow.snp.makeConstraints {
                 $0.top.equalTo(lastView.snp.bottom).offset(Theme.Spacing.m)
-                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             }
             lastView = clsRow
         }
@@ -339,7 +341,7 @@ final class StudioOrderDetailViewController: BaseViewController {
         courseCard.addSubview(lessonsRow)
         lessonsRow.snp.makeConstraints {
             $0.top.equalTo(lastView.snp.bottom).offset(Theme.Spacing.m)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
         lastView = lessonsRow
 
@@ -353,7 +355,8 @@ final class StudioOrderDetailViewController: BaseViewController {
         let title = makeSectionTitle("金额信息")
         amountCard.addSubview(title)
         title.snp.makeConstraints {
-            $0.top.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.top.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         var lastView: UIView = title
@@ -376,7 +379,7 @@ final class StudioOrderDetailViewController: BaseViewController {
             amountCard.addSubview(row)
             row.snp.makeConstraints {
                 $0.top.equalTo(lastView.snp.bottom).offset(Theme.Spacing.m)
-                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             }
             lastView = row
         }
@@ -397,7 +400,8 @@ final class StudioOrderDetailViewController: BaseViewController {
         let title = makeSectionTitle("付款记录")
         paymentSection.addSubview(title)
         title.snp.makeConstraints {
-            $0.top.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.top.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         var lastView: UIView = title
@@ -406,7 +410,7 @@ final class StudioOrderDetailViewController: BaseViewController {
             paymentSection.addSubview(card)
             card.snp.makeConstraints {
                 $0.top.equalTo(lastView.snp.bottom).offset(Theme.Spacing.m)
-                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             }
             lastView = card
         }
@@ -426,7 +430,8 @@ final class StudioOrderDetailViewController: BaseViewController {
         let title = makeSectionTitle("课时账本")
         balanceSection.addSubview(title)
         title.snp.makeConstraints {
-            $0.top.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.top.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         var lastView: UIView = title
@@ -441,7 +446,7 @@ final class StudioOrderDetailViewController: BaseViewController {
             balanceSection.addSubview(row)
             row.snp.makeConstraints {
                 $0.top.equalTo(lastView.snp.bottom).offset(Theme.Spacing.m)
-                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             }
             lastView = row
         }
@@ -461,7 +466,8 @@ final class StudioOrderDetailViewController: BaseViewController {
         let title = makeSectionTitle("退款记录")
         refundSection.addSubview(title)
         title.snp.makeConstraints {
-            $0.top.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.top.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
         }
 
         var lastView: UIView = title
@@ -470,7 +476,7 @@ final class StudioOrderDetailViewController: BaseViewController {
             refundSection.addSubview(card)
             card.snp.makeConstraints {
                 $0.top.equalTo(lastView.snp.bottom).offset(Theme.Spacing.m)
-                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+                $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             }
             lastView = card
         }

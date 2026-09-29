@@ -138,7 +138,7 @@ final class AccountSecurityCell: UITableViewCell {
         iconView.contentMode = .scaleAspectFit
         contentView.addSubview(iconView)
         iconView.snp.makeConstraints {
-            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.centerY.equalToSuperview()
             $0.width.height.equalTo(22)
         }

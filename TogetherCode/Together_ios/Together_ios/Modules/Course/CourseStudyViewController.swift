@@ -267,7 +267,8 @@ final class CourseStudyCell: UITableViewCell {
         titleLabel.lineBreakMode = .byTruncatingTail
         card.addSubview(titleLabel)
         titleLabel.snp.makeConstraints {
-            $0.top.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.top.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.trailing.lessThanOrEqualToSuperview().inset(84)
         }
 

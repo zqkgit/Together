@@ -181,7 +181,7 @@ final class ChangePhoneViewController: BaseViewController {
         codeField.keyboardType = .numberPad
         codeCard.addSubview(codeField)
         codeField.snp.makeConstraints {
-            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.centerY.equalToSuperview()
             $0.trailing.equalToSuperview().inset(110)
         }
@@ -192,7 +192,7 @@ final class ChangePhoneViewController: BaseViewController {
         codeButton.addTarget(self, action: #selector(sendCodeTapped), for: .touchUpInside)
         codeCard.addSubview(codeButton)
         codeButton.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.centerY.equalToSuperview()
         }
 
@@ -451,7 +451,7 @@ final class DeactivateAccountViewController: BaseViewController {
         codeField.keyboardType = .numberPad
         codeCard.addSubview(codeField)
         codeField.snp.makeConstraints {
-            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.centerY.equalToSuperview()
             $0.trailing.equalToSuperview().inset(110)
         }
@@ -462,7 +462,7 @@ final class DeactivateAccountViewController: BaseViewController {
         codeButton.addTarget(self, action: #selector(sendCodeTapped), for: .touchUpInside)
         codeCard.addSubview(codeButton)
         codeButton.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.centerY.equalToSuperview()
         }
 

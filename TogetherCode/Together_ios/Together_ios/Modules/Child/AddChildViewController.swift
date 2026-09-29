@@ -289,7 +289,7 @@ final class AddChildViewController: BaseViewController {
         card.addSubview(title)
         title.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.l)
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
         }
 
 
@@ -301,7 +301,7 @@ final class AddChildViewController: BaseViewController {
         card.addSubview(desc)
         desc.snp.makeConstraints {
             $0.top.equalTo(title.snp.bottom).offset(Theme.Spacing.s)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.bottom.equalToSuperview().inset(Theme.Spacing.l)
         }
 

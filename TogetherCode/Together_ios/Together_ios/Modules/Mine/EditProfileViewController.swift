@@ -119,7 +119,7 @@ final class EditProfileViewController: BaseViewController {
             $0.centerY.equalToSuperview()
         }
         signatureField.snp.remakeConstraints {
-            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.trailing.equalTo(signatureCountLabel.snp.leading).offset(-8)
             $0.centerY.equalToSuperview()
         }
@@ -158,7 +158,7 @@ final class EditProfileViewController: BaseViewController {
         field.clearButtonMode = .whileEditing
         card.addSubview(field)
         field.snp.makeConstraints {
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.centerY.equalToSuperview()
         }
         return card

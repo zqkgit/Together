@@ -95,11 +95,11 @@ final class PaymentVoucherViewController: BaseViewController {
         bottomBar.addSubview(amountLabel)
         bottomBar.addSubview(submitButton)
         amountLabel.snp.makeConstraints {
-            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.centerY.equalToSuperview()
         }
         submitButton.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.centerY.equalToSuperview()
             $0.width.equalTo(140)
             $0.height.equalTo(44)
@@ -421,7 +421,7 @@ private final class MethodRadioCell: UITableViewCell {
         contentView.addSubview(titleLabel)
         contentView.addSubview(checkView)
         iconView.snp.makeConstraints {
-            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.centerY.equalToSuperview()
             $0.width.height.equalTo(22)
             $0.top.bottom.equalToSuperview().inset(14)
@@ -431,7 +431,7 @@ private final class MethodRadioCell: UITableViewCell {
             $0.centerY.equalToSuperview()
         }
         checkView.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
             $0.centerY.equalToSuperview()
             $0.width.height.equalTo(22)
         }

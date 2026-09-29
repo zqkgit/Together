@@ -93,7 +93,7 @@ final class LocationSearchViewController: UIViewController {
         closeButton.addTarget(self, action: #selector(didTapClose), for: .touchUpInside)
         view.addSubview(closeButton)
         closeButton.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
             $0.centerY.equalTo(titleLabel)
             $0.width.height.equalTo(36)
         }
@@ -115,7 +115,7 @@ final class LocationSearchViewController: UIViewController {
         searchIcon.contentMode = .scaleAspectFit
         searchBox.addSubview(searchIcon)
         searchIcon.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
             $0.centerY.equalToSuperview()
             $0.width.height.equalTo(18)
         }
@@ -701,7 +701,7 @@ private final class LocationPointCell: UITableViewCell {
         iconBox.layer.masksToBounds = true
         card.addSubview(iconBox)
         iconBox.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
             $0.centerY.equalToSuperview()
             $0.width.height.equalTo(40)
             $0.top.greaterThanOrEqualToSuperview().offset(Theme.Spacing.m)
@@ -722,7 +722,7 @@ private final class LocationPointCell: UITableViewCell {
         nameLabel.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.m)
             $0.leading.equalTo(iconBox.snp.trailing).offset(Theme.Spacing.m)
-            $0.trailing.lessThanOrEqualToSuperview().offset(-Theme.Spacing.l)
+            $0.trailing.lessThanOrEqualToSuperview().offset(-Theme.Spacing.cardInner)
         }
 
         addressLabel.font = .appBody(13)
@@ -732,7 +732,7 @@ private final class LocationPointCell: UITableViewCell {
         addressLabel.snp.makeConstraints {
             $0.top.equalTo(nameLabel.snp.bottom).offset(2)
             $0.leading.equalTo(nameLabel)
-            $0.trailing.lessThanOrEqualToSuperview().offset(-Theme.Spacing.l)
+            $0.trailing.lessThanOrEqualToSuperview().offset(-Theme.Spacing.cardInner)
             $0.bottom.equalToSuperview().offset(-Theme.Spacing.m)
         }
 
@@ -748,7 +748,7 @@ private final class LocationPointCell: UITableViewCell {
         card.addSubview(tagLabel)
         tagLabel.snp.makeConstraints {
             $0.centerY.equalTo(nameLabel)
-            $0.trailing.equalToSuperview().offset(-Theme.Spacing.l)
+            $0.trailing.equalToSuperview().offset(-Theme.Spacing.cardInner)
             $0.leading.greaterThanOrEqualTo(nameLabel.snp.trailing).offset(Theme.Spacing.s)
         }
 
@@ -759,7 +759,7 @@ private final class LocationPointCell: UITableViewCell {
         card.addSubview(chevron)
         chevron.snp.makeConstraints {
             $0.centerY.equalToSuperview()
-            $0.trailing.equalToSuperview().offset(-Theme.Spacing.l)
+            $0.trailing.equalToSuperview().offset(-Theme.Spacing.cardInner)
             $0.width.equalTo(10)
             $0.height.equalTo(13)
         }
@@ -827,7 +827,7 @@ private final class LocationLoadingCell: UITableViewCell {
         spinner.startAnimating()
         card.addSubview(spinner)
         spinner.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(Theme.Spacing.l)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
             $0.centerY.equalToSuperview()
         }
 
@@ -838,7 +838,7 @@ private final class LocationLoadingCell: UITableViewCell {
         label.snp.makeConstraints {
             $0.leading.equalTo(spinner.snp.trailing).offset(Theme.Spacing.m)
             $0.centerY.equalToSuperview()
-            $0.trailing.equalToSuperview().offset(-Theme.Spacing.l)
+            $0.trailing.equalToSuperview().offset(-Theme.Spacing.cardInner)
         }
     }
 
