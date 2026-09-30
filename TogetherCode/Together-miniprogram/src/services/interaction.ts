@@ -69,6 +69,30 @@ export function getFavorites(targetType: string, page = 1): Promise<FavoritePage
   return request<any>({ url: `/favorites?target_type=${targetType}&page=${page}&page_size=10`, method: "GET" });
 }
 
+// ── 关注关系 ──
+
+export interface FollowingUser {
+  user_id: string;
+  nickname: string | null;
+  avatar: string | null;
+  role: number | null;
+}
+
+/** 我的关注列表（分页） */
+export function getFollowing(page = 1, size = 20): Promise<{ total: number; list: FollowingUser[] }> {
+  return request<any>({ url: `/following?page=${page}&size=${size}`, method: "GET" });
+}
+
+/** 关注用户 */
+export function followUser(userId: string): Promise<any> {
+  return request({ url: `/users/${userId}/follow`, method: "POST" });
+}
+
+/** 取消关注 */
+export function unfollowUser(userId: string): Promise<any> {
+  return request({ url: `/users/${userId}/follow`, method: "DELETE" });
+}
+
 export interface MyReviewItem {
   review_id: string;
   rating: number;

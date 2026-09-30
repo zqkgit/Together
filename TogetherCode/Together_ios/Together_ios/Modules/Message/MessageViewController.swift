@@ -327,7 +327,8 @@ final class MessageViewController: BaseViewController, UITableViewDataSource, UI
     // MARK: - 事件
 
     @objc private func didTapAdd() {
-        showToast("新建会话开发中")
+        let vc = FollowingListViewController()
+        navigationController?.pushViewController(vc, animated: true)
     }
 
     // MARK: - UITableViewDataSource / Delegate

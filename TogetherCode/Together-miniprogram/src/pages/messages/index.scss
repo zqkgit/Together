@@ -9,10 +9,74 @@
     align-items: center;
     padding: 8rpx 4rpx 24rpx;
 
-    .title {
-      font-size: 34rpx;
-      font-weight: 700;
-      color: $color-text;
+    .tab-bar {
+      display: flex;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.04);
+      border-radius: 40rpx;
+      padding: 4rpx;
+    }
+
+    .tab {
+      position: relative;
+      padding: 12rpx 36rpx;
+      border-radius: 36rpx;
+      display: flex;
+      align-items: center;
+
+      &.active {
+        background: #fff;
+        box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+      }
+
+      .tab-text {
+        font-size: 28rpx;
+        font-weight: 600;
+        color: $color-text;
+      }
+
+      .tab-badge {
+        position: absolute;
+        top: 4rpx;
+        right: 8rpx;
+        min-width: 32rpx;
+        height: 32rpx;
+        background: #d9534f;
+        border-radius: 16rpx;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 8rpx;
+
+        .badge-text {
+          font-size: 18rpx;
+          color: #fff;
+        }
+      }
+
+      .tab-dot {
+        position: absolute;
+        top: 8rpx;
+        right: 16rpx;
+        width: 14rpx;
+        height: 14rpx;
+        background: #d9534f;
+        border-radius: 50%;
+      }
+    }
+
+    .add-btn {
+      font-size: 40rpx;
+      font-weight: 300;
+      color: $color-primary;
+      width: 56rpx;
+      height: 56rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2rpx solid $color-primary;
+      border-radius: 50%;
+      line-height: 1;
     }
 
     .read-all {
@@ -20,6 +84,103 @@
       color: $color-primary;
     }
   }
+
+  // ── 对话列表 ──
+
+  .conv-list {
+    margin-top: 8rpx;
+  }
+
+  .conv-card {
+    display: flex;
+    align-items: center;
+    padding: 24rpx !important;
+    margin-bottom: 16rpx;
+
+    &:active {
+      background: rgba(0, 0, 0, 0.02);
+    }
+  }
+
+  .conv-avatar {
+    width: 88rpx;
+    height: 88rpx;
+    border-radius: 50%;
+    flex-shrink: 0;
+
+    &.avatar-placeholder {
+      background: $color-primary-soft;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .avatar-letter {
+      font-size: 36rpx;
+      color: $color-primary;
+      font-weight: 600;
+    }
+  }
+
+  .conv-body {
+    flex: 1;
+    margin-left: 20rpx;
+    overflow: hidden;
+
+    .conv-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .conv-name {
+        font-size: 30rpx;
+        font-weight: 600;
+        color: $color-text;
+      }
+
+      .conv-time {
+        font-size: 22rpx;
+        color: #b0a99b;
+        flex-shrink: 0;
+      }
+    }
+
+    .conv-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8rpx;
+
+      .conv-preview {
+        font-size: 26rpx;
+        color: $color-text-light;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+        margin-right: 12rpx;
+      }
+
+      .conv-badge {
+        min-width: 32rpx;
+        height: 32rpx;
+        background: #d9534f;
+        border-radius: 16rpx;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 8rpx;
+        flex-shrink: 0;
+
+        .badge-text {
+          font-size: 18rpx;
+          color: #fff;
+        }
+      }
+    }
+  }
+
+  // ── 通知列表 ──
 
   .item {
     padding: 24rpx;

@@ -1,0 +1,89 @@
+.following-list {
+  min-height: 100vh;
+  background: #f7f6f3;
+  padding-bottom: env(safe-area-inset-bottom);
+
+  .empty-tip {
+    text-align: center;
+    color: #999;
+    font-size: 28rpx;
+    padding: 200rpx 40rpx;
+    line-height: 1.6;
+    white-space: pre-line;
+  }
+
+  .user-list {
+    padding: 16rpx 24rpx;
+  }
+
+  .user-card {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border-radius: 16rpx;
+    padding: 20rpx 24rpx;
+    margin-bottom: 12rpx;
+
+    &:active {
+      background: #f5f5f5;
+    }
+  }
+
+  .user-avatar {
+    width: 80rpx;
+    height: 80rpx;
+    border-radius: 50%;
+    flex-shrink: 0;
+
+    &.avatar-placeholder {
+      background: #e8f5e9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .avatar-text {
+      font-size: 32rpx;
+      color: #2e7d32;
+      font-weight: 600;
+    }
+  }
+
+  .user-info {
+    flex: 1;
+    margin-left: 20rpx;
+    overflow: hidden;
+
+    .name-row {
+      display: flex;
+      align-items: center;
+      gap: 12rpx;
+    }
+
+    .user-name {
+      font-size: 30rpx;
+      color: #1a1a1a;
+      font-weight: 500;
+    }
+
+    .role-badge {
+      background: #2e7d32;
+      border-radius: 8rpx;
+      padding: 2rpx 12rpx;
+      height: 32rpx;
+      display: flex;
+      align-items: center;
+
+      .role-text {
+        font-size: 20rpx;
+        color: #fff;
+      }
+    }
+  }
+
+  .arrow {
+    font-size: 36rpx;
+    color: #ccc;
+    margin-left: 12rpx;
+  }
+}

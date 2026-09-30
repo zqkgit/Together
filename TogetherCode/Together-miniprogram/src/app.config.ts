@@ -35,6 +35,7 @@ export default defineAppConfig({
     "pages/commission-withdrawal-detail/index",
     "pages/messages/index",
     "pages/chat/index",
+    "pages/following-list/index",
     "pages/refund/index"
   ],
   window: {

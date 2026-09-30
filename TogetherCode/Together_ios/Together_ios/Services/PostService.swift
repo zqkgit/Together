@@ -174,6 +174,26 @@ enum PostService {
         }
     }
 
+    /// 获取关注列表（分页）
+    static func fetchFollowing(page: Int = 1, size: Int = 20,
+                               completion: @escaping ([FollowingUser], Int, String?) -> Void) {
+        APIClient.shared.request(
+            "/following",
+            method: .get,
+            parameters: ["page": page, "size": size],
+            encoding: URLEncoding.default
+        ) { result in
+            switch result {
+            case .success(let json):
+                let list = JSONKit.decodeList([FollowingUser].self, from: json["list"])
+                let total = json["total"].int ?? 0
+                completion(list, total, nil)
+            case .failure(let error):
+                completion([], 0, error.message)
+            }
+        }
+    }
+
     /// 评论列表（分页）
     static func fetchComments(postId: String, page: Int, size: Int,
                               completion: @escaping ([CommentItem]?, Bool, String?) -> Void) {
@@ -557,6 +577,32 @@ extension PostService {
             case .failure(let error):
                 completion(error.message)
             }
+        }
+    }
+}
+
+// MARK: - 关注用户模型
+
+/// 关注列表中的用户
+struct FollowingUser: Codable {
+    let userId: String
+    let nickname: String?
+    let avatar: String?
+    let role: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
+        case nickname
+        case avatar
+        case role
+    }
+
+    var displayName: String { nickname ?? "艺启用户" }
+    var roleText: String {
+        switch role {
+        case 2: return "老师"
+        case 3: return "工作室"
+        default: return "家长"
         }
     }
 }
