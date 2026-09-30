@@ -614,6 +614,14 @@ async function listPlaza(query = {}) {
 
   const where = { ...PUBLIC_WHERE };
   if (topic) where.topic = topic;
+  // 关键词搜索：匹配 content 或 topic
+  const keyword = String(query.keyword || "").trim();
+  if (keyword) {
+    where[Op.or] = [
+      { content: { [Op.like]: `%${keyword}%` } },
+      { topic: { [Op.like]: `%${keyword}%` } },
+    ];
+  }
   // 附近模式仅列带位置的帖
   if (sort === "near") where.latitude = { [Op.ne]: null };
   if (query.type) where.type = Number(query.type);

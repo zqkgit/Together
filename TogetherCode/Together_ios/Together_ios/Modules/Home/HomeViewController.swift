@@ -64,7 +64,10 @@ final class HomeViewController: BaseViewController {
             $0.top.equalTo(view.safeAreaLayoutGuide).offset(Theme.Spacing.m)
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
         }
-        searchBar.onTap = { [weak self] in self?.showToast("搜索页开发中") }
+        searchBar.onTap = { [weak self] in
+            let vc = SearchViewController()
+            self?.navigationController?.pushViewController(vc, animated: true)
+        }
         tableView.snp.makeConstraints {
             $0.top.equalTo(searchBar.snp.bottom).offset(Theme.Spacing.s)
             $0.leading.trailing.bottom.equalToSuperview()
