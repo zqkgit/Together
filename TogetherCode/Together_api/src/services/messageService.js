@@ -66,6 +66,7 @@ async function listConversations(userId, query = {}) {
   const { rows, count } = await Conversation.findAndCountAll({
     where: {
       status: CONV_STATUS_ACTIVE,
+      last_message_id: { [Op.ne]: null },
       [Op.or]: [{ peer_a: userId }, { peer_b: userId }]
     },
     include: [
@@ -96,7 +97,7 @@ async function listConversations(userId, query = {}) {
 
 async function countUnread(userId) {
   const conversations = await Conversation.findAll({
-    where: { status: CONV_STATUS_ACTIVE, [Op.or]: [{ peer_a: userId }, { peer_b: userId }] },
+    where: { status: CONV_STATUS_ACTIVE, last_message_id: { [Op.ne]: null }, [Op.or]: [{ peer_a: userId }, { peer_b: userId }] },
     attributes: ["peer_a", "peer_b", "unread_a", "unread_b"]
   });
 
