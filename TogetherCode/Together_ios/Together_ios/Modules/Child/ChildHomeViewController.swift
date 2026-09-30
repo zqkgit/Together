@@ -164,6 +164,7 @@ final class ChildHomeViewController: BaseViewController {
     private func loadData() {
         // 课程：来自孩子课包（同课程聚合）
         reloadCourses()
+        coursesTableView.es.stopPullToRefresh()
 
         // 作品
         ChildService.fetchChildWorks(childId: child.child_id) { [weak self] result in

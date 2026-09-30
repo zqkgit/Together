@@ -425,6 +425,7 @@ async function postStudioPaymentConfirmHandler(req, res) {
     }
     return ok(res, data, "payment confirmed");
   } catch (error) {
+    console.error("[studioPaymentConfirm]", error);
     const status = /不是待收款|支付方式|凭证|请选择|现金/i.test(error.message) ? 400 : 500;
     return fail(res, status, status === 400 ? 40090 : 50000, error.message || "Internal server error");
   }
