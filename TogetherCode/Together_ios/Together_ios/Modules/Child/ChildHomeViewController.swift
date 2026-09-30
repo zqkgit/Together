@@ -241,14 +241,17 @@ final class ChildHomeViewController: BaseViewController {
                 studio_name: balance.studio_name,
                 total: 0, consumed: 0, remaining: 0, isRefunded: true
             )
-            item.total += balance.total_lessons
-            item.consumed += balance.consumed_lessons
-            item.remaining += balance.remaining_lessons
-            if balance.status != 4 { item.isRefunded = false }
+            // 已退款 balance（status=4）不计入总课时/已消/剩余，仅标记退款
+            if balance.status != 4 {
+                item.total += balance.total_lessons
+                item.consumed += balance.consumed_lessons
+                item.remaining += balance.remaining_lessons
+                item.isRefunded = false
+            }
             aggregateMap[key] = item
         }
         courses = aggregateMap.values
-            .filter { $0.total > 0 }
+            .filter { $0.total > 0 || $0.isRefunded }
             .sorted { $0.course_title < $1.course_title }
         coursesTableView.reloadData()
     }

@@ -435,17 +435,21 @@ async function getChildGrowth(parentUserId, childId) {
 
   const summary = balances.reduce(
     (acc, balance) => {
-      acc.total_lessons += Number(balance.total_lessons || 0);
-      acc.consumed_lessons += Number(balance.consumed_lessons || 0);
+      // 已退款 balance（status=4）不计入总课时/已消/剩余，仅计入退款数
+      const isRefunded = Number(balance.status) === 4;
+      if (!isRefunded) {
+        acc.total_lessons += Number(balance.total_lessons || 0);
+        acc.consumed_lessons += Number(balance.consumed_lessons || 0);
+        acc.remaining_lessons += Number(balance.remaining_lessons || 0);
+        acc.course_ids.add(String(balance.course_id));
+        if (Number(balance.remaining_lessons || 0) > 0) {
+          acc.active_course_ids.add(String(balance.course_id));
+        }
+        if (balance.order?.studio) {
+          acc.studio_ids.add(String(balance.order.studio.studio_id));
+        }
+      }
       acc.refunded_lessons += Number(balance.refunded_lessons || 0);
-      acc.remaining_lessons += Number(balance.remaining_lessons || 0);
-      acc.course_ids.add(String(balance.course_id));
-      if (Number(balance.remaining_lessons || 0) > 0) {
-        acc.active_course_ids.add(String(balance.course_id));
-      }
-      if (balance.order?.studio) {
-        acc.studio_ids.add(String(balance.order.studio.studio_id));
-      }
       return acc;
     },
     {
