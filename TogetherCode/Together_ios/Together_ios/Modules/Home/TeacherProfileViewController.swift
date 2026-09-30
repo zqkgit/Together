@@ -4,7 +4,7 @@ import Kingfisher
 import ESPullToRefresh
 
 /// 老师主页（家长视角，公开接口）
-/// 参考孩子主页 UI 风格：深绿渐变头部 + 统计卡 + 作品/工作室/评价三 tab
+/// 参考孩子主页 UI 风格：深绿渐变头部 + 统计卡 + 作品/学员作品/评价三 tab
 final class TeacherProfileViewController: BaseViewController {
 
     // MARK: - Data
@@ -12,7 +12,6 @@ final class TeacherProfileViewController: BaseViewController {
     private let teacherId: String
     private var data: TeacherProfileData?
     private var profile: TeacherProfileInfo? { data?.profile }
-    private var studios: [TeacherProfileStudio] { data?.studios ?? [] }
     private var worksList: [TeacherProfileWork] = []
     private var workTotal: Int { data?.works?.total ?? 0 }
     private var workPage = 1
@@ -33,21 +32,13 @@ final class TeacherProfileViewController: BaseViewController {
     // MARK: - UI
 
     private let headerView = TeacherHeaderView()
-    private let segmentControl = UISegmentedControl(items: ["作品", "学员作品", "工作室", "评价"])
+    private let segmentControl = UISegmentedControl(items: ["作品", "学员作品", "评价"])
 
     // 作品列表
     private var worksTableView: UITableView!
     private let worksEmpty: EmptyStateView = {
         let view = EmptyStateView()
         view.show(style: .empty("还没有作品\n老师发布作品后会展示在这里"))
-        return view
-    }()
-
-    // 工作室列表
-    private var studiosTableView: UITableView!
-    private let studiosEmpty: EmptyStateView = {
-        let view = EmptyStateView()
-        view.show(style: .empty("暂无工作室"))
         return view
     }()
 
@@ -143,25 +134,6 @@ final class TeacherProfileViewController: BaseViewController {
         }
         view.addSubview(worksTableView)
         worksTableView.snp.makeConstraints {
-            $0.top.equalTo(segmentControl.snp.bottom)
-            $0.leading.trailing.bottom.equalToSuperview()
-        }
-
-        // 工作室列表
-        studiosTableView = UITableView(frame: .zero, style: .plain)
-        studiosTableView.backgroundColor = .clear
-        studiosTableView.separatorStyle = .none
-        studiosTableView.dataSource = self
-        studiosTableView.delegate = self
-        studiosTableView.register(TeacherStudioListCell.self, forCellReuseIdentifier: "TeacherStudioListCell")
-        studiosTableView.rowHeight = UITableView.automaticDimension
-        studiosTableView.estimatedRowHeight = 88
-        studiosTableView.isHidden = true
-        studiosTableView.es.addPullToRefresh(animator: BrandRefreshHeader()) { [weak self] in
-            self?.refreshAll()
-        }
-        view.addSubview(studiosTableView)
-        studiosTableView.snp.makeConstraints {
             $0.top.equalTo(segmentControl.snp.bottom)
             $0.leading.trailing.bottom.equalToSuperview()
         }
@@ -274,7 +246,7 @@ final class TeacherProfileViewController: BaseViewController {
         loadReviews(reset: true)
     }
 
-    /// 加载主页数据（作品+工作室+个人信息）
+    /// 加载主页数据（作品+个人信息）
     private func loadHomepage(reset: Bool) {
         if reset { workPage = 1 }
         guard !isLoadingWorks else { return }
@@ -284,7 +256,6 @@ final class TeacherProfileViewController: BaseViewController {
             self.isLoadingWorks = false
             self.worksTableView.es.stopPullToRefresh()
             self.worksTableView.es.stopLoadingMore()
-            self.studiosTableView.es.stopPullToRefresh()
             switch result {
             case .success(let data):
                 self.data = data
@@ -311,8 +282,6 @@ final class TeacherProfileViewController: BaseViewController {
                 self.worksTableView.backgroundView = self.worksList.isEmpty ? self.worksEmpty : nil
                 self.studentWorksTableView.reloadData()
                 self.studentWorksTableView.backgroundView = self.studentWorksList.isEmpty ? self.studentWorksEmpty : nil
-                self.studiosTableView.reloadData()
-                self.studiosTableView.backgroundView = self.studios.isEmpty ? self.studiosEmpty : nil
             case .failure:
                 if !self.hasLoaded {
                     self.worksTableView.backgroundView = self.worksEmpty
@@ -411,8 +380,7 @@ final class TeacherProfileViewController: BaseViewController {
         let index = segmentControl.selectedSegmentIndex
         worksTableView.isHidden = index != 0
         studentWorksTableView.isHidden = index != 1
-        studiosTableView.isHidden = index != 2
-        reviewsTableView.isHidden = index != 3
+        reviewsTableView.isHidden = index != 2
     }
 }
 
@@ -423,7 +391,6 @@ extension TeacherProfileViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         if tableView == worksTableView { return worksList.count }
         if tableView == studentWorksTableView { return studentWorksList.count }
-        if tableView == studiosTableView { return studios.count }
         if tableView == reviewsTableView { return reviews.count }
         return 0
     }
@@ -451,11 +418,6 @@ extension TeacherProfileViewController: UITableViewDataSource {
             }
             return cell
         }
-        if tableView == studiosTableView {
-            let cell = tableView.dequeueReusableCell(withIdentifier: "TeacherStudioListCell", for: indexPath) as! TeacherStudioListCell
-            cell.configure(studio: studios[indexPath.row])
-            return cell
-        }
         if tableView == reviewsTableView {
             let cell = tableView.dequeueReusableCell(withIdentifier: "TeacherReviewCell", for: indexPath) as! TeacherReviewCell
             cell.configure(review: reviews[indexPath.row])
@@ -468,14 +430,6 @@ extension TeacherProfileViewController: UITableViewDataSource {
 // MARK: - UITableViewDelegate
 
 extension TeacherProfileViewController: UITableViewDelegate {
-
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        if tableView == studiosTableView {
-            let studio = studios[indexPath.row]
-            let vc = StudioHomepageViewController(studioId: studio.studio_id)
-            navigationController?.pushViewController(vc, animated: true)
-        }
-    }
 }
 
 // MARK: - TeacherHeaderView（参考 ChildHeaderView 风格）
@@ -749,87 +703,6 @@ final class TeacherWorkListCell: UITableViewCell {
             coverView.kf.setImage(with: url)
         } else {
             coverView.image = UIImage(systemName: "photo.on.rectangle")
-            coverView.tintColor = Theme.Color.muted
-        }
-    }
-}
-
-// MARK: - TeacherStudioListCell（工作室列表行）
-
-final class TeacherStudioListCell: UITableViewCell {
-
-    private let card = UIView()
-    private let coverView = UIImageView()
-    private let nameLabel = UILabel()
-    private let addressLabel = UILabel()
-    private let arrowLabel = UILabel()
-
-    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
-        super.init(style: style, reuseIdentifier: reuseIdentifier)
-        selectionStyle = .none
-        backgroundColor = .clear
-        contentView.backgroundColor = .clear
-
-        contentView.addSubview(card)
-        card.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(6)
-            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
-            $0.bottom.equalToSuperview().inset(6)
-        }
-        card.backgroundColor = Theme.Color.surface
-        card.layer.cornerRadius = Theme.Radius.card
-
-        // 封面 72pt
-        coverView.contentMode = .scaleAspectFill
-        coverView.clipsToBounds = true
-        coverView.layer.cornerRadius = 12
-        coverView.backgroundColor = Theme.Color.surfaceAlt
-        card.addSubview(coverView)
-        coverView.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
-            $0.top.equalToSuperview().offset(Theme.Spacing.m)
-            $0.bottom.equalToSuperview().inset(Theme.Spacing.m)
-            $0.width.height.equalTo(72)
-        }
-
-        nameLabel.font = .appSection(16)
-        nameLabel.textColor = Theme.Color.ink
-        card.addSubview(nameLabel)
-        nameLabel.snp.makeConstraints {
-            $0.top.equalTo(coverView).offset(4)
-            $0.leading.equalTo(coverView.snp.trailing).offset(12)
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.xl)
-        }
-
-        addressLabel.font = .appLabel(12)
-        addressLabel.textColor = Theme.Color.sub
-        addressLabel.numberOfLines = 2
-        card.addSubview(addressLabel)
-        addressLabel.snp.makeConstraints {
-            $0.top.equalTo(nameLabel.snp.bottom).offset(6)
-            $0.leading.trailing.equalTo(nameLabel)
-            $0.bottom.equalTo(coverView).offset(-4)
-        }
-
-        arrowLabel.text = "›"
-        arrowLabel.font = .appTitle(20)
-        arrowLabel.textColor = Theme.Color.muted
-        card.addSubview(arrowLabel)
-        arrowLabel.snp.makeConstraints {
-            $0.centerY.equalToSuperview()
-            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
-        }
-    }
-
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
-    func configure(studio: TeacherProfileStudio) {
-        nameLabel.text = studio.displayName
-        addressLabel.text = studio.address ?? ""
-        if let cover = studio.cover, !cover.isEmpty, let url = URL(string: cover) {
-            coverView.kf.setImage(with: url)
-        } else {
-            coverView.image = UIImage(systemName: "building.2.crop.circle")
             coverView.tintColor = Theme.Color.muted
         }
     }
