@@ -1,11 +1,16 @@
 import UIKit
 import SnapKit
 
-/// 我教的课程：按课程卡片展示（班级人数 + 进度 + 查看课表/班级学生/发作品消课）
+/// 我教的课程：顶部工作室筛选 + 课程卡片（班级人数 + 进度 + 查看课表/查看班级/发作品消课）
 final class MyTeachingCoursesViewController: BaseViewController, UITableViewDataSource, UITableViewDelegate {
 
     private let tableView = UITableView(frame: .zero, style: .plain)
-    private var items: [TeacherCourseItem] = []
+    private let studioChipRow = TagChipRow(chips: ["全部工作室"])
+
+    private var allItems: [TeacherCourseItem] = []
+    private var filteredItems: [TeacherCourseItem] = []
+    private var studios: [(id: String, name: String)] = []
+    private var selectedStudioIndex = 0
     private var loading = false
 
     override func viewDidLoad() {
@@ -27,6 +32,29 @@ final class MyTeachingCoursesViewController: BaseViewController, UITableViewData
     }
 
     private func setupLayout() {
+        // 工作室筛选区
+        let filterWrap = UIView()
+        filterWrap.backgroundColor = Theme.Color.bg
+        view.addSubview(filterWrap)
+        filterWrap.snp.makeConstraints {
+            $0.top.equalTo(view.safeAreaLayoutGuide)
+            $0.leading.trailing.equalToSuperview()
+        }
+
+        studioChipRow.onSelect = { [weak self] index in
+            guard let self else { return }
+            self.selectedStudioIndex = index
+            self.applyFilter()
+        }
+        filterWrap.addSubview(studioChipRow)
+        studioChipRow.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(Theme.Spacing.s)
+            $0.leading.equalToSuperview().offset(Theme.Spacing.m)
+            $0.trailing.equalToSuperview()
+            $0.height.equalTo(34)
+            $0.bottom.equalToSuperview().inset(Theme.Spacing.xs)
+        }
+
         tableView.backgroundColor = Theme.Color.bg
         tableView.separatorStyle = .none
         tableView.showsVerticalScrollIndicator = false
@@ -36,7 +64,10 @@ final class MyTeachingCoursesViewController: BaseViewController, UITableViewData
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 180
         view.addSubview(tableView)
-        tableView.snp.makeConstraints { $0.edges.equalToSuperview() }
+        tableView.snp.makeConstraints {
+            $0.top.equalTo(filterWrap.snp.bottom)
+            $0.leading.trailing.bottom.equalToSuperview()
+        }
     }
 
     private func loadData() {
@@ -47,23 +78,55 @@ final class MyTeachingCoursesViewController: BaseViewController, UITableViewData
             self.loading = false
             switch result {
             case .success(let list):
-                self.items = list
-                self.tableView.reloadData()
+                self.allItems = list
+                self.buildStudioChips()
+                self.applyFilter()
             case .failure(let error):
                 self.showToast(error.message ?? "加载失败")
             }
         }
     }
 
+    /// 从课程数据中提取去重的工作室列表
+    private func buildStudioChips() {
+        var seen = [String: String]()  // id -> name
+        for item in allItems {
+            if let sid = item.studio_id, !sid.isEmpty, let name = item.studio_name, !name.isEmpty {
+                seen[sid] = name
+            }
+        }
+        studios = seen.map { (id: $0.key, name: $0.value) }
+        studios.sort { $0.name < $1.name }
+
+        var chips = ["全部工作室"]
+        chips += studios.map { $0.name }
+        studioChipRow.update(chips: chips, selectedIndex: 0)
+        selectedStudioIndex = 0
+    }
+
+    private var selectedStudioId: String? {
+        guard selectedStudioIndex > 0, selectedStudioIndex - 1 < studios.count else { return nil }
+        return studios[selectedStudioIndex - 1].id
+    }
+
+    private func applyFilter() {
+        if let sid = selectedStudioId {
+            filteredItems = allItems.filter { $0.studio_id == sid }
+        } else {
+            filteredItems = allItems
+        }
+        tableView.reloadData()
+    }
+
     // MARK: - TableView
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        items.count
+        filteredItems.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "MyTeachingCourseCell", for: indexPath) as! MyTeachingCourseCell
-        let item = items[indexPath.row]
+        let item = filteredItems[indexPath.row]
         cell.configure(item)
         cell.onViewTimetable = { [weak self] in
             self?.navigationController?.pushViewController(TeacherTimetableViewController(), animated: true)
@@ -79,27 +142,14 @@ final class MyTeachingCoursesViewController: BaseViewController, UITableViewData
 
     // MARK: - 操作
 
-    /// 班级学生：多班弹选择，单班直接进
+    /// 查看班级：进入班级列表，班级下有学生
     private func openClassStudents(_ item: TeacherCourseItem) {
         guard let classes = item.classes, !classes.isEmpty else {
             showToast("暂无班级")
             return
         }
-        let go: (TeacherCourseClassItem) -> Void = { [weak self] cls in
-            guard let self else { return }
-            let vc = ClassStudentsViewController(classId: cls.class_id ?? "", className: cls.name ?? "")
-            self.navigationController?.pushViewController(vc, animated: true)
-        }
-        if classes.count == 1, let cls = classes.first {
-            go(cls)
-            return
-        }
-        let sheet = ThemeActionSheet(title: "选择班级", actions: classes.map { ($0.name ?? "班级", false) })
-        sheet.onSelect = { [weak self] index in
-            guard index < classes.count else { return }
-            go(classes[index])
-        }
-        present(sheet, animated: false)
+        let vc = ClassListViewController(courseTitle: item.title ?? "", classes: classes)
+        navigationController?.pushViewController(vc, animated: true)
     }
 
     /// 发作品消课：进入老师发布（孩子作品类型）

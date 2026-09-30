@@ -623,6 +623,7 @@ async function listTeacherCourses(userId) {
 
     list.push({
       course_id: String(course.course_id),
+      studio_id: String(course.studio_id),
       studio_name: studioMap.get(String(course.studio_id)) || null,
       title: course.title,
       total_lessons: total,
@@ -656,14 +657,28 @@ async function listTeacherStudents(userId, query = {}) {
   const classSummary = classes.map((c) => ({
     class_id: String(c.class_id),
     name: c.name,
+    studio_id: (c.course && String(c.course.studio_id)) || null,
     studio_name: (c.course && classStudioMap.get(String(c.course.studio_id))) || null
   }));
 
+  // 工作室列表（筛选用，去重）
+  const studioSet = new Map();
+  for (const c of classes) {
+    if (!c.course) continue;
+    const sid = String(c.course.studio_id);
+    if (!studioSet.has(sid)) {
+      studioSet.set(sid, classStudioMap.get(sid) || null);
+    }
+  }
+  const studios = [...studioSet.entries()].map(([id, name]) => ({ studio_id: id, name }));
+
   // 聚合学生（按课程花名册，child 去重；每 child 聚合其有效权益课程）
-  // 按班级切换时只聚合该班学生（每班学生少，按班请求更轻）；班级列表始终全量供筛选
-  const targetClasses = query.class_id
-    ? classes.filter((c) => String(c.class_id) === String(query.class_id))
-    : classes;
+  // 按工作室或班级切换时只聚合对应学生；工作室/班级列表始终全量供筛选
+  const targetClasses = query.studio_id
+    ? classes.filter((c) => c.course && String(c.course.studio_id) === String(query.studio_id))
+    : query.class_id
+      ? classes.filter((c) => String(c.class_id) === String(query.class_id))
+      : classes;
   const childMap = new Map();
   for (const cls of targetClasses) {
     if (!cls.course) continue;
@@ -737,6 +752,7 @@ async function listTeacherStudents(userId, query = {}) {
 
   return {
     total: list.length,
+    studios,
     classes: classSummary,
     list
   };

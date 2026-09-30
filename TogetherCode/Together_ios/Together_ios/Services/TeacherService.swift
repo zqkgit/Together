@@ -126,6 +126,7 @@ struct TeacherCourseClassItem: Codable {
 
 struct TeacherCourseItem: Codable {
     let course_id: String?
+    let studio_id: String?
     let studio_name: String?
     let title: String?
     let total_lessons: Int?
@@ -156,6 +157,7 @@ struct TeacherCourseList: Codable {
 struct TeacherStudentClassSummary: Codable {
     let class_id: String?
     let name: String?
+    let studio_id: String?
     let studio_name: String?
 
     /// 筛选展示：工作室·班级（多工作室同名班可区分）
@@ -163,6 +165,11 @@ struct TeacherStudentClassSummary: Codable {
         let studio = (studio_name?.isEmpty == false) ? "\(studio_name!)·" : ""
         return studio + (name ?? "班级")
     }
+}
+
+struct TeacherStudentStudioSummary: Codable {
+    let studio_id: String?
+    let name: String?
 }
 
 struct TeacherStudentCourse: Codable {
@@ -207,6 +214,7 @@ struct TeacherStudentRow: Codable {
 
 struct TeacherStudentListData: Codable {
     let total: Int?
+    let studios: [TeacherStudentStudioSummary]?
     let classes: [TeacherStudentClassSummary]?
     let list: [TeacherStudentRow]?
 }
@@ -384,12 +392,14 @@ enum TeacherService {
         }
     }
 
-    /// 我的学生：学生聚合（课程/剩余课时/今日上课/请假中）+ 班级列表
+    /// 我的学生：学生聚合（课程/剩余课时/今日上课/请假中）+ 工作室/班级列表
     static func fetchStudents(
+        studioId: String? = nil,
         classId: String? = nil,
         completion: @escaping (Result<TeacherStudentListData, APIError>) -> Void
     ) {
         var parameters: [String: Any] = [:]
+        if let studioId { parameters["studio_id"] = studioId }
         if let classId { parameters["class_id"] = classId }
         APIClient.shared.request(
             "/teacher/students",
@@ -400,7 +410,7 @@ enum TeacherService {
             switch result {
             case .success(let json):
                 let data = JSONKit.decode(TeacherStudentListData.self, from: json)
-                completion(.success(data ?? TeacherStudentListData(total: nil, classes: nil, list: nil)))
+                completion(.success(data ?? TeacherStudentListData(total: nil, studios: nil, classes: nil, list: nil)))
             case .failure(let error):
                 completion(.failure(error))
             }

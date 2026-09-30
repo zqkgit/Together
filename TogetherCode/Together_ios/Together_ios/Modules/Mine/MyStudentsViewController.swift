@@ -1,15 +1,15 @@
 import UIKit
 import SnapKit
 
-/// 我的学生：班级筛选 + 学生列表（参考 PR：#myStudents；请假审批已拆分为 LeaveApprovalViewController）
+/// 我的学生：工作室筛选 + 学生列表（参考 PR：#myStudents；请假审批已拆分为 LeaveApprovalViewController）
 final class MyStudentsViewController: BaseViewController, UITableViewDataSource, UITableViewDelegate {
 
     private let tableView = UITableView(frame: .zero, style: .grouped)
-    private let classChipRow = TagChipRow(chips: ["全部班级"])
+    private let studioChipRow = TagChipRow(chips: ["全部工作室"])
 
-    private var classes: [TeacherStudentClassSummary] = []
+    private var studios: [TeacherStudentStudioSummary] = []
     private var students: [TeacherStudentRow] = []
-    private var selectedClassIndex = 0
+    private var selectedStudioIndex = 0
     private var loading = false
 
     override func viewDidLoad() {
@@ -23,7 +23,7 @@ final class MyStudentsViewController: BaseViewController, UITableViewDataSource,
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         configureImmersiveNav(title: "我的学生")
-        if !students.isEmpty { loadData(classId: selectedClassId) }
+        if !students.isEmpty { loadData(studioId: selectedStudioId) }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -32,7 +32,7 @@ final class MyStudentsViewController: BaseViewController, UITableViewDataSource,
     }
 
     private func setupUI() {
-        // 筛选区（固定在导航下）
+        // 工作室筛选区（固定在导航下）
         let filterWrap = UIView()
         filterWrap.backgroundColor = Theme.Color.bg
         view.addSubview(filterWrap)
@@ -41,13 +41,13 @@ final class MyStudentsViewController: BaseViewController, UITableViewDataSource,
             $0.leading.trailing.equalToSuperview()
         }
 
-        classChipRow.onSelect = { [weak self] index in
+        studioChipRow.onSelect = { [weak self] index in
             guard let self else { return }
-            self.selectedClassIndex = index
-            self.loadData(classId: self.selectedClassId)
+            self.selectedStudioIndex = index
+            self.loadData(studioId: self.selectedStudioId)
         }
-        filterWrap.addSubview(classChipRow)
-        classChipRow.snp.makeConstraints {
+        filterWrap.addSubview(studioChipRow)
+        studioChipRow.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.s)
             $0.leading.equalToSuperview().offset(Theme.Spacing.m)
             $0.trailing.equalToSuperview()
@@ -70,24 +70,27 @@ final class MyStudentsViewController: BaseViewController, UITableViewDataSource,
         }
     }
 
-    private var selectedClassId: String? {
-        guard selectedClassIndex > 0, selectedClassIndex - 1 < classes.count else { return nil }
-        return classes[selectedClassIndex - 1].class_id
+    private var selectedStudioId: String? {
+        guard selectedStudioIndex > 0, selectedStudioIndex - 1 < studios.count else { return nil }
+        return studios[selectedStudioIndex - 1].studio_id
     }
 
-    private func loadData(classId: String? = nil) {
+    private func loadData(studioId: String? = nil) {
         guard !loading else { return }
         loading = true
-        TeacherService.fetchStudents(classId: classId) { [weak self] result in
+        TeacherService.fetchStudents(studioId: studioId) { [weak self] result in
             guard let self else { return }
             self.loading = false
             switch result {
             case .success(let data):
-                self.classes = data.classes ?? []
+                // 工作室列表只在首次（无筛选）时更新
+                if studioId == nil, let studioList = data.studios {
+                    self.studios = studioList
+                    var chips = ["全部工作室"]
+                    chips += self.studios.map { $0.name ?? "工作室" }
+                    self.studioChipRow.update(chips: chips, selectedIndex: self.selectedStudioIndex)
+                }
                 self.students = data.list ?? []
-                var classChips = ["全部班级"]
-                classChips += self.classes.map { $0.displayName }
-                self.classChipRow.update(chips: classChips, selectedIndex: self.selectedClassIndex)
                 self.tableView.reloadData()
             case .failure(let error):
                 self.showToast(error.message ?? "加载失败")
@@ -211,7 +214,9 @@ private final class StudentRowCell: UITableViewCell {
     func configure(_ student: TeacherStudentRow) {
         nameLabel.text = student.ageText.isEmpty ? student.name : "\(student.name) \(student.ageText)"
         let course = student.primaryCourse
-        courseLabel.text = [course?.title, course?.class_name].compactMap { $0 }.joined(separator: "·")
+        // 显示课程名+班级名
+        let parts = [course?.title, course?.class_name].compactMap { $0?.isEmpty == false ? $0 : nil }
+        courseLabel.text = parts.joined(separator: "·")
         let remaining = course?.remaining ?? 0
         remainingLabel.text = "剩余课时\(remaining)节" + (remaining <= 2 ? "·建议提醒续费" : "")
 

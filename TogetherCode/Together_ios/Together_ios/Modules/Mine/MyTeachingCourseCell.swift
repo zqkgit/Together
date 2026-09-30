@@ -98,7 +98,7 @@ final class MyTeachingCourseCell: UITableViewCell {
 
         let viewTimetable = makeActionButton(title: "查看课表")
         viewTimetable.addTarget(self, action: #selector(didTapViewTimetable), for: .touchUpInside)
-        let viewStudents = makeActionButton(title: "班级学生")
+        let viewStudents = makeActionButton(title: "查看班级")
         viewStudents.addTarget(self, action: #selector(didTapViewStudents), for: .touchUpInside)
         let publishConsume = makeActionButton(title: "发作品消课")
         publishConsume.addTarget(self, action: #selector(didTapPublishConsume), for: .touchUpInside)
