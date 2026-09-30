@@ -617,6 +617,11 @@ function canApplyRefund(order, refundStatus, activeRefund) {
   if (remaining <= 0) {
     return false;
   }
+  // 已开课（有消课记录）不允许申请退款
+  const consumed = Number(order.balance?.consumed_lessons ?? 0);
+  if (consumed > 0) {
+    return false;
+  }
   const expireAt = refundExpireAt(order);
   if (expireAt) {
     return new Date(expireAt) > new Date();
@@ -790,6 +795,11 @@ async function createRefund(userId, orderId, payload) {
 
     if (!balance) {
       throw new Error("Course balance not found");
+    }
+
+    // 开课后不允许申请退款
+    if (Number(balance.consumed_lessons || 0) > 0) {
+      throw new Error("课程已开课，无法申请退款");
     }
 
     const remainingLessons = Number(balance.remaining_lessons);
