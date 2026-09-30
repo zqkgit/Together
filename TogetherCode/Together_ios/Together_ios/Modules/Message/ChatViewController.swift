@@ -70,6 +70,8 @@ final class ChatViewController: BaseViewController, UITableViewDataSource, UITab
         setupInputBar()
         setupTableView()
         setupEmptyView()
+        // 确保 inputBar 在最上层，不被 tableView / emptyView 遮挡
+        view.bringSubviewToFront(inputBar)
         registerNotifications()
         loadMessages(reset: true)
     }
@@ -197,6 +199,7 @@ final class ChatViewController: BaseViewController, UITableViewDataSource, UITab
 
     private func setupEmptyView() {
         emptyView.show(style: .empty("打个招呼，开始聊天吧"))
+        emptyView.isUserInteractionEnabled = false
         view.addSubview(emptyView)
         emptyView.snp.makeConstraints {
             $0.top.equalTo(tableView.snp.top)

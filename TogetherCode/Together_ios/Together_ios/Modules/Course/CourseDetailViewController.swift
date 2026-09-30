@@ -15,6 +15,7 @@ final class CourseDetailViewController: BaseViewController {
     private let bottomBar = UIView()
     private let priceLabel = UILabel()
     private let enrollButton = UIButton(type: .system)
+    private let chatButton = UIButton(type: .system)
     /// 是否展示报名入口：仅家长角色(role=1)；老师/工作室进入为只读预览
     private var canEnroll: Bool { TokenManager.shared.userRole == 1 }
 
@@ -91,11 +92,29 @@ final class CourseDetailViewController: BaseViewController {
 
         priceLabel.font = .appTitle(18)
         priceLabel.textColor = Theme.Color.clay
+        bottomBar.addSubview(chatButton)
         bottomBar.addSubview(enrollButton)
         bottomBar.addSubview(priceLabel)
         priceLabel.snp.makeConstraints {
             $0.leading.equalToSuperview().inset(Theme.Spacing.l)
             $0.centerY.equalTo(enrollButton.snp.centerY)
+        }
+
+        // 咨询老师按钮（线框风格）
+        chatButton.setTitle("咨询工作室", for: .normal)
+        chatButton.setTitleColor(Theme.Color.brand, for: .normal)
+        chatButton.titleLabel?.font = .appLabel(14)
+        chatButton.layer.borderColor = Theme.Color.brand.cgColor
+        chatButton.layer.borderWidth = 1
+        chatButton.layer.cornerRadius = 23
+        chatButton.clipsToBounds = true
+        chatButton.addTarget(self, action: #selector(didTapChat), for: .touchUpInside)
+        chatButton.snp.makeConstraints {
+            $0.trailing.equalTo(enrollButton.snp.leading).offset(-10)
+            $0.top.equalToSuperview().inset(10)
+            $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(10)
+            $0.width.equalTo(90)
+            $0.height.equalTo(46)
         }
 
         enrollButton.setTitle("我要报名", for: .normal)
@@ -107,14 +126,14 @@ final class CourseDetailViewController: BaseViewController {
             $0.trailing.equalToSuperview().inset(Theme.Spacing.m)
             $0.top.equalToSuperview().inset(10)
             $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(10)
-            $0.width.equalTo(140)
+            $0.width.equalTo(120)
             $0.height.equalTo(46)
         }
         // 半圆：圆角 = 高度一半
         enrollButton.layer.cornerRadius = 23
         enrollButton.clipsToBounds = true
 
-        // 老师 / 工作室角色仅预览，隐藏「价格 + 立即报名」转化栏
+        // 老师 / 工作室角色仅预览，隐藏「价格 + 咨询 + 立即报名」转化栏
         bottomBar.isHidden = !canEnroll
     }
 
@@ -161,6 +180,32 @@ final class CourseDetailViewController: BaseViewController {
         guard course != nil else { return }
         let vc = CourseEnrollViewController(courseId: courseId)
         navigationController?.pushViewController(vc, animated: true)
+    }
+
+    @objc private func didTapChat() {
+        guard let userId = course?.studio?.user_id, !userId.isEmpty else {
+            showToast("该课程暂无工作室信息")
+            return
+        }
+        guard TokenManager.shared.isLoggedIn else {
+            showToast("请先登录")
+            return
+        }
+        showLoading()
+        MessageService.createConversation(peerUserId: userId) { [weak self] conversation, error in
+            guard let self else { return }
+            self.hideLoading()
+            if let error {
+                self.showToast(error)
+                return
+            }
+            guard let conversation else {
+                self.showToast("创建会话失败")
+                return
+            }
+            let vc = ChatViewController(conversation: conversation)
+            self.navigationController?.pushViewController(vc, animated: true)
+        }
     }
 }
 

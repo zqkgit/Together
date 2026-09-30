@@ -96,6 +96,7 @@ struct CourseDetail: Codable {
 
 struct CourseStudio: Codable {
     let studio_id: String
+    let user_id: String?
     let name: String?
     let address: String?
     let phone: String?
@@ -109,6 +110,7 @@ struct CourseLesson: Codable {
 
 struct CourseDetailTeacher: Codable {
     let teacher_id: String
+    let user_id: String?
     let real_name: String?
     let intro: String?
     let rating: Double?

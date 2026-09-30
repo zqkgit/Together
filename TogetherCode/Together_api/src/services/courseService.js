@@ -32,6 +32,7 @@ function normalizeCourseItem(course) {
     studio: course.studio
       ? {
           studio_id: String(course.studio.studio_id),
+          user_id: course.studio.user_id ? String(course.studio.user_id) : null,
           name: course.studio.name,
           address: course.studio.address,
           phone: course.studio.phone
@@ -40,6 +41,7 @@ function normalizeCourseItem(course) {
     teacher: course.teacher
       ? {
           teacher_id: String(course.teacher.teacher_id),
+          user_id: course.teacher.user_id ? String(course.teacher.user_id) : null,
           real_name: course.teacher.real_name,
           intro: course.teacher.intro,
           rating: Number(course.teacher.rating)
@@ -225,8 +227,8 @@ async function getCourseDetail(courseId, options = {}) {
   const row = await Course.findByPk(courseId, {
     transaction: options.transaction,
     include: [
-      { model: StudioProfile, as: "studio", attributes: ["studio_id", "name", "address", "phone", "intro"] },
-      { model: TeacherProfile, as: "teacher", attributes: ["teacher_id", "real_name", "intro", "rating", "subjects"] },
+      { model: StudioProfile, as: "studio", attributes: ["studio_id", "user_id", "name", "address", "phone", "intro"] },
+      { model: TeacherProfile, as: "teacher", attributes: ["teacher_id", "user_id", "real_name", "intro", "rating", "subjects"] },
       {
         model: CoursePackage,
         as: "packages",

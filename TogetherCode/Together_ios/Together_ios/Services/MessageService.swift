@@ -278,6 +278,32 @@ enum MessageService {
             }
         }
     }
+
+    /// 发起私聊（幂等：已有会话直接返回）
+    /// - Parameters:
+    ///   - peerUserId: 对方用户 ID
+    ///   - childId: 可选关联孩子 ID
+    static func createConversation(
+        peerUserId: String,
+        childId: String? = nil,
+        completion: @escaping (ConversationItem?, String?) -> Void
+    ) {
+        var params: [String: Any] = ["peer_user_id": peerUserId]
+        if let childId { params["child_id"] = childId }
+        APIClient.shared.request(
+            "/messages/conversations",
+            method: .post,
+            parameters: params
+        ) { result in
+            switch result {
+            case .success(let json):
+                let item = JSONKit.decode(ConversationItem.self, from: json)
+                completion(item, nil)
+            case .failure(let error):
+                completion(nil, error.message)
+            }
+        }
+    }
 }
 
 // MARK: - 时间格式化（消息列表专用）

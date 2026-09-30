@@ -6,6 +6,7 @@ import { createDistributionLink } from "../../services/distribution";
 import { uploadImages } from "../../services/upload";
 import { getDistFromParams, buildCourseSharePath, getShareUid } from "../../utils/share";
 import { getCourseReviews, postCourseReview, getFavoriteIds, addFavorite, removeFavorite, type CourseReviews } from "../../services/interaction";
+import { createConversation } from "../../services/message";
 import { useAuthStore } from "../../store/auth";
 import "./index.scss";
 
@@ -184,6 +185,30 @@ export default function CourseDetailPage() {
   const goStudio = () => {
     if (!course?.studio?.studio_id) return;
     Taro.navigateTo({ url: `/pages/studio-homepage/index?id=${course.studio.studio_id}` });
+  };
+
+  const goChat = async () => {
+    if (!isLoggedIn) {
+      Taro.showToast({ title: "请先登录", icon: "none" });
+      return;
+    }
+    const userId = course?.studio?.user_id;
+    if (!userId) {
+      Taro.showToast({ title: "该课程暂无工作室信息", icon: "none" });
+      return;
+    }
+    try {
+      Taro.showLoading({ title: "加载中..." });
+      const res = await createConversation(userId);
+      Taro.hideLoading();
+      const peerName = encodeURIComponent(course?.studio?.name || "工作室");
+      Taro.navigateTo({
+        url: `/pages/chat/index?conversation_id=${res.data.conversation_id}&peer_name=${peerName}`
+      });
+    } catch {
+      Taro.hideLoading();
+      Taro.showToast({ title: "创建会话失败", icon: "none" });
+    }
   };
 
   return (
@@ -384,6 +409,12 @@ export default function CourseDetailPage() {
           <View className="buy-bar">
             <View className="buy-price">
               <Text className="buy-price-now">¥{fenToYuan(course.price)}</Text>
+            </View>
+            <View
+              className="buy-chat-btn"
+              onClick={goChat}
+            >
+              咨询
             </View>
             <View
               className="buy-share-btn"

@@ -75,6 +75,20 @@
   opacity: 0.7;
 }
 
+.buy-chat-btn {
+  margin-right: 16rpx;
+  padding: 12rpx 28rpx;
+  border-radius: 999rpx;
+  background: #fff;
+  border: 2rpx solid #2f5d45;
+  color: #2f5d45;
+  font-size: 26rpx;
+}
+
+.buy-chat-btn:active {
+  opacity: 0.7;
+}
+
 .studio-name {
   font-size: 28rpx;
   font-weight: 600;
