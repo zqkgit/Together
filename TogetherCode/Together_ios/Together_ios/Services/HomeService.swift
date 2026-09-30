@@ -90,10 +90,10 @@ final class HomeService {
             }
         }
 
-        // 老师动态（帖子流）
+        // 老师动态（帖子流，只取老师发的）
         group.enter()
         APIClient.shared.request("/posts", method: .get,
-                                 parameters: ["page": 1, "page_size": 3],
+                                 parameters: ["page": 1, "page_size": 3, "author_role": 2, "type": 1],
                                  encoding: URLEncoding.default) { result in
             defer { group.leave() }
             switch result {

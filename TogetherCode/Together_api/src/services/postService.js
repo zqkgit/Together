@@ -566,6 +566,8 @@ async function listFeed(viewerUserId = null, query = {}) {
 
   const where = { ...PUBLIC_WHERE };
   if (sort === "near") where.latitude = { [Op.ne]: null };
+  if (query.type) where.type = Number(query.type);
+  if (query.author_role) where.author_role = Number(query.author_role);
 
   const findOptions = {
     where,
@@ -614,6 +616,8 @@ async function listPlaza(query = {}) {
   if (topic) where.topic = topic;
   // 附近模式仅列带位置的帖
   if (sort === "near") where.latitude = { [Op.ne]: null };
+  if (query.type) where.type = Number(query.type);
+  if (query.author_role) where.author_role = Number(query.author_role);
 
   const findOptions = {
     where,
