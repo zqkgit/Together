@@ -59,9 +59,6 @@ final class StudioHomepageViewController: BaseViewController {
     // 介绍列表
     private var introTableView: UITableView!
 
-    private let bottomBar = UIView()
-    private let callButton = UIButton(type: .system)
-
     // MARK: - Init
 
     init(studioId: String) {
@@ -95,9 +92,6 @@ final class StudioHomepageViewController: BaseViewController {
 
     private func setupUI() {
         view.backgroundColor = Theme.Color.bg
-
-        // 底部联系栏
-        setupBottomBar()
 
         // 头部
         view.addSubview(headerView)
@@ -139,7 +133,7 @@ final class StudioHomepageViewController: BaseViewController {
         coursesTableView.snp.makeConstraints {
             $0.top.equalTo(segmentControl.snp.bottom)
             $0.leading.trailing.equalToSuperview()
-            $0.bottom.equalTo(bottomBar.snp.top)
+            $0.bottom.equalToSuperview()
         }
 
         // 老师列表
@@ -159,7 +153,7 @@ final class StudioHomepageViewController: BaseViewController {
         teachersTableView.snp.makeConstraints {
             $0.top.equalTo(segmentControl.snp.bottom)
             $0.leading.trailing.equalToSuperview()
-            $0.bottom.equalTo(bottomBar.snp.top)
+            $0.bottom.equalToSuperview()
         }
 
         // 学员作品列表
@@ -183,7 +177,7 @@ final class StudioHomepageViewController: BaseViewController {
         studentWorksTableView.snp.makeConstraints {
             $0.top.equalTo(segmentControl.snp.bottom)
             $0.leading.trailing.equalToSuperview()
-            $0.bottom.equalTo(bottomBar.snp.top)
+            $0.bottom.equalToSuperview()
         }
 
         // 介绍列表
@@ -205,37 +199,80 @@ final class StudioHomepageViewController: BaseViewController {
         introTableView.snp.makeConstraints {
             $0.top.equalTo(segmentControl.snp.bottom)
             $0.leading.trailing.equalToSuperview()
-            $0.bottom.equalTo(bottomBar.snp.top)
+            $0.bottom.equalToSuperview()
         }
     }
 
-    private func setupBottomBar() {
-        bottomBar.backgroundColor = Theme.Color.surface
-        bottomBar.layer.shadowColor = UIColor.black.cgColor
-        bottomBar.layer.shadowOpacity = 0.06
-        bottomBar.layer.shadowOffset = CGSize(width: 0, height: -2)
-        bottomBar.layer.shadowRadius = 8
+    // MARK: - 导航栏按钮
 
-        view.addSubview(bottomBar)
-        bottomBar.snp.makeConstraints {
-            $0.leading.trailing.bottom.equalToSuperview()
+    /// 数据加载成功后设置导航栏右侧按钮（咨询 + 电话），非本人时显示
+    private func setupNavButtons() {
+        let myUserId = TokenManager.shared.userId
+        guard let userId = studio?.user_id, !userId.isEmpty, userId != myUserId else {
+            navigationItem.rightBarButtonItems = nil
+            return
         }
 
-        callButton.setTitle("📞 联系工作室", for: .normal)
-        callButton.titleLabel?.font = .appLabel(16)
-        callButton.setTitleColor(.white, for: .normal)
-        callButton.backgroundColor = Theme.Color.brand
-        callButton.layer.cornerRadius = 23
-        callButton.clipsToBounds = true
-        callButton.addTarget(self, action: #selector(didTapCall), for: .touchUpInside)
-        bottomBar.addSubview(callButton)
-        callButton.snp.makeConstraints {
-            $0.top.equalToSuperview().inset(10)
-            $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(10)
-            $0.centerX.equalToSuperview()
-            $0.width.equalTo(240)
-            $0.height.equalTo(46)
+        // 咨询按钮
+        let chatBtn = UIButton(type: .system)
+        let chatImg = UIImage(systemName: "bubble.left")?.withConfiguration(UIImage.SymbolConfiguration(pointSize: 16, weight: .medium))
+        chatBtn.setImage(chatImg, for: .normal)
+        chatBtn.tintColor = .white
+        chatBtn.backgroundColor = Theme.Color.brand.withAlphaComponent(0.6)
+        chatBtn.layer.cornerRadius = 16
+        chatBtn.clipsToBounds = true
+        chatBtn.addTarget(self, action: #selector(didTapChat), for: .touchUpInside)
+        chatBtn.snp.makeConstraints { $0.width.height.equalTo(32) }
+        let chatItem = UIBarButtonItem(customView: chatBtn)
+
+        // 电话按钮
+        let callBtn = UIButton(type: .system)
+        let callImg = UIImage(systemName: "phone")?.withConfiguration(UIImage.SymbolConfiguration(pointSize: 16, weight: .medium))
+        callBtn.setImage(callImg, for: .normal)
+        callBtn.tintColor = .white
+        callBtn.backgroundColor = UIColor.black.withAlphaComponent(0.3)
+        callBtn.layer.cornerRadius = 16
+        callBtn.clipsToBounds = true
+        callBtn.addTarget(self, action: #selector(didTapCall), for: .touchUpInside)
+        callBtn.snp.makeConstraints { $0.width.height.equalTo(32) }
+        let callItem = UIBarButtonItem(customView: callBtn)
+
+        navigationItem.rightBarButtonItems = [callItem, chatItem]
+    }
+
+    @objc private func didTapChat() {
+        guard let userId = studio?.user_id, !userId.isEmpty else {
+            showToast("无法获取工作室信息")
+            return
         }
+        guard TokenManager.shared.isLoggedIn else {
+            showToast("请先登录")
+            return
+        }
+        showLoading()
+        MessageService.createConversation(peerUserId: userId) { [weak self] conversation, error in
+            guard let self else { return }
+            self.hideLoading()
+            if let error {
+                self.showToast(error)
+                return
+            }
+            guard let conversation else {
+                self.showToast("创建会话失败")
+                return
+            }
+            let vc = ChatViewController(conversation: conversation)
+            self.navigationController?.pushViewController(vc, animated: true)
+        }
+    }
+
+    @objc private func didTapCall() {
+        guard let phone = studio?.phone, !phone.isEmpty else {
+            showToast("暂无联系电话")
+            return
+        }
+        guard let url = URL(string: "tel://\(phone)") else { return }
+        UIApplication.shared.open(url)
     }
 
     // MARK: - Data
@@ -267,7 +304,7 @@ final class StudioHomepageViewController: BaseViewController {
                 self.studentWorksTableView.reloadData()
                 self.studentWorksTableView.backgroundView = self.studentWorksList.isEmpty ? self.studentWorksEmpty : nil
                 self.introTableView.reloadData()
-                self.updateBottomBar()
+                self.setupNavButtons()
             case .failure(let error):
                 self.showToast(error.message)
             }
@@ -349,10 +386,6 @@ final class StudioHomepageViewController: BaseViewController {
         introTableView.es.stopPullToRefresh()
     }
 
-    private func updateBottomBar() {
-        bottomBar.isHidden = !(studio?.hasPhone ?? false)
-    }
-
     // MARK: - Actions
 
     @objc private func segmentChanged() {
@@ -361,11 +394,6 @@ final class StudioHomepageViewController: BaseViewController {
         studentWorksTableView.isHidden = index != 1
         teachersTableView.isHidden = index != 2
         introTableView.isHidden = index != 3
-    }
-
-    @objc private func didTapCall() {
-        guard let phone = studio?.phone, !phone.isEmpty, let url = URL(string: "tel://\(phone)") else { return }
-        UIApplication.shared.open(url)
     }
 }
 

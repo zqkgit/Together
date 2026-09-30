@@ -222,19 +222,19 @@ final class TeacherProfileViewController: BaseViewController {
 
     // MARK: - 咨询按钮
 
-    /// 非本人时显示导航栏右侧「咨询」按钮
+    /// 非本人时显示导航栏右侧「咨询」图标按钮
     private func setupChatButton() {
         let myUserId = TokenManager.shared.userId
         guard let userId = data?.user?.user_id, !userId.isEmpty, userId != myUserId else { return }
         let btn = UIButton(type: .system)
-        btn.setTitle("咨询", for: .normal)
-        btn.setTitleColor(.white, for: .normal)
-        btn.titleLabel?.font = .appLabel(15)
+        let img = UIImage(systemName: "bubble.left")?.withConfiguration(UIImage.SymbolConfiguration(pointSize: 16, weight: .medium))
+        btn.setImage(img, for: .normal)
+        btn.tintColor = .white
         btn.backgroundColor = Theme.Color.brand.withAlphaComponent(0.6)
-        btn.layer.cornerRadius = 14
+        btn.layer.cornerRadius = 16
         btn.clipsToBounds = true
         btn.addTarget(self, action: #selector(didTapChat), for: .touchUpInside)
-        btn.snp.makeConstraints { $0.width.equalTo(56); $0.height.equalTo(28) }
+        btn.snp.makeConstraints { $0.width.height.equalTo(32) }
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: btn)
     }
 

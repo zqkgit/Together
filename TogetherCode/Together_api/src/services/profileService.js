@@ -114,10 +114,12 @@ async function getTeacherHomepage(userId, query = {}) {
     limit: 20
   });
 
+  // 老师作品：type=1 图文动态（排除 type=2 孩子作品）
   const works = await Post.findAndCountAll({
     where: {
       author_id: teacher.user?.user_id || userId,
       author_role: 2,
+      type: 1,
       status: 1,
       visibility: 2
     },
@@ -126,12 +128,12 @@ async function getTeacherHomepage(userId, query = {}) {
     limit: size
   });
 
-  // 学员作品：老师发布的关联了学员的帖子
+  // 学员作品：type=2 孩子作品
   const studentWorks = await Post.findAndCountAll({
     where: {
       author_id: teacher.user?.user_id || userId,
       author_role: 2,
-      child_id: { [Op.ne]: null },
+      type: 2,
       status: 1,
       visibility: 2
     },
@@ -251,17 +253,15 @@ async function getStudioHomepage(studioId, query = {}) {
     ? Number((teacherList.reduce((sum, t) => sum + Number(t.rating || 0), 0) / teacherList.length).toFixed(1))
     : 0;
 
-  // 学员作品：工作室名下老师发布的关联了学员的帖子
-  const teacherUserIds = teacherList
-    .map((t) => t.user && String(t.user.user_id))
-    .filter(Boolean);
+  // 学员作品：工作室课程下 type=2 孩子作品
+  const studioCourseIds = courses.rows.map((c) => c.course_id);
   let studentWorks = { count: 0, rows: [] };
-  if (teacherUserIds.length > 0) {
+  if (studioCourseIds.length > 0) {
     studentWorks = await Post.findAndCountAll({
       where: {
-        author_id: { [Op.in]: teacherUserIds },
+        course_id: { [Op.in]: studioCourseIds },
         author_role: 2,
-        child_id: { [Op.ne]: null },
+        type: 2,
         status: 1,
         visibility: 2
       },
@@ -273,6 +273,7 @@ async function getStudioHomepage(studioId, query = {}) {
   return {
     studio: {
       studio_id: String(studio.studio_id),
+      user_id: studio.user_id ? String(studio.user_id) : null,
       name: studio.name,
       cover: studio.cover || null,
       type_tags: studio.type_tags || [],
@@ -407,6 +408,7 @@ async function getTeacherReviews(teacherId, query = {}) {
 
 /**
  * 老师学员作品分页（公开接口）
+ * type=2 孩子作品
  */
 async function getTeacherStudentWorks(teacherId, query = {}) {
   const page = Math.max(1, Number(query.page) || 1);
@@ -426,7 +428,7 @@ async function getTeacherStudentWorks(teacherId, query = {}) {
     where: {
       author_id: authorId,
       author_role: 2,
-      child_id: { [Op.ne]: null },
+      type: 2,
       status: 1,
       visibility: 2
     },
@@ -453,6 +455,7 @@ async function getTeacherStudentWorks(teacherId, query = {}) {
 
 /**
  * 工作室学员作品分页（公开接口）
+ * type=2 孩子作品，课程属于该工作室
  */
 async function getStudioStudentWorks(studioId, query = {}) {
   const page = Math.max(1, Number(query.page) || 1);
@@ -463,30 +466,22 @@ async function getStudioStudentWorks(studioId, query = {}) {
   });
   if (!studio) return null;
 
-  const teachers = await TeacherStudioBinding.findAll({
+  // 工作室课程 → 课程下 type=2 的帖子
+  const studioCourses = await Course.findAll({
     where: { studio_id: studioId, status: 1 },
-    include: [
-      {
-        model: TeacherProfile,
-        as: "teacher",
-        include: [{ model: User, as: "user", attributes: ["user_id"] }]
-      }
-    ]
+    attributes: ["course_id"],
+    raw: true
   });
-
-  const teacherUserIds = teachers
-    .map((b) => b.teacher && b.teacher.user && String(b.teacher.user.user_id))
-    .filter(Boolean);
-
-  if (teacherUserIds.length === 0) {
+  const courseIds = studioCourses.map((c) => c.course_id);
+  if (courseIds.length === 0) {
     return { total: 0, page, size, list: [] };
   }
 
   const { count, rows } = await Post.findAndCountAll({
     where: {
-      author_id: { [Op.in]: teacherUserIds },
+      course_id: { [Op.in]: courseIds },
       author_role: 2,
-      child_id: { [Op.ne]: null },
+      type: 2,
       status: 1,
       visibility: 2
     },

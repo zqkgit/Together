@@ -13,6 +13,7 @@ struct StudioHomepageData: Codable {
 /// 工作室基本信息
 struct StudioHomepageInfo: Codable {
     let studio_id: String
+    let user_id: String?
     let name: String
     let cover: String?
     let type_tags: [String]?

@@ -4,6 +4,7 @@ import { View, Text, Image } from "@tarojs/components";
 import { getStudioHomepage, type StudioHomepage } from "../../services/profile";
 import { fenToYuan } from "../../services/course";
 import { getFavoriteIds, addFavorite, removeFavorite } from "../../services/interaction";
+import { createConversation } from "../../services/message";
 import { useAuthStore } from "../../store/auth";
 import "./index.scss";
 
@@ -74,6 +75,41 @@ export default function StudioHomepagePage() {
     Taro.navigateTo({ url: `/pages/post-detail/index?id=${postId}` });
   };
 
+  const goChat = async () => {
+    if (!isLoggedIn) {
+      Taro.showToast({ title: "请先登录", icon: "none" });
+      return;
+    }
+    const userId = studio?.user_id;
+    if (!userId) {
+      Taro.showToast({ title: "无法获取工作室信息", icon: "none" });
+      return;
+    }
+    const myUserId = useAuthStore.getState().user?.user_id;
+    if (userId === myUserId) return;
+    try {
+      Taro.showLoading({ title: "加载中..." });
+      const res = await createConversation(userId);
+      Taro.hideLoading();
+      const peerName = encodeURIComponent(studio?.name || "工作室");
+      Taro.navigateTo({
+        url: `/pages/chat/index?conversation_id=${res.data.conversation_id}&peer_name=${peerName}`
+      });
+    } catch {
+      Taro.hideLoading();
+      Taro.showToast({ title: "创建会话失败", icon: "none" });
+    }
+  };
+
+  const goCall = () => {
+    const phone = studio?.phone;
+    if (!phone) {
+      Taro.showToast({ title: "暂无联系电话", icon: "none" });
+      return;
+    }
+    Taro.makePhoneCall({ phoneNumber: phone });
+  };
+
   if (loading) {
     return <View className="empty-tip">加载中...</View>;
   }
@@ -94,11 +130,23 @@ export default function StudioHomepagePage() {
       <View className="studio-header card">
         <View className="studio-head-row">
           <View className="studio-name">{studio.name}</View>
-          <View
-            className={`follow-btn ${isFollowed ? "followed" : ""}`}
-            onClick={() => toggleFollow(studio.studio_id)}
-          >
-            {isFollowed ? "✓ 已关注" : "+ 关注"}
+          <View className="studio-actions">
+            {studio.user_id && studio.user_id !== useAuthStore.getState().user?.user_id && (
+              <>
+                <View className="icon-btn" onClick={goChat}>
+                  <Text className="icon-btn-text">💬</Text>
+                </View>
+                <View className="icon-btn" onClick={goCall}>
+                  <Text className="icon-btn-text">📞</Text>
+                </View>
+              </>
+            )}
+            <View
+              className={`follow-btn ${isFollowed ? "followed" : ""}`}
+              onClick={() => toggleFollow(studio.studio_id)}
+            >
+              {isFollowed ? "✓ 已关注" : "+ 关注"}
+            </View>
           </View>
         </View>
         {studio.type_tags && studio.type_tags.length > 0 && (
@@ -110,7 +158,6 @@ export default function StudioHomepagePage() {
         )}
         {studio.address && <View className="studio-line">📍 {studio.address}</View>}
         {studio.hours && <View className="studio-line">🕘 {studio.hours}</View>}
-        {studio.phone && <View className="studio-line">📞 {studio.phone}</View>}
       </View>
 
       {studio.intro && (

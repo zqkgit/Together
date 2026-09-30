@@ -119,7 +119,7 @@ export default function TeacherHomepagePage() {
           {isFollowed ? "✓ 已关注" : "+ 关注"}
         </View>
         {user?.user_id && user.user_id !== useAuthStore.getState().user?.user_id && (
-          <View className="chat-btn" onClick={goChat}>咨询</View>
+          <View className="icon-btn" onClick={goChat}><Text className="icon-btn-text">💬</Text></View>
         )}
         <View className="hero-tags">
           {(profile.subjects || []).map((s) => (

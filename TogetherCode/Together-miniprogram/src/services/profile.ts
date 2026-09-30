@@ -59,6 +59,7 @@ export interface TeacherHomepage {
 export interface StudioHomepage {
   studio: {
     studio_id: string;
+    user_id: string | null;
     name: string;
     cover: string | null;
     type_tags: string[];
