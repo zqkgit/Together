@@ -4,6 +4,7 @@ import { View, Text, Image } from "@tarojs/components";
 import { getTeacherHomepage, type TeacherHomepage } from "../../services/profile";
 import { fenToYuan } from "../../services/course";
 import { getFavoriteIds, addFavorite, removeFavorite } from "../../services/interaction";
+import { createConversation } from "../../services/message";
 import { useAuthStore } from "../../store/auth";
 import "./index.scss";
 
@@ -70,6 +71,33 @@ export default function TeacherHomepagePage() {
     Taro.navigateTo({ url: `/pages/post-detail/index?id=${postId}` });
   };
 
+  const goChat = async () => {
+    if (!isLoggedIn) {
+      Taro.showToast({ title: "请先登录", icon: "none" });
+      return;
+    }
+    const userId = user?.user_id;
+    if (!userId) {
+      Taro.showToast({ title: "无法获取老师信息", icon: "none" });
+      return;
+    }
+    // 不能跟自己聊天
+    const myUserId = useAuthStore.getState().user?.user_id;
+    if (userId === myUserId) return;
+    try {
+      Taro.showLoading({ title: "加载中..." });
+      const res = await createConversation(userId);
+      Taro.hideLoading();
+      const peerName = encodeURIComponent(profile?.real_name || user?.nickname || "老师");
+      Taro.navigateTo({
+        url: `/pages/chat/index?conversation_id=${res.data.conversation_id}&peer_name=${peerName}`
+      });
+    } catch {
+      Taro.hideLoading();
+      Taro.showToast({ title: "创建会话失败", icon: "none" });
+    }
+  };
+
   if (loading) {
     return <View className="empty-tip">加载中...</View>;
   }
@@ -77,7 +105,7 @@ export default function TeacherHomepagePage() {
     return <View className="empty-tip">老师不存在或未认证</View>;
   }
 
-  const { user, profile, studios, works } = data;
+  const { user, profile, studios, works, student_works } = data;
 
   return (
     <View className="teacher-page">
@@ -90,6 +118,9 @@ export default function TeacherHomepagePage() {
         >
           {isFollowed ? "✓ 已关注" : "+ 关注"}
         </View>
+        {user?.user_id && user.user_id !== useAuthStore.getState().user?.user_id && (
+          <View className="chat-btn" onClick={goChat}>咨询</View>
+        )}
         <View className="hero-tags">
           {(profile.subjects || []).map((s) => (
             <Text key={s} className="hero-tag">{s}</Text>
@@ -146,6 +177,23 @@ export default function TeacherHomepagePage() {
           <View className="section-label">作品墙（{works.total}）</View>
           <View className="work-grid">
             {works.list.map((w) => (
+              <View key={w.post_id} className="work-item" onClick={() => goWork(w.post_id)}>
+                {w.images?.[0] ? (
+                  <Image className="work-img" src={w.images[0]} mode="aspectFill" />
+                ) : (
+                  <View className="work-text">{String(w.content || "").slice(0, 8)}</View>
+                )}
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {student_works.list.length > 0 && (
+        <View className="card">
+          <View className="section-label">学员作品（{student_works.total}）</View>
+          <View className="work-grid">
+            {student_works.list.map((w) => (
               <View key={w.post_id} className="work-item" onClick={() => goWork(w.post_id)}>
                 {w.images?.[0] ? (
                   <Image className="work-img" src={w.images[0]} mode="aspectFill" />

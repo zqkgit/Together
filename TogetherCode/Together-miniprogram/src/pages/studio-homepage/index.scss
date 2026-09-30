@@ -172,3 +172,33 @@
 .follow-btn:active {
   opacity: 0.8;
 }
+
+.work-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 16rpx;
+}
+
+.work-item {
+  width: calc((100% - 24rpx) / 3);
+  aspect-ratio: 1;
+  border-radius: $radius-md;
+  overflow: hidden;
+  background: #efe9db;
+}
+
+.work-img {
+  width: 100%;
+  height: 100%;
+}
+
+.work-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 22rpx;
+  color: $color-text-light;
+}

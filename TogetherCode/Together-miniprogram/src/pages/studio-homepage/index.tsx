@@ -70,6 +70,10 @@ export default function StudioHomepagePage() {
     Taro.navigateTo({ url: `/pages/teacher-homepage/index?id=${userId}` });
   };
 
+  const goWork = (postId: string) => {
+    Taro.navigateTo({ url: `/pages/post-detail/index?id=${postId}` });
+  };
+
   if (loading) {
     return <View className="empty-tip">加载中...</View>;
   }
@@ -77,7 +81,7 @@ export default function StudioHomepagePage() {
     return <View className="empty-tip">工作室不存在或已关闭</View>;
   }
 
-  const { studio, courses, teachers } = data;
+  const { studio, courses, teachers, student_works } = data;
 
   return (
     <View className="studio-page">
@@ -158,6 +162,23 @@ export default function StudioHomepagePage() {
               <Text className="teacher-arrow">›</Text>
             </View>
           ))}
+        </View>
+      )}
+
+      {student_works.list.length > 0 && (
+        <View className="card">
+          <View className="section-label">学员作品（{student_works.total}）</View>
+          <View className="work-grid">
+            {student_works.list.map((w) => (
+              <View key={w.post_id} className="work-item" onClick={() => goWork(w.post_id)}>
+                {w.images?.[0] ? (
+                  <Image className="work-img" src={w.images[0]} mode="aspectFill" />
+                ) : (
+                  <View className="work-text">{String(w.content || "").slice(0, 8)}</View>
+                )}
+              </View>
+            ))}
+          </View>
         </View>
       )}
     </View>

@@ -40,6 +40,20 @@ export interface TeacherHomepage {
       created_at: string;
     }>;
   };
+  student_works: {
+    total: number;
+    page: number;
+    size: number;
+    list: Array<{
+      post_id: string;
+      type: number;
+      images: string[];
+      content: string;
+      like_count: number;
+      comment_count: number;
+      created_at: string;
+    }>;
+  };
 }
 
 export interface StudioHomepage {
@@ -81,6 +95,20 @@ export interface StudioHomepage {
     years: number | null;
     rating: number;
   }>;
+  student_works: {
+    total: number;
+    page: number;
+    size: number;
+    list: Array<{
+      post_id: string;
+      type: number;
+      images: string[];
+      content: string;
+      like_count: number;
+      comment_count: number;
+      created_at: string;
+    }>;
+  };
 }
 
 /** 老师主页：id 传 teacher_id 或 user_id 均可 */
@@ -91,4 +119,40 @@ export function getTeacherHomepage(id: string): Promise<TeacherHomepage> {
 /** 工作室主页 */
 export function getStudioHomepage(id: string): Promise<StudioHomepage> {
   return request({ url: `/profile/studio/${id}/homepage`, method: "GET" });
+}
+
+/** 老师学员作品分页 */
+export function getTeacherStudentWorks(id: string, page = 1, size = 10): Promise<{
+  total: number;
+  page: number;
+  size: number;
+  list: Array<{
+    post_id: string;
+    type: number;
+    images: string[];
+    content: string;
+    like_count: number;
+    comment_count: number;
+    created_at: string;
+  }>;
+}> {
+  return request({ url: `/profile/teacher/${id}/student-works`, method: "GET", data: { page, size } });
+}
+
+/** 工作室学员作品分页 */
+export function getStudioStudentWorks(id: string, page = 1, size = 10): Promise<{
+  total: number;
+  page: number;
+  size: number;
+  list: Array<{
+    post_id: string;
+    type: number;
+    images: string[];
+    content: string;
+    like_count: number;
+    comment_count: number;
+    created_at: string;
+  }>;
+}> {
+  return request({ url: `/profile/studio/${id}/student-works`, method: "GET", data: { page, size } });
 }

@@ -126,6 +126,19 @@ async function getTeacherHomepage(userId, query = {}) {
     limit: size
   });
 
+  // 学员作品：老师发布的关联了学员的帖子
+  const studentWorks = await Post.findAndCountAll({
+    where: {
+      author_id: teacher.user?.user_id || userId,
+      author_role: 2,
+      child_id: { [Op.ne]: null },
+      status: 1,
+      visibility: 2
+    },
+    order: [["created_at", "DESC"]],
+    limit: size
+  });
+
   return {
     user: teacher.user
       ? {
@@ -179,6 +192,20 @@ async function getTeacherHomepage(userId, query = {}) {
         comment_count: Number(post.comment_count || 0),
         created_at: post.created_at
       }))
+    },
+    student_works: {
+      total: studentWorks.count,
+      page: 1,
+      size,
+      list: studentWorks.rows.map((post) => ({
+        post_id: String(post.post_id),
+        type: post.type,
+        images: post.images || [],
+        content: post.content,
+        like_count: Number(post.like_count || 0),
+        comment_count: Number(post.comment_count || 0),
+        created_at: post.created_at
+      }))
     }
   };
 }
@@ -224,6 +251,25 @@ async function getStudioHomepage(studioId, query = {}) {
     ? Number((teacherList.reduce((sum, t) => sum + Number(t.rating || 0), 0) / teacherList.length).toFixed(1))
     : 0;
 
+  // 学员作品：工作室名下老师发布的关联了学员的帖子
+  const teacherUserIds = teacherList
+    .map((t) => t.user && String(t.user.user_id))
+    .filter(Boolean);
+  let studentWorks = { count: 0, rows: [] };
+  if (teacherUserIds.length > 0) {
+    studentWorks = await Post.findAndCountAll({
+      where: {
+        author_id: { [Op.in]: teacherUserIds },
+        author_role: 2,
+        child_id: { [Op.ne]: null },
+        status: 1,
+        visibility: 2
+      },
+      order: [["created_at", "DESC"]],
+      limit: size
+    });
+  }
+
   return {
     studio: {
       studio_id: String(studio.studio_id),
@@ -267,7 +313,21 @@ async function getStudioHomepage(studioId, query = {}) {
         subjects: teacher.subjects || [],
         years: teacher.years || null,
         rating: Number(teacher.rating || 0)
+      })),
+    student_works: {
+      total: studentWorks.count,
+      page: 1,
+      size,
+      list: studentWorks.rows.map((post) => ({
+        post_id: String(post.post_id),
+        type: post.type,
+        images: post.images || [],
+        content: post.content,
+        like_count: Number(post.like_count || 0),
+        comment_count: Number(post.comment_count || 0),
+        created_at: post.created_at
       }))
+    }
   };
 }
 
@@ -345,9 +405,117 @@ async function getTeacherReviews(teacherId, query = {}) {
   };
 }
 
+/**
+ * 老师学员作品分页（公开接口）
+ */
+async function getTeacherStudentWorks(teacherId, query = {}) {
+  const page = Math.max(1, Number(query.page) || 1);
+  const size = Math.min(Number(query.size) || 10, 30);
+
+  const teacher = await TeacherProfile.findOne({
+    where: {
+      [Op.or]: [{ user_id: teacherId }, { teacher_id: teacherId }],
+      cert_status: 1
+    },
+    include: [{ model: User, as: "user", attributes: ["user_id"] }]
+  });
+  if (!teacher) return null;
+
+  const authorId = teacher.user?.user_id || teacherId;
+  const { count, rows } = await Post.findAndCountAll({
+    where: {
+      author_id: authorId,
+      author_role: 2,
+      child_id: { [Op.ne]: null },
+      status: 1,
+      visibility: 2
+    },
+    order: [["created_at", "DESC"]],
+    offset: (page - 1) * size,
+    limit: size
+  });
+
+  return {
+    total: count,
+    page,
+    size,
+    list: rows.map((post) => ({
+      post_id: String(post.post_id),
+      type: post.type,
+      images: post.images || [],
+      content: post.content,
+      like_count: Number(post.like_count || 0),
+      comment_count: Number(post.comment_count || 0),
+      created_at: post.created_at
+    }))
+  };
+}
+
+/**
+ * 工作室学员作品分页（公开接口）
+ */
+async function getStudioStudentWorks(studioId, query = {}) {
+  const page = Math.max(1, Number(query.page) || 1);
+  const size = Math.min(Number(query.size) || 10, 30);
+
+  const studio = await StudioProfile.findOne({
+    where: { studio_id: studioId, status: 1 }
+  });
+  if (!studio) return null;
+
+  const teachers = await TeacherStudioBinding.findAll({
+    where: { studio_id: studioId, status: 1 },
+    include: [
+      {
+        model: TeacherProfile,
+        as: "teacher",
+        include: [{ model: User, as: "user", attributes: ["user_id"] }]
+      }
+    ]
+  });
+
+  const teacherUserIds = teachers
+    .map((b) => b.teacher && b.teacher.user && String(b.teacher.user.user_id))
+    .filter(Boolean);
+
+  if (teacherUserIds.length === 0) {
+    return { total: 0, page, size, list: [] };
+  }
+
+  const { count, rows } = await Post.findAndCountAll({
+    where: {
+      author_id: { [Op.in]: teacherUserIds },
+      author_role: 2,
+      child_id: { [Op.ne]: null },
+      status: 1,
+      visibility: 2
+    },
+    order: [["created_at", "DESC"]],
+    offset: (page - 1) * size,
+    limit: size
+  });
+
+  return {
+    total: count,
+    page,
+    size,
+    list: rows.map((post) => ({
+      post_id: String(post.post_id),
+      type: post.type,
+      images: post.images || [],
+      content: post.content,
+      like_count: Number(post.like_count || 0),
+      comment_count: Number(post.comment_count || 0),
+      created_at: post.created_at
+    }))
+  };
+}
+
 module.exports = {
   getUserProfile,
   getTeacherHomepage,
   getStudioHomepage,
-  getTeacherReviews
+  getTeacherReviews,
+  getTeacherStudentWorks,
+  getStudioStudentWorks
 };

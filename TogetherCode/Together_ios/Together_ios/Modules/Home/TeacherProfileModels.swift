@@ -9,6 +9,7 @@ struct TeacherProfileData: Codable {
     let studios: [TeacherProfileStudio]?
     let courses: [TeacherProfileCourse]?
     let works: TeacherProfileWorkPage?
+    let student_works: TeacherProfileWorkPage?
 }
 
 /// 用户基本信息

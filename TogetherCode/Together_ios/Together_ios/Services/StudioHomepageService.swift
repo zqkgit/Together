@@ -18,7 +18,26 @@ final class StudioHomepageService {
             switch result {
             case .success(let json):
                 let data = JSONKit.decode(StudioHomepageData.self, from: json)
-                    ?? StudioHomepageData(studio: nil, courses: nil, teachers: nil)
+                    ?? StudioHomepageData(studio: nil, courses: nil, teachers: nil, student_works: nil)
+                completion(.success(data))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 获取工作室学员作品分页
+    func fetchStudentWorks(studioId: String, page: Int = 1, size: Int = 10,
+                           completion: @escaping (Result<StudioHomepageStudentWorkPage, APIError>) -> Void) {
+        let params: [String: Any] = ["page": page, "size": size]
+        APIClient.shared.request("/profile/studio/\(studioId)/student-works",
+                                 method: .get,
+                                 parameters: params,
+                                 encoding: URLEncoding.default) { result in
+            switch result {
+            case .success(let json):
+                let data = JSONKit.decode(StudioHomepageStudentWorkPage.self, from: json)
+                    ?? StudioHomepageStudentWorkPage(total: 0, page: 1, size: size, list: nil)
                 completion(.success(data))
             case .failure(let error):
                 completion(.failure(error))

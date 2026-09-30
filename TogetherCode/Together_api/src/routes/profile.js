@@ -3,7 +3,9 @@ const {
   getUserProfileHandler,
   getTeacherHomepageHandler,
   getStudioHomepageHandler,
-  getTeacherReviewsHandler
+  getTeacherReviewsHandler,
+  getTeacherStudentWorksHandler,
+  getStudioStudentWorksHandler
 } = require("../controllers/profileController");
 
 const router = express.Router();
@@ -12,6 +14,8 @@ const router = express.Router();
 router.get("/users/:id/profile", getUserProfileHandler);
 router.get("/teacher/:id/homepage", getTeacherHomepageHandler);
 router.get("/teacher/:id/reviews", getTeacherReviewsHandler);
+router.get("/teacher/:id/student-works", getTeacherStudentWorksHandler);
 router.get("/studio/:id/homepage", getStudioHomepageHandler);
+router.get("/studio/:id/student-works", getStudioStudentWorksHandler);
 
 module.exports = router;

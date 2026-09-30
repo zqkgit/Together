@@ -18,6 +18,12 @@ final class TeacherProfileViewController: BaseViewController {
     private var workPage = 1
     private var hasMoreWorks = true
 
+    private var studentWorksList: [TeacherProfileWork] = []
+    private var studentWorkTotal: Int { data?.student_works?.total ?? 0 }
+    private var studentWorkPage = 1
+    private var hasMoreStudentWorks = true
+    private var isLoadingStudentWorks = false
+
     private var reviews: [TeacherProfileReview] = []
     private var reviewTotal = 0
     private var reviewAverage: Double = 0
@@ -27,7 +33,7 @@ final class TeacherProfileViewController: BaseViewController {
     // MARK: - UI
 
     private let headerView = TeacherHeaderView()
-    private let segmentControl = UISegmentedControl(items: ["作品", "工作室", "评价"])
+    private let segmentControl = UISegmentedControl(items: ["作品", "学员作品", "工作室", "评价"])
 
     // 作品列表
     private var worksTableView: UITableView!
@@ -42,6 +48,14 @@ final class TeacherProfileViewController: BaseViewController {
     private let studiosEmpty: EmptyStateView = {
         let view = EmptyStateView()
         view.show(style: .empty("暂无工作室"))
+        return view
+    }()
+
+    // 学员作品列表
+    private var studentWorksTableView: UITableView!
+    private let studentWorksEmpty: EmptyStateView = {
+        let view = EmptyStateView()
+        view.show(style: .empty("暂无学员作品\n老师发布学员作品后会展示在这里"))
         return view
     }()
 
@@ -152,6 +166,29 @@ final class TeacherProfileViewController: BaseViewController {
             $0.leading.trailing.bottom.equalToSuperview()
         }
 
+        // 学员作品列表
+        studentWorksTableView = UITableView(frame: .zero, style: .plain)
+        studentWorksTableView.backgroundColor = .clear
+        studentWorksTableView.separatorStyle = .none
+        studentWorksTableView.dataSource = self
+        studentWorksTableView.delegate = self
+        studentWorksTableView.register(TeacherWorkListCell.self, forCellReuseIdentifier: "StudentWorkListCell")
+        studentWorksTableView.rowHeight = UITableView.automaticDimension
+        studentWorksTableView.estimatedRowHeight = 80
+        studentWorksTableView.alwaysBounceVertical = true
+        studentWorksTableView.isHidden = true
+        studentWorksTableView.es.addPullToRefresh(animator: BrandRefreshHeader()) { [weak self] in
+            self?.refreshAll()
+        }
+        studentWorksTableView.es.addInfiniteScrolling { [weak self] in
+            self?.loadMoreStudentWorks()
+        }
+        view.addSubview(studentWorksTableView)
+        studentWorksTableView.snp.makeConstraints {
+            $0.top.equalTo(segmentControl.snp.bottom)
+            $0.leading.trailing.bottom.equalToSuperview()
+        }
+
         // 评价列表
         reviewsTableView = UITableView(frame: .zero, style: .plain)
         reviewsTableView.backgroundColor = .clear
@@ -179,14 +216,61 @@ final class TeacherProfileViewController: BaseViewController {
 
     private func loadData() {
         loadHomepage(reset: true)
+        loadStudentWorks(reset: true)
         loadReviews(reset: true)
+    }
+
+    // MARK: - 咨询按钮
+
+    /// 非本人时显示导航栏右侧「咨询」按钮
+    private func setupChatButton() {
+        let myUserId = TokenManager.shared.userId
+        guard let userId = data?.user?.user_id, !userId.isEmpty, userId != myUserId else { return }
+        let btn = UIButton(type: .system)
+        btn.setTitle("咨询", for: .normal)
+        btn.setTitleColor(.white, for: .normal)
+        btn.titleLabel?.font = .appLabel(15)
+        btn.backgroundColor = Theme.Color.brand.withAlphaComponent(0.6)
+        btn.layer.cornerRadius = 14
+        btn.clipsToBounds = true
+        btn.addTarget(self, action: #selector(didTapChat), for: .touchUpInside)
+        btn.snp.makeConstraints { $0.width.equalTo(56); $0.height.equalTo(28) }
+        navigationItem.rightBarButtonItem = UIBarButtonItem(customView: btn)
+    }
+
+    @objc private func didTapChat() {
+        guard let userId = data?.user?.user_id, !userId.isEmpty else {
+            showToast("无法获取老师信息")
+            return
+        }
+        guard TokenManager.shared.isLoggedIn else {
+            showToast("请先登录")
+            return
+        }
+        showLoading()
+        MessageService.createConversation(peerUserId: userId) { [weak self] conversation, error in
+            guard let self else { return }
+            self.hideLoading()
+            if let error {
+                self.showToast(error)
+                return
+            }
+            guard let conversation else {
+                self.showToast("创建会话失败")
+                return
+            }
+            let vc = ChatViewController(conversation: conversation)
+            self.navigationController?.pushViewController(vc, animated: true)
+        }
     }
 
     /// 下拉刷新：重置所有分页
     private func refreshAll() {
         workPage = 1
+        studentWorkPage = 1
         reviewPage = 1
         loadHomepage(reset: true)
+        loadStudentWorks(reset: true)
         loadReviews(reset: true)
     }
 
@@ -211,14 +295,22 @@ final class TeacherProfileViewController: BaseViewController {
                     self.worksList.append(contentsOf: data.works?.list ?? [])
                 }
                 self.hasMoreWorks = self.worksList.count < (data.works?.total ?? 0)
+                // 首页自带学员作品首页数据
+                if reset || self.studentWorkPage <= 1 {
+                    self.studentWorksList = data.student_works?.list ?? []
+                }
+                self.hasMoreStudentWorks = self.studentWorksList.count < (data.student_works?.total ?? 0)
                 self.headerView.configure(user: data.user, profile: data.profile)
                 self.headerView.updateStats(
                     studentCount: data.profile?.student_count ?? 0,
                     workCount: data.works?.total ?? 0,
                     rating: data.profile?.rating ?? 0
                 )
+                self.setupChatButton()
                 self.worksTableView.reloadData()
                 self.worksTableView.backgroundView = self.worksList.isEmpty ? self.worksEmpty : nil
+                self.studentWorksTableView.reloadData()
+                self.studentWorksTableView.backgroundView = self.studentWorksList.isEmpty ? self.studentWorksEmpty : nil
                 self.studiosTableView.reloadData()
                 self.studiosTableView.backgroundView = self.studios.isEmpty ? self.studiosEmpty : nil
             case .failure:
@@ -277,11 +369,50 @@ final class TeacherProfileViewController: BaseViewController {
         loadReviews(reset: false)
     }
 
+    /// 加载学员作品数据
+    private func loadStudentWorks(reset: Bool) {
+        if reset { studentWorkPage = 1 }
+        guard !isLoadingStudentWorks else { return }
+        isLoadingStudentWorks = true
+        TeacherProfileService.shared.fetchStudentWorks(teacherId: teacherId, page: studentWorkPage) { [weak self] result in
+            guard let self else { return }
+            self.isLoadingStudentWorks = false
+            self.studentWorksTableView.es.stopPullToRefresh()
+            self.studentWorksTableView.es.stopLoadingMore()
+            switch result {
+            case .success(let page):
+                if reset || self.studentWorkPage <= 1 {
+                    self.studentWorksList = page.list ?? []
+                } else {
+                    self.studentWorksList.append(contentsOf: page.list ?? [])
+                }
+                self.hasMoreStudentWorks = self.studentWorksList.count < (page.total ?? 0)
+                self.studentWorksTableView.reloadData()
+                self.studentWorksTableView.backgroundView = self.studentWorksList.isEmpty ? self.studentWorksEmpty : nil
+            case .failure:
+                if !self.hasLoaded {
+                    self.studentWorksTableView.backgroundView = self.studentWorksEmpty
+                }
+            }
+        }
+    }
+
+    /// 上拉加载更多学员作品
+    private func loadMoreStudentWorks() {
+        guard hasMoreStudentWorks, !isLoadingStudentWorks else {
+            studentWorksTableView.es.stopLoadingMore()
+            return
+        }
+        studentWorkPage += 1
+        loadStudentWorks(reset: false)
+    }
+
     @objc private func segmentChanged() {
         let index = segmentControl.selectedSegmentIndex
         worksTableView.isHidden = index != 0
-        studiosTableView.isHidden = index != 1
-        reviewsTableView.isHidden = index != 2
+        studentWorksTableView.isHidden = index != 1
+        studiosTableView.isHidden = index != 2
+        reviewsTableView.isHidden = index != 3
     }
 }
 
@@ -291,6 +422,7 @@ extension TeacherProfileViewController: UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         if tableView == worksTableView { return worksList.count }
+        if tableView == studentWorksTableView { return studentWorksList.count }
         if tableView == studiosTableView { return studios.count }
         if tableView == reviewsTableView { return reviews.count }
         return 0
@@ -302,6 +434,17 @@ extension TeacherProfileViewController: UITableViewDataSource {
             cell.configure(work: worksList[indexPath.row])
             cell.onTap = { [weak self] in
                 let item = self?.worksList[indexPath.row]
+                guard let self, let postId = item?.post_id else { return }
+                let vc = PostDetailViewController(postId: postId)
+                self.navigationController?.pushViewController(vc, animated: true)
+            }
+            return cell
+        }
+        if tableView == studentWorksTableView {
+            let cell = tableView.dequeueReusableCell(withIdentifier: "StudentWorkListCell", for: indexPath) as! TeacherWorkListCell
+            cell.configure(work: studentWorksList[indexPath.row])
+            cell.onTap = { [weak self] in
+                let item = self?.studentWorksList[indexPath.row]
                 guard let self, let postId = item?.post_id else { return }
                 let vc = PostDetailViewController(postId: postId)
                 self.navigationController?.pushViewController(vc, animated: true)

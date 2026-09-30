@@ -7,6 +7,7 @@ struct StudioHomepageData: Codable {
     let studio: StudioHomepageInfo?
     let courses: StudioHomepageCoursePage?
     let teachers: [StudioHomepageTeacher]?
+    let student_works: StudioHomepageStudentWorkPage?
 }
 
 /// 工作室基本信息
@@ -129,4 +130,33 @@ struct StudioHomepageTeacher: Codable {
         if let years, years > 0 { parts.append("教龄\(years)年") }
         return parts.isEmpty ? "暂未填写擅长方向" : parts.joined(separator: " · ")
     }
+}
+
+/// 工作室学员作品
+struct StudioHomepageStudentWork: Codable {
+    let post_id: String
+    let type: Int?
+    let images: [String]?
+    let content: String?
+    let like_count: Int?
+    let comment_count: Int?
+    let created_at: String?
+
+    var firstImage: String? { images?.first }
+    var likeText: String {
+        guard let c = like_count, c > 0 else { return "" }
+        return "❤️ \(c)"
+    }
+    var commentText: String {
+        guard let c = comment_count, c > 0 else { return "" }
+        return "💬 \(c)"
+    }
+}
+
+/// 学员作品分页
+struct StudioHomepageStudentWorkPage: Codable {
+    let total: Int?
+    let page: Int?
+    let size: Int?
+    let list: [StudioHomepageStudentWork]?
 }

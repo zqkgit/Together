@@ -20,10 +20,17 @@ final class StudioHomepageViewController: BaseViewController {
     private var photos: [String] = []
     private var hasLoaded = false
 
+    // 学员作品
+    private var studentWorksList: [StudioHomepageStudentWork] = []
+    private var studentWorkTotal = 0
+    private var studentWorkPage = 1
+    private var hasMoreStudentWorks = true
+    private var isLoadingStudentWorks = false
+
     // MARK: - UI
 
     private let headerView = StudioHeaderView()
-    private let segmentControl = UISegmentedControl(items: ["课程", "老师", "介绍"])
+    private let segmentControl = UISegmentedControl(items: ["课程", "学员作品", "老师", "介绍"])
 
     // 课程列表
     private var coursesTableView: UITableView!
@@ -38,6 +45,14 @@ final class StudioHomepageViewController: BaseViewController {
     private let teachersEmpty: EmptyStateView = {
         let view = EmptyStateView()
         view.show(style: .empty("暂无老师"))
+        return view
+    }()
+
+    // 学员作品列表
+    private var studentWorksTableView: UITableView!
+    private let studentWorksEmpty: EmptyStateView = {
+        let view = EmptyStateView()
+        view.show(style: .empty("暂无学员作品\n老师发布学员作品后会展示在这里"))
         return view
     }()
 
@@ -147,6 +162,30 @@ final class StudioHomepageViewController: BaseViewController {
             $0.bottom.equalTo(bottomBar.snp.top)
         }
 
+        // 学员作品列表
+        studentWorksTableView = UITableView(frame: .zero, style: .plain)
+        studentWorksTableView.backgroundColor = .clear
+        studentWorksTableView.separatorStyle = .none
+        studentWorksTableView.dataSource = self
+        studentWorksTableView.delegate = self
+        studentWorksTableView.register(StudioStudentWorkCell.self, forCellReuseIdentifier: "StudioStudentWorkCell")
+        studentWorksTableView.rowHeight = UITableView.automaticDimension
+        studentWorksTableView.estimatedRowHeight = 80
+        studentWorksTableView.alwaysBounceVertical = true
+        studentWorksTableView.isHidden = true
+        studentWorksTableView.es.addPullToRefresh(animator: BrandRefreshHeader()) { [weak self] in
+            self?.refreshAll()
+        }
+        studentWorksTableView.es.addInfiniteScrolling { [weak self] in
+            self?.loadMoreStudentWorks()
+        }
+        view.addSubview(studentWorksTableView)
+        studentWorksTableView.snp.makeConstraints {
+            $0.top.equalTo(segmentControl.snp.bottom)
+            $0.leading.trailing.equalToSuperview()
+            $0.bottom.equalTo(bottomBar.snp.top)
+        }
+
         // 介绍列表
         introTableView = UITableView(frame: .zero, style: .plain)
         introTableView.backgroundColor = .clear
@@ -213,6 +252,11 @@ final class StudioHomepageViewController: BaseViewController {
                 self.coursePage = 1
                 self.hasMoreCourses = self.courses.count < self.courseTotal
                 self.photos = data.studio?.photos ?? []
+                // 首页自带学员作品首页数据
+                self.studentWorksList = data.student_works?.list ?? []
+                self.studentWorkTotal = data.student_works?.total ?? 0
+                self.studentWorkPage = 1
+                self.hasMoreStudentWorks = self.studentWorksList.count < self.studentWorkTotal
                 self.hasLoaded = true
 
                 self.headerView.configure(studio: data.studio)
@@ -220,6 +264,8 @@ final class StudioHomepageViewController: BaseViewController {
                 self.coursesTableView.backgroundView = self.courses.isEmpty ? self.coursesEmpty : nil
                 self.teachersTableView.reloadData()
                 self.teachersTableView.backgroundView = self.teachers.isEmpty ? self.teachersEmpty : nil
+                self.studentWorksTableView.reloadData()
+                self.studentWorksTableView.backgroundView = self.studentWorksList.isEmpty ? self.studentWorksEmpty : nil
                 self.introTableView.reloadData()
                 self.updateBottomBar()
             case .failure(let error):
@@ -231,6 +277,7 @@ final class StudioHomepageViewController: BaseViewController {
 
     private func refreshAll() {
         coursePage = 1
+        studentWorkPage = 1
         loadData()
     }
 
@@ -257,9 +304,48 @@ final class StudioHomepageViewController: BaseViewController {
         }
     }
 
+    /// 加载学员作品数据
+    private func loadStudentWorks(reset: Bool) {
+        if reset { studentWorkPage = 1 }
+        guard !isLoadingStudentWorks else { return }
+        isLoadingStudentWorks = true
+        StudioHomepageService.shared.fetchStudentWorks(studioId: studioId, page: studentWorkPage) { [weak self] result in
+            guard let self else { return }
+            self.isLoadingStudentWorks = false
+            self.studentWorksTableView.es.stopPullToRefresh()
+            self.studentWorksTableView.es.stopLoadingMore()
+            switch result {
+            case .success(let page):
+                if reset || self.studentWorkPage <= 1 {
+                    self.studentWorksList = page.list ?? []
+                } else {
+                    self.studentWorksList.append(contentsOf: page.list ?? [])
+                }
+                self.hasMoreStudentWorks = self.studentWorksList.count < (page.total ?? 0)
+                self.studentWorksTableView.reloadData()
+                self.studentWorksTableView.backgroundView = self.studentWorksList.isEmpty ? self.studentWorksEmpty : nil
+            case .failure:
+                if !self.hasLoaded {
+                    self.studentWorksTableView.backgroundView = self.studentWorksEmpty
+                }
+            }
+        }
+    }
+
+    /// 上拉加载更多学员作品
+    private func loadMoreStudentWorks() {
+        guard hasMoreStudentWorks, !isLoadingStudentWorks else {
+            studentWorksTableView.es.stopLoadingMore()
+            return
+        }
+        studentWorkPage += 1
+        loadStudentWorks(reset: false)
+    }
+
     private func stopAllRefresh() {
         coursesTableView.es.stopPullToRefresh()
         teachersTableView.es.stopPullToRefresh()
+        studentWorksTableView.es.stopPullToRefresh()
         introTableView.es.stopPullToRefresh()
     }
 
@@ -272,8 +358,9 @@ final class StudioHomepageViewController: BaseViewController {
     @objc private func segmentChanged() {
         let index = segmentControl.selectedSegmentIndex
         coursesTableView.isHidden = index != 0
-        teachersTableView.isHidden = index != 1
-        introTableView.isHidden = index != 2
+        studentWorksTableView.isHidden = index != 1
+        teachersTableView.isHidden = index != 2
+        introTableView.isHidden = index != 3
     }
 
     @objc private func didTapCall() {
@@ -288,6 +375,7 @@ extension StudioHomepageViewController: UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         if tableView == coursesTableView { return courses.count }
+        if tableView == studentWorksTableView { return studentWorksList.count }
         if tableView == teachersTableView { return teachers.count }
         if tableView == introTableView { return introRowCount }
         return 0
@@ -301,6 +389,17 @@ extension StudioHomepageViewController: UITableViewDataSource {
                 let c = self?.courses[indexPath.row]
                 guard let self, let courseId = c?.course_id else { return }
                 let vc = CourseDetailViewController(courseId: courseId)
+                self.navigationController?.pushViewController(vc, animated: true)
+            }
+            return cell
+        }
+        if tableView == studentWorksTableView {
+            let cell = tableView.dequeueReusableCell(withIdentifier: "StudioStudentWorkCell", for: indexPath) as! StudioStudentWorkCell
+            cell.configure(work: studentWorksList[indexPath.row])
+            cell.onTap = { [weak self] in
+                let item = self?.studentWorksList[indexPath.row]
+                guard let self, let postId = item?.post_id else { return }
+                let vc = PostDetailViewController(postId: postId)
                 self.navigationController?.pushViewController(vc, animated: true)
             }
             return cell
@@ -708,6 +807,96 @@ final class StudioTeacherCardCell: UITableViewCell {
         } else {
             avatarView.image = UIImage(systemName: "person.crop.circle")
             avatarView.tintColor = Theme.Color.muted
+        }
+    }
+}
+
+// MARK: - StudioStudentWorkCell（学员作品列表行）
+
+final class StudioStudentWorkCell: UITableViewCell {
+
+    var onTap: (() -> Void)?
+
+    private let card = UIView()
+    private let coverView = UIImageView()
+    private let contentLabel = UILabel()
+    private let dateLabel = UILabel()
+    private let statsLabel = UILabel()
+
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        selectionStyle = .none
+        backgroundColor = .clear
+        contentView.backgroundColor = .clear
+
+        contentView.addSubview(card)
+        let tap = UITapGestureRecognizer(target: self, action: #selector(didTap))
+        card.addGestureRecognizer(tap)
+        card.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(6)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
+            $0.bottom.equalToSuperview().inset(6)
+        }
+        card.backgroundColor = Theme.Color.surface
+        card.layer.cornerRadius = Theme.Radius.card
+
+        coverView.contentMode = .scaleAspectFill
+        coverView.clipsToBounds = true
+        coverView.layer.cornerRadius = 10
+        coverView.backgroundColor = Theme.Color.surfaceAlt
+        card.addSubview(coverView)
+        coverView.snp.makeConstraints {
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
+            $0.top.equalToSuperview().offset(Theme.Spacing.m)
+            $0.bottom.equalToSuperview().inset(Theme.Spacing.m)
+            $0.width.height.equalTo(80)
+        }
+
+        contentLabel.font = .appBody(14)
+        contentLabel.textColor = Theme.Color.ink
+        contentLabel.numberOfLines = 2
+        card.addSubview(contentLabel)
+        contentLabel.snp.makeConstraints {
+            $0.top.equalTo(coverView).offset(2)
+            $0.leading.equalTo(coverView.snp.trailing).offset(12)
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
+        }
+
+        dateLabel.font = .appLabel(11)
+        dateLabel.textColor = Theme.Color.muted
+        card.addSubview(dateLabel)
+        dateLabel.snp.makeConstraints {
+            $0.top.equalTo(contentLabel.snp.bottom).offset(4)
+            $0.leading.equalTo(contentLabel)
+        }
+
+        statsLabel.font = .appLabel(11)
+        statsLabel.textColor = Theme.Color.sub
+        card.addSubview(statsLabel)
+        statsLabel.snp.makeConstraints {
+            $0.top.equalTo(dateLabel.snp.bottom).offset(2)
+            $0.leading.equalTo(contentLabel)
+            $0.bottom.equalTo(coverView).offset(-2)
+        }
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    @objc private func didTap() { onTap?() }
+
+    func configure(work: StudioHomepageStudentWork) {
+        contentLabel.text = work.content ?? "学员作品"
+        dateLabel.text = work.created_at.map { String($0.prefix(10)) } ?? ""
+        var statsParts: [String] = []
+        if let c = work.like_count, c > 0 { statsParts.append("❤️ \(c)") }
+        if let c = work.comment_count, c > 0 { statsParts.append("💬 \(c)") }
+        statsLabel.text = statsParts.joined(separator: "  ")
+
+        if let img = work.firstImage, let url = URL(string: img) {
+            coverView.kf.setImage(with: url)
+        } else {
+            coverView.image = UIImage(systemName: "photo.on.rectangle")
+            coverView.tintColor = Theme.Color.muted
         }
     }
 }
