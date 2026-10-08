@@ -408,7 +408,7 @@ private final class StudioRefundCell: UITableViewCell {
         [avatarView, nameLabel, amountLabel].forEach { headerBlock.addSubview($0) }
 
         avatarView.snp.makeConstraints {
-            $0.leading.equalToSuperview()
+            $0.leading.equalToSuperview().offset(Theme.Spacing.m)
             $0.top.bottom.equalToSuperview()
             $0.width.height.equalTo(40)
         }
@@ -419,7 +419,7 @@ private final class StudioRefundCell: UITableViewCell {
         }
         amountLabel.snp.makeConstraints {
             $0.centerY.equalTo(avatarView)
-            $0.trailing.equalToSuperview()
+            $0.trailing.equalToSuperview().offset(-Theme.Spacing.m)
         }
     }
 
@@ -651,7 +651,7 @@ private final class RefundKVRow: UIView {
         keyLabel.textColor = Theme.Color.muted
         addSubview(keyLabel)
         keyLabel.snp.makeConstraints {
-            $0.leading.equalToSuperview()
+            $0.leading.equalToSuperview().offset(Theme.Spacing.m)
             $0.top.equalToSuperview().offset(10)
             $0.width.equalTo(64)
         }
@@ -659,7 +659,7 @@ private final class RefundKVRow: UIView {
         addSubview(content)
         content.snp.makeConstraints {
             $0.leading.equalTo(keyLabel.snp.trailing).offset(Theme.Spacing.m)
-            $0.trailing.equalToSuperview()
+            $0.trailing.equalToSuperview().offset(-Theme.Spacing.m)
             $0.top.equalToSuperview().offset(10)
             $0.bottom.equalToSuperview().offset(-10)
         }
