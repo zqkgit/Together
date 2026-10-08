@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import Taro, { usePullDownRefresh } from "@tarojs/taro";
+import Taro, { usePullDownRefresh, useDidShow } from "@tarojs/taro";
 import { View, Text, Image, ScrollView } from "@tarojs/components";
 import {
   getNotifications,
@@ -82,6 +82,7 @@ export default function MessagesPage() {
       setConvPage(page);
       setConvHasMore(list.length >= 20 && (conversations.length + list.length) < (res.total || 0));
       setConvUnread(res.unread_total || 0);
+      updateTabBarBadge(res.unread_total || 0, unread);
     } catch {
       // 拦截器已提示
     } finally {
@@ -105,6 +106,7 @@ export default function MessagesPage() {
       setNotifPage(page);
       setNotifHasMore(list.length >= 20 && (notifications.length + list.length) < (data.total || 0));
       setUnread(data.unread_total || 0);
+      updateTabBarBadge(convUnread, data.unread_total || 0);
     } catch {
       // 拦截器已提示
     } finally {
@@ -119,6 +121,27 @@ export default function MessagesPage() {
     await Promise.all([loadConv(1, false), loadNotif(1, false)]);
     setLoading(false);
   };
+
+  // 更新 TabBar 红点（对齐 iOS updateUnreadBadge → MainTabBarController）
+  const updateTabBarBadge = (convUnreadCount: number, notifUnreadCount: number) => {
+    const total = convUnreadCount + notifUnreadCount;
+    if (total > 0) {
+      Taro.setTabBarBadge({
+        index: 3, // 消息 tab 位置（首页0/广场1/发布2/消息3/我的4）
+        text: total > 99 ? "99+" : String(total),
+      });
+    } else {
+      Taro.removeTabBarBadge({ index: 3 });
+    }
+  };
+
+  // 页面每次显示时刷新会话列表（对齐 iOS viewWillAppear → reloadCurrent）
+  // 从聊天页返回后，后端已自动清除该会话未读数，重新拉取即可同步红点
+  useDidShow(() => {
+    if (!isLoggedIn) return;
+    loadConv(1, false);
+    loadNotif(1, false);
+  });
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -159,10 +182,12 @@ export default function MessagesPage() {
 
   const onItemClick = async (item: NotificationItem) => {
     if (!item.is_read) {
-      setUnread((u) => Math.max(0, u - 1));
+      const newUnread = Math.max(0, unread - 1);
+      setUnread(newUnread);
       setNotifications((prev) =>
         prev.map((n) => (n.notification_id === item.notification_id ? { ...n, is_read: true } : n))
       );
+      updateTabBarBadge(convUnread, newUnread);
       markNotificationRead(item.notification_id).catch(() => undefined);
     }
     const id = item.ref_id;
@@ -190,6 +215,7 @@ export default function MessagesPage() {
     if (unread === 0) return;
     setUnread(0);
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    updateTabBarBadge(convUnread, 0);
     try {
       await markAllNotificationsRead();
     } catch {
