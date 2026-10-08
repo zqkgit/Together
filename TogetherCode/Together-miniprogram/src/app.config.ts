@@ -39,7 +39,8 @@ export default defineAppConfig({
     "pages/messages/index",
     "pages/chat/index",
     "pages/following-list/index",
-    "pages/refund/index"
+    "pages/refund/index",
+    "pages/course-reviews/index"
   ],
   window: {
     backgroundTextStyle: "light",

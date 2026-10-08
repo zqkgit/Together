@@ -1,267 +1,271 @@
-.detail {
-  padding-bottom: 140rpx;
-}
+/* 课程详情页 — 对齐 iOS CourseDetailViewController */
+/* 配色: brand=#2f5d45, clay=#c4564a, ink=#1a1a1a, sub=#5a544b, muted=#9a938a, bg=#f7f4ec, surface=#fff, surfaceAlt=#eae4d8, brandSoft=rgba(47,93,69,0.1) */
 
-.detail-cover {
-  width: 100%;
-  height: 420rpx;
-  background: #eae4d8;
-}
-
-.detail-body {
-  margin-top: -40rpx;
-  position: relative;
-}
-
-.detail-price {
-  display: flex;
-  align-items: baseline;
-  gap: 16rpx;
-}
-
-.price-now {
-  color: #c4564a;
-  font-size: 44rpx;
-  font-weight: 700;
-}
-
-.price-original {
-  color: #b5aea3;
-  font-size: 26rpx;
-  text-decoration: line-through;
-}
-
-.detail-title {
-  margin-top: 12rpx;
-  font-size: 36rpx;
-  font-weight: 700;
-  line-height: 1.4;
-}
-
-.detail-meta {
-  margin-top: 12rpx;
-  display: flex;
-  gap: 12rpx;
-  color: #8a8378;
-  font-size: 24rpx;
-}
-
-.studio-row {
-  margin-top: 20rpx;
-  padding-top: 20rpx;
-  border-top: 2rpx solid #f0ebe0;
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-}
-
-.studio-arrow {
-  margin-left: auto;
-  color: #c9c2b4;
-  font-size: 36rpx;
-}
-
-.buy-share-btn {
-  margin-right: 16rpx;
-  padding: 12rpx 28rpx;
-  border-radius: 999rpx;
-  background: #fff;
-  border: 2rpx solid #2f5d45;
-  color: #2f5d45;
-  font-size: 26rpx;
-}
-
-.buy-share-btn:active {
-  opacity: 0.7;
-}
-
-.buy-chat-btn {
-  margin-right: 16rpx;
-  padding: 12rpx 28rpx;
-  border-radius: 999rpx;
-  background: #fff;
-  border: 2rpx solid #2f5d45;
-  color: #2f5d45;
-  font-size: 26rpx;
-}
-
-.buy-chat-btn:active {
-  opacity: 0.7;
-}
-
-.studio-name {
-  font-size: 28rpx;
-  font-weight: 600;
-}
-
-.studio-addr {
-  font-size: 24rpx;
-  color: #8a8378;
-}
-
-.lesson-list {
+.course-detail {
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 14px;
+  background: #f7f4ec;
 }
-.lesson-row {
-  display: flex;
-  align-items: flex-start;
-}
-.lesson-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 3px;
-  background: #7c5cff;
-  margin-top: 8px;
-  margin-right: 8px;
-  flex-shrink: 0;
-}
-.lesson-title {
-  font-size: 14px;
-  color: #555;
-  line-height: 1.5;
+
+.cd-scroll {
   flex: 1;
+  height: 0;
 }
-.section-label {
+
+.cd-empty {
+  padding: 200rpx 0;
+  text-align: center;
+  color: #9a938a;
+  font-size: 28rpx;
+}
+
+/* ── 封面 ── */
+.cd-cover-wrap {
+  padding: 24rpx 24rpx 0;
+}
+
+.cd-cover {
+  width: 100%;
+  aspect-ratio: 1 / 0.78;
+  border-radius: 20rpx;
+  background: #eae4d8;
+  display: block;
+}
+
+/* ── 通用卡片 ── */
+.cd-card {
+  margin: 24rpx 24rpx 0;
+  padding: 32rpx;
+  background: #fff;
+  border-radius: 20rpx;
+}
+
+.cd-section-title {
   font-size: 30rpx;
   font-weight: 700;
+  color: #1a1a1a;
   margin-bottom: 20rpx;
 }
 
-.teacher-row {
+/* ── 信息卡 ── */
+.cd-info-card {
+  margin-top: 24rpx;
+}
+
+.cd-tags {
   display: flex;
-  align-items: center;
-  gap: 20rpx;
+  gap: 12rpx;
+  flex-wrap: wrap;
+  margin-bottom: 16rpx;
 }
 
-.teacher-name {
-  font-size: 30rpx;
-  font-weight: 600;
+.cd-tag {
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+  background: rgba(47, 93, 69, 0.1);
 }
 
-.teacher-rating {
-  background: #a87a3e;
-  color: #fff;
+.cd-tag-text {
   font-size: 22rpx;
-  padding: 4rpx 14rpx;
-  border-radius: 8rpx;
+  color: #2f5d45;
+  line-height: 1.4;
 }
 
-.teacher-intro {
+.cd-title {
+  font-size: 38rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1.4;
+}
+
+.cd-subtitle {
   margin-top: 12rpx;
   font-size: 26rpx;
   color: #5a544b;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
-.buy-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: #fff;
-  padding: 16rpx 32rpx;
+/* ── 机构与老师卡 ── */
+.cd-institution-card {
+  padding: 0 32rpx;
+}
+
+.cd-inst-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.06);
+  padding: 28rpx 0;
+  border-bottom: 2rpx solid #f0ebe0;
+
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
-.buy-price-now {
-  color: #c4564a;
-  font-size: 40rpx;
-  font-weight: 700;
-}
-
-.buy-btn {
-  width: 320rpx;
-  height: 84rpx;
-  line-height: 84rpx;
-  margin: 0;
-}
-
-.detail-title-row {
+.cd-inst-icon {
+  width: 40rpx;
+  height: 40rpx;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  font-size: 28rpx;
+  flex-shrink: 0;
+  margin-right: 20rpx;
+}
+
+.cd-inst-icon--studio {
+  color: #2f5d45;
+}
+
+.cd-inst-icon--teacher {
+  color: #7c5cff;
+}
+
+.cd-inst-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.cd-inst-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+  flex-shrink: 0;
+}
+
+.cd-inst-sub {
+  margin-left: 20rpx;
+  font-size: 24rpx;
+  color: #9a938a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── 课程介绍 ── */
+.cd-intro-text {
+  font-size: 28rpx;
+  color: #5a544b;
+  line-height: 1.7;
+}
+
+/* ── 课时安排 ── */
+.cd-lesson-list {
+  display: flex;
+  flex-direction: column;
   gap: 16rpx;
 }
 
-.fav-btn {
+.cd-lesson-row {
+  display: flex;
+  align-items: flex-start;
+}
+
+.cd-lesson-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 6rpx;
+  background: #2f5d45;
+  margin-top: 14rpx;
+  margin-right: 16rpx;
   flex-shrink: 0;
-  padding: 8rpx 24rpx;
-  border-radius: 999rpx;
-  border: 2rpx solid #d8d2c4;
+}
+
+.cd-lesson-title {
+  font-size: 28rpx;
+  color: #5a544b;
+  line-height: 1.5;
+  flex: 1;
+}
+
+/* ── 家长评价 ── */
+.cd-reviews-card {
+  margin-bottom: 24rpx;
+}
+
+.cd-reviews-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.cd-reviews-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12rpx;
+}
+
+.cd-reviews-count {
   font-size: 24rpx;
   color: #9a938a;
 }
 
-.fav-btn.fav-active {
-  border-color: #c0392b;
-  color: #c0392b;
-  background: #fdf0ee;
+.cd-review-write-btn {
+  padding: 8rpx 20rpx;
+  border-radius: 12rpx;
+  background: rgba(47, 93, 69, 0.1);
+  color: #2f5d45;
+  font-size: 26rpx;
 }
 
-.review-summary {
+.cd-review-write-btn:active {
+  opacity: 0.7;
+}
+
+/* 评分分布 */
+.cd-review-dist {
+  margin-bottom: 20rpx;
+  padding: 16rpx 0;
+  border-top: 2rpx solid #f0ebe0;
+}
+
+.cd-dist-row {
   display: flex;
-  gap: 32rpx;
-  padding: 20rpx 0;
   align-items: center;
+  gap: 8rpx;
+  margin: 6rpx 0;
 }
 
-.review-avg {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 140rpx;
-}
-
-.review-avg-num {
-  font-size: 56rpx;
-  font-weight: 700;
-  color: #d9a441;
-}
-
-.review-avg-sub {
-  font-size: 22rpx;
+.cd-dist-label {
+  font-size: 20rpx;
   color: #9a938a;
+  width: 52rpx;
+  flex-shrink: 0;
 }
 
-.review-bars {
-  flex: 1;
-}
-
-.review-bar-row {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  margin: 4rpx 0;
-}
-
-.review-bar-label {
-  font-size: 22rpx;
-  color: #9a938a;
-  width: 44rpx;
-}
-
-.review-bar-track {
+.cd-dist-track {
   flex: 1;
   height: 12rpx;
-  border-radius: 999rpx;
+  border-radius: 6rpx;
   background: #f0eadf;
   overflow: hidden;
 }
 
-.review-bar-fill {
+.cd-dist-fill {
   height: 100%;
   background: #d9a441;
-  border-radius: 999rpx;
+  border-radius: 6rpx;
+  transition: width 0.3s;
 }
 
-.review-item {
-  padding: 20rpx 0;
+.cd-dist-num {
+  font-size: 20rpx;
+  color: #9a938a;
+  width: 40rpx;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* 评价列表 */
+.cd-review-list {
+  border-top: 2rpx solid #f0ebe0;
+}
+
+.cd-review-item {
+  padding: 24rpx 0;
   border-bottom: 2rpx solid #f4efe4;
 
   &:last-child {
@@ -269,124 +273,149 @@
   }
 }
 
-.review-head {
+.cd-review-head {
   display: flex;
   align-items: center;
   gap: 16rpx;
 }
 
-.review-nick {
-  font-size: 26rpx;
+.cd-review-avatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 32rpx;
+  background: #eae4d8;
+  flex-shrink: 0;
+}
+
+.cd-review-user {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.cd-review-nick {
+  font-size: 28rpx;
   font-weight: 500;
+  color: #1a1a1a;
 }
 
-.review-stars {
-  color: #d9a441;
-  font-size: 24rpx;
-}
-
-.review-time {
-  margin-left: auto;
+.cd-review-time {
   font-size: 22rpx;
-  color: #bdb6a6;
+  color: #9a938a;
 }
 
-.review-content {
-  margin-top: 8rpx;
-  font-size: 26rpx;
-  color: #555;
+.cd-review-content {
+  margin-top: 12rpx;
+  font-size: 28rpx;
+  color: #1a1a1a;
   line-height: 1.6;
 }
 
-.review-reply {
-  margin-top: 8px;
+.cd-review-reply {
+  margin-top: 12rpx;
   display: flex;
-  gap: 6px;
+  gap: 12rpx;
   align-items: flex-start;
   background: #f8fafc;
-  border-radius: 6px;
-  padding: 6px 8px;
-  .review-reply-tag {
-    flex-shrink: 0;
-    font-size: 10px;
-    line-height: 16px;
-    padding: 0 5px;
-    border-radius: 3px;
-    color: #2563eb;
-    background: #eff6ff;
-  }
-  .review-reply-tag.teacher {
-    color: #7c3aed;
-    background: #f5f3ff;
-  }
-  .review-reply-text {
-    flex: 1;
-    font-size: 12px;
-    color: #4b5563;
-    line-height: 16px;
-  }
-}
-
-.review-more {
-  padding: 16rpx 0 4rpx;
-  text-align: center;
-  font-size: 24rpx;
-  color: #2f5d45;
-}
-
-.review-images {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12rpx;
-  margin-top: 12rpx;
-}
-
-.review-img {
-  width: 160rpx;
-  height: 160rpx;
   border-radius: 12rpx;
-  background: #f4efe4;
+  padding: 12rpx 16rpx;
 }
 
-.review-write-btn {
-  margin-top: 16rpx;
-  padding: 16rpx 0;
+.cd-reply-tag {
+  flex-shrink: 0;
+  font-size: 20rpx;
+  line-height: 32rpx;
+  padding: 0 10rpx;
+  border-radius: 6rpx;
+}
+
+.cd-reply-tag--studio {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.cd-reply-tag--teacher {
+  color: #7c3aed;
+  background: #f5f3ff;
+}
+
+.cd-reply-text {
+  flex: 1;
+  font-size: 24rpx;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.cd-review-more {
+  padding: 20rpx 0 4rpx;
   text-align: center;
-  border-radius: 999rpx;
-  border: 2rpx solid #2f5d45;
+  font-size: 28rpx;
   color: #2f5d45;
-  font-size: 26rpx;
 }
 
-.review-write-btn:active {
+.cd-review-more:active {
   opacity: 0.7;
 }
 
-.review-form {
+.cd-review-empty {
+  padding: 40rpx 0;
+  text-align: center;
+  font-size: 28rpx;
+  color: #9a938a;
+}
+
+/* 写评价表单 */
+.cd-review-form {
   margin-top: 20rpx;
   padding-top: 20rpx;
   border-top: 2rpx solid #f4efe4;
 }
 
-.review-img-picker {
+.cd-star-pick {
+  display: flex;
+  gap: 20rpx;
+  justify-content: center;
+  margin-bottom: 16rpx;
+}
+
+.cd-star-item {
+  font-size: 44rpx;
+  color: #e5dfd2;
+}
+
+.cd-star-item.on {
+  color: #d9a441;
+}
+
+.cd-review-input {
+  width: 100%;
+  height: 160rpx;
+  background: #f7f4ec;
+  border-radius: 12rpx;
+  padding: 16rpx;
+  font-size: 26rpx;
+  box-sizing: border-box;
+}
+
+.cd-review-img-picker {
   display: flex;
   flex-wrap: wrap;
   gap: 16rpx;
   margin: 16rpx 0;
 }
 
-.review-picked {
+.cd-review-picked {
   position: relative;
 }
 
-.review-picked-img {
+.cd-review-picked-img {
   width: 140rpx;
   height: 140rpx;
   border-radius: 12rpx;
   background: #f4efe4;
 }
 
-.review-picked-del {
+.cd-review-picked-del {
   position: absolute;
   top: -14rpx;
   right: -14rpx;
@@ -400,7 +429,7 @@
   font-size: 28rpx;
 }
 
-.review-add {
+.cd-review-add {
   width: 140rpx;
   height: 140rpx;
   border-radius: 12rpx;
@@ -411,32 +440,64 @@
   line-height: 132rpx;
 }
 
-.star-pick {
-  display: flex;
-  gap: 20rpx;
-  justify-content: center;
-  margin-bottom: 16rpx;
-}
-
-.star-pick-item {
-  font-size: 44rpx;
-  color: #e5dfd2;
-}
-
-.star-pick-item.on {
-  color: #d9a441;
-}
-
-.review-input {
-  width: 100%;
-  height: 160rpx;
-  background: #f7f4ec;
-  border-radius: 12rpx;
-  padding: 16rpx;
-  font-size: 26rpx;
-  box-sizing: border-box;
-}
-
-.review-submit {
+.cd-review-submit {
   margin-top: 16rpx;
+}
+
+/* ── 底部报名栏 ── */
+.cd-bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  padding: 20rpx 32rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.06);
+  z-index: 100;
+}
+
+.cd-bottom-price {
+  flex: 1;
+}
+
+.cd-bottom-price-text {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #c4564a;
+}
+
+.cd-bottom-chat {
+  margin-right: 16rpx;
+  padding: 0 36rpx;
+  height: 92rpx;
+  line-height: 92rpx;
+  border-radius: 46rpx;
+  border: 2rpx solid #2f5d45;
+  color: #2f5d45;
+  font-size: 28rpx;
+  background: #fff;
+  text-align: center;
+}
+
+.cd-bottom-chat:active {
+  opacity: 0.7;
+}
+
+.cd-bottom-enroll {
+  padding: 0 48rpx;
+  height: 92rpx;
+  line-height: 92rpx;
+  border-radius: 46rpx;
+  background: #2f5d45;
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: 600;
+  text-align: center;
+}
+
+.cd-bottom-enroll:active {
+  opacity: 0.85;
 }

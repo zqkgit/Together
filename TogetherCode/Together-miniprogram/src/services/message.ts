@@ -74,7 +74,7 @@ export function markAllNotificationsRead(): Promise<void> {
 // ── 会话 API ──
 
 /** 发起私聊（幂等：已有会话直接返回） */
-export function createConversation(peerUserId: string, childId?: string): Promise<{ data: ConversationItem }> {
+export function createConversation(peerUserId: string, childId?: string): Promise<ConversationItem> {
   const params: Record<string, string> = { peer_user_id: peerUserId };
   if (childId) params.child_id = childId;
   return request({ url: "/messages/conversations", method: "POST", data: params });
@@ -96,6 +96,6 @@ export function getConversationMessages(
 }
 
 /** 发送消息（type 1=文本 2=图片） */
-export function sendMessage(conversationId: string, content: string, type: number = 1): Promise<{ data: ChatMessage }> {
+export function sendMessage(conversationId: string, content: string, type: number = 1): Promise<ChatMessage> {
   return request({ url: `/messages/conversations/${conversationId}/messages`, method: "POST", data: { content, type } });
 }

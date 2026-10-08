@@ -1,74 +1,88 @@
 @use "@/styles/theme.scss" as *;
 
 .messages {
-  padding: $page-padding;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: $color-bg;
 
-  .head {
+  // ── 胶囊式双Tab（对齐 iOS segmentView） ──
+
+  .segment {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 8rpx 4rpx 24rpx;
+    background: rgba($color-primary, 0.06); // surfaceAlt 浅米底
+    border-radius: 40rpx;
+    padding: 4rpx;
+    margin: 16rpx 32rpx 0;
+    position: relative;
+  }
 
-    .tab-bar {
-      display: flex;
-      align-items: center;
-      background: rgba(0, 0, 0, 0.04);
-      border-radius: 40rpx;
-      padding: 4rpx;
-    }
+  .seg-option {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14rpx 0;
+    border-radius: 36rpx;
+    transition: background 0.2s, color 0.2s;
 
-    .tab {
-      position: relative;
-      padding: 12rpx 36rpx;
-      border-radius: 36rpx;
-      display: flex;
-      align-items: center;
+    &.active {
+      background: rgba($color-primary, 0.1); // brandSoft 浅绿选中块
+      box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
 
-      &.active {
-        background: #fff;
-        box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
-      }
-
-      .tab-text {
-        font-size: 28rpx;
+      .seg-text {
+        color: $color-primary; // brand 色
         font-weight: 600;
-        color: $color-text;
-      }
-
-      .tab-badge {
-        position: absolute;
-        top: 4rpx;
-        right: 8rpx;
-        min-width: 32rpx;
-        height: 32rpx;
-        background: #d9534f;
-        border-radius: 16rpx;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 8rpx;
-
-        .badge-text {
-          font-size: 18rpx;
-          color: #fff;
-        }
-      }
-
-      .tab-dot {
-        position: absolute;
-        top: 8rpx;
-        right: 16rpx;
-        width: 14rpx;
-        height: 14rpx;
-        background: #d9534f;
-        border-radius: 50%;
       }
     }
+
+    .seg-text {
+      font-size: 28rpx;
+      color: $color-text-secondary; // sub 色
+      font-weight: 500;
+    }
+
+    .seg-badge {
+      position: absolute;
+      top: 2rpx;
+      right: 20rpx;
+      min-width: 32rpx;
+      height: 32rpx;
+      background: $color-danger;
+      border-radius: 16rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 8rpx;
+
+      .seg-badge-text {
+        font-size: 18rpx;
+        color: #fff;
+      }
+    }
+
+    .seg-dot {
+      position: absolute;
+      top: 8rpx;
+      right: 30rpx;
+      width: 14rpx;
+      height: 14rpx;
+      background: $color-danger;
+      border-radius: 50%;
+    }
+  }
+
+  // ── 右侧操作区 ──
+
+  .head-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 16rpx 32rpx 8rpx;
 
     .add-btn {
-      font-size: 40rpx;
-      font-weight: 300;
-      color: $color-primary;
       width: 56rpx;
       height: 56rpx;
       display: flex;
@@ -76,7 +90,13 @@
       justify-content: center;
       border: 2rpx solid $color-primary;
       border-radius: 50%;
-      line-height: 1;
+
+      .add-icon {
+        font-size: 36rpx;
+        font-weight: 300;
+        color: $color-primary;
+        line-height: 1;
+      }
     }
 
     .read-all {
@@ -85,17 +105,35 @@
     }
   }
 
-  // ── 对话列表 ──
+  // ── 列表滚动区 ──
+
+  .list-scroll {
+    flex: 1;
+    height: 0;
+  }
+
+  .empty-state {
+    text-align: center;
+    color: $color-text-secondary;
+    font-size: 26rpx;
+    padding: 120rpx 0;
+    white-space: pre-line;
+  }
+
+  // ── 会话卡片列表（对齐 iOS ConversationCell） ──
 
   .conv-list {
-    margin-top: 8rpx;
+    padding: 8rpx 24rpx 200rpx;
   }
 
   .conv-card {
     display: flex;
     align-items: center;
-    padding: 24rpx !important;
+    background: $color-card;
+    border-radius: $radius-xl; // 20rpx = Theme.Radius.card
+    padding: 24rpx;
     margin-bottom: 16rpx;
+    box-shadow: 0 4rpx 16rpx rgba(47, 93, 69, 0.06);
 
     &:active {
       background: rgba(0, 0, 0, 0.02);
@@ -103,8 +141,8 @@
   }
 
   .conv-avatar {
-    width: 88rpx;
-    height: 88rpx;
+    width: 104rpx; // 52pt
+    height: 104rpx;
     border-radius: 50%;
     flex-shrink: 0;
 
@@ -116,7 +154,7 @@
     }
 
     .avatar-letter {
-      font-size: 36rpx;
+      font-size: 40rpx;
       color: $color-primary;
       font-weight: 600;
     }
@@ -124,7 +162,7 @@
 
   .conv-body {
     flex: 1;
-    margin-left: 20rpx;
+    margin-left: 24rpx;
     overflow: hidden;
 
     .conv-top {
@@ -136,11 +174,16 @@
         font-size: 30rpx;
         font-weight: 600;
         color: $color-text;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+        margin-right: 16rpx;
       }
 
       .conv-time {
-        font-size: 22rpx;
-        color: #b0a99b;
+        font-size: 24rpx;
+        color: $color-text-secondary;
         flex-shrink: 0;
       }
     }
@@ -153,84 +196,138 @@
 
       .conv-preview {
         font-size: 26rpx;
-        color: $color-text-light;
+        color: $color-text-secondary;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
         flex: 1;
-        margin-right: 12rpx;
+        margin-right: 16rpx;
+
+        // 未读时预览加粗偏深（对齐 iOS）
+        &.unread {
+          font-weight: 600;
+          color: $color-text;
+        }
       }
 
       .conv-badge {
-        min-width: 32rpx;
-        height: 32rpx;
-        background: #d9534f;
-        border-radius: 16rpx;
+        min-width: 40rpx;
+        height: 40rpx;
+        background: $color-danger;
+        border-radius: 20rpx;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 0 8rpx;
+        padding: 0 10rpx;
         flex-shrink: 0;
 
-        .badge-text {
-          font-size: 18rpx;
+        .conv-badge-text {
+          font-size: 22rpx;
           color: #fff;
         }
       }
     }
   }
 
-  // ── 通知列表 ──
+  // ── 通知卡片列表（对齐 iOS NotificationCell） ──
 
-  .item {
+  .notif-list {
+    padding: 8rpx 24rpx 200rpx;
+  }
+
+  .notif-card {
+    display: flex;
+    align-items: center;
+    background: $color-card;
+    border-radius: $radius-xl;
     padding: 24rpx;
     margin-bottom: 16rpx;
-    border-left: 6rpx solid transparent;
+    box-shadow: 0 4rpx 16rpx rgba(47, 93, 69, 0.06);
 
-    &.unread {
-      border-left-color: $color-gold;
+    &:active {
+      background: rgba(0, 0, 0, 0.02);
     }
 
-    .item-head {
+    // 类型图标圆底（对齐 iOS iconWrap 40x40 + brandSoft底）
+    .notif-icon-wrap {
+      width: 80rpx; // 40pt
+      height: 80rpx;
+      border-radius: 40rpx;
+      background: rgba($color-primary, 0.1); // brandSoft
       display: flex;
       align-items: center;
-      gap: 12rpx;
+      justify-content: center;
+      flex-shrink: 0;
 
-      .item-type {
-        font-size: 22rpx;
-        color: $color-primary;
-        background: rgba(47, 93, 69, 0.08);
-        padding: 2rpx 14rpx;
-        border-radius: $radius-sm;
-      }
-
-      .dot {
-        width: 14rpx;
-        height: 14rpx;
-        background: #d9534f;
-        border-radius: 50%;
+      .notif-icon-emoji {
+        font-size: 40rpx;
       }
     }
 
-    .item-title {
-      margin-top: 12rpx;
-      font-size: 30rpx;
-      font-weight: 600;
-      color: $color-text;
-    }
+    // 内容区
+    .notif-content {
+      flex: 1;
+      margin-left: 24rpx;
+      overflow: hidden;
 
-    .item-content {
-      margin-top: 8rpx;
-      font-size: 26rpx;
-      line-height: 1.6;
-      color: $color-text-light;
-      word-break: break-word;
-    }
+      .notif-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
 
-    .item-time {
-      margin-top: 12rpx;
-      font-size: 22rpx;
-      color: #b0a99b;
+        .notif-title {
+          font-size: 28rpx;
+          color: $color-text-secondary; // 已读：次级色
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          flex: 1;
+          margin-right: 16rpx;
+
+          // 未读：加粗深色（对齐 iOS）
+          &.bold {
+            font-weight: 600;
+            color: $color-text;
+          }
+        }
+
+        .notif-time {
+          font-size: 22rpx;
+          color: $color-text-secondary;
+          flex-shrink: 0;
+        }
+      }
+
+      .notif-bottom {
+        display: flex;
+        align-items: center;
+        margin-top: 6rpx;
+
+        .notif-desc {
+          font-size: 26rpx;
+          color: $color-text-secondary;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          flex: 1;
+          margin-right: 12rpx;
+          line-height: 1.5;
+
+          // 未读：次级色稍深
+          &.unread {
+            color: $color-text;
+          }
+        }
+
+        // 未读红点（对齐 iOS 8x8 danger）
+        .notif-dot {
+          width: 16rpx;
+          height: 16rpx;
+          background: $color-danger;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+      }
     }
   }
 }
