@@ -6,6 +6,14 @@ export interface ChildItem {
   avatar: string | null;
   birthday: string | null;
   gender: number | null;
+  balances?: ChildBalance[];
+}
+
+/** 孩子关联的课程余额（用于发布页关联课程选择） */
+export interface ChildBalance {
+  course_id: string;
+  course_title: string;
+  status: number; // 1=进行中 2=已完成（有效课程）
 }
 
 export async function listChildren(): Promise<ChildItem[]> {

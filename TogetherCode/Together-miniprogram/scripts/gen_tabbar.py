@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""生成艺启小程序 tabBar 图标：4 tab × 2 状态（未选中/选中），81×81 透明底"""
+"""生成艺启小程序 tabBar 图标：5 tab × 2 状态（未选中/选中），81×81 透明底"""
 from PIL import Image, ImageDraw
 
 SIZE = 81
@@ -17,19 +17,29 @@ def draw_home(d, color):
     d.rounded_rectangle([(34, 48), (47, 68)], radius=3, fill=(247, 244, 236, 255))  # 门
 
 
-def draw_courses(d, color):
-    # 课程：翻开的书本
-    d.polygon([(14, 22), (40, 18), (40, 62), (14, 66)], fill=color)
-    d.polygon([(67, 22), (41, 18), (41, 62), (67, 66)], fill=color)
-    d.line([(40, 18), (40, 62)], fill=(247, 244, 236, 255), width=3)  # 书脊
-
-
 def draw_plaza(d, color):
     # 广场：对话气泡
     d.rounded_rectangle([(12, 16), (69, 52)], radius=10, fill=color)
     d.polygon([(24, 52), (24, 66), (40, 52)], fill=color)  # 气泡尾巴
     d.ellipse([(28, 28), (36, 36)], fill=(247, 244, 236, 255))
     d.ellipse([(45, 28), (53, 36)], fill=(247, 244, 236, 255))
+
+
+def draw_publish(d, color):
+    # 发布：大加号
+    d.rounded_rectangle([(12, 12), (69, 69)], radius=18, fill=color)
+    d.rectangle([(36, 24), (45, 57)], fill=(247, 244, 236, 255))  # 竖
+    d.rectangle([(24, 36), (57, 45)], fill=(247, 244, 236, 255))  # 横
+
+
+def draw_message(d, color):
+    # 消息：铃铛
+    d.pieslice([(22, 14), (59, 52)], 180, 360, fill=color)  # 铃铛上半圆弧
+    d.rectangle([(22, 33), (59, 52)], fill=color)  # 铃铛下方填充
+    d.ellipse([(34, 52), (47, 62)], fill=color)  # 铃铛底部小球
+    d.ellipse([(36, 64), (45, 70)], fill=color)  # 铃铛底部小线
+    # 右上角小红点（仅未选中状态不画，选中状态画）
+    # 不画红点，角标由小程序 badge 处理
 
 
 def draw_mine(d, color):
@@ -40,13 +50,14 @@ def draw_mine(d, color):
 
 ICONS = {
     "home": draw_home,
-    "courses": draw_courses,
     "plaza": draw_plaza,
+    "publish": draw_publish,
+    "message": draw_message,
     "mine": draw_mine,
 }
 
 for name, fn in ICONS.items():
-    for suffix, color in (("", GREY), ("-active", GREEN)):
+    for suffix, color in ("", GREY), ("-active", GREEN):
         img = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
         d = ImageDraw.Draw(img)
         fn(d, color)

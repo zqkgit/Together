@@ -3,6 +3,42 @@ import { fenToYuan } from "./course";
 
 export { fenToYuan };
 
+// 订单状态（对齐后端 orders.status：0 待收款 / 1 待确认收款 / 2 已收款 / 3 退款审核中 / 4 待家长确认退款 / 5 已退款 / 6 已取消）
+export const ORDER_STATUS_TEXT: Record<number, string> = {
+  0: "待付款",
+  1: "待确认",
+  2: "已报名",
+  3: "退款审核中",
+  4: "待确认退款",
+  5: "已退款",
+  6: "已取消",
+};
+
+// 订单层退款聚合状态：0 无 / 1 退款中 / 2 已退款 / 3 已驳回
+export const REFUND_STATUS_TEXT: Record<number, string> = {
+  1: "退款中",
+  2: "已退款",
+  3: "退款已驳回",
+};
+
+export interface PaymentItem {
+  payment_id?: string;
+  payment_no?: string;
+  channel?: string;
+  pay_method?: string;
+  pay_method_text?: string;
+  amount?: number;
+  status?: number;
+  status_text?: string;
+  voucher_images?: string[];
+  payer_note?: string;
+  /** 0 = 家长上传，1 = 工作室代登记 */
+  upload_by?: number;
+  reject_reason?: string;
+  paid_at?: string;
+  created_at?: string;
+}
+
 export interface OrderItem {
   order_id: string;
   order_no: string;
@@ -11,37 +47,25 @@ export interface OrderItem {
   total_amount: number;
   paid_amount: number;
   total_lessons: number;
+  consumed_lessons?: number;
+  remaining_lessons?: number;
+  refunded_lessons?: number;
   created_at: string;
   course: { course_id: string; title: string; cover: string | null } | null;
   child: { child_id: string; nickname: string } | null;
   studio: { studio_id: string; name: string } | null;
   class_id?: string | null;
-  // 订单层退款聚合状态：0 无 / 1 退款中 / 2 已退款 / 3 已驳回
+  // 退款聚合状态：0 无 / 1 退款中 / 2 已退款 / 3 已驳回
   refund_status?: number;
   refund_status_text?: string;
   can_apply_refund?: boolean;
-  pay_expire_at?: string;
   refunds?: Array<{ refund_id: string; amount: number; status: number }>;
   balance?: { remaining_lessons: number; valid_to: string | null };
-}
-
-// 支付倒计时文案（待支付订单）：剩余不足 1 小时显示 mm:ss，否则 HH:mm:ss；已超时显示取消文案
-export function payCountdownText(order: OrderItem, now: number): string {
-  if (order.status !== 0 || !order.pay_expire_at) {
-    return "待支付";
-  }
-  const remain = new Date(order.pay_expire_at).getTime() - now;
-  if (remain <= 0) {
-    return "支付超时 · 订单已取消";
-  }
-  const total = Math.floor(remain / 1000);
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return h > 0
-    ? `支付剩余 ${pad(h)}:${pad(m)}:${pad(s)}`
-    : `支付剩余 ${pad(m)}:${pad(s)}`;
+  // 线下付款相关
+  pay_method?: string | null;
+  pay_method_text?: string | null;
+  paid_at?: string | null;
+  payments?: PaymentItem[];
 }
 
 export function createOrder(payload: {
@@ -69,8 +93,17 @@ export function getOrderDetail(id: string): Promise<OrderItem> {
   return request({ url: `/orders/${id}`, method: "GET" });
 }
 
-export function payOrder(id: string, channel = "wechat_mini"): Promise<OrderItem> {
-  return request({ url: `/orders/${id}/pay`, method: "POST", data: { channel } });
+/** 提交线下付款凭证（平台不经手资金；家长线下向机构付款后上传，机构核对确认后发课时） */
+export function submitPaymentVoucher(
+  orderId: string,
+  payload: { pay_method: string; voucher_images: string[]; note?: string }
+): Promise<OrderItem> {
+  return request({ url: `/orders/${orderId}/payment-voucher`, method: "POST", data: payload });
+}
+
+/** 取消待收款订单（机构尚未确认收款，可取消） */
+export function cancelOrder(orderId: string): Promise<OrderItem> {
+  return request({ url: `/orders/${orderId}/cancel`, method: "POST" });
 }
 
 export interface RefundItem {

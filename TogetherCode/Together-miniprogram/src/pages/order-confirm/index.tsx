@@ -10,7 +10,7 @@ import "./index.scss";
 export default function OrderConfirmPage() {
   const router = useRouter();
   const courseId = router.params.course_id || "";
-  // 分销归因码：由分享链接带过来，下单时提交 → 支付成功后返利给分享人
+  // 分销归因码：由分享链接带过来，下单时提交 → 机构确认收款后返利给分享人
   const distributionCode = getDistFromParams();
   const [course, setCourse] = useState<any>(null);
   const [classes, setClasses] = useState<any[]>([]);
@@ -63,7 +63,11 @@ export default function OrderConfirmPage() {
         class_id: selectedClass,
         distribution_code: distributionCode || undefined
       });
-      Taro.redirectTo({ url: `/pages/order-pay/index?order_id=${order.order_id}` });
+      // 报名成功 → 生成「待收款」订单，进入订单详情线下付款并上传凭证
+      Taro.showToast({ title: "报名成功，请线下付款后上传凭证", icon: "none", duration: 2000 });
+      setTimeout(() => {
+        Taro.redirectTo({ url: `/pages/order-detail/index?id=${order.order_id}` });
+      }, 1500);
     } catch {
       // 拦截器已提示
     } finally {

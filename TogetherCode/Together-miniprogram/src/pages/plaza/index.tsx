@@ -1,47 +1,77 @@
-import React, { useEffect, useState } from "react";
-import Taro from "@tarojs/taro";
-import { View, Text, Image } from "@tarojs/components";
-import { request } from "../../services/request";
+import React, { useEffect, useState, useCallback } from "react";
+import Taro, { useReachBottom, usePullDownRefresh } from "@tarojs/taro";
+import { View, Text, Image, ScrollView } from "@tarojs/components";
+import { getPlazaPosts, type PostItem } from "../../services/post";
 import { useAuthStore } from "../../store/auth";
 import "./index.scss";
 
-interface PostItem {
-  post_id: string;
-  author: { nickname: string; avatar: string | null; role: string } | null;
-  content: string;
-  images: string[];
-  like_count: number;
-  comment_count: number;
-  course_title: string | null;
-  created_at: string;
-}
+const PAGE_SIZE = 20;
+const SORT_OPTIONS = ["latest", "hot", "near"] as const;
+const SORT_LABELS = ["最新", "热门", "附近"];
 
 export default function PlazaPage() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [sort, setSort] = useState<"latest" | "hot">("latest");
+  const [sortIndex, setSortIndex] = useState(0);
 
   useEffect(() => {
     if (!isLoggedIn) {
       Taro.switchTab({ url: "/pages/mine/index" });
       return;
     }
-    setPage(1);
-    setPosts([]);
-    loadData(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoggedIn, sort]);
+  }, [isLoggedIn]);
 
-  const loadData = async (p: number) => {
+  useEffect(() => {
+    reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortIndex]);
+
+  const reload = async () => {
+    if (loading) return;
     setLoading(true);
     try {
-      const data = await request<any>({ url: `/posts/plaza?page=${p}&page_size=10&sort=${sort}`, method: "GET" });
-      const list = data?.list || [];
-      setPosts((prev) => (p === 1 ? list : [...prev, ...list]));
-      setTotal(data?.total || list.length);
+      const sort = SORT_OPTIONS[sortIndex];
+      if (sort === "near") {
+        // 小程序获取位置
+        try {
+          const loc = await Taro.getLocation({ type: "gcj02" });
+          const list = await getPlazaPosts({ page: 1, page_size: PAGE_SIZE, sort: "near" });
+          setPosts(list);
+          setPage(1);
+          setHasMore(list.length >= PAGE_SIZE);
+        } catch {
+          Taro.showToast({ title: "未授权定位，已按最新展示", icon: "none" });
+          setSortIndex(0);
+          return;
+        }
+      } else {
+        const list = await getPlazaPosts({ page: 1, page_size: PAGE_SIZE, sort });
+        setPosts(list);
+        setPage(1);
+        setHasMore(list.length >= PAGE_SIZE);
+      }
+    } catch {
+      // 拦截器已提示
+    } finally {
+      setLoading(false);
+      Taro.stopPullDownRefresh();
+    }
+  };
+
+  const loadMore = async () => {
+    if (loading || !hasMore) return;
+    setLoading(true);
+    try {
+      const sort = SORT_OPTIONS[sortIndex];
+      const nextPage = page + 1;
+      const list = await getPlazaPosts({ page: nextPage, page_size: PAGE_SIZE, sort });
+      setPosts((prev) => [...prev, ...list]);
+      setPage(nextPage);
+      setHasMore(list.length >= PAGE_SIZE);
     } catch {
       // 拦截器已提示
     } finally {
@@ -49,81 +79,107 @@ export default function PlazaPage() {
     }
   };
 
-  const onReachBottom = () => {
-    if (posts.length < total) loadData(page + 1);
+  usePullDownRefresh(() => {
+    reload();
+  });
+
+  useReachBottom(() => {
+    loadMore();
+  });
+
+  const onSortChange = (index: number) => {
+    if (index === sortIndex) return;
+    setSortIndex(index);
   };
 
   const goDetail = (id: string) => {
     Taro.navigateTo({ url: `/pages/post-detail/index?id=${id}` });
   };
 
-  const goCreate = () => {
-    Taro.navigateTo({ url: "/pages/post-create/index" });
+  /** 话题色系（对齐 iOS WorkCardView.palette） */
+  const palette = (topic?: string): [string, string] => {
+    switch (topic) {
+      case "水彩": return ["#7FB5C8", "#4A7C9B"];
+      case "黏土": return ["#E0A878", "#C15F2C"];
+      case "书法": return ["#8B8B8B", "#4A4A4A"];
+      case "素描": return ["#C9C4BC", "#8A8478"];
+      case "国画": return ["#A8BDA0", "#6E8A66"];
+      default: return ["#d8e8dc", "#2f5d45"];
+    }
   };
 
   return (
     <View className="plaza">
-      <View className="plaza-head">
-        <Text className="plaza-title">广场</Text>
-        <View className="create-btn" onClick={goCreate}>发帖</View>
-      </View>
-
-      <View className="sort-tabs">
-        <View
-          className={`sort-tab ${sort === "latest" ? "active" : ""}`}
-          onClick={() => setSort("latest")}
-        >
-          最新
-        </View>
-        <View
-          className={`sort-tab ${sort === "hot" ? "active" : ""}`}
-          onClick={() => setSort("hot")}
-        >
-          热门
-        </View>
-      </View>
-
-      <View className="post-list">
-        {posts.map((post) => (
-          <View key={post.post_id} className="post-card card" onClick={() => goDetail(post.post_id)}>
-            <View className="post-author">
-              <Image className="author-avatar" src={post.author?.avatar || ""} mode="aspectFill" />
-              <View className="author-info">
-                <View className="author-name">
-                  {post.author?.nickname || "用户"}
-                  {post.author?.role === "teacher" && <Text className="role-tag">老师</Text>}
-                </View>
-                <View className="post-time">{post.created_at?.slice(0, 16).replace("T", " ")}</View>
-              </View>
-            </View>
-
-            <View className="post-content">{post.content}</View>
-
-            {post.images && post.images.length > 0 && (
-              <View className="post-images">
-                {post.images.slice(0, 3).map((img, i) => (
-                  <Image key={i} className="post-img" src={img} mode="aspectFill" />
-                ))}
-              </View>
-            )}
-
-            {post.course_title && (
-              <View className="post-course">
-                <Text className="course-badge">课程</Text>
-                <Text className="course-name">{post.course_title}</Text>
-              </View>
-            )}
-
-            <View className="post-actions">
-              <Text>♥ {post.like_count}</Text>
-              <Text>评论 {post.comment_count}</Text>
-            </View>
+      {/* 排序 chips */}
+      <View className="sort-chips">
+        {SORT_LABELS.map((label, i) => (
+          <View
+            key={label}
+            className={`sort-chip ${i === sortIndex ? "active" : ""}`}
+            onClick={() => onSortChange(i)}
+          >
+            <Text>{label}</Text>
           </View>
         ))}
       </View>
 
-      {loading && <View className="empty-tip">加载中...</View>}
-      {posts.length === 0 && !loading && <View className="empty-tip">还没有帖子，来发第一帖吧</View>}
+      {/* 双列瀑布流 */}
+      {posts.length > 0 ? (
+        <View className="waterfall">
+          <View className="waterfall-col">
+            {posts.filter((_, i) => i % 2 === 0).map((post) => (
+              <WorkCard key={post.post_id} post={post} palette={palette} onTap={() => goDetail(post.post_id)} />
+            ))}
+          </View>
+          <View className="waterfall-col">
+            {posts.filter((_, i) => i % 2 === 1).map((post) => (
+              <WorkCard key={post.post_id} post={post} palette={palette} onTap={() => goDetail(post.post_id)} />
+            ))}
+          </View>
+        </View>
+      ) : !loading ? (
+        <View className="empty-tip">暂无作品</View>
+      ) : null}
+
+      {loading && <View className="loading-tip">加载中...</View>}
+      {!hasMore && posts.length > 0 && <View className="loading-tip">没有更多了</View>}
+    </View>
+  );
+}
+
+/** 作品卡片组件（对齐 iOS WorkCardView） */
+function WorkCard({ post, palette, onTap }: {
+  post: PostItem;
+  palette: (topic?: string) => [string, string];
+  onTap: () => void;
+}) {
+  const [colors] = useState(() => palette(undefined));
+  const title = post.content || "作品分享";
+  const authorName = post.author?.nickname || "用户";
+  const courseTitle = post.course?.title;
+
+  return (
+    <View className="work-card" onClick={onTap}>
+      {/* 作品图 3:4 */}
+      <View className="work-cover">
+        {post.images && post.images.length > 0 ? (
+          <Image className="work-cover-img" src={post.images[0]} mode="aspectFill" />
+        ) : (
+          <View className="work-cover-placeholder" style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }} />
+        )}
+      </View>
+
+      {/* 信息区 */}
+      <View className="work-info">
+        <Text className="work-title">{title}</Text>
+        <View className="work-meta">
+          <Text className="work-author">{authorName}</Text>
+          <Text className="work-likes">♥ {post.like_count}</Text>
+        </View>
+        {courseTitle && (
+          <Text className="work-course">关联课程·{courseTitle}</Text>
+        )}
+      </View>
     </View>
   );
 }

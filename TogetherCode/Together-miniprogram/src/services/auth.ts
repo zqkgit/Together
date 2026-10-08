@@ -24,6 +24,14 @@ export function loginWithCode(phone: string, code: string): Promise<SessionData>
   return request({ url: "/auth/login", method: "POST", data: { phone, code }, auth: false });
 }
 
+export function loginPassword(phone: string, password: string): Promise<SessionData> {
+  return request({ url: "/auth/login-password", method: "POST", data: { phone, password }, auth: false });
+}
+
+export function register(phone: string, code: string): Promise<SessionData> {
+  return request({ url: "/auth/register", method: "POST", data: { phone, code }, auth: false });
+}
+
 export function wxLogin(payload: {
   code: string;
   phone?: string;

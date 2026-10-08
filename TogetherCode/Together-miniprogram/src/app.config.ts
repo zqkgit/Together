@@ -5,9 +5,11 @@ export default defineAppConfig({
     "pages/plaza/index",
     "pages/mine/index",
     "pages/login/index",
+    "pages/phone-login/index",
+    "pages/verify-code/index",
     "pages/course-detail/index",
     "pages/order-confirm/index",
-    "pages/order-pay/index",
+    "pages/payment-voucher/index",
     "pages/order-detail/index",
     "pages/orders/index",
     "pages/children/index",
@@ -29,6 +31,7 @@ export default defineAppConfig({
     "pages/studio-homepage/index",
     "pages/post-detail/index",
     "pages/post-create/index",
+    "pages/publish/index",
     "pages/wallet/index",
     "pages/studio-commission-detail/index",
     "pages/commission-withdrawals/index",
@@ -50,11 +53,12 @@ export default defineAppConfig({
     selectedColor: "#2f5d45",
     backgroundColor: "#ffffff",
     borderStyle: "white",
-    // 图标资源：将 81x81px PNG 放入 src/assets/tabbar/ 后生效（iconPath/selectedIconPath）
+    // 对齐 iOS 家长端：首页 / 广场 / 发布 / 消息 / 我的
     list: [
       { pagePath: "pages/home/index", text: "首页", iconPath: "assets/tabbar/home.png", selectedIconPath: "assets/tabbar/home-active.png" },
-      { pagePath: "pages/courses/index", text: "课程", iconPath: "assets/tabbar/courses.png", selectedIconPath: "assets/tabbar/courses-active.png" },
       { pagePath: "pages/plaza/index", text: "广场", iconPath: "assets/tabbar/plaza.png", selectedIconPath: "assets/tabbar/plaza-active.png" },
+      { pagePath: "pages/publish/index", text: "发布", iconPath: "assets/tabbar/publish.png", selectedIconPath: "assets/tabbar/publish-active.png" },
+      { pagePath: "pages/messages/index", text: "消息", iconPath: "assets/tabbar/message.png", selectedIconPath: "assets/tabbar/message-active.png" },
       { pagePath: "pages/mine/index", text: "我的", iconPath: "assets/tabbar/mine.png", selectedIconPath: "assets/tabbar/mine-active.png" }
     ]
   }
