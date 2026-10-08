@@ -21,12 +21,12 @@ enum Theme {
         /// 占位 / 禁用
         static let muted = UIColor(hex: 0x9C948A)
 
-        /// 品牌主色（清新嫩芽绿）：主按钮 / 选中态 / Tab 选中 pill
-        static let brand = UIColor(hex: 0x3D8B63)
+        /// 品牌主色（明快活力绿）：主按钮 / 选中态 / Tab 选中 pill
+        static let brand = UIColor(hex: 0x14A640)
         /// 品牌深色（按压态 / 渐变深端）
-        static let brandDark = UIColor(hex: 0x2F7350)
+        static let brandDark = UIColor(hex: 0x0B7E2D)
         /// 品牌绿 tint（标签底）
-        static let brandSoft = UIColor(hex: 0xE7F3EC)
+        static let brandSoft = UIColor(hex: 0xE4F7EA)
 
         /// 木色（第二主色）：头像占位、功能图标
         static let wood = UIColor(hex: 0xA87A3E)
@@ -37,8 +37,8 @@ enum Theme {
         static let clay = UIColor(hex: 0xC15F2C)
 
         /// 语义色（一律颜色 + 文字双编码）
-        static let success = UIColor(hex: 0x3D8B5F)
-        static let successTint = UIColor(hex: 0xE9F1EA)
+        static let success = UIColor(hex: 0x12963F)
+        static let successTint = UIColor(hex: 0xE4F7EA)
         static let warn = UIColor(hex: 0xC77B2A)
         static let warnTint = UIColor(hex: 0xFBEEDC)
         static let danger = UIColor(hex: 0xB03A2B)
@@ -57,7 +57,7 @@ enum Theme {
 
         /// 柔和预设色板（主色 + 浅色成对）
         private static let palette: [(main: UIColor, soft: UIColor)] = [
-            (UIColor(hex: 0x3D8B63), UIColor(hex: 0xE7F3EC)), // 品牌绿
+            (UIColor(hex: 0x14A640), UIColor(hex: 0xE4F7EA)), // 品牌绿
             (UIColor(hex: 0x3A6B96), UIColor(hex: 0xE7EFF7)), // 蓝
             (UIColor(hex: 0x7C3AED), UIColor(hex: 0xF5F3FF)), // 紫
             (UIColor(hex: 0xC15F2C), UIColor(hex: 0xFAEDE5)), // 陶橙

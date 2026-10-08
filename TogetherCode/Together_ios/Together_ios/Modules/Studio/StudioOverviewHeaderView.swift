@@ -25,6 +25,7 @@ final class StudioOverviewHeaderView: UIView {
     private let revenueAmountLabel = UILabel()
     private let revenueCaptionLabel = UILabel()
     private var revenueValueLabels: [UILabel] = []
+    private let revenueGradient = CAGradientLayer()
 
     private let statsRow = UIStackView()
     private var statCards: [OverviewStatCard] = []
@@ -44,6 +45,11 @@ final class StudioOverviewHeaderView: UIView {
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        revenueGradient.frame = revenueCard.bounds
+    }
 
 
 
@@ -82,9 +88,15 @@ final class StudioOverviewHeaderView: UIView {
     }
 
     private func setupRevenueCard() {
-        revenueCard.backgroundColor = Theme.Color.brandDark
+        revenueCard.backgroundColor = Theme.Color.brand
         revenueCard.layer.cornerRadius = Theme.Radius.card
         revenueCard.layer.masksToBounds = true
+
+        // 明快渐变：左上主色（保证白字清晰）→ 右下亮绿（提亮透气）
+        revenueGradient.colors = [Theme.Color.brand.cgColor, UIColor(hex: 0x46C76D).cgColor]
+        revenueGradient.startPoint = CGPoint(x: 0, y: 0)
+        revenueGradient.endPoint = CGPoint(x: 1, y: 1)
+        revenueCard.layer.insertSublayer(revenueGradient, at: 0)
         revenueCard.isUserInteractionEnabled = true
         revenueCard.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(didTapCard)))
         addSubview(revenueCard)

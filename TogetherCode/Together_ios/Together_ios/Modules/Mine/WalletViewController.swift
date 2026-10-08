@@ -191,6 +191,7 @@ private final class OverviewCardCell: UITableViewCell {
     private let totalLabel = UILabel()
     private let columnStack = UIStackView()
     private let columns: [MiniColumn] = [MiniColumn(), MiniColumn(), MiniColumn()]
+    private let cardGradient = CAGradientLayer()
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -198,11 +199,17 @@ private final class OverviewCardCell: UITableViewCell {
         selectionStyle = .none
         contentView.backgroundColor = .clear
 
-        card.backgroundColor = Theme.Color.brandDark
+        card.backgroundColor = Theme.Color.brand
         card.layer.cornerRadius = Theme.Radius.card
         card.layer.masksToBounds = true
         card.isUserInteractionEnabled = true
         card.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(didTapCard)))
+
+        // 明快渐变：左上主色 → 右下亮绿（与营收卡统一）
+        cardGradient.colors = [Theme.Color.brand.cgColor, UIColor(hex: 0x46C76D).cgColor]
+        cardGradient.startPoint = CGPoint(x: 0, y: 0)
+        cardGradient.endPoint = CGPoint(x: 1, y: 1)
+        card.layer.insertSublayer(cardGradient, at: 0)
         contentView.addSubview(card)
         card.snp.makeConstraints {
             $0.top.equalToSuperview().offset(Theme.Spacing.s)
@@ -256,6 +263,11 @@ private final class OverviewCardCell: UITableViewCell {
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        cardGradient.frame = card.bounds
+    }
 
     @objc private func didTapCard() {
         onCardTap?()

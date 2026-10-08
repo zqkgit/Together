@@ -424,12 +424,15 @@ final class TagFlowView: UIView {
         var currentRow: UIStackView?
         var currentWidth: CGFloat = 0
         let maxWidth = UIScreen.main.bounds.width - Theme.Spacing.m * 2
+        let rowSpacing: CGFloat = 8   // 标签水平间距
+        let lineSpacing: CGFloat = 10  // 标签行间距
 
         for tag in tags {
             let btn = UIButton(type: .system)
             btn.setTitle(tag, for: .normal)
             btn.titleLabel?.font = .appLabel(13)
             btn.layer.cornerRadius = 16
+            btn.titleLabel?.adjustsFontSizeToFitWidth = false
 
             switch style {
             case .hot:
@@ -442,26 +445,35 @@ final class TagFlowView: UIView {
                 btn.layer.borderColor = Theme.Color.line.cgColor
             }
 
+            // 自适应宽度：文字 + 左右内边距
+            let hPad: CGFloat = 14, vPad: CGFloat = 7
             if #available(iOS 15.0, *) {
                 var config = UIButton.Configuration.plain()
-                config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16)
+                config.contentInsets = NSDirectionalEdgeInsets(top: vPad, leading: hPad, bottom: vPad, trailing: hPad)
+                config.titlePadding = 0
                 btn.configuration = config
+                // Configuration 模式下 intrinsicContentSize 已含 padding
             } else {
-                btn.contentEdgeInsets = UIEdgeInsets(top: 8, left: 16, bottom: 8, right: 16)
+                btn.contentEdgeInsets = UIEdgeInsets(top: vPad, left: hPad, bottom: vPad, right: hPad)
             }
-            let btnWidth = btn.intrinsicContentSize.width + 32
+
+            // 强制布局后取准确宽度
+            btn.sizeToFit()
+            let btnWidth = btn.intrinsicContentSize.width
+
             btn.addTarget(self, action: #selector(didTapTag(_:)), for: .touchUpInside)
 
-            if currentRow == nil || currentWidth + btnWidth + Theme.Spacing.s > maxWidth {
+            if currentRow == nil || currentWidth + btnWidth + rowSpacing > maxWidth {
                 currentRow = UIStackView()
                 currentRow!.axis = .horizontal
-                currentRow!.spacing = Theme.Spacing.s
+                currentRow!.spacing = rowSpacing
                 currentRow!.alignment = .leading
                 container.addArrangedSubview(currentRow!)
+                container.setCustomSpacing(lineSpacing, after: currentRow!)
                 currentWidth = 0
             }
             currentRow!.addArrangedSubview(btn)
-            currentWidth += btnWidth + Theme.Spacing.s
+            currentWidth += btnWidth + rowSpacing
         }
     }
 

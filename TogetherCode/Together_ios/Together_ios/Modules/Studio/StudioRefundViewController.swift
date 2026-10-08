@@ -614,7 +614,7 @@ private final class StudioRefundCell: UITableViewCell {
     private func makeButton(title: String, filled: Bool, action: Selector) -> UIButton {
         let btn = UIButton(type: .system)
         btn.setTitle(title, for: .normal)
-        btn.titleLabel?.font = .appBody(14)
+        btn.titleLabel?.font = .appSection(15)
         btn.layer.cornerRadius = 20
         btn.clipsToBounds = true
         if filled {

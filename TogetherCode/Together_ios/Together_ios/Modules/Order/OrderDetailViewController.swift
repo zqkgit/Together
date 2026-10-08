@@ -102,7 +102,7 @@ final class OrderDetailViewController: BaseViewController {
         secondaryButton.layer.cornerRadius = 22
         secondaryButton.addTarget(self, action: #selector(didTapSecondary), for: .touchUpInside)
 
-        primaryButton.titleLabel?.font = .appBody(15)
+        primaryButton.titleLabel?.font = .appSection(15)
         primaryButton.setTitleColor(.white, for: .normal)
         primaryButton.backgroundColor = Theme.Color.brand
         primaryButton.layer.cornerRadius = 22

@@ -912,7 +912,7 @@ final class StudioOrderDetailViewController: BaseViewController {
     private func makeButton(title: String, style: ButtonStyle, action: Selector) -> UIButton {
         let btn = UIButton(type: .system)
         btn.setTitle(title, for: .normal)
-        btn.titleLabel?.font = .appBody(15)
+        btn.titleLabel?.font = .appSection(15)
         btn.layer.cornerRadius = 22
         btn.addTarget(self, action: action, for: .touchUpInside)
         switch style {

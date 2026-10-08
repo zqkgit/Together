@@ -7,11 +7,19 @@ enum AppEnvironment {
     case production
 
     var baseURL: String {
+        // 临时覆盖优先级最高：UserDefaults custom_base_url，如 http://127.0.0.1:3001
+        if let custom = UserDefaults.standard.string(forKey: "custom_base_url"), !custom.isEmpty {
+            return custom
+        }
         switch self {
         case .debug:
-            // 真机测试：默认走 Mac 局域网 IP（换网络后需更新为当前 Mac IP）。
-            // 临时覆盖可改 UserDefaults custom_base_url，如 http://127.0.0.1:3001
-            return UserDefaults.standard.string(forKey: "custom_base_url") ?? "http://10.6.2.40:3001"
+            #if targetEnvironment(simulator)
+            // 模拟器共享 Mac 网络栈，127.0.0.1 指向运行后端的 Mac，本机联调恒定有效、不随网络变化
+            return "http://127.0.0.1:3001"
+            #else
+            // 真机走 Mac 局域网 IP（换网络后需更新为当前 Mac IP）
+            return "http://10.6.1.89:3001"
+            #endif
         case .staging:
             return "https://staging-api.example.com"
         case .production:
