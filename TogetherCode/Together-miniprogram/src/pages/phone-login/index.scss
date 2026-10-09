@@ -59,19 +59,13 @@
   font-size: 32rpx;
   color: $color-text;
   height: 104rpx;
-  line-height: 104rpx;
   box-sizing: border-box;
 }
 
-/* Taro H5: 内部原生 input 元素 */
-.field-input input {
+/* 覆盖 Taro H5 Input 内部 weui-input 默认样式（height: 1.47059em） */
+.field-input .weui-input {
   height: 104rpx !important;
   line-height: 104rpx !important;
-  padding: 0 !important;
-  border: none !important;
-  background: transparent !important;
-  box-sizing: border-box !important;
-  font-size: 32rpx !important;
 }
 
 .segment-row {
