@@ -13,6 +13,7 @@ export default defineAppConfig({
     "pages/order-detail/index",
     "pages/orders/index",
     "pages/children/index",
+    "pages/child-add/index",
     "pages/child-balance/index",
     "pages/child-growth/index",
     "pages/child-timetable/index",
