@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import Taro from "@tarojs/taro";
+import Taro, { usePullDownRefresh } from "@tarojs/taro";
 import { View, Text, ScrollView } from "@tarojs/components";
 import { listMyCourses, type MyCourseItem } from "../../services/course";
 import { useAuthStore } from "../../store/auth";
@@ -23,13 +23,17 @@ export default function MyCoursesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Taro.setNavigationBarTitle({ title: "我的课程" });
     if (!isLoggedIn) {
       Taro.reLaunch({ url: "/pages/login/index" });
       return;
     }
     loadData();
   }, [isLoggedIn]);
+
+  // 下拉刷新（对齐 iOS BrandRefreshHeader / 广场页）
+  usePullDownRefresh(() => {
+    loadData();
+  });
 
   const loadData = async () => {
     setLoading(true);
@@ -44,6 +48,7 @@ export default function MyCoursesPage() {
       // 拦截器已提示
     } finally {
       setLoading(false);
+      Taro.stopPullDownRefresh();
     }
   };
 
