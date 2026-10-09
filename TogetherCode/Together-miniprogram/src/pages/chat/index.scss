@@ -10,7 +10,7 @@
 
   .chat-messages {
     flex: 1;
-    padding: 8rpx 0;
+    padding: 4rpx 0;
     overflow-y: auto;
   }
 
@@ -34,7 +34,7 @@
     text-align: center;
     color: $color-text-secondary;
     font-size: 22rpx;
-    padding: 12rpx 0 8rpx;
+    padding: 6rpx 0 4rpx;
   }
 
   // ── 消息行（对齐 iOS ChatTextCell / ChatImageCell） ──
@@ -43,8 +43,11 @@
   .chat-row {
     display: flex;
     align-items: flex-start;
-    padding: 2rpx 24rpx;
+    padding: 0 24rpx;
+    margin-bottom: 4rpx;
     max-width: 100%;
+    line-height: 0;
+    font-size: 0;
 
     &.peer {
       flex-direction: row;
@@ -82,34 +85,79 @@
   }
 
   // 头像 30pt 圆角（对齐 iOS avatarView 30pt cornerRadius=15）
+  // 覆盖 Taro H5 taro-image-core 默认 width:320px height:240px display:inline-block
   .chat-avatar {
-    width: 60rpx;
-    height: 60rpx;
+    display: block !important;
+    width: 60rpx !important;
+    height: 60rpx !important;
+    min-width: 60rpx !important;
+    min-height: 60rpx !important;
+    max-width: 60rpx !important;
+    max-height: 60rpx !important;
     border-radius: 50%;
     flex-shrink: 0;
     background: rgba($color-primary, 0.1);
+    overflow: hidden;
+    line-height: 0;
+    font-size: 0;
+
+    // 约束 taro-image-core 内部 img
+    img,
+    .taro-img {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover;
+    }
+  }
+
+  // 高优先级覆盖 taro-image-core 元素选择器默认样式
+  taro-image-core.chat-avatar {
+    width: 60rpx !important;
+    height: 60rpx !important;
+    display: block !important;
   }
 
   // 气泡（对齐 iOS bubbleView cornerRadius=14, max-width 72%）
   .chat-bubble {
+    display: block;
     max-width: 72%;
     border-radius: 20rpx;
     overflow: hidden;
 
     .bubble-text {
       display: block;
-      padding: 12rpx 20rpx;
+      padding: 10rpx 16rpx;
       font-size: 28rpx;
-      line-height: 1.5;
+      line-height: 1.4;
       word-break: break-word;
     }
 
     // 图片消息 180×180pt（对齐 iOS imageContentView 180×180 + cornerRadius=10 + 4pt inset）
     .bubble-img {
-      width: 360rpx;
-      height: 360rpx;
+      display: block !important;
+      width: 360rpx !important;
+      height: 360rpx !important;
+      max-width: 360rpx !important;
+      max-height: 360rpx !important;
       margin: 8rpx;
       border-radius: 16rpx;
+      overflow: hidden;
+      line-height: 0;
+      font-size: 0;
+
+      img,
+      .taro-img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover;
+      }
+    }
+
+    // 高优先级覆盖 taro-image-core 元素选择器默认样式
+    taro-image-core.bubble-img {
+      width: 360rpx !important;
+      height: 360rpx !important;
+      display: block !important;
     }
   }
 
