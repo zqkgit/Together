@@ -132,8 +132,8 @@ export default function PosterPage() {
 
     // 背景
     const bg = ctx.createLinearGradient(0, 0, 0, H);
-    bg.addColorStop(0, "#2f5d45");
-    bg.addColorStop(0.45, "#3f7458");
+    bg.addColorStop(0, "#14A640");
+    bg.addColorStop(0.45, "#0B7E2D");
     bg.addColorStop(0.46, "#f7f4ec");
     bg.addColorStop(1, "#f7f4ec");
     ctx.fillStyle = bg;
@@ -178,7 +178,7 @@ export default function PosterPage() {
 
     // 价格
     if (data.price) {
-      ctx.fillStyle = "#c0392b";
+      ctx.fillStyle = "#B03A2B";
       ctx.font = "700 44px sans-serif";
       ctx.fillText(data.price, 60, coverY + coverH + 190);
     }
@@ -195,7 +195,7 @@ export default function PosterPage() {
       if (qr) {
         ctx.drawImage(qr, qrX, qrY, qrSize, qrSize);
       }
-      ctx.fillStyle = "#2f5d45";
+      ctx.fillStyle = "#14A640";
       ctx.font = "26px sans-serif";
       ctx.textAlign = "right";
       ctx.fillText("长按识别小程序码", qrX + qrSize, qrY + qrSize + 44);
@@ -213,7 +213,7 @@ export default function PosterPage() {
       ctx.fillStyle = "#9a938a";
       ctx.font = "22px sans-serif";
       ctx.fillText("配置微信后生成", qrX + qrSize / 2, qrY + qrSize / 2 + 48);
-      ctx.fillStyle = "#2f5d45";
+      ctx.fillStyle = "#14A640";
       ctx.textAlign = "right";
       ctx.font = "26px sans-serif";
       ctx.fillText("扫码报名 · 享推荐返利", qrX + qrSize, qrY + qrSize + 44);

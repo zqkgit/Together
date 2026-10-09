@@ -1,13 +1,20 @@
-$color-primary: #2f5d45;
+/// 艺启 · 设计 Token（对齐 iOS Theme.swift「温暖手作」）
+/// 品牌主色 #14A640（明快活力绿）
+
+$color-primary: #14A640;
+$color-primary-dark: #0B7E2D;
 $color-primary-light: #4a7a5e;
-$color-gold: #a87a3e;
-$color-bg: #f7f4ec;
-$color-card: #ffffff;
-$color-text: #2b2621;
-$color-text-secondary: #8a8378;
-$color-text-light: #8a8378;
-$color-danger: #c4564a;
-$color-border: #e6dfd3;
+$color-primary-soft: #E4F7EA;
+$color-gold: #A87A3E;
+$color-gold-soft: #F4EFE6;
+$color-bg: #FAF7F1;
+$color-bg-alt: #F4EFE6;
+$color-card: #FFFFFF;
+$color-text: #2B2621;
+$color-text-secondary: #726A60;
+$color-text-light: #9C948A;
+$color-danger: #B03A2B;
+$color-border: #E6DFD3;
 $page-padding: 32rpx;
 $radius-sm: 8rpx;
 $radius-md: 12rpx;
@@ -27,7 +34,7 @@ page {
   border-radius: 20rpx;
   padding: 24rpx;
   margin: 20rpx 24rpx;
-  box-shadow: 0 4rpx 16rpx rgba(47, 93, 69, 0.06);
+  box-shadow: 0 4rpx 16rpx rgba(43, 38, 33, 0.05);
 }
 
 .btn-primary {

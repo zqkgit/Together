@@ -22,7 +22,7 @@
   border-radius: 50%;
   background: #fff;
   font-size: 40rpx;
-  color: #2f5d45;
+  color: #14A640;
   box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.08);
 }
 
@@ -70,12 +70,12 @@
 }
 
 .day-today .day-num {
-  color: #2f5d45;
+  color: #14A640;
   font-weight: 700;
 }
 
 .day-selected {
-  background: #2f5d45;
+  background: #14A640;
 }
 
 .day-selected .day-num {
@@ -125,7 +125,7 @@
 .event-start {
   font-size: 32rpx;
   font-weight: 700;
-  color: #2f5d45;
+  color: #14A640;
 }
 
 .event-end {
@@ -172,5 +172,5 @@
 .event-children {
   margin-top: 6rpx;
   font-size: 22rpx;
-  color: #2f5d45;
+  color: #14A640;
 }

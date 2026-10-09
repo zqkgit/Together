@@ -56,7 +56,7 @@ export default function RefundDetailPage() {
         "请确认你已在线下实际收到机构退回的款项。确认后将扣减相应课时、订单转为已退款，且不可撤销。",
       confirmText: "已收到，确认",
       cancelText: "再想想",
-      confirmColor: "#2f5d45"
+      confirmColor: "#14A640"
     });
     if (!modal.confirm) return;
     setConfirming(true);

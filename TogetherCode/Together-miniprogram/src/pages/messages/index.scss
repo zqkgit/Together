@@ -133,7 +133,7 @@
     border-radius: $radius-xl; // 20rpx = Theme.Radius.card
     padding: 24rpx;
     margin-bottom: 16rpx;
-    box-shadow: 0 4rpx 16rpx rgba(47, 93, 69, 0.06);
+    box-shadow: 0 4rpx 16rpx rgba(20, 166, 64, 0.06);
 
     &:active {
       background: rgba(0, 0, 0, 0.02);
@@ -242,7 +242,7 @@
     border-radius: $radius-xl;
     padding: 24rpx;
     margin-bottom: 16rpx;
-    box-shadow: 0 4rpx 16rpx rgba(47, 93, 69, 0.06);
+    box-shadow: 0 4rpx 16rpx rgba(20, 166, 64, 0.06);
 
     &:active {
       background: rgba(0, 0, 0, 0.02);

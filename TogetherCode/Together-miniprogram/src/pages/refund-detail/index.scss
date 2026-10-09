@@ -28,7 +28,7 @@
 }
 
 .st-0 { background: #fdf0e3; color: #c0762c; }
-.st-3 { background: #e6f2e9; color: #2f5d45; }
+.st-3 { background: #E4F7EA; color: #14A640; }
 .st-2 { background: #f4e9e4; color: #b05f3a; }
 
 .step-amount {
@@ -61,11 +61,11 @@
 }
 
 .step.done .step-dot {
-  background: #2f5d45;
+  background: #14A640;
 }
 
 .step.current .step-dot {
-  box-shadow: 0 0 0 6rpx rgba(47, 93, 69, 0.15);
+  box-shadow: 0 0 0 6rpx rgba(20, 166, 64, 0.15);
 }
 
 .step-line {
@@ -78,7 +78,7 @@
 }
 
 .step.done .step-line {
-  background: #2f5d45;
+  background: #14A640;
 }
 
 .step-text {
@@ -286,7 +286,7 @@
 .action-btn {
   height: 88rpx;
   border-radius: 44rpx;
-  background: #2f5d45;
+  background: #14A640;
   color: #ffffff;
   font-size: 30rpx;
   font-weight: 600;

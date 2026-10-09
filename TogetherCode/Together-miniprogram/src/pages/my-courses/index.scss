@@ -1,10 +1,13 @@
 @use '../../styles/variables.scss' as *;
+
+/* 我的课程 — 对齐 iOS MyCoursesViewController / MyCourseCell */
 .my-courses {
   min-height: 100vh;
   padding-bottom: 48rpx;
   background: $color-bg;
 }
 
+/* ---- 孩子筛选条（对齐 iOS TagChipRow） ---- */
 .child-scroll {
   white-space: nowrap;
   padding: 20rpx 0 8rpx;
@@ -22,7 +25,7 @@
   background: #fff;
   border-radius: $radius-round;
   font-size: $font-size-md;
-  color: #5a544b;
+  color: $color-text-secondary;
 }
 
 .child-active {
@@ -30,72 +33,104 @@
   color: #fff;
 }
 
+/* ---- 空状态 / 加载 ---- */
 .state-tip {
   padding: 120rpx 40rpx;
   text-align: center;
-  color: #b5aea3;
+  color: $color-text-light;
   font-size: $font-size-md;
 }
 
+/* ---- 课程列表 ---- */
 .course-list {
-  padding: 16rpx 24rpx;
+  padding: 16rpx 32rpx;
   display: flex;
   flex-direction: column;
   gap: 20rpx;
 }
 
+/* ---- 课程卡片（对齐 iOS MyCourseCell：白卡圆角 + 纵向四行） ---- */
 .course-card {
-  display: flex;
-  gap: 20rpx;
   background: #fff;
   border-radius: $radius-lg;
-  padding: 20rpx;
-}
-
-.course-cover {
-  width: 200rpx;
-  height: 160rpx;
-  border-radius: $radius-md;
-  background: #eae4d8;
-  flex-shrink: 0;
-}
-
-.course-body {
-  flex: 1;
-  min-width: 0;
+  padding: 32rpx 24rpx;
   display: flex;
   flex-direction: column;
+  gap: 12rpx;
 }
 
-.course-name {
-  font-size: 30rpx;
+/* 行1：课程名 + 节数 */
+.card-row1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.course-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 34rpx;
   font-weight: 600;
   color: $color-text;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.course-sub {
-  margin-top: 6rpx;
+.course-count {
+  flex-shrink: 0;
   font-size: $font-size-sm;
-  color: #8a8378;
+  color: $color-text-secondary;
 }
 
-.progress-row {
-  margin-top: 12rpx;
+/* 行2：工作室·老师标签 + 孩子名称标签 */
+.card-row2 {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 12rpx;
+  flex-wrap: wrap;
 }
 
-.progress-text {
+.studio-tag {
+  display: inline-block;
+  padding: 6rpx 16rpx;
+  background: $color-bg-alt;
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}
+
+.child-tag {
+  display: inline-block;
+  padding: 6rpx 16rpx;
+  background: $color-primary-soft;
+  border-radius: $radius-xs;
   font-size: $font-size-xs;
   color: $color-primary;
 }
 
+/* 行3：下次课（品牌色） */
+.next-lesson {
+  font-size: $font-size-sm;
+  color: $color-primary;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 行4：进度条 + 百分比 */
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
 .progress-track {
-  margin-top: 8rpx;
-  height: 8rpx;
+  flex: 1;
+  height: 10rpx;
   border-radius: $radius-round;
-  background: #efe9dd;
+  background: $color-bg-alt;
   overflow: hidden;
 }
 
@@ -103,10 +138,13 @@
   height: 100%;
   border-radius: $radius-round;
   background: $color-primary;
+  transition: width 0.3s ease;
 }
 
-.next-lesson {
-  margin-top: 10rpx;
+.progress-pct {
+  flex-shrink: 0;
+  width: 120rpx;
+  text-align: right;
   font-size: $font-size-xs;
-  color: #b5aea3;
+  color: $color-text-secondary;
 }

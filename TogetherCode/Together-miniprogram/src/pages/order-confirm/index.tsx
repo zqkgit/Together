@@ -110,7 +110,7 @@ export default function OrderConfirmPage() {
                     if (!full) setSelectedClass(item.class_id);
                   }}
                 >
-                  <Radio value={item.class_id} checked={active} color="#2f5d45" disabled={full}>
+                  <Radio value={item.class_id} checked={active} color="#14A640" disabled={full}>
                     <View className="class-main">
                       <Text className="class-name">{item.name || "未命名班级"}</Text>
                       <Text className="class-meta">
@@ -138,7 +138,7 @@ export default function OrderConfirmPage() {
           >
             {children.map((child) => (
               <View key={child.child_id} className="child-row">
-                <Radio value={child.child_id} checked={selectedChild === child.child_id} color="#2f5d45">
+                <Radio value={child.child_id} checked={selectedChild === child.child_id} color="#14A640">
                   <Text className="child-name">{child.nickname}</Text>
                 </Radio>
               </View>

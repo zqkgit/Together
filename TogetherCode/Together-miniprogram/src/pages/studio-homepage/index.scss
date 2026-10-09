@@ -14,7 +14,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(160deg, #2f5d45, #3f7458);
+  background: linear-gradient(160deg, #14A640, #0B7E2D);
   color: #fff;
   font-size: 120rpx;
   font-weight: 700;
@@ -41,7 +41,7 @@
   padding: 4rpx 18rpx;
   border-radius: 999rpx;
   background: #eaf2ec;
-  color: #2f5d45;
+  color: #14A640;
   font-size: 22rpx;
 }
 
@@ -93,7 +93,7 @@
   margin-top: 8rpx;
   font-size: 30rpx;
   font-weight: 700;
-  color: #c0392b;
+  color: #B03A2B;
 }
 
 .course-arrow {
@@ -183,7 +183,7 @@
   flex-shrink: 0;
   padding: 8rpx 28rpx;
   border-radius: 999rpx;
-  background: #2f5d45;
+  background: #14A640;
   color: #fff;
   font-size: 24rpx;
   font-weight: 500;
@@ -191,8 +191,8 @@
 
 .follow-btn.followed {
   background: #eef3ef;
-  color: #2f5d45;
-  border: 2rpx solid #2f5d45;
+  color: #14A640;
+  border: 2rpx solid #14A640;
 }
 
 .follow-btn:active {

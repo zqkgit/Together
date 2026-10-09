@@ -1,5 +1,5 @@
 /* 课程详情页 — 对齐 iOS CourseDetailViewController */
-/* 配色: brand=#2f5d45, clay=#c4564a, ink=#1a1a1a, sub=#5a544b, muted=#9a938a, bg=#f7f4ec, surface=#fff, surfaceAlt=#eae4d8, brandSoft=rgba(47,93,69,0.1) */
+/* 配色: brand=#14A640, clay=#B03A2B, ink=#1a1a1a, sub=#5a544b, muted=#9a938a, bg=#f7f4ec, surface=#fff, surfaceAlt=#eae4d8, brandSoft=rgba(20,166,64,0.1) */
 
 .course-detail {
   height: 100vh;
@@ -63,12 +63,12 @@
 .cd-tag {
   padding: 6rpx 16rpx;
   border-radius: 20rpx;
-  background: rgba(47, 93, 69, 0.1);
+  background: rgba(20, 166, 64, 0.1);
 }
 
 .cd-tag-text {
   font-size: 22rpx;
-  color: #2f5d45;
+  color: #14A640;
   line-height: 1.4;
 }
 
@@ -114,7 +114,7 @@
 }
 
 .cd-inst-icon--studio {
-  color: #2f5d45;
+  color: #14A640;
 }
 
 .cd-inst-icon--teacher {
@@ -167,7 +167,7 @@
   width: 12rpx;
   height: 12rpx;
   border-radius: 6rpx;
-  background: #2f5d45;
+  background: #14A640;
   margin-top: 14rpx;
   margin-right: 16rpx;
   flex-shrink: 0;
@@ -206,8 +206,8 @@
 .cd-review-write-btn {
   padding: 8rpx 20rpx;
   border-radius: 12rpx;
-  background: rgba(47, 93, 69, 0.1);
-  color: #2f5d45;
+  background: rgba(20, 166, 64, 0.1);
+  color: #14A640;
   font-size: 26rpx;
 }
 
@@ -350,7 +350,7 @@
   padding: 20rpx 0 4rpx;
   text-align: center;
   font-size: 28rpx;
-  color: #2f5d45;
+  color: #14A640;
 }
 
 .cd-review-more:active {
@@ -466,7 +466,7 @@
 .cd-bottom-price-text {
   font-size: 36rpx;
   font-weight: 700;
-  color: #c4564a;
+  color: #B03A2B;
 }
 
 .cd-bottom-chat {
@@ -475,8 +475,8 @@
   height: 92rpx;
   line-height: 92rpx;
   border-radius: 46rpx;
-  border: 2rpx solid #2f5d45;
-  color: #2f5d45;
+  border: 2rpx solid #14A640;
+  color: #14A640;
   font-size: 28rpx;
   background: #fff;
   text-align: center;
@@ -491,7 +491,7 @@
   height: 92rpx;
   line-height: 92rpx;
   border-radius: 46rpx;
-  background: #2f5d45;
+  background: #14A640;
   color: #fff;
   font-size: 32rpx;
   font-weight: 600;

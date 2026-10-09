@@ -101,7 +101,7 @@ export default function PlazaPage() {
       case "书法": return ["#8B8B8B", "#4A4A4A"];
       case "素描": return ["#C9C4BC", "#8A8478"];
       case "国画": return ["#A8BDA0", "#6E8A66"];
-      default: return ["#d8e8dc", "#2f5d45"];
+      default: return ["#E4F7EA", "#14A640"];
     }
   };
 

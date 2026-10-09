@@ -87,15 +87,15 @@
       }
 
       &.done .step-dot {
-        background: #4caf50;
+        background: #14A640;
       }
 
       &.current .step-dot {
         background: #fff;
-        border: 3rpx solid #4caf50;
+        border: 3rpx solid #14A640;
 
         .step-check {
-          color: #4caf50;
+          color: #14A640;
         }
       }
 
@@ -109,11 +109,11 @@
       }
 
       &.done .step-title {
-        color: #4caf50;
+        color: #14A640;
       }
 
       &.current .step-title {
-        color: #4caf50;
+        color: #14A640;
         font-weight: 500;
       }
 
@@ -128,7 +128,7 @@
       }
 
       &.done .step-line {
-        background: #4caf50;
+        background: #14A640;
       }
     }
   }
@@ -190,7 +190,7 @@
 
     .reject-reason {
       font-size: 28rpx;
-      color: #c0392b;
+      color: #B03A2B;
       line-height: 1.6;
     }
   }

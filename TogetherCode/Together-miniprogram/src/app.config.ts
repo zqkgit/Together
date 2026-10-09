@@ -45,14 +45,14 @@ export default defineAppConfig({
   ],
   window: {
     backgroundTextStyle: "light",
-    navigationBarBackgroundColor: "#2f5d45",
+    navigationBarBackgroundColor: "#14A640",
     navigationBarTitleText: "艺启",
     navigationBarTextStyle: "white",
     backgroundColor: "#f7f4ec"
   },
   tabBar: {
     color: "#9a938a",
-    selectedColor: "#2f5d45",
+    selectedColor: "#14A640",
     backgroundColor: "#ffffff",
     borderStyle: "white",
     // 对齐 iOS 家长端：首页 / 广场 / 发布 / 消息 / 我的

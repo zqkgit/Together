@@ -126,7 +126,7 @@ export default function CourseStudyPage() {
     Taro.showModal({
       title: "撤销请假",
       content: "确认撤销这条请假申请吗？",
-      confirmColor: "#2f5d45",
+      confirmColor: "#14A640",
       success: async (res) => {
         if (!res.confirm) return;
         try {

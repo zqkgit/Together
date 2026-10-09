@@ -1,11 +1,11 @@
 @use "../../styles/theme.scss" as *;
 
-// ====== 品牌色深色（渐变终点） ======
-$brand-dark: #3f7458;
-$brand-soft: rgba(47, 93, 69, 0.08);
-$wood: #a87a3e;
-$wood-soft: rgba(168, 122, 62, 0.1);
-$sub: #c4564a;
+// ====== 品牌色（对齐 iOS Theme.swift） ======
+$brand-dark: #0B7E2D;
+$brand-soft: #E4F7EA;
+$wood: #A87A3E;
+$wood-soft: #F4EFE6;
+$sub: #B03A2B;
 
 .growth-page {
   min-height: 100vh;
@@ -185,7 +185,7 @@ $sub: #c4564a;
   background: $color-card;
   border-radius: $radius-lg;
   overflow: hidden;
-  box-shadow: 0 4rpx 16rpx rgba(47, 93, 69, 0.06);
+  box-shadow: 0 4rpx 16rpx rgba(20, 166, 64, 0.06);
 }
 
 .work-img {
@@ -217,7 +217,7 @@ $sub: #c4564a;
   border-radius: $radius-lg;
   padding: 28rpx 24rpx;
   margin-bottom: 16rpx;
-  box-shadow: 0 4rpx 16rpx rgba(47, 93, 69, 0.06);
+  box-shadow: 0 4rpx 16rpx rgba(20, 166, 64, 0.06);
 }
 
 .course-top {
@@ -298,7 +298,7 @@ $sub: #c4564a;
   border-radius: $radius-lg;
   padding: 28rpx 24rpx;
   margin-bottom: 16rpx;
-  box-shadow: 0 4rpx 16rpx rgba(47, 93, 69, 0.06);
+  box-shadow: 0 4rpx 16rpx rgba(20, 166, 64, 0.06);
 }
 
 .dynamic-head {
