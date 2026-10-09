@@ -10,7 +10,7 @@
 
   .chat-messages {
     flex: 1;
-    padding: 16rpx 0;
+    padding: 8rpx 0;
     overflow-y: auto;
   }
 
@@ -43,7 +43,7 @@
   .chat-row {
     display: flex;
     align-items: flex-start;
-    padding: 8rpx 24rpx;
+    padding: 2rpx 24rpx;
     max-width: 100%;
 
     &.peer {
@@ -98,7 +98,7 @@
 
     .bubble-text {
       display: block;
-      padding: 16rpx 24rpx;
+      padding: 12rpx 20rpx;
       font-size: 28rpx;
       line-height: 1.5;
       word-break: break-word;

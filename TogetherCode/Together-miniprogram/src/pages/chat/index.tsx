@@ -162,6 +162,18 @@ export default function ChatPage() {
           setMessages((prev) => {
             // 去重：避免和 handleSend 添加的重复
             if (prev.some((m) => m.message_id === newMsg.message_id)) return prev;
+            // 多端同步：收到自己发的消息（WS 回显），替换乐观插入的临时消息
+            const isSelf = String(newMsg.sender_id) === String(myUserId);
+            if (isSelf) {
+              const localIdx = prev.findIndex(
+                (m) => m.message_id.startsWith("local-") && m.content === newMsg.content && String(m.sender_id) === String(myUserId)
+              );
+              if (localIdx >= 0) {
+                const next = [...prev];
+                next[localIdx] = newMsg;
+                return next;
+              }
+            }
             return [...prev, newMsg];
           });
           scrollToBottom();

@@ -46,16 +46,7 @@ export default function MyPostsPage() {
     Taro.navigateTo({ url: "/pages/post-create/index" });
   };
 
-  if (!isLoggedIn) {
-    return (
-      <View className="my-posts">
-        <View className="empty-tip">请先登录</View>
-        <View className="go-login" onClick={() => Taro.navigateTo({ url: "/pages/login/index" })}>
-          去登录
-        </View>
-      </View>
-    );
-  }
+  if (!isLoggedIn) return null;
 
   return (
     <View className="my-posts">

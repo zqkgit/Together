@@ -8,6 +8,7 @@ interface AuthState {
   roles: string[];
   token: string;
   isLoggedIn: boolean;
+  hydrated: boolean;
   setSession: (data: SessionData) => void;
   setUser: (user: AuthUser, currentRole: string, roles: string[]) => void;
   logout: () => void;
@@ -20,6 +21,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   roles: [],
   token: "",
   isLoggedIn: false,
+  hydrated: false,
 
   setSession: (data) => {
     saveSession(data);
@@ -49,7 +51,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       currentRole: account?.current_role || "",
       roles: account?.roles || [],
       token: token ? state.token || "stored" : "",
-      isLoggedIn: !!account
+      isLoggedIn: !!account,
+      hydrated: true
     }));
   }
 }));

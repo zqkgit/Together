@@ -144,10 +144,7 @@ export default function MessagesPage() {
   });
 
   useEffect(() => {
-    if (!isLoggedIn) {
-      Taro.reLaunch({ url: "/pages/login/index" });
-      return;
-    }
+    if (!isLoggedIn) return;
     loadAll();
     const stop = connectMessageSocket((msg: any) => {
       const evt = msg?.event || msg?.type;

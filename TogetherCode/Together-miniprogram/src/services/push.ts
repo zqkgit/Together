@@ -42,8 +42,11 @@ export function connectMessageSocket(onMessage: (msg: any) => void): (() => void
   let socketTask: Taro.SocketTask | null = null;
   let closed = false;
   let retryTimer: ReturnType<typeof setTimeout> | null = null;
+  let intentionalClose = false; // 标记主动关闭，防止 onClose 触发重连
 
   const cleanupTask = () => {
+    intentionalClose = true;
+    if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
     try {
       socketTask?.close({});
     } catch {
@@ -68,6 +71,7 @@ export function connectMessageSocket(onMessage: (msg: any) => void): (() => void
         return;
       }
       cleanupTask();
+      intentionalClose = false; // 重置：新连接的意外断开应触发重连
       socketTask = await Taro.connectSocket({ url });
       if (closed) {
         cleanupTask();
@@ -88,9 +92,10 @@ export function connectMessageSocket(onMessage: (msg: any) => void): (() => void
       });
       socketTask.onClose(() => {
         console.log("[push] ws close");
-        if (!closed) {
+        if (!closed && !intentionalClose) {
           retryTimer = setTimeout(connect, 10000); // 断线重连（10s）
         }
+        intentionalClose = false;
       });
       socketTask.onError((err) => {
         if (!closed) {

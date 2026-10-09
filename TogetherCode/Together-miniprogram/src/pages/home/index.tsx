@@ -37,10 +37,7 @@ export default function HomePage() {
   const [searchKeyword, setSearchKeyword] = useState("");
 
   useEffect(() => {
-    if (!isLoggedIn) {
-      Taro.switchTab({ url: "/pages/mine/index" });
-      return;
-    }
+    if (!isLoggedIn) return;
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn]);

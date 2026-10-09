@@ -42,6 +42,8 @@
   width: 80rpx;
   text-align: center;
   flex-shrink: 0;
+  height: 104rpx;
+  line-height: 104rpx;
 }
 
 .phone-divider {
@@ -54,9 +56,22 @@
 
 .field-input {
   flex: 1;
-  height: 104rpx;
   font-size: 32rpx;
   color: $color-text;
+  height: 104rpx;
+  line-height: 104rpx;
+  box-sizing: border-box;
+}
+
+/* Taro H5: 内部原生 input 元素 */
+.field-input input {
+  height: 104rpx !important;
+  line-height: 104rpx !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-sizing: border-box !important;
+  font-size: 32rpx !important;
 }
 
 .segment-row {
@@ -97,6 +112,8 @@
   color: $color-primary;
   white-space: nowrap;
   flex-shrink: 0;
+  height: 104rpx;
+  line-height: 104rpx;
 }
 
 .send-code-disabled {

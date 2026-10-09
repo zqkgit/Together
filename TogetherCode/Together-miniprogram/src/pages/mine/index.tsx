@@ -117,38 +117,8 @@ export default function MinePage() {
     Taro.navigateTo({ url: item.url });
   };
 
-  // 未登录状态
-  if (!isLoggedIn) {
-    return (
-      <View className="mine">
-        <View className="mine-header">
-          <View className="mine-header-bg">
-            <View className="mine-identity-chip">
-              <Text className="mine-identity-text">当前身份：家长</Text>
-            </View>
-          </View>
-          <View className="mine-user-row">
-            <View className="mine-avatar-wrap">
-              <Text className="mine-avatar-letter">艺</Text>
-            </View>
-            <View className="mine-user-info">
-              <Text className="mine-nick">未登录</Text>
-            </View>
-          </View>
-        </View>
-        <View className="mine-menu-card">
-          <View
-            className="mine-menu-row"
-            onClick={() => Taro.navigateTo({ url: "/pages/login/index" })}
-          >
-            <View className="mine-menu-icon-tile"><Text className="mine-menu-icon">🔑</Text></View>
-            <Text className="mine-menu-label">去登录</Text>
-            <Text className="mine-menu-chevron">›</Text>
-          </View>
-        </View>
-      </View>
-    );
-  }
+  // 已登录才渲染（未登录时全局守卫会跳转到登录页）
+  if (!isLoggedIn) return null;
 
   return (
     <ScrollView className="mine" scrollY>

@@ -18,10 +18,7 @@ export default function PlazaPage() {
   const [sortIndex, setSortIndex] = useState(0);
 
   useEffect(() => {
-    if (!isLoggedIn) {
-      Taro.switchTab({ url: "/pages/mine/index" });
-      return;
-    }
+    if (!isLoggedIn) return;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn]);
 

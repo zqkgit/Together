@@ -289,7 +289,16 @@ async function sendConversationMessage(userId, conversationId, payload) {
 
   // 实时推送：在线走 WS，离线走极光
   const sender = row.sender;
+  // 推送给对方
   wsHub.sendToUser(peerId, {
+    event: "message",
+    data: {
+      ...data,
+      conversation_id: String(conversationId)
+    }
+  });
+  // 回显给发送者（多端同步：发送者的其他设备也需要看到自己发的消息）
+  wsHub.sendToUser(userId, {
     event: "message",
     data: {
       ...data,
