@@ -87,17 +87,14 @@ export default function OrdersPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  // 显式传入 tab / 页码，避免读取闭包里的旧 state（否则切 tab 第一次请求的还是上一个状态）
+  const loadData = async (tabKey: number | "", pageNum: number) => {
     setLoading(true);
     try {
-      const params: any = { page, page_size: 10 };
-      if (activeTab !== "") params.status = activeTab;
+      const params: any = { page: pageNum, page_size: 10 };
+      if (tabKey !== "") params.status = tabKey;
       const data = await listOrders(params);
-      setOrders((prev) => (page === 1 ? data.list : [...prev, ...data.list]));
+      setOrders((prev) => (pageNum === 1 ? data.list : [...prev, ...data.list]));
       setTotal(data.total);
     } catch {
       // 拦截器已提示
@@ -106,10 +103,15 @@ export default function OrdersPage() {
     }
   };
 
+  useEffect(() => {
+    loadData("", 1);
+  }, []);
+
   const onFilter = (key: number | "") => {
+    if (key === activeTab) return; // 已在该 tab，不重复请求
     setActiveTab(key);
     setPage(1);
-    setTimeout(loadData, 0);
+    loadData(key, 1);
   };
 
   const goDetail = (id: string) => {
