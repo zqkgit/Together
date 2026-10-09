@@ -1,294 +1,207 @@
+@import "../../styles/theme.scss";
+
 .refund-detail {
+  width: 100%;
   min-height: 100vh;
-  padding: 24rpx;
-  background: #f7f4ec;
+  box-sizing: border-box;
+  /* 顶部 8pt、底部 24pt */
+  padding: 16rpx 0 48rpx;
+  background: $color-bg;
+}
+
+.refund-detail.has-action {
+  padding-bottom: calc(168rpx + env(safe-area-inset-bottom));
+}
+
+.empty-tip {
+  padding: 120rpx 0;
+  text-align: center;
+  font-size: 26rpx;
+  color: $color-text-light;
+}
+
+/* ===== 分组 ===== */
+.section {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 32rpx; /* 卡片左右外边距 16pt，由分组容器腾出 */
 }
 
 .card {
-  margin-bottom: 20rpx;
-  border-radius: 16rpx;
+  width: 100%;
+  box-sizing: border-box;
+  background: $color-card;
+  border-radius: 32rpx; /* 16pt */
 }
 
-.step-card {
-  padding: 28rpx;
-}
-
-.step-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 28rpx;
-}
-
-.result-badge {
-  font-size: 26rpx;
+.section-title {
+  /* 组标题：对齐卡片左缘，上16pt 下8pt */
+  padding: 32rpx 0 16rpx;
+  font-size: 32rpx; /* 16pt */
   font-weight: 600;
-  padding: 4rpx 20rpx;
-  border-radius: 999rpx;
+  color: $color-text;
 }
 
-.st-0 { background: #fdf0e3; color: #c0762c; }
-.st-3 { background: #E4F7EA; color: #14A640; }
-.st-2 { background: #f4e9e4; color: #b05f3a; }
-
-.step-amount {
-  font-size: 34rpx;
-  font-weight: 700;
-}
-
-.steps {
-  padding-left: 8rpx;
-}
-
-.step {
-  position: relative;
-  padding-left: 40rpx;
-  padding-bottom: 32rpx;
-}
-
-.step:last-child {
-  padding-bottom: 0;
-}
-
-.step-dot {
-  position: absolute;
-  left: 4rpx;
-  top: 6rpx;
-  width: 20rpx;
-  height: 20rpx;
-  border-radius: 50%;
-  background: #d8d2c4;
-}
-
-.step.done .step-dot {
-  background: #14A640;
-}
-
-.step.current .step-dot {
-  box-shadow: 0 0 0 6rpx rgba(20, 166, 64, 0.15);
-}
-
-.step-line {
-  position: absolute;
-  left: 13rpx;
-  top: 30rpx;
-  bottom: -2rpx;
-  width: 4rpx;
-  background: #e6e0d4;
-}
-
-.step.done .step-line {
-  background: #14A640;
-}
-
-.step-text {
+/* ===== 状态卡（对齐 iOS RefundStatusCell，内边距16pt） ===== */
+.status-card {
+  padding: 32rpx;
   display: flex;
   flex-direction: column;
 }
 
-.step-name {
-  font-size: 28rpx;
+.status-name {
+  font-size: 34rpx; /* 17pt */
   font-weight: 600;
-  color: #2f2b26;
+  line-height: 1.3;
 }
 
-.step.todo .step-name {
-  color: #b3ac9e;
-}
-
-.step-time {
-  margin-top: 4rpx;
-  font-size: 22rpx;
-  color: #b3ac9e;
-}
-
-.course-card {
-  display: flex;
-  gap: 20rpx;
-  padding: 24rpx;
-}
-
-.course-cover {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 12rpx;
-  background: #efe9db;
-  flex-shrink: 0;
-}
-
-.course-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.course-title {
-  font-size: 30rpx;
+.status-amount {
+  margin-top: 16rpx; /* 8pt */
+  font-size: 44rpx; /* 22pt */
   font-weight: 600;
+  color: $color-text;
+  line-height: 1.2;
 }
 
-.course-sub {
-  margin-top: 6rpx;
-  font-size: 24rpx;
-  color: #9a938a;
+.status-desc {
+  margin-top: 4rpx; /* 2pt */
+  font-size: 26rpx; /* 13pt */
+  color: $color-text-secondary;
+  line-height: 1.5;
 }
 
-.info-card,
-.ledger-card {
-  padding: 24rpx;
+/* ===== 退款信息（对齐 iOS RefundRowCell：左右12pt，行上下12pt，无分隔线） ===== */
+.info-card {
+  padding: 0 24rpx;
 }
 
 .info-row {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 14rpx 0;
-  border-bottom: 2rpx solid #f3efe6;
-}
-
-.info-row:last-child {
-  border-bottom: none;
-}
-
-.info-row.col {
-  flex-direction: column;
-  gap: 8rpx;
+  padding: 24rpx 0; /* 上下 12pt */
 }
 
 .info-label {
-  font-size: 26rpx;
-  color: #9a938a;
   flex-shrink: 0;
+  margin-right: 24rpx; /* 12pt */
+  font-size: 28rpx; /* 14pt */
+  color: $color-text-secondary;
+  line-height: 1.45;
 }
 
 .info-value {
-  font-size: 26rpx;
-  color: #2f2b26;
+  flex: 1;
+  min-width: 0;
+  font-size: 28rpx; /* 14pt */
+  color: $color-text;
   text-align: right;
+  line-height: 1.45;
+  word-break: break-word;
 }
 
-.info-value.strong {
-  font-weight: 700;
-}
-
-.info-reason {
-  font-size: 26rpx;
-  color: #2f2b26;
-}
-
-.ledger-head {
-  font-size: 28rpx;
-  font-weight: 700;
-  margin-bottom: 12rpx;
-}
-
-.ledger-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 10rpx 0;
-  font-size: 26rpx;
-  color: #6b6156;
-}
-
-.ledger-row.strong {
-  font-weight: 700;
-  color: #2f2b26;
-  border-top: 2rpx solid #f3efe6;
-  margin-top: 6rpx;
-  padding-top: 16rpx;
-}
-
-/* ===== 实退课时差异 / 驳回 ===== */
-.info-value.less {
-  color: #c0762c;
-  font-weight: 600;
-}
-
-.reject-card {
-  padding: 24rpx;
-  background: #fbf1ea;
-  border: 2rpx solid #f0d3c2;
-}
-
-.reject-label {
-  font-size: 26rpx;
-  font-weight: 700;
-  color: #b05f3a;
-}
-
-.reject-text {
-  display: block;
-  margin-top: 10rpx;
-  font-size: 26rpx;
-  color: #7a4a33;
-  line-height: 1.5;
-}
-
-.reject-hint {
-  display: block;
-  margin-top: 12rpx;
-  font-size: 22rpx;
-  color: #b08a78;
-}
-
-/* ===== 机构打款凭证 ===== */
+/* ===== 机构打款凭证（横向滚动，缩略图 88pt、圆角10pt、间距12pt） ===== */
 .voucher-card {
-  padding: 24rpx;
+  padding: 0;
 }
 
-.voucher-head {
-  font-size: 28rpx;
-  font-weight: 700;
-  margin-bottom: 16rpx;
+.voucher-scroll {
+  width: 100%;
+  white-space: nowrap;
 }
 
-.voucher-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16rpx;
+.voucher-row {
+  display: inline-flex;
+  gap: 24rpx; /* 12pt */
+  padding: 24rpx; /* 卡内上下左右 12pt */
 }
 
 .voucher-img {
-  width: 200rpx;
-  height: 200rpx;
-  border-radius: 12rpx;
-  background: #efe9db;
+  width: 176rpx; /* 88pt */
+  height: 176rpx;
+  flex-shrink: 0;
+  border-radius: 20rpx; /* 10pt */
+  background: $color-bg-alt;
 }
 
-.voucher-tip {
-  margin-top: 16rpx;
-  font-size: 22rpx;
-  color: #9a938a;
+/* ===== 退款进度时间线（对齐 iOS RefundStepCell） ===== */
+.steps-card {
+  padding: 0;
 }
 
-/* ===== 底部固定确认条 ===== */
-.refund-detail.has-action {
-  padding-bottom: calc(200rpx + env(safe-area-inset-bottom));
+.step {
+  position: relative;
+  padding-left: 68rpx; /* 圆点左12 + 圆点10 + 间距12 + 文字 */
 }
 
+.step-dot {
+  position: absolute;
+  left: 24rpx; /* 12pt */
+  top: 28rpx;
+  width: 20rpx; /* 10pt */
+  height: 20rpx;
+  border-radius: 50%;
+  background: $color-border;
+}
+
+.step.active .step-dot {
+  background: $color-primary;
+}
+
+.step-line {
+  position: absolute;
+  left: 32rpx; /* 圆点中心（24+10-2） */
+  top: 48rpx;
+  bottom: -28rpx; /* 延伸连接下一圆点 */
+  width: 4rpx; /* 2pt */
+  background: $color-border;
+}
+
+.step-text {
+  padding: 24rpx 24rpx 28rpx 0; /* 上12pt */
+}
+
+.step:last-child .step-text {
+  padding-bottom: 32rpx;
+}
+
+.step-name {
+  display: block;
+  font-size: 30rpx; /* 15pt */
+  color: $color-text-light;
+  line-height: 1.4;
+}
+
+.step.active .step-name {
+  color: $color-text;
+}
+
+.step-time {
+  display: block;
+  margin-top: 8rpx; /* 4pt */
+  font-size: 24rpx; /* 12pt */
+  color: $color-text-secondary;
+  line-height: 1.3;
+}
+
+/* ===== 底部固定确认条（对齐 iOS bottomBar：按钮高44pt、圆角22pt） ===== */
 .action-bar {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
-  background: #ffffff;
-  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.05);
+  padding: 24rpx 32rpx calc(24rpx + env(safe-area-inset-bottom));
+  background: $color-card;
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.06);
   z-index: 20;
 }
 
-.action-tip {
-  font-size: 22rpx;
-  color: #9a938a;
-  text-align: center;
-  margin-bottom: 12rpx;
-}
-
 .action-btn {
-  height: 88rpx;
-  border-radius: 44rpx;
-  background: #14A640;
+  height: 88rpx; /* 44pt */
+  border-radius: 44rpx; /* 22pt = 高度一半 */
+  background: $color-primary;
   color: #ffffff;
-  font-size: 30rpx;
+  font-size: 30rpx; /* 15pt */
   font-weight: 600;
   display: flex;
   align-items: center;
