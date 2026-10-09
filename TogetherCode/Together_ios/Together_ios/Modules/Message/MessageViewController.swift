@@ -21,6 +21,10 @@ final class MessageViewController: BaseViewController, UITableViewDataSource, UI
     /// 0=对话 1=通知
     private var currentTab = 0
 
+    /// 对话/通知未读数（用于 segment 角标）
+    private var chatUnreadCount = 0
+    private var notifUnreadCount = 0
+
     private var footerSpinner: UIActivityIndicatorView?
 
     // MARK: - UI
@@ -28,6 +32,9 @@ final class MessageViewController: BaseViewController, UITableViewDataSource, UI
     private let segmentView = UIView()
     private let chatButton = UIButton(type: .system)
     private let noticeButton = UIButton(type: .system)
+    /// segment 角标：对话未读数 / 通知未读数
+    private let chatBadge = UILabel()
+    private let noticeBadge = UILabel()
     private let selectionView = UIView()
     private let tableView = UITableView(frame: .zero, style: .plain)
     private let emptyView = EmptyStateView()
@@ -53,9 +60,8 @@ final class MessageViewController: BaseViewController, UITableViewDataSource, UI
     }
 
     @objc private func socketMessageReceived(_ notification: Notification) {
-        guard currentTab == 0 else { return }
+        // 无论当前在哪个 Tab，都静默刷新对话列表（保证未读数实时更新）
         loadConversations(page: 1, showLoading: false)
-        NotificationCenter.default.post(name: .messageUnreadChanged, object: nil)
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -127,6 +133,33 @@ final class MessageViewController: BaseViewController, UITableViewDataSource, UI
             $0.height.equalTo(0.5)
         }
         divider.tag = 9901
+
+        // Segment 角标（对齐小程序设计：对话=数字角标右上角，通知=纯红点）
+        chatBadge.font = .appLabel(10)
+        chatBadge.textColor = .white
+        chatBadge.backgroundColor = Theme.Color.danger
+        chatBadge.layer.cornerRadius = 9
+        chatBadge.clipsToBounds = true
+        chatBadge.textAlignment = .center
+        chatBadge.isHidden = true
+        segmentView.addSubview(chatBadge)
+        chatBadge.snp.makeConstraints {
+            $0.top.equalTo(chatButton).offset(2)
+            $0.trailing.equalTo(chatButton.snp.trailing).offset(-10)
+            $0.width.greaterThanOrEqualTo(18)
+            $0.height.equalTo(18)
+        }
+
+        noticeBadge.backgroundColor = Theme.Color.danger
+        noticeBadge.layer.cornerRadius = 7
+        noticeBadge.clipsToBounds = true
+        noticeBadge.isHidden = true
+        segmentView.addSubview(noticeBadge)
+        noticeBadge.snp.makeConstraints {
+            $0.top.equalTo(noticeButton).offset(4)
+            $0.trailing.equalTo(noticeButton.snp.trailing).offset(-15)
+            $0.width.height.equalTo(14)
+        }
     }
 
     @objc private func didTapSegment(_ sender: UIButton) {
@@ -134,6 +167,7 @@ final class MessageViewController: BaseViewController, UITableViewDataSource, UI
         guard index != currentTab else { return }
         currentTab = index
         applySegmentSelection(animated: true)
+        updateSegmentBadge()
         reloadCurrent()
     }
 
@@ -242,7 +276,9 @@ final class MessageViewController: BaseViewController, UITableViewDataSource, UI
             }
             self.convHasMore = items.count >= 20 && self.conversations.count < total
             self.tableView.reloadData()
+            self.chatUnreadCount = unread
             self.updateUnreadBadge(unread)
+            self.updateSegmentBadge()
             self.updateEmptyState()
         }
     }
@@ -280,7 +316,9 @@ final class MessageViewController: BaseViewController, UITableViewDataSource, UI
             }
             self.notifHasMore = items.count >= 20 && self.notifications.count < total
             self.tableView.reloadData()
+            self.notifUnreadCount = unread
             self.updateUnreadBadge(unread)
+            self.updateSegmentBadge()
             self.updateEmptyState()
         }
     }
@@ -302,6 +340,18 @@ final class MessageViewController: BaseViewController, UITableViewDataSource, UI
             object: nil,
             userInfo: ["unread": unread]
         )
+    }
+
+    /// 更新 segment 角标（对话=数字角标，通知=纯红点，对齐小程序设计）
+    private func updateSegmentBadge() {
+        // 对话角标：当前在对话 Tab 时不显示（列表内已有每行角标）
+        let showChat = chatUnreadCount > 0 && currentTab != 0
+        chatBadge.isHidden = !showChat
+        chatBadge.text = chatUnreadCount > 99 ? "99+" : "\(chatUnreadCount)"
+
+        // 通知角标：纯红点，当前在通知 Tab 时不显示
+        let showNotif = notifUnreadCount > 0 && currentTab != 1
+        noticeBadge.isHidden = !showNotif
     }
 
     private func updateEmptyState() {
@@ -331,6 +381,49 @@ final class MessageViewController: BaseViewController, UITableViewDataSource, UI
         navigationController?.pushViewController(vc, animated: true)
     }
 
+    /// 标记通知已读（本地 + 远程）
+    private func markNotificationReadLocally(_ item: NotificationItem) {
+        MessageService.markNotificationRead(id: item.notificationId) { [weak self] success, _ in
+            guard let self, success else { return }
+            if let idx = self.notifications.firstIndex(where: { $0.notificationId == item.notificationId }) {
+                let updated = self.notifications[idx]
+                let newItem = NotificationItem(
+                    notificationId: updated.notificationId,
+                    type: updated.type,
+                    title: updated.title,
+                    content: updated.content,
+                    refType: updated.refType,
+                    refId: updated.refId,
+                    isRead: true,
+                    createdAt: updated.createdAt
+                )
+                self.notifications[idx] = newItem
+                self.tableView.reloadRows(at: [IndexPath(row: idx, section: 0)], with: .none)
+            }
+            // 刷新通知未读角标
+            self.loadNotifications(page: 1, showLoading: false)
+        }
+    }
+
+    /// 根据 ref_type 跳转对应页面（对齐小程序 onItemClick）
+    private func navigateByRefType(_ refType: String?, refId: String?) {
+        guard let type = refType, let id = refId, !id.isEmpty else { return }
+        switch type {
+        case "post":
+            navigationController?.pushViewController(PostDetailViewController(postId: id), animated: true)
+        case "order":
+            navigationController?.pushViewController(OrderDetailViewController(orderId: id), animated: true)
+        case "refund":
+            navigationController?.pushViewController(RefundDetailViewController(refundId: id), animated: true)
+        case "course":
+            navigationController?.pushViewController(CourseDetailViewController(courseId: id), animated: true)
+        case "withdraw":
+            navigationController?.pushViewController(WalletViewController(), animated: true)
+        default:
+            break
+        }
+    }
+
     // MARK: - UITableViewDataSource / Delegate
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -358,27 +451,12 @@ final class MessageViewController: BaseViewController, UITableViewDataSource, UI
             navigationController?.pushViewController(vc, animated: true)
         } else {
             let item = notifications[indexPath.row]
-            guard !item.isRead else { return }
-            // 标记已读并本地刷新
-            MessageService.markNotificationRead(id: item.notificationId) { [weak self] success, _ in
-                guard let self, success else { return }
-                if let idx = self.notifications.firstIndex(where: { $0.notificationId == item.notificationId }) {
-                    let updated = self.notifications[idx]
-                    let newItem = NotificationItem(
-                        notificationId: updated.notificationId,
-                        type: updated.type,
-                        title: updated.title,
-                        content: updated.content,
-                        refType: updated.refType,
-                        refId: updated.refId,
-                        isRead: true,
-                        createdAt: updated.createdAt
-                    )
-                    self.notifications[idx] = newItem
-                    self.tableView.reloadRows(at: [IndexPath(row: idx, section: 0)], with: .none)
-                }
-                // 通知详情跳转后续接入（ref_type/ref_id 已具备）
+            // 未读 → 先标记已读
+            if !item.isRead {
+                markNotificationReadLocally(item)
             }
+            // 根据 ref_type 跳转对应页面（对齐小程序逻辑）
+            navigateByRefType(item.refType, refId: item.refId)
         }
     }
 
