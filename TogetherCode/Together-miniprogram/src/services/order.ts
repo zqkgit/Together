@@ -58,6 +58,8 @@ export interface OrderItem {
   // 退款聚合状态：0 无 / 1 退款中 / 2 已退款 / 3 已驳回
   refund_status?: number;
   refund_status_text?: string;
+  /** 当前应跳转的退款单 id（多笔退款时指向最新有效单，避免取到最早的驳回单） */
+  current_refund_id?: string | null;
   can_apply_refund?: boolean;
   refunds?: Array<{ refund_id: string; amount: number; status: number }>;
   balance?: { remaining_lessons: number; valid_to: string | null };

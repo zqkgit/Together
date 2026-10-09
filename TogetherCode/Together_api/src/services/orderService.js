@@ -44,6 +44,7 @@ function formatOrder(order) {
     created_at: item.created_at
   }));
   // 订单层退款聚合状态：0 无 / 1 退款中 / 2 已退款 / 3 已驳回
+  // refundList 已按 created_at DESC（最新在前）排序，find 取到的即该状态最新一单
   const activeRefund = refundList.find((r) => r.status === 0 || r.status === 1);
   const refundedRefund = refundList.find((r) => r.status === 3);
   const rejectedRefund = refundList.find((r) => r.status === 2);
@@ -59,6 +60,8 @@ function formatOrder(order) {
     refund_status = 3;
     refund_status_text = "已驳回";
   }
+  // 当前应展示的退款单：进行中优先，其次已退款，最后已驳回（重新申请后旧驳回单不再作为入口）
+  const currentRefund = activeRefund || refundedRefund || rejectedRefund;
 
   return {
     order_id: String(order.order_id),
@@ -81,6 +84,8 @@ function formatOrder(order) {
     refund_amount: order.refund_amount,
     refund_status: refund_status,
     refund_status_text: refund_status_text,
+    // 当前应跳转的退款单 id（多笔退款时指向最新有效单，避免取到最早的驳回单）
+    current_refund_id: currentRefund ? currentRefund.refund_id : null,
     pay_channel: order.pay_channel,
     pay_method: order.pay_channel || null,
     pay_method_text: payMethodText(order.pay_channel),
@@ -186,6 +191,11 @@ async function getOrderWithDetails(orderId, options = {}) {
       { model: Payment, as: "payments", attributes: ["payment_id", "payment_no", "channel", "pay_method", "amount", "status", "paid_at", "voucher_images", "payer_note", "upload_by", "confirm_by", "reject_reason", "created_at"] },
       { model: Refund, as: "refunds", attributes: ["refund_id", "amount", "requested_lessons", "refundable_lessons", "status", "reason", "created_at"] },
       { model: ChildCourseBalance, as: "balance", attributes: ["balance_id", "total_lessons", "consumed_lessons", "refunded_lessons", "remaining_lessons", "valid_from", "valid_to", "status"] }
+    ],
+    // 退款 / 付款记录最新在前，保证 current_refund_id、latestPayment 取到最新一单
+    order: [
+      [{ model: Refund, as: "refunds" }, "created_at", "DESC"],
+      [{ model: Payment, as: "payments" }, "created_at", "DESC"]
     ]
   });
 }
@@ -541,7 +551,11 @@ async function listOrders(userId, query = {}) {
       { model: Refund, as: "refunds", attributes: ["refund_id", "amount", "requested_lessons", "refundable_lessons", "status", "reason", "created_at"] },
       { model: ChildCourseBalance, as: "balance", attributes: ["balance_id", "total_lessons", "consumed_lessons", "refunded_lessons", "remaining_lessons", "valid_from", "valid_to", "status"] }
     ],
-    order: [["created_at", "DESC"]]
+    order: [
+      ["created_at", "DESC"],
+      [{ model: Refund, as: "refunds" }, "created_at", "DESC"],
+      [{ model: Payment, as: "payments" }, "created_at", "DESC"]
+    ]
   });
 
   return {

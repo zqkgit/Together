@@ -47,9 +47,13 @@ export default function OrderDetailPage() {
 
   const goRefundDetail = () => {
     if (!order) return;
-    const refundStatus = order.refund_status || 0;
-    const targets = refundStatus === 2 ? [3] : refundStatus === 3 ? [2] : [0, 1];
-    const refundId = order.refunds?.find((r) => targets.includes(r.status))?.refund_id;
+    // 以后端返回的「当前退款单」为准（多笔退款时指向最新有效单，不会取到最早的驳回单）
+    let refundId = order.current_refund_id;
+    if (!refundId) {
+      const refundStatus = order.refund_status || 0;
+      const targets = refundStatus === 2 ? [3] : refundStatus === 3 ? [2] : [0, 1];
+      refundId = order.refunds?.find((r) => targets.includes(r.status))?.refund_id;
+    }
     if (refundId) {
       Taro.navigateTo({ url: `/pages/refund-detail/index?id=${refundId}` });
     } else {

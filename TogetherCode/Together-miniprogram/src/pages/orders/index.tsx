@@ -145,7 +145,8 @@ export default function OrdersPage() {
         }
         break;
       case "refundDetail": {
-        const refundId = order.refunds && order.refunds.length > 0 ? order.refunds[0].refund_id : "";
+        // 以后端「当前退款单」为准，兜底取第一条（后端已按时间倒序，第一条即最新）
+        const refundId = order.current_refund_id || (order.refunds && order.refunds.length > 0 ? order.refunds[0].refund_id : "");
         if (refundId) {
           Taro.navigateTo({ url: "/pages/refund-detail/index?id=" + refundId });
         }

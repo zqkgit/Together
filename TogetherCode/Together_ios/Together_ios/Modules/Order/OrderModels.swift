@@ -150,6 +150,8 @@ struct OrderItem: Codable {
     let refund_amount: Int?
     let refund_status: Int?
     let refund_status_text: String?
+    /// 当前应跳转的退款单 id（多笔退款时指向最新有效单，避免取到最早的驳回单）
+    let current_refund_id: String?
     let can_apply_refund: Bool?
     let refund_expire_at: String?
     let pay_channel: String?
@@ -188,9 +190,9 @@ struct OrderItem: Codable {
         statusValue == .paymentReview
     }
 
-    /// 最近一笔退款单（详情页跳转退款进度用）
+    /// 最近一笔退款单（详情页跳转退款进度用）：优先后端返回的当前退款单，兜底第一条（后端已按时间倒序）
     var latestRefundId: String? {
-        refunds?.first?.refund_id
+        current_refund_id ?? refunds?.first?.refund_id
     }
 
     /// 金额（分 → 元，千分位，如 ¥1,200）
