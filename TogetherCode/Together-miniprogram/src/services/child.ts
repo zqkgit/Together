@@ -10,11 +10,15 @@ export interface ChildItem {
   balances?: ChildBalance[];
 }
 
-/** 孩子关联的课程余额（用于发布页关联课程选择） */
+/** 孩子关联的课程余额（用于发布页关联课程选择 / 孩子主页课程聚合） */
 export interface ChildBalance {
   course_id: string;
   course_title: string;
-  status: number; // 1=进行中 2=已完成（有效课程）
+  studio_name?: string;
+  total_lessons?: number;
+  consumed_lessons?: number;
+  remaining_lessons?: number;
+  status?: number; // 1=进行中 2=已完成 4=已退款
 }
 
 export async function listChildren(): Promise<ChildItem[]> {
@@ -66,7 +70,7 @@ export interface ChildGrowth {
     timeline_count: number;
   };
   assessments: unknown[];
-  balances: unknown[];
+  balances: ChildBalance[];
   timeline: GrowthTimelineItem[];
 }
 
