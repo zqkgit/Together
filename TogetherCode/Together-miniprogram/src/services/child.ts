@@ -6,6 +6,7 @@ export interface ChildItem {
   avatar: string | null;
   birthday: string | null;
   gender: number | null;
+  total_remaining_lessons?: number;
   balances?: ChildBalance[];
 }
 
@@ -21,7 +22,7 @@ export async function listChildren(): Promise<ChildItem[]> {
   return data?.list || data || [];
 }
 
-export function createChild(payload: { nickname: string; birthday?: string; gender?: number; avatar?: string }): Promise<ChildItem> {
+export function createChild(payload: { nickname: string; birthday?: string; gender?: number; avatar?: string; interests?: string[] }): Promise<ChildItem> {
   return request({ url: "/children", method: "POST", data: payload });
 }
 
