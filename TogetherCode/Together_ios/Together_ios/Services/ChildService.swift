@@ -97,4 +97,54 @@ enum ChildService {
             }
         }
     }
+
+    // MARK: - 课时明细
+
+    /// 课时余额列表（某孩子的所有课包）
+    static func fetchChildBalances(childId: String, completion: @escaping (Result<[ChildBalance], APIError>) -> Void) {
+        APIClient.shared.request("/parent/balances", method: .get) { result in
+            switch result {
+            case .success(let json):
+                let children = JSONKit.decodeList([ChildBalanceChild].self, from: json["children"])
+                let target = children.first(where: { $0.child_id == childId })
+                completion(.success(target?.balances ?? []))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 消课记录
+    static func fetchLessonLogs(childId: String, page: Int = 1, pageSize: Int = 50, completion: @escaping (Result<[LessonLogItem], APIError>) -> Void) {
+        let params: [String: Any] = ["child_id": childId, "page": page, "page_size": pageSize]
+        APIClient.shared.request("/parent/lesson-logs", method: .get, parameters: params) { result in
+            switch result {
+            case .success(let json):
+                completion(.success(JSONKit.decodeList([LessonLogItem].self, from: json["list"])))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+}
+
+// MARK: - 课时明细模型
+
+/// 余额接口返回的孩子节点
+private struct ChildBalanceChild: Codable {
+    let child_id: String
+    let balances: [ChildBalance]?
+}
+
+/// 消课记录
+struct LessonLogItem: Codable {
+    let log_id: String?
+    let child_name: String?
+    let course_title: String?
+    let studio_name: String?
+    let lesson_date: String?
+    let start_time: String?
+    let is_makeup: Bool?
+    let delta: Int?
+    let note: String?
 }

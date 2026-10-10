@@ -11,6 +11,58 @@ final class ChildHomeViewController: BaseViewController {
     // 头部
     private let headerView = ChildHeaderView()
 
+    // 课时明细入口
+    private let balanceEntryButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.backgroundColor = Theme.Color.surface
+        btn.layer.cornerRadius = Theme.Radius.card
+        btn.layer.shadowColor = UIColor.black.withAlphaComponent(0.06).cgColor
+        btn.layer.shadowOffset = CGSize(width: 0, height: 2)
+        btn.layer.shadowRadius = 6
+        btn.layer.shadowOpacity = 1
+
+        let icon = UILabel()
+        icon.text = "📋"
+        icon.font = .appBody(16)
+        btn.addSubview(icon)
+        icon.snp.makeConstraints {
+            $0.leading.equalToSuperview().offset(Theme.Spacing.cardInner)
+            $0.centerY.equalToSuperview()
+        }
+
+        let title = UILabel()
+        title.text = "课时明细"
+        title.font = .appSection(15)
+        title.textColor = Theme.Color.ink
+        btn.addSubview(title)
+        title.snp.makeConstraints {
+            $0.leading.equalTo(icon.snp.trailing).offset(Theme.Spacing.s)
+            $0.centerY.equalToSuperview()
+        }
+
+        let arrow = UILabel()
+        arrow.text = "›"
+        arrow.font = .appBody(18)
+        arrow.textColor = Theme.Color.muted
+        btn.addSubview(arrow)
+        arrow.snp.makeConstraints {
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
+            $0.centerY.equalToSuperview()
+        }
+
+        let subtitle = UILabel()
+        subtitle.text = "查看课时余额与消课记录"
+        subtitle.font = .appLabel(12)
+        subtitle.textColor = Theme.Color.muted
+        btn.addSubview(subtitle)
+        subtitle.snp.makeConstraints {
+            $0.trailing.equalTo(arrow.snp.leading).offset(-Theme.Spacing.s)
+            $0.centerY.equalToSuperview()
+        }
+
+        return btn
+    }()
+
     // 分段
     private let segmentControl = UISegmentedControl(items: ["作品", "课程", "动态"])
 
@@ -82,6 +134,15 @@ final class ChildHomeViewController: BaseViewController {
         }
         headerView.setContentHuggingPriority(.defaultHigh, for: .vertical)
 
+        // 课时明细入口
+        balanceEntryButton.addTarget(self, action: #selector(openBalanceDetail), for: .touchUpInside)
+        view.addSubview(balanceEntryButton)
+        balanceEntryButton.snp.makeConstraints {
+            $0.top.equalTo(headerView.snp.bottom).offset(Theme.Spacing.s)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.height.equalTo(48)
+        }
+
         // 分段
         segmentControl.selectedSegmentTintColor = Theme.Color.brand
         segmentControl.setTitleTextAttributes([.foregroundColor: UIColor.white], for: .selected)
@@ -90,7 +151,7 @@ final class ChildHomeViewController: BaseViewController {
         segmentControl.selectedSegmentIndex = 0
         view.addSubview(segmentControl)
         segmentControl.snp.makeConstraints {
-            $0.top.equalTo(headerView.snp.bottom).offset(Theme.Spacing.m)
+            $0.top.equalTo(balanceEntryButton.snp.bottom).offset(Theme.Spacing.m)
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
             $0.height.equalTo(36)
         }
@@ -254,6 +315,11 @@ final class ChildHomeViewController: BaseViewController {
             .filter { $0.total > 0 || $0.isRefunded }
             .sorted { $0.course_title < $1.course_title }
         coursesTableView.reloadData()
+    }
+
+    @objc private func openBalanceDetail() {
+        let vc = ChildBalanceViewController(childId: child.child_id, nickname: child.nickname)
+        navigationController?.pushViewController(vc, animated: true)
     }
 
     @objc private func segmentChanged() {

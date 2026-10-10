@@ -46,12 +46,17 @@ struct ChildBalance: Codable {
     let balance_id: String
     let course_id: String?
     let course_title: String?
+    let course_cover: String?
     let studio_id: String?
     let studio_name: String?
     let total_lessons: Int
     let consumed_lessons: Int
     let remaining_lessons: Int
+    let refunded_lessons: Int?
+    let valid_from: String?
+    let valid_to: String?
     let status: Int?
+    let status_text: String?
 
     /// 学期完成度（0-100），无课时返回 0
     var progressPercent: Int {
