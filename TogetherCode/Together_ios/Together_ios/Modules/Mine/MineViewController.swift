@@ -19,7 +19,6 @@ final class MineViewController: BaseViewController {
     private static let serviceItems: [MineMenuItem] = [
         MineMenuItem(icon: "heart", title: "收藏与动态"),
         MineMenuItem(icon: "yensign.circle", title: "收益中心"),
-        MineMenuItem(icon: "ticket", title: "优惠券"),
         MineMenuItem(icon: "gearshape", title: "设置")
     ]
 

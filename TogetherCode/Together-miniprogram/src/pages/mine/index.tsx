@@ -105,7 +105,6 @@ export default function MinePage() {
   const serviceItems = [
     { icon: "⭐", title: "收藏与动态", url: "/packageSocial/pages/favorites/index" },
     { icon: "💰", title: "收益中心", url: "/packageWallet/pages/wallet/index" },
-    { icon: "🎫", title: "优惠券", url: "" },
     { icon: "⚙️", title: "设置", url: "" }
   ];
 
