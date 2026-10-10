@@ -497,7 +497,7 @@ final class HomeHeroView: UIView {
         childScrollView.showsHorizontalScrollIndicator = false
         childScrollView.alwaysBounceHorizontal = true
         addSubview(childScrollView)
-        childScrollView.snp.makeConstraints { $0.top.equalTo(subtitleLabel.snp.bottom).offset(Theme.Spacing.m); $0.leading.trailing.equalToSuperview(); $0.bottom.equalToSuperview().inset(Theme.Spacing.s); $0.height.equalTo(childScrollView.contentLayoutGuide.snp.height) }
+        childScrollView.snp.makeConstraints { $0.top.equalTo(subtitleLabel.snp.bottom).offset(Theme.Spacing.m); $0.leading.trailing.equalToSuperview(); $0.bottom.equalToSuperview(); $0.height.equalTo(childScrollView.contentLayoutGuide.snp.height) }
 
         childStack.axis = .horizontal
         childStack.spacing = Theme.Spacing.m
@@ -534,7 +534,7 @@ final class HomeHeroView: UIView {
                 $0.leading.equalToSuperview()
                 $0.trailing.equalToSuperview().inset(Theme.Spacing.xl)
                 $0.height.equalTo(52)
-                $0.bottom.equalToSuperview().inset(Theme.Spacing.s)
+                $0.bottom.equalToSuperview()
             }
             return
         }
@@ -546,7 +546,7 @@ final class HomeHeroView: UIView {
             $0.top.equalTo(subtitleLabel.snp.bottom).offset(Theme.Spacing.m)
             $0.leading.trailing.equalToSuperview()
             $0.height.equalTo(childScrollView.contentLayoutGuide.snp.height)
-            $0.bottom.equalToSuperview().inset(Theme.Spacing.s)
+            $0.bottom.equalToSuperview()
         }
         noChildView.snp.remakeConstraints {
             $0.top.equalTo(subtitleLabel.snp.bottom).offset(Theme.Spacing.m)
