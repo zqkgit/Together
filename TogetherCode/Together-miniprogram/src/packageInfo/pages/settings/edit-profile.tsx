@@ -26,6 +26,7 @@ export default function EditProfilePage() {
         setAvatar(res.user.avatar);
         setNickname(res.user.nickname || "");
         setCity(res.user.city || "");
+        setSignature(res.user.signature || "");
       }
     } catch {
       // 忽略

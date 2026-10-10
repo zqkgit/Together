@@ -1,14 +1,31 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Taro from "@tarojs/taro";
 import { View, Text, Input } from "@tarojs/components";
-import { changePhone, sendSmsCode } from "../../../services/auth";
+import { changePhone, sendSmsCode, getMe } from "../../../services/auth";
 import "./form-page.scss";
 
 export default function ChangePhonePage() {
+  const [currentPhone, setCurrentPhone] = useState("");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [countdown, setCountdown] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    loadCurrentPhone();
+  }, []);
+
+  const loadCurrentPhone = async () => {
+    try {
+      const res = await getMe();
+      if (res.user?.phone) {
+        const p = res.user.phone;
+        setCurrentPhone(p.length === 11 ? p.slice(0, 3) + "****" + p.slice(7) : p);
+      }
+    } catch {
+      // 忽略
+    }
+  };
 
   const startCountdown = () => {
     setCountdown(60);
@@ -58,15 +75,28 @@ export default function ChangePhonePage() {
 
   return (
     <View className="form-page">
+      {currentPhone ? (
+        <View className="fp-info-card">
+          <Text className="fp-info-label">当前绑定手机号</Text>
+          <Text className="fp-info-value">{currentPhone}</Text>
+        </View>
+      ) : null}
+
+      <Text className="fp-label">新手机号</Text>
       <View className="fp-card fp-card--row">
         <Input className="fp-input fp-input--flex" type="number" value={phone} onInput={(e) => setPhone(e.detail.value)} placeholder="请输入新手机号" maxlength={11} />
       </View>
+
+      <Text className="fp-label">验证码</Text>
       <View className="fp-card fp-card--row">
         <Input className="fp-input fp-input--flex" type="number" value={code} onInput={(e) => setCode(e.detail.value)} placeholder="请输入验证码" maxlength={6} />
         <View className={`fp-code-btn ${countdown > 0 ? "fp-code-btn--disabled" : ""}`} onClick={handleSendCode}>
           <Text className="fp-code-btn-text">{countdown > 0 ? `${countdown}s` : "获取验证码"}</Text>
         </View>
       </View>
+
+      <Text className="fp-hint">新手机号将替换当前登录手机号</Text>
+
       <View className="fp-btn" onClick={handleSubmit}>
         <Text className="fp-btn-text">确认更换</Text>
       </View>

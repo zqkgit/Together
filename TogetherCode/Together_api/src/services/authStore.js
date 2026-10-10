@@ -56,7 +56,8 @@ async function buildUserPayload(userRecord) {
       nickname: user.nickname,
       avatar: user.avatar,
       city: user.city,
-      signature: user.signature
+      signature: user.signature,
+      has_pay_password: !!user.pay_password_hash
     },
     teacher_profile: teacherProfile,
     current_role: user.current_role,

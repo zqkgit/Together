@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import Taro from "@tarojs/taro";
 import { View, Text } from "@tarojs/components";
 import { setPayPassword } from "../../../services/auth";
@@ -11,7 +11,6 @@ export default function SetPayPasswordPage() {
   const [firstPin, setFirstPin] = useState("");
   const [secondPin, setSecondPin] = useState("");
   const [saving, setSaving] = useState(false);
-  const inputRef = useRef("");
 
   const handleDigit = (d: string) => {
     const setter = step === 1 ? setFirstPin : setSecondPin;
@@ -70,6 +69,7 @@ export default function SetPayPasswordPage() {
           </View>
         ))}
       </View>
+      <Text className="fp-hint fp-hint--center">支付密码用于佣金提现等操作时校验</Text>
       <View className="fp-keyboard">
         {["1","2","3","4","5","6","7","8","9","","0","del"].map((k) => {
           if (k === "") return <View key="blank" className="fp-key fp-key--blank" />;

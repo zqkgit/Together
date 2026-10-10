@@ -7,6 +7,52 @@
   box-sizing: border-box;
 }
 
+/* Field label */
+.fp-label {
+  font-size: 28px;
+  color: #666;
+  margin-bottom: 12px;
+  margin-left: 8px;
+  display: block;
+}
+
+/* Hint text */
+.fp-hint {
+  font-size: 24px;
+  color: #999;
+  margin-top: 12px;
+  margin-left: 8px;
+  display: block;
+
+  &--center {
+    text-align: center;
+    margin-left: 0;
+    margin-top: 16px;
+  }
+}
+
+/* Info card (current phone display) */
+.fp-info-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px 32px;
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fp-info-label {
+  font-size: 28px;
+  color: #666;
+}
+
+.fp-info-value {
+  font-size: 30px;
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
 /* Card container for inputs */
 .fp-card {
   background: #fff;
@@ -36,6 +82,13 @@
   &--flex {
     flex: 1;
   }
+}
+
+/* Eye toggle for password visibility */
+.fp-eye {
+  font-size: 36px;
+  padding: 0 8px;
+  flex-shrink: 0;
 }
 
 /* Verification code button */

@@ -6,6 +6,8 @@ export interface AuthUser {
   nickname: string;
   avatar: string | null;
   city: string | null;
+  signature?: string | null;
+  has_pay_password?: boolean;
 }
 
 export interface SessionData {
