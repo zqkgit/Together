@@ -17,14 +17,14 @@ final class SectionHeaderView: UIView {
         addSubview(titleLabel)
         titleLabel.snp.makeConstraints { $0.leading.centerY.equalToSuperview() }
 
-        if let more {
-            moreButton.setTitle("\(more) ›", for: .normal)
-            moreButton.setTitleColor(Theme.Color.sub, for: .normal)
-            moreButton.titleLabel?.font = .appLabel(12)
-            moreButton.addTarget(self, action: #selector(didTapMore), for: .touchUpInside)
-            addSubview(moreButton)
-            moreButton.snp.makeConstraints { $0.trailing.centerY.equalToSuperview() }
-        }
+        moreButton.setTitle("\(more ?? "更多") ›", for: .normal)
+        moreButton.setTitleColor(Theme.Color.sub, for: .normal)
+        moreButton.titleLabel?.font = .appLabel(12)
+        moreButton.addTarget(self, action: #selector(didTapMore), for: .touchUpInside)
+        addSubview(moreButton)
+        moreButton.snp.makeConstraints { $0.trailing.centerY.equalToSuperview() }
+        moreButton.isHidden = more == nil
+
         snp.makeConstraints { $0.height.equalTo(32) }
     }
 

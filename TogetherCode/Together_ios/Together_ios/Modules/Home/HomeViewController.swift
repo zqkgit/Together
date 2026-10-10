@@ -225,7 +225,7 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
             return cell
         case .courseHeader:
             let cell = tableView.dequeueReusableCell(withIdentifier: "HomeSectionCell", for: indexPath) as! HomeSectionCell
-            cell.configure(title: "为你推荐", more: "全部") { [weak self] in self?.showToast("课程列表开发中") }
+            cell.configure(title: "为你推荐", more: "全部") { [weak self] in self?.navigationController?.pushViewController(CourseViewController(), animated: true) }
             return cell
         case .courseRow:
             let cell = tableView.dequeueReusableCell(withIdentifier: "HomeCourseRowCell", for: indexPath) as! HomeCourseRowCell
@@ -237,7 +237,7 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
             return cell
         case .studioHeader:
             let cell = tableView.dequeueReusableCell(withIdentifier: "HomeSectionCell", for: indexPath) as! HomeSectionCell
-            cell.configure(title: "附近热门工作室", more: "更多") { [weak self] in self?.showToast("工作室列表开发中") }
+            cell.configure(title: "附近热门工作室", more: "更多") { [weak self] in self?.navigationController?.pushViewController(PlaceholderViewController(title: "工作室"), animated: true) }
             return cell
         case .studio(let item):
             let cell = tableView.dequeueReusableCell(withIdentifier: "HomeStudioCell", for: indexPath) as! HomeStudioCell
@@ -249,7 +249,7 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
             return cell
         case .postHeader:
             let cell = tableView.dequeueReusableCell(withIdentifier: "HomeSectionCell", for: indexPath) as! HomeSectionCell
-            cell.configure(title: "老师动态", more: "更多") { [weak self] in self?.showToast("广场开发中") }
+            cell.configure(title: "老师动态", more: "更多") { [weak self] in self?.tabBarController?.selectedIndex = 1 }
             return cell
         case .post(let item):
             let cell = tableView.dequeueReusableCell(withIdentifier: "HomePostCell", for: indexPath) as! HomePostCell
