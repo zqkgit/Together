@@ -7,7 +7,7 @@ export interface AuthUser {
   avatar: string | null;
   city: string | null;
   signature?: string | null;
-  has_pay_password?: boolean;
+
 }
 
 export interface SessionData {
@@ -68,11 +68,6 @@ export function changePassword(oldPassword: string, newPassword: string): Promis
 /** 更换绑定手机号 */
 export function changePhone(phone: string, code: string): Promise<void> {
   return request({ url: "/auth/change-phone", method: "POST", data: { phone, code } });
-}
-
-/** 设置/修改支付密码 */
-export function setPayPassword(password: string): Promise<void> {
-  return request({ url: "/auth/pay-password", method: "POST", data: { password } });
 }
 
 /** 注销账号 */
