@@ -17,8 +17,8 @@ interface SettingRow {
 /** 分组 */
 const sections: SettingRow[][] = [
   [
-    { icon: "👤", title: "个人资料", url: "" },
-    { icon: "🔒", title: "账号与安全", url: "" },
+    { icon: "👤", title: "个人资料", url: "/packageInfo/pages/settings/edit-profile" },
+    { icon: "🔒", title: "账号与安全", url: "/packageInfo/pages/settings/account-security" },
   ],
   [
     { icon: "🔔", title: "消息通知", hasSwitch: true },

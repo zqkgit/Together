@@ -1,0 +1,96 @@
+.edit-profile {
+  min-height: 100vh;
+  background: #f5f3ed;
+  padding: 32rpx 0;
+}
+
+/* 头像 */
+.ep-avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24rpx 0 32rpx;
+}
+
+.ep-avatar-img {
+  width: 168rpx;
+  height: 168rpx;
+  border-radius: 84rpx;
+}
+
+.ep-avatar-placeholder {
+  width: 168rpx;
+  height: 168rpx;
+  border-radius: 84rpx;
+  background: #e8e5dd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ep-avatar-letter {
+  font-size: 72rpx;
+  color: #14a640;
+  font-weight: 700;
+}
+
+.ep-avatar-tip {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 16rpx;
+}
+
+/* 字段标题 */
+.ep-field-title {
+  font-size: 28rpx;
+  color: #1a1a1a;
+  margin-left: 52rpx;
+  margin-top: 32rpx;
+  margin-bottom: 12rpx;
+  display: block;
+}
+
+/* 字段卡片 */
+.ep-field-card {
+  margin: 0 32rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  height: 104rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 32rpx;
+  position: relative;
+}
+
+.ep-input {
+  flex: 1;
+  font-size: 30rpx;
+  color: #1a1a1a;
+}
+
+.ep-signature-count {
+  font-size: 22rpx;
+  color: #999;
+  margin-left: 16rpx;
+}
+
+/* 保存按钮 */
+.ep-save-btn {
+  margin: 48rpx 32rpx 0;
+  height: 100rpx;
+  background: #14a640;
+  border-radius: 50rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &--disabled {
+    opacity: 0.6;
+  }
+}
+
+.ep-save-text {
+  font-size: 32rpx;
+  color: #fff;
+  font-weight: 600;
+}

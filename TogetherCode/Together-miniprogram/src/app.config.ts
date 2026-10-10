@@ -81,7 +81,13 @@ export default defineAppConfig({
         "pages/announcement-detail/index",
         "pages/chat/index",
         "pages/settings/index",
-        "pages/settings/about"
+        "pages/settings/about",
+        "pages/settings/edit-profile",
+        "pages/settings/account-security",
+        "pages/settings/change-password",
+        "pages/settings/change-phone",
+        "pages/settings/set-pay-password",
+        "pages/settings/deactivate-account"
       ]
     }
   ],

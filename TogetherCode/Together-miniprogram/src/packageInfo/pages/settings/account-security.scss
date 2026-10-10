@@ -1,0 +1,58 @@
+.account-security {
+  min-height: 100vh;
+  background: #f5f3ed;
+  padding-top: 16rpx;
+}
+
+.as-group {
+  margin: 0 24rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  overflow: hidden;
+}
+
+.as-row {
+  display: flex;
+  align-items: center;
+  height: 108rpx;
+  padding: 0 32rpx;
+  position: relative;
+
+  &--border::after {
+    content: "";
+    position: absolute;
+    left: 96rpx;
+    right: 32rpx;
+    bottom: 0;
+    height: 1px;
+    background: #eee;
+  }
+}
+
+.as-row-icon {
+  font-size: 36rpx;
+  width: 44rpx;
+  text-align: center;
+}
+
+.as-row-title {
+  flex: 1;
+  font-size: 30rpx;
+  color: #1a1a1a;
+  margin-left: 24rpx;
+
+  &--danger {
+    color: #e5484d;
+  }
+}
+
+.as-row-value {
+  font-size: 26rpx;
+  color: #999;
+  margin-right: 12rpx;
+}
+
+.as-row-chevron {
+  font-size: 30rpx;
+  color: #ccc;
+}
