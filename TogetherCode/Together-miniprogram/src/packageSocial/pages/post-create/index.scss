@@ -1,0 +1,284 @@
+@use '../../../styles/variables.scss' as *;
+
+/* ========== 发布页（对齐 iOS ParentPostCreateViewController） ========== */
+.post-create {
+  background: $color-bg;
+  min-height: 100vh;
+  padding-bottom: 200rpx;
+}
+
+/* ========== 自定义导航栏（对齐 iOS：标题 + × 关闭） ========== */
+.custom-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  background: $color-card;
+}
+
+.nav-status {
+  height: env(safe-area-inset-top);
+}
+
+.nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 88rpx;
+  position: relative;
+}
+
+.nav-title {
+  font-size: 34rpx;
+  font-weight: $font-weight-semibold;
+  color: $color-text;
+}
+
+.close-btn {
+  position: absolute;
+  right: 24rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 76rpx;
+  height: 76rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 50%;
+  color: $color-text;
+  font-size: 40rpx;
+  font-weight: 300;
+  line-height: 1;
+
+  &:active { opacity: 0.6; }
+}
+
+/* ========== 内容区域（留出导航栏空间） ========== */
+.post-create .card:first-child {
+  margin-top: calc(env(safe-area-inset-top) + 88rpx + 24rpx);
+}
+
+.card {
+  background: $color-card;
+  border-radius: $radius-md;
+  border: 1rpx solid $color-border;
+  padding: 0 32rpx;
+  margin-left: $page-padding;
+  margin-right: $page-padding;
+  margin-bottom: 24rpx;
+}
+
+/* ========== Section 0: 正文（对齐 iOS TextCell） ========== */
+.content-input {
+  width: 100%;
+  min-height: 180rpx;
+  padding: 24rpx 0 0;
+  font-size: 30rpx;
+  line-height: 1.6;
+  color: $color-text;
+}
+
+.char-count {
+  display: block;
+  text-align: right;
+  font-size: 22rpx;
+  color: $color-text-secondary;
+  padding: 8rpx 0 24rpx;
+  opacity: 0.6;
+}
+
+/* ========== Section 1: 图片九宫格（对齐 iOS ImageGridCell：横向滚动） ========== */
+.image-scroll {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.image-row {
+  display: inline-flex;
+  gap: 16rpx;
+  padding: 24rpx 0;
+}
+
+.img-wrap {
+  position: relative;
+  width: 200rpx;
+  height: 200rpx;
+  flex-shrink: 0;
+
+  .img-item {
+    width: 100%;
+    height: 100%;
+    border-radius: $radius-md;
+    background: #e8e2d4;
+  }
+
+  .img-del {
+    position: absolute;
+    top: -12rpx;
+    right: -12rpx;
+    width: 44rpx;
+    height: 44rpx;
+    line-height: 40rpx;
+    text-align: center;
+    font-size: 24rpx;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 50%;
+    z-index: 1;
+  }
+}
+
+.img-add {
+  width: 200rpx;
+  height: 200rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: $color-bg;
+  border-radius: $radius-md;
+  flex-shrink: 0;
+
+  .add-icon {
+    font-size: 72rpx;
+    font-weight: 300;
+    color: $color-text-secondary;
+    line-height: 1;
+  }
+
+  .add-label {
+    font-size: 20rpx;
+    color: $color-text-secondary;
+    margin-top: 4rpx;
+    opacity: 0.9;
+  }
+}
+
+/* ========== Section 标签（对齐 iOS section label：13号中等字重灰色） ========== */
+.section-label {
+  display: block;
+  padding: 24rpx 0 12rpx;
+  font-size: 26rpx;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+}
+
+/* ========== 标签选择（对齐 iOS TagSelectView） ========== */
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  padding-bottom: 24rpx;
+}
+
+.tag-chip {
+  padding: 10rpx 28rpx;
+  font-size: 24rpx;
+  color: $color-text-secondary;
+  background: $color-bg;
+  border-radius: $radius-round;
+  line-height: 1.4;
+
+  &.active {
+    color: #fff;
+    background: $color-primary;
+  }
+}
+
+.tag-empty {
+  font-size: 24rpx;
+  color: $color-text-secondary;
+  padding: 12rpx 0 24rpx;
+}
+
+/* ========== Section 3: 关联课程（对齐 iOS PickerCell） ========== */
+.picker-card {
+  display: flex;
+  align-items: center;
+  padding: 0 32rpx;
+  cursor: pointer;
+
+  &:active {
+    opacity: 0.7;
+  }
+}
+
+.picker-title {
+  font-size: 30rpx;
+  font-weight: $font-weight-medium;
+  color: $color-text;
+  padding: 28rpx 0;
+  flex-shrink: 0;
+}
+
+.picker-detail {
+  flex: 1;
+  text-align: right;
+  font-size: 28rpx;
+  color: $color-text-secondary;
+  margin-left: 16rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picker-chevron {
+  font-size: 28rpx;
+  color: $color-text-secondary;
+  opacity: 0.5;
+  margin-left: 8rpx;
+  flex-shrink: 0;
+}
+
+/* ========== Section 5: 谁可以看（对齐 iOS VisibilityCell） ========== */
+.visibility-row {
+  display: flex;
+  gap: 16rpx;
+  padding-bottom: 24rpx;
+}
+
+.vis-btn {
+  flex: 1;
+  text-align: center;
+  height: 80rpx;
+  line-height: 80rpx;
+  font-size: 26rpx;
+  color: $color-text-secondary;
+  background: $color-bg;
+  border-radius: $radius-round;
+
+  &.active {
+    color: #fff;
+    background: $color-primary;
+  }
+}
+
+/* ========== 底部发布栏（对齐 iOS bottomBar） ========== */
+.bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 24rpx $page-padding calc(24rpx + env(safe-area-inset-bottom));
+  background: $color-card;
+  z-index: 100;
+}
+
+.publish-btn {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  font-size: 30rpx;
+  font-weight: $font-weight-semibold;
+  color: #fff;
+  background: $color-primary;
+  border-radius: $radius-button;
+
+  &.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+}

@@ -189,12 +189,12 @@ export default function MessagesPage() {
     }
     const id = item.ref_id;
     const map: Record<string, string> = {
-      post: "/pages/post-detail/index?id=",
-      order: "/pages/order-detail/index?id=",
-      refund: "/pages/refund-detail/index?id=",
-      course: "/pages/course-detail/index?id=",
-      announcement: "/pages/announcement-detail/index?id=",
-      withdraw: "/pages/wallet/index",
+      post: "/packageSocial/pages/post-detail/index?id=",
+      order: "/packageOrder/pages/order-detail/index?id=",
+      refund: "/packageOrder/pages/refund-detail/index?id=",
+      course: "/packageCourses/pages/course-detail/index?id=",
+      announcement: "/packageInfo/pages/announcement-detail/index?id=",
+      withdraw: "/packageWallet/pages/wallet/index",
     };
     const prefix = item.ref_type ? map[item.ref_type] : "";
     if (prefix && id) {
@@ -205,7 +205,7 @@ export default function MessagesPage() {
   const onConvClick = (item: ConversationItem) => {
     const peerName = encodeURIComponent(item.peer?.nickname || "艺启用户");
     const peerAvatar = encodeURIComponent(item.peer?.avatar || "");
-    Taro.navigateTo({ url: `/pages/chat/index?conversation_id=${item.conversation_id}&peer_name=${peerName}&peer_avatar=${peerAvatar}` });
+    Taro.navigateTo({ url: `/packageInfo/pages/chat/index?conversation_id=${item.conversation_id}&peer_name=${peerName}&peer_avatar=${peerAvatar}` });
   };
 
   const readAll = async () => {
@@ -249,7 +249,7 @@ export default function MessagesPage() {
       {/* 右侧操作区 */}
       <View className="head-actions">
         {tab === 0 && (
-          <View className="add-btn" onClick={() => Taro.navigateTo({ url: "/pages/following-list/index" })}>
+          <View className="add-btn" onClick={() => Taro.navigateTo({ url: "/packageSocial/pages/following-list/index" })}>
             <Text className="add-icon">+</Text>
           </View>
         )}

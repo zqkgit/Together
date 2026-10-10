@@ -90,7 +90,7 @@ export default function PlazaPage() {
   };
 
   const goDetail = (id: string) => {
-    Taro.navigateTo({ url: `/pages/post-detail/index?id=${id}` });
+    Taro.navigateTo({ url: `/packageSocial/pages/post-detail/index?id=${id}` });
   };
 
   /** 话题色系（对齐 iOS WorkCardView.palette） */

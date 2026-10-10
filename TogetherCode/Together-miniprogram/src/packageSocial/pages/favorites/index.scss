@@ -1,0 +1,230 @@
+@use '../../../styles/variables.scss' as *;
+
+.fav-page {
+  min-height: 100vh;
+  background: $color-bg;
+  padding-bottom: 160rpx;
+}
+
+/* ========== 分段栏（对齐 iOS：高 46pt，选中主题绿加粗 + 底部短下划线） ========== */
+.fav-segment {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  height: 92rpx; /* 46pt */
+  background: $color-card;
+}
+
+.seg-item {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.seg-label {
+  font-size: 30rpx; /* 15pt */
+  color: $color-text-secondary;
+}
+
+.seg-item.active .seg-label {
+  font-size: 32rpx; /* 16pt */
+  font-weight: 700;
+  color: $color-primary;
+}
+
+.seg-indicator {
+  position: absolute;
+  bottom: 12rpx; /* 距底 6pt */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 88rpx; /* 44pt */
+  height: 6rpx; /* 3pt */
+  border-radius: 4rpx; /* 2pt */
+  background: $color-primary;
+}
+
+/* ========== 收藏作品：两列网格（对齐 iOS FavoriteWorkCell） ========== */
+.fav-grid {
+  display: flex;
+  gap: 24rpx; /* 列间距 12pt */
+  padding: 24rpx 32rpx 0; /* 顶部 12pt，左右 16pt */
+}
+
+.fav-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx; /* 行间距 12pt */
+}
+
+.fav-work-card {
+  background: $color-card;
+  border-radius: 24rpx; /* 12pt */
+  overflow: hidden;
+  border: 1rpx solid $color-border;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+}
+
+/* 封面：高 = 宽 × 0.8 */
+.fav-cover {
+  position: relative;
+  width: 100%;
+  padding-bottom: 80%;
+  background: #eae4d8;
+}
+
+.fav-cover-img,
+.fav-cover-ph {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* 信息区：左右内边距 12pt */
+.fav-info {
+  padding: 20rpx 24rpx 24rpx; /* 顶部 10pt，左右 12pt */
+}
+
+.fav-title {
+  display: block;
+  font-size: 28rpx; /* 14pt */
+  font-weight: $font-weight-medium;
+  color: $color-text;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fav-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12rpx; /* 6pt */
+}
+
+.fav-author {
+  flex: 1;
+  font-size: 22rpx; /* 11pt */
+  color: $color-text-secondary;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fav-like {
+  flex-shrink: 0;
+  margin-left: 12rpx;
+  font-size: 22rpx;
+  color: #b5aea3;
+}
+
+/* ========== 孩子动态：竖排卡片（复用首页老师动态 post-card） ========== */
+.feed-list {
+  padding: 24rpx 32rpx 0; /* 顶部 12pt，左右 16pt */
+}
+
+.feed-card {
+  margin-bottom: 16rpx;
+  padding: 24rpx; /* 卡内 12pt */
+}
+
+.feed-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.feed-avatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background: #efe9db;
+  flex-shrink: 0;
+}
+
+.feed-author-info {
+  margin-left: 16rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+.feed-author-name {
+  font-size: 28rpx;
+  font-weight: $font-weight-semibold;
+  color: $color-text;
+}
+
+.feed-author-role {
+  font-size: 22rpx;
+  color: $color-text-secondary;
+  margin-top: 2rpx;
+}
+
+.feed-content {
+  display: block;
+  font-size: 28rpx;
+  color: $color-text;
+  line-height: 1.6;
+  margin-bottom: 12rpx;
+}
+
+.feed-images {
+  position: relative;
+  margin-bottom: 12rpx;
+}
+
+.feed-image {
+  width: 100%;
+  height: 300rpx;
+  border-radius: $radius-md;
+  background: #efe9db;
+}
+
+.feed-image-more {
+  position: absolute;
+  right: 16rpx;
+  bottom: 16rpx;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 24rpx;
+  padding: 4rpx 16rpx;
+  border-radius: $radius-sm;
+}
+
+.feed-footer {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+}
+
+.feed-stat {
+  font-size: 24rpx;
+  color: $color-text-secondary;
+}
+
+.feed-time {
+  margin-left: auto;
+  font-size: 22rpx;
+  color: #b5aea3;
+}
+
+/* ========== 空态 / 加载 ========== */
+.empty-tip {
+  text-align: center;
+  color: $color-text-secondary;
+  font-size: 28rpx; /* 14pt */
+  padding: 200rpx 0;
+}
+
+.loading-tip {
+  text-align: center;
+  color: $color-text-secondary;
+  font-size: 24rpx;
+  padding: 32rpx 0;
+}

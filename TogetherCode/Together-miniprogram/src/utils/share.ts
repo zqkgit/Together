@@ -15,12 +15,12 @@ export function getDistFromParams(): string {
 
 /** 构造带分享归因的课程详情路径（分享卡片用） */
 export function buildCourseSharePath(courseId: string, distCode: string): string {
-  return `/pages/course-detail/index?id=${courseId}&dist=${distCode}`;
+  return `/packageCourses/pages/course-detail/index?id=${courseId}&dist=${distCode}`;
 }
 
 /** 构造带分享归因的帖子详情路径（分享卡片用） */
 export function buildPostSharePath(postId: string, distCode: string): string {
-  return `/pages/post-detail/index?id=${postId}&dist=${distCode}`;
+  return `/packageSocial/pages/post-detail/index?id=${postId}&dist=${distCode}`;
 }
 
 /** 分享者标识（当前登录用户） */

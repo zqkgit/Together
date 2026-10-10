@@ -1,0 +1,165 @@
+@use '../../../styles/variables.scss' as *;
+
+/* 我的课程 —— 严格对齐 iOS MyCoursesViewController / MyCourseCell */
+.my-courses {
+  width: 100%;
+  min-height: 100vh;
+  padding-bottom: 48rpx;
+  box-sizing: border-box;
+  background: $color-bg;
+}
+
+/* ---- 孩子筛选条（对齐 iOS TagChipRow：高 34pt、胶囊、左右 12pt） ---- */
+.child-scroll {
+  white-space: nowrap;
+  /* 距导航顶 12pt、距列表 8pt */
+  padding: 24rpx 0 16rpx;
+}
+
+.child-row {
+  display: inline-flex;
+  gap: 16rpx; /* chip 间距 8pt */
+  padding: 0 24rpx; /* 左右 12pt */
+}
+
+.child-chip {
+  display: inline-block;
+  /* 对齐 contentEdgeInsets 上/下 6pt、左/右 14pt */
+  padding: 12rpx 28rpx;
+  background: $color-bg-alt; /* 未选：米白 surfaceAlt */
+  border: 1rpx solid $color-border; /* 未选：1pt 描边 */
+  border-radius: $radius-round; /* 胶囊全圆 */
+  font-size: 26rpx; /* 13pt */
+  line-height: 1.4;
+  color: $color-text-secondary; /* 未选：sub 字 */
+  box-sizing: border-box;
+}
+
+.child-active {
+  background: $color-primary; /* 选中：品牌绿底 */
+  border-color: transparent;
+  color: #fff;
+}
+
+/* ---- 空状态 / 加载 ---- */
+.state-tip {
+  padding: 120rpx 40rpx;
+  text-align: center;
+  color: $color-text-light;
+  font-size: $font-size-md;
+}
+
+/* ---- 课程列表 ---- */
+.course-list {
+  width: 100%;
+  box-sizing: border-box;
+  /* 卡片左右外边距 16pt；卡间距 16pt */
+  padding: 0 32rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 32rpx;
+}
+
+/* ---- 课程卡片（对齐 iOS MyCourseCell：白卡、圆角 16pt、内边距 上下16/左右12） ---- */
+.course-card {
+  width: 100%;
+  box-sizing: border-box;
+  background: $color-card;
+  border-radius: 32rpx; /* 16pt */
+  padding: 32rpx 24rpx; /* 上下 16pt、左右 12pt */
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx; /* 行距 8pt */
+}
+
+/* 行1：课程名 + 节数 */
+.card-row1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24rpx;
+}
+
+.course-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 34rpx; /* 17pt */
+  font-weight: 600;
+  color: $color-text;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.course-count {
+  flex-shrink: 0;
+  font-size: 26rpx; /* 13pt */
+  color: $color-text-secondary;
+}
+
+/* 行2：工作室·老师标签 + 孩子名称标签（圆角 4pt、上下4/左右10、11pt） */
+.card-row2 {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  flex-wrap: wrap;
+}
+
+.studio-tag,
+.child-tag {
+  display: inline-block;
+  padding: 8rpx 20rpx;
+  border-radius: 8rpx; /* 4pt */
+  font-size: 22rpx; /* 11pt */
+  line-height: 1.4;
+}
+
+.studio-tag {
+  background: $color-bg-alt;
+  color: $color-text-secondary;
+}
+
+.child-tag {
+  background: $color-primary-soft;
+  color: $color-primary;
+}
+
+/* 行3：下次课（品牌色 13pt） */
+.next-lesson {
+  font-size: 26rpx; /* 13pt */
+  color: $color-primary;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 行4：进度条 + 百分比 */
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  margin-top: 4rpx; /* 对齐 nextLabel 下 10pt 的节奏 */
+}
+
+.progress-track {
+  flex: 1;
+  height: 12rpx; /* 6pt */
+  border-radius: 6rpx; /* 3pt */
+  background: $color-bg-alt;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 6rpx;
+  background: $color-primary;
+  transition: width 0.3s ease;
+}
+
+.progress-pct {
+  flex-shrink: 0;
+  width: 128rpx; /* 64pt */
+  text-align: right;
+  font-size: 24rpx; /* 12pt */
+  color: $color-text-secondary;
+}

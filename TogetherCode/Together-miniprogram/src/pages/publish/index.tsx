@@ -8,7 +8,7 @@ import Taro from "@tarojs/taro";
  */
 export default function PublishPage() {
   useEffect(() => {
-    Taro.navigateTo({ url: "/pages/post-create/index" });
+    Taro.navigateTo({ url: "/packageSocial/pages/post-create/index" });
   }, []);
   return null;
 }

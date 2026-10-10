@@ -1,47 +1,87 @@
 export default defineAppConfig({
   pages: [
+    // tabBar 页面（必须在主包）
     "pages/home/index",
-    "pages/courses/index",
     "pages/plaza/index",
+    "pages/publish/index",
+    "pages/messages/index",
     "pages/mine/index",
+    // 登录流程（主包入口页）
     "pages/login/index",
     "pages/phone-login/index",
-    "pages/verify-code/index",
-    "pages/course-detail/index",
-    "pages/order-confirm/index",
-    "pages/payment-voucher/index",
-    "pages/order-detail/index",
-    "pages/orders/index",
-    "pages/children/index",
-    "pages/child-add/index",
-    "pages/child-balance/index",
-    "pages/child-growth/index",
-    "pages/child-timetable/index",
-    "pages/my-courses/index",
-    "pages/course-study/index",
-    "pages/poster/index",
-    "pages/studios/index",
-    "pages/favorites/index",
-    "pages/my-posts/index",
-    "pages/my-reviews/index",
-    "pages/announcements/index",
-    "pages/announcement-detail/index",
-    "pages/refunds/index",
-    "pages/refund-detail/index",
-    "pages/teacher-homepage/index",
-    "pages/studio-homepage/index",
-    "pages/post-detail/index",
-    "pages/post-create/index",
-    "pages/publish/index",
-    "pages/wallet/index",
-    "pages/studio-commission-detail/index",
-    "pages/commission-withdrawals/index",
-    "pages/commission-withdrawal-detail/index",
-    "pages/messages/index",
-    "pages/chat/index",
-    "pages/following-list/index",
-    "pages/refund/index",
-    "pages/course-reviews/index"
+    "pages/verify-code/index"
+  ],
+  subPackages: [
+    {
+      root: "packageCourses",
+      name: "courses",
+      pages: [
+        "pages/courses/index",
+        "pages/course-detail/index",
+        "pages/my-courses/index",
+        "pages/course-study/index",
+        "pages/course-reviews/index"
+      ]
+    },
+    {
+      root: "packageOrder",
+      name: "order",
+      pages: [
+        "pages/order-confirm/index",
+        "pages/payment-voucher/index",
+        "pages/order-detail/index",
+        "pages/orders/index",
+        "pages/refund/index",
+        "pages/refunds/index",
+        "pages/refund-detail/index",
+        "pages/poster/index"
+      ]
+    },
+    {
+      root: "packageChild",
+      name: "child",
+      pages: [
+        "pages/children/index",
+        "pages/child-add/index",
+        "pages/child-balance/index",
+        "pages/child-growth/index",
+        "pages/child-timetable/index"
+      ]
+    },
+    {
+      root: "packageSocial",
+      name: "social",
+      pages: [
+        "pages/post-detail/index",
+        "pages/post-create/index",
+        "pages/favorites/index",
+        "pages/my-posts/index",
+        "pages/my-reviews/index",
+        "pages/following-list/index",
+        "pages/studios/index",
+        "pages/teacher-homepage/index",
+        "pages/studio-homepage/index"
+      ]
+    },
+    {
+      root: "packageWallet",
+      name: "wallet",
+      pages: [
+        "pages/wallet/index",
+        "pages/studio-commission-detail/index",
+        "pages/commission-withdrawals/index",
+        "pages/commission-withdrawal-detail/index"
+      ]
+    },
+    {
+      root: "packageInfo",
+      name: "info",
+      pages: [
+        "pages/announcements/index",
+        "pages/announcement-detail/index",
+        "pages/chat/index"
+      ]
+    }
   ],
   window: {
     backgroundTextStyle: "light",

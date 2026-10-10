@@ -68,28 +68,28 @@ export default function HomePage() {
 
   const goSearch = () => {
     if (searchKeyword.trim()) {
-      Taro.navigateTo({ url: `/pages/studios/index?keyword=${encodeURIComponent(searchKeyword.trim())}` });
+      Taro.navigateTo({ url: `/packageSocial/pages/studios/index?keyword=${encodeURIComponent(searchKeyword.trim())}` });
     }
   };
 
   const goCourse = (id: string) => {
-    Taro.navigateTo({ url: `/pages/course-detail/index?id=${id}` });
+    Taro.navigateTo({ url: `/packageCourses/pages/course-detail/index?id=${id}` });
   };
 
   const goStudio = (id: string) => {
-    Taro.navigateTo({ url: `/pages/studio-homepage/index?id=${id}` });
+    Taro.navigateTo({ url: `/packageSocial/pages/studio-homepage/index?id=${id}` });
   };
 
   const goPost = (id: string) => {
-    Taro.navigateTo({ url: `/pages/post-detail/index?id=${id}` });
+    Taro.navigateTo({ url: `/packageSocial/pages/post-detail/index?id=${id}` });
   };
 
   const goChildDetail = (childId: string) => {
-    Taro.navigateTo({ url: `/pages/child-balance/index?child_id=${childId}` });
+    Taro.navigateTo({ url: `/packageChild/pages/child-balance/index?child_id=${childId}` });
   };
 
   const goChildrenList = () => {
-    Taro.navigateTo({ url: "/pages/children/index" });
+    Taro.navigateTo({ url: "/packageChild/pages/children/index" });
   };
 
   /** 获取孩子的剩余课时摘要 */
@@ -170,7 +170,7 @@ export default function HomePage() {
       {announcements.length > 0 && (
         <View
           className="card notice-card"
-          onClick={() => Taro.navigateTo({ url: "/pages/announcements/index" })}
+          onClick={() => Taro.navigateTo({ url: "/packageInfo/pages/announcements/index" })}
         >
           <Text className="notice-label">公告</Text>
           <Text className="notice-text">{announcements[0].title}</Text>
@@ -184,7 +184,7 @@ export default function HomePage() {
           <Text className="section-title">为你推荐</Text>
           <Text
             className="section-more"
-            onClick={() => Taro.navigateTo({ url: "/pages/courses/index" })}
+            onClick={() => Taro.navigateTo({ url: "/packageCourses/pages/courses/index" })}
           >
             更多
           </Text>
@@ -224,7 +224,7 @@ export default function HomePage() {
             <Text className="section-title">附近热门工作室</Text>
             <Text
               className="section-more"
-              onClick={() => Taro.navigateTo({ url: "/pages/studios/index?tab=studios" })}
+              onClick={() => Taro.navigateTo({ url: "/packageSocial/pages/studios/index?tab=studios" })}
             >
               更多
             </Text>

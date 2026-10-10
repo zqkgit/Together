@@ -97,14 +97,14 @@ export default function MinePage() {
 
   // 菜单组
   const contentItems = [
-    { icon: "👶", title: "我的孩子", url: "/pages/children/index" },
-    { icon: "🎓", title: "我的课程", url: "/pages/my-courses/index" },
-    { icon: "📦", title: "我的订单", url: "/pages/orders/index" },
+    { icon: "👶", title: "我的孩子", url: "/packageChild/pages/children/index" },
+    { icon: "🎓", title: "我的课程", url: "/packageCourses/pages/my-courses/index" },
+    { icon: "📦", title: "我的订单", url: "/packageOrder/pages/orders/index" },
     { icon: "🖼", title: "作品管理", url: "" }
   ];
   const serviceItems = [
-    { icon: "⭐", title: "收藏与动态", url: "/pages/favorites/index" },
-    { icon: "💰", title: "收益中心", url: "/pages/wallet/index" },
+    { icon: "⭐", title: "收藏与动态", url: "/packageSocial/pages/favorites/index" },
+    { icon: "💰", title: "收益中心", url: "/packageWallet/pages/wallet/index" },
     { icon: "🎫", title: "优惠券", url: "" },
     { icon: "⚙️", title: "设置", url: "" }
   ];
@@ -156,17 +156,17 @@ export default function MinePage() {
           </View>
           {/* 统计卡 */}
           <View className="mine-stat-card">
-            <View className="mine-stat-item" onClick={() => Taro.navigateTo({ url: "/pages/children/index" })}>
+            <View className="mine-stat-item" onClick={() => Taro.navigateTo({ url: "/packageChild/pages/children/index" })}>
               <Text className="mine-stat-value">{stats.childrenCount}</Text>
               <Text className="mine-stat-label">我的孩子</Text>
             </View>
             <View className="mine-stat-divider" />
-            <View className="mine-stat-item" onClick={() => Taro.navigateTo({ url: "/pages/my-courses/index" })}>
+            <View className="mine-stat-item" onClick={() => Taro.navigateTo({ url: "/packageCourses/pages/my-courses/index" })}>
               <Text className="mine-stat-value">{stats.courseCount}</Text>
               <Text className="mine-stat-label">在学课程</Text>
             </View>
             <View className="mine-stat-divider" />
-            <View className="mine-stat-item" onClick={() => Taro.navigateTo({ url: "/pages/favorites/index" })}>
+            <View className="mine-stat-item" onClick={() => Taro.navigateTo({ url: "/packageSocial/pages/favorites/index" })}>
               <Text className="mine-stat-value">{stats.favoriteCount}</Text>
               <Text className="mine-stat-label">收藏作品</Text>
             </View>
