@@ -19,6 +19,7 @@ export default function AccountSecurityPage() {
   const rows: SecurityRow[] = [
     { icon: "📱", title: "绑定手机号", value: phone || undefined, url: "/packageInfo/pages/settings/change-phone" },
     { icon: "🔒", title: "修改登录密码", url: "/packageInfo/pages/settings/change-password" },
+    // { icon: "🔢", title: "设置支付密码", url: "/packageInfo/pages/settings/set-pay-password" }, // 暂时隐藏，不涉及支付
     { icon: "⚠️", title: "注销账号", danger: true, url: "" },
   ];
 

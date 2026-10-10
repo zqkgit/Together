@@ -86,6 +86,7 @@ export default defineAppConfig({
         "pages/settings/account-security",
         "pages/settings/change-password",
         "pages/settings/change-phone",
+        // "pages/settings/set-pay-password", // 暂时隐藏，不涉及支付
         "pages/settings/deactivate-account"
       ]
     }

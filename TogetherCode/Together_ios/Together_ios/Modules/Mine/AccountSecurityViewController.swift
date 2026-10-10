@@ -2,7 +2,7 @@ import UIKit
 import SnapKit
 
 /// 账号与安全（设置 → 账号与安全）
-/// 绑定手机号 / 修改登录密码 / 设置支付密码 / 注销账号
+/// 绑定手机号 / 修改登录密码 / 注销账号
 final class AccountSecurityViewController: BaseViewController {
 
     private struct Row {
@@ -15,7 +15,7 @@ final class AccountSecurityViewController: BaseViewController {
     private var rows: [Row] = [
         Row(icon: "iphone", title: "绑定手机号", value: nil, danger: false),
         Row(icon: "lock", title: "修改登录密码", value: nil, danger: false),
-        Row(icon: "number", title: "设置支付密码", value: nil, danger: false),
+        // Row(icon: "number", title: "设置支付密码", value: nil, danger: false), // 暂时隐藏，不涉及支付
         Row(icon: "person.crop.circle.badge.minus", title: "注销账号", value: nil, danger: true)
     ]
 
@@ -92,8 +92,8 @@ extension AccountSecurityViewController: UITableViewDataSource, UITableViewDeleg
             navigationController?.pushViewController(ChangePhoneViewController(), animated: true)
         case "修改登录密码":
             navigationController?.pushViewController(ChangePasswordViewController(), animated: true)
-        case "设置支付密码":
-            navigationController?.pushViewController(SetPayPasswordViewController(), animated: true)
+        // case "设置支付密码":  // 暂时隐藏
+        //     navigationController?.pushViewController(SetPayPasswordViewController(), animated: true)
         case "注销账号":
             ThemeAlertView.show(
                 title: "注销账号",

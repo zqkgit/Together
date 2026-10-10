@@ -7,6 +7,7 @@ export interface AuthUser {
   avatar: string | null;
   city: string | null;
   signature?: string | null;
+  // has_pay_password?: boolean; // 暂时隐藏，不涉及支付
 
 }
 
@@ -69,6 +70,11 @@ export function changePassword(oldPassword: string, newPassword: string): Promis
 export function changePhone(phone: string, code: string): Promise<void> {
   return request({ url: "/auth/change-phone", method: "POST", data: { phone, code } });
 }
+
+// /** 设置/修改支付密码 — 暂时隐藏，不涉及支付 */
+// export function setPayPassword(password: string): Promise<void> {
+//   return request({ url: "/auth/pay-password", method: "POST", data: { password } });
+// }
 
 /** 注销账号 */
 export function deactivateAccount(code: string): Promise<void> {
