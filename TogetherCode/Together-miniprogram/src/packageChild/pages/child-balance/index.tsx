@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Taro from "@tarojs/taro";
 import { View, Text, Image } from "@tarojs/components";
-import { listBalances, listLessonLogs, listAttendance, type BalanceChild, type LessonLogItem, type AttendanceItem } from "../../../services/balance";
+import { listBalances, listLessonLogs, type BalanceChild, type LessonLogItem } from "../../../services/balance";
 import { useAuthStore } from "../../../store/auth";
 import "./index.scss";
 
@@ -10,9 +10,18 @@ export default function ChildBalancePage() {
   const [children, setChildren] = useState<BalanceChild[]>([]);
   const [activeChild, setActiveChild] = useState("");
   const [logs, setLogs] = useState<LessonLogItem[]>([]);
-  const [attendance, setAttendance] = useState<AttendanceItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"balance" | "logs" | "attendance">("balance");
+  const [tab, setTab] = useState<"balance" | "logs">("balance");
+
+  // 从路由参数获取指定的 child_id（从孩子主页进入时传入，只显示该孩子）
+  const routerChildId = Taro.useRouter().params.child_id || "";
+
+  // 是否为单孩子模式（从孩子主页进入）
+  const isSingleMode = !!routerChildId;
+
+  useEffect(() => {
+    Taro.setNavigationBarTitle({ title: "课时明细" });
+  }, []);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -26,7 +35,8 @@ export default function ChildBalancePage() {
     try {
       const data = await listBalances();
       setChildren(data);
-      if (data.length > 0) setActiveChild(data[0].child_id);
+      const targetId = routerChildId || (data.length > 0 ? data[0].child_id : "");
+      if (targetId) setActiveChild(targetId);
     } catch {
       // 拦截器已提示
     } finally {
@@ -38,11 +48,6 @@ export default function ChildBalancePage() {
     if (tab === "logs" && activeChild) {
       listLessonLogs({ child_id: activeChild, page: 1, page_size: 50 })
         .then((r) => setLogs(r.list))
-        .catch(() => undefined);
-    }
-    if (tab === "attendance" && activeChild) {
-      listAttendance({ child_id: activeChild, page: 1, page_size: 50 })
-        .then((r) => setAttendance(r.list))
         .catch(() => undefined);
     }
   }, [tab, activeChild]);
@@ -57,7 +62,6 @@ export default function ChildBalancePage() {
       <View className="tab-switch">
         <View className={`tab-item ${tab === "balance" ? "active" : ""}`} onClick={() => setTab("balance")}>课时余额</View>
         <View className={`tab-item ${tab === "logs" ? "active" : ""}`} onClick={() => setTab("logs")}>消课记录</View>
-        <View className={`tab-item ${tab === "attendance" ? "active" : ""}`} onClick={() => setTab("attendance")}>签到记录</View>
       </View>
 
       {tab === "balance" ? (
@@ -66,25 +70,27 @@ export default function ChildBalancePage() {
         ) : children.length === 0 ? (
           <View className="empty-tip">还没有孩子，先去添加学员吧</View>
         ) : (
-          children.map((child) => (
+          (isSingleMode ? children.filter((c) => c.child_id === routerChildId) : children).map((child) => (
             <View key={child.child_id} className="child-block">
-              <View className="child-head">
-                <View className="child-avatar">{child.nickname.slice(0, 1)}</View>
-                <View className="child-name">
-                  {child.nickname}
-                  <Text className="child-count">共 {child.total_packages} 个课时包</Text>
+              {!isSingleMode && (
+                <View className="child-head">
+                  <View className="child-avatar">{child.nickname.slice(0, 1)}</View>
+                  <View className="child-name">
+                    {child.nickname}
+                    <Text className="child-count">共 {child.total_packages} 个课时包</Text>
+                  </View>
+                  <View
+                    className="child-growth-btn"
+                    onClick={() =>
+                      Taro.navigateTo({
+                        url: `/packageChild/pages/child-growth/index?id=${child.child_id}&nickname=${encodeURIComponent(child.nickname)}`
+                      })
+                    }
+                  >
+                    成长档案
+                  </View>
                 </View>
-                <View
-                  className="child-growth-btn"
-                  onClick={() =>
-                    Taro.navigateTo({
-                      url: `/packageChild/pages/child-growth/index?id=${child.child_id}&nickname=${encodeURIComponent(child.nickname)}`
-                    })
-                  }
-                >
-                  成长档案
-                </View>
-              </View>
+              )}
               {child.balances.map((b) => (
                 <View key={b.balance_id} className="card balance-card">
                   <View className="b-course">
@@ -116,32 +122,6 @@ export default function ChildBalancePage() {
             </View>
           ))
         )
-      ) : tab === "attendance" ? (
-        <View className="logs">
-          {attendance.length === 0 ? (
-            <View className="empty-tip">暂无签到记录</View>
-          ) : (
-            attendance.map((a) => (
-              <View key={a.attendance_id} className="card log-item">
-                <View className="log-body">
-                  <View className="log-title">
-                    {a.course_title}
-                    <Text className={`att-badge ${a.consumed ? "att-in" : "att-leave"}`}>{a.status_text}</Text>
-                    {a.is_makeup ? <Text className="att-badge att-makeup">补课</Text> : null}
-                  </View>
-                  <View className="log-sub">
-                    {a.class_name} · {a.studio_name || ""}
-                    {a.lesson_date ? ` · ${a.lesson_date} ${a.start_time || ""}` : ""}
-                  </View>
-                  {a.note && <View className="log-note">{a.note}</View>}
-                </View>
-                <View className={`log-delta ${a.consumed ? "minus" : "plus"}`}>
-                  {a.consumed ? "消课 1" : "保留课时"}
-                </View>
-              </View>
-            ))
-          )}
-        </View>
       ) : (
         <View className="logs">
           {logs.length === 0 ? (

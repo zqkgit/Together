@@ -205,6 +205,15 @@ export default function ChildGrowthPage() {
         </View>
       </View>
 
+      {/* ====== 课时明细入口 ====== */}
+      <View
+        className="balance-entry"
+        onClick={() => Taro.navigateTo({ url: `/packageChild/pages/child-balance/index?child_id=${childId}` })}
+      >
+        <Text className="balance-entry-text">课时明细</Text>
+        <Text className="balance-entry-arrow">›</Text>
+      </View>
+
       {/* ====== 三 tab 分段（对齐 iOS UISegmentedControl） ====== */}
       <View className="tabs">
         <View className={"tab" + (tab === TAB_WORKS ? " tab-active" : "")} onClick={() => setTab(TAB_WORKS)}>

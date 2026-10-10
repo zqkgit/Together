@@ -123,6 +123,29 @@ $sub: #B03A2B;
   flex-shrink: 0;
 }
 
+// ====== 课时明细入口 ======
+.balance-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 16rpx 24rpx 0;
+  padding: 20rpx 28rpx;
+  background: $color-card;
+  border-radius: $radius-lg;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+
+.balance-entry-text {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: $color-text;
+}
+
+.balance-entry-arrow {
+  font-size: 32rpx;
+  color: $color-text-secondary;
+}
+
 // ====== 三 tab 分段（对齐 iOS UISegmentedControl） ======
 .tabs {
   display: flex;

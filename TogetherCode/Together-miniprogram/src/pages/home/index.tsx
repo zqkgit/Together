@@ -85,7 +85,7 @@ export default function HomePage() {
   };
 
   const goChildDetail = (childId: string) => {
-    Taro.navigateTo({ url: `/packageChild/pages/child-balance/index?child_id=${childId}` });
+    Taro.navigateTo({ url: `/packageChild/pages/child-growth/index?id=${childId}` });
   };
 
   const goChildrenList = () => {
