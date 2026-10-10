@@ -61,6 +61,12 @@ export function getMyPosts(params: { page?: number; page_size?: number } = {}): 
   return request<any>({ url: `/posts/mine?${q}`, method: "GET" }).then((d) => d?.list || d || []);
 }
 
+/** 孩子动态（收藏与动态）：我孩子相关的帖子（家长帖 + 老师关联帖），参数为 size */
+export function getChildFeed(params: { page?: number; size?: number } = {}): Promise<PostItem[]> {
+  const q = `page=${params.page || 1}&size=${params.size || 20}`;
+  return request<any>({ url: `/posts/child-feed?${q}`, method: "GET" }).then((d) => d?.list || d || []);
+}
+
 export function getPostDetail(id: string): Promise<PostItem> {
   return request({ url: `/posts/${id}`, method: "GET" });
 }

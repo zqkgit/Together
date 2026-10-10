@@ -34,12 +34,20 @@ export function postCourseReview(courseId: string, data: { rating: number; conte
   return request({ url: `/courses/${courseId}/reviews`, method: "POST", data });
 }
 
+export interface FavoriteAuthor {
+  nickname: string;
+  avatar?: string | null;
+}
+
 export interface FavoriteItem {
   target_id: string;
   title: string;
   cover: string | null;
   subtitle: string;
   rating?: number;
+  topic?: string | null;
+  created_at?: string | null;
+  author?: FavoriteAuthor | null;
 }
 
 export interface FavoritePage {
@@ -65,8 +73,8 @@ export function getFavoriteIds(targetType: string): Promise<string[]> {
 }
 
 /** 我的收藏列表 */
-export function getFavorites(targetType: string, page = 1): Promise<FavoritePage> {
-  return request<any>({ url: `/favorites?target_type=${targetType}&page=${page}&page_size=10`, method: "GET" });
+export function getFavorites(targetType: string, page = 1, pageSize = 20): Promise<FavoritePage> {
+  return request<any>({ url: `/favorites?target_type=${targetType}&page=${page}&page_size=${pageSize}`, method: "GET" });
 }
 
 // ── 关注关系 ──

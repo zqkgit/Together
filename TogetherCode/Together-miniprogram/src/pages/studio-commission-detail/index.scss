@@ -1,242 +1,279 @@
 @use "@/styles/theme.scss" as *;
 
-.studio-detail {
+.scd-page {
   min-height: 100vh;
-  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
+  padding: 0 0 calc(48rpx + env(safe-area-inset-bottom));
   background: $color-bg;
 
-  // 工作室汇总卡
-  .summary-card {
-    .sum-header {
+  &.has-bar {
+    padding-bottom: calc(168rpx + env(safe-area-inset-bottom));
+  }
+
+  // ===== 工作室汇总卡 =====
+  .scd-sum {
+    margin: 32rpx 32rpx 0;
+    padding: 24rpx;
+    background: $color-card;
+    border-radius: 32rpx;
+    box-shadow: 0 4rpx 16rpx rgba(43, 38, 33, 0.05);
+
+    .scd-sum-head {
       display: flex;
       align-items: center;
 
-      .sum-cover-wrap {
-        width: 76rpx;
-        height: 76rpx;
-        border-radius: 16rpx;
-        overflow: hidden;
+      .scd-sum-cover {
+        width: 80rpx;
+        height: 80rpx;
+        border-radius: 20rpx;
         flex-shrink: 0;
+      }
 
-        .sum-cover {
-          width: 100%;
-          height: 100%;
-        }
+      .scd-sum-cover-ph {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: $color-primary;
 
-        .sum-cover-placeholder {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: $color-primary;
+        .scd-sum-cover-text {
           font-size: 34rpx;
+          font-weight: 600;
+          color: #fff;
         }
       }
 
-      .sum-name {
+      .scd-sum-name {
         flex: 1;
-        margin-left: 20rpx;
+        margin-left: 24rpx;
         font-size: 32rpx;
         font-weight: 600;
         color: $color-text;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
       }
     }
 
-    .sum-divider {
-      margin: 20rpx 0;
+    .scd-sum-divider {
+      margin-top: 24rpx;
       height: 1rpx;
       background: $color-border;
     }
 
-    .sum-stats {
+    .scd-sum-stats {
       display: flex;
+      margin-top: 24rpx;
 
-      .sum-stat {
+      .scd-sum-stat {
         flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
 
-        .sum-num {
-          font-size: 30rpx;
+        .scd-sum-num {
+          font-size: 32rpx;
           font-weight: 600;
           color: $color-text;
-          text-align: center;
 
-          &.highlight {
-            color: $color-gold;
+          &.is-hot {
+            color: $color-clay;
           }
         }
 
-        .sum-label {
-          margin-top: 4rpx;
-          font-size: 20rpx;
+        .scd-sum-label {
+          margin-top: 6rpx;
+          font-size: 22rpx;
           color: $color-text-secondary;
-          text-align: center;
         }
       }
     }
   }
 
-  // 课程佣金卡
-  .course-card {
-    padding: 0;
+  // ===== 课程佣金卡 =====
+  .scd-course {
+    margin: 32rpx 32rpx 0;
+    padding: 24rpx;
+    background: $color-card;
+    border-radius: 32rpx;
+    box-shadow: 0 4rpx 16rpx rgba(43, 38, 33, 0.05);
 
-    .course-header {
+    .scd-c-head {
       display: flex;
       align-items: center;
-      padding: 24rpx 24rpx 0;
 
-      .course-cover-wrap {
-        width: 84rpx;
-        height: 84rpx;
-        border-radius: 16rpx;
-        overflow: hidden;
+      .scd-c-cover {
+        width: 88rpx;
+        height: 88rpx;
+        border-radius: 20rpx;
         flex-shrink: 0;
+      }
 
-        .course-cover {
-          width: 100%;
-          height: 100%;
-        }
+      .scd-c-cover-ph {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: $color-primary-soft;
 
-        .course-cover-placeholder {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: rgba($color-primary, 0.1);
-          font-size: 36rpx;
+        .scd-c-cover-text {
+          font-size: 38rpx;
+          font-weight: 600;
+          color: $color-primary;
         }
       }
 
-      .course-info {
+      .scd-c-info {
         flex: 1;
-        margin-left: 20rpx;
+        min-width: 0;
+        margin-left: 24rpx;
+        overflow: hidden;
 
-        .course-title {
-          font-size: 28rpx;
+        .scd-c-title {
+          display: block;
+          font-size: 30rpx;
           font-weight: 600;
           color: $color-text;
-          display: -webkit-box;
-          -webkit-line-clamp: 1;
-          -webkit-box-orient: vertical;
           overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
         }
 
-        .course-count {
-          font-size: 22rpx;
-          color: $color-text-secondary;
+        .scd-c-count {
+          display: block;
           margin-top: 4rpx;
-        }
-      }
-
-      .course-total {
-        font-size: 34rpx;
-        font-weight: 700;
-        color: $color-gold;
-        margin-left: 16rpx;
-      }
-    }
-
-    .course-divider {
-      margin: 20rpx 24rpx 0;
-      height: 1rpx;
-      background: $color-border;
-    }
-
-    // 明细行
-    .record-row {
-      display: flex;
-      align-items: center;
-      padding: 16rpx 24rpx;
-
-      &:last-child {
-        padding-bottom: 24rpx;
-      }
-
-      .r-left {
-        flex: 1;
-
-        .r-order {
           font-size: 24rpx;
           color: $color-text-secondary;
         }
       }
 
-      .r-status {
+      .scd-c-total {
+        margin-left: 16rpx;
+        font-size: 34rpx;
+        font-weight: 700;
+        color: $color-clay;
+        flex-shrink: 0;
+      }
+    }
+
+    .scd-c-divider {
+      margin-top: 24rpx;
+      height: 1rpx;
+      background: $color-border;
+    }
+
+    // 单笔佣金明细行
+    .scd-record {
+      display: flex;
+      align-items: center;
+      height: 68rpx;
+
+      &:first-of-type {
+        margin-top: 12rpx;
+      }
+
+      .scd-r-order {
+        flex: 1;
+        min-width: 0;
+        font-size: 24rpx;
+        color: $color-text-secondary;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+
+      .scd-r-status {
+        width: 120rpx;
+        flex-shrink: 0;
+        text-align: center;
         font-size: 22rpx;
-        padding: 4rpx 12rpx;
-        border-radius: 8rpx;
-        margin-right: 16rpx;
 
-        &.status-0 {
-          color: $color-gold;
-          background: rgba($color-gold, 0.1);
+        &.scd-st-1 {
+          color: $color-clay;
         }
-
-        &.status-1 {
-          color: $color-gold;
-          background: rgba($color-gold, 0.1);
+        &.scd-st-2 {
+          color: #12963f;
         }
-
-        &.status-2 {
-          color: $color-danger;
-          background: rgba($color-danger, 0.1);
+        &.scd-st-3 {
+          color: #3a6b96;
         }
-
-        &.status-3 {
-          color: $color-primary;
-          background: rgba($color-primary, 0.1);
+        &.scd-st-0 {
+          color: $color-text-secondary;
         }
       }
 
-      .r-amount {
+      .scd-r-amount {
+        width: 144rpx;
+        flex-shrink: 0;
+        text-align: right;
         font-size: 28rpx;
         font-weight: 600;
         color: $color-text;
-        min-width: 120rpx;
-        text-align: right;
       }
     }
   }
 
-  // 空态
-  .empty-card {
+  // ===== 空态 =====
+  .scd-empty {
+    margin: 32rpx;
+    padding: 96rpx 32rpx;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 80rpx 40rpx;
+    background: $color-card;
+    border-radius: 32rpx;
+    box-shadow: 0 4rpx 16rpx rgba(43, 38, 33, 0.05);
 
-    .empty-icon {
-      font-size: 64rpx;
-      margin-bottom: 20rpx;
+    .scd-empty-badge {
+      width: 96rpx;
+      height: 96rpx;
+      border-radius: 50%;
+      background: $color-primary-soft;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .scd-empty-badge-text {
+        font-size: 40rpx;
+        font-weight: 700;
+        color: $color-primary;
+      }
     }
 
-    .empty-text {
+    .scd-empty-text {
+      margin-top: 24rpx;
       font-size: 26rpx;
       color: $color-text-secondary;
     }
   }
 
-  // 底部领取栏
-  .bottom-bar {
+  // ===== 底部领取栏 =====
+  .scd-bar {
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
-    padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom));
+    padding: 24rpx 32rpx calc(24rpx + env(safe-area-inset-bottom));
     background: #fff;
-    box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.06);
+    box-shadow: 0 -1rpx 0 rgba(43, 38, 33, 0.08);
     z-index: 50;
 
-    .bottom-btn {
-      text-align: center;
-      padding: 22rpx 0;
+    .scd-bar-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 88rpx;
+      border-radius: 44rpx;
       background: $color-primary;
       color: #fff;
-      border-radius: $radius-button;
       font-size: 30rpx;
       font-weight: 600;
+
+      &:active {
+        opacity: 0.9;
+      }
     }
   }
 
-  // 遮罩 & 弹窗
-  .mask {
+  // ===== 遮罩 & 弹窗 =====
+  .scd-mask {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.45);
@@ -245,20 +282,20 @@
     align-items: flex-end;
   }
 
-  .method-sheet {
+  .scd-sheet {
     width: 100%;
     background: #fff;
-    border-radius: $radius-xl $radius-xl 0 0;
-    padding: 40rpx 0 calc(20rpx + env(safe-area-inset-bottom));
+    border-radius: 32rpx 32rpx 0 0;
+    padding: 32rpx 0 calc(20rpx + env(safe-area-inset-bottom));
 
-    .sheet-title {
+    .scd-sheet-title {
       padding: 0 40rpx 20rpx;
       font-size: 26rpx;
       color: $color-text-secondary;
       text-align: center;
     }
 
-    .sheet-item {
+    .scd-sheet-item {
       padding: 28rpx 40rpx;
       font-size: 30rpx;
       color: $color-text;
@@ -274,7 +311,7 @@
     }
   }
 
-  .loading-mask {
+  .scd-loading {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.3);
@@ -283,7 +320,7 @@
     align-items: center;
     justify-content: center;
 
-    .loading-text {
+    .scd-loading-text {
       padding: 24rpx 48rpx;
       background: rgba(0, 0, 0, 0.7);
       color: #fff;

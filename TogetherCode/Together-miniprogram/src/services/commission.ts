@@ -98,9 +98,17 @@ export const PAY_METHODS = [
 
 // MARK: - API
 
-/** 收益总览（含按工作室分组） */
-export function getCommissionSummary(): Promise<CommissionSummary> {
-  return request({ url: "/distribution/commission/summary", method: "GET" });
+/** 收益总览（含按工作室分组，可按日期区间筛选） */
+export function getCommissionSummary(params: {
+  start_date?: string;
+  end_date?: string;
+} = {}): Promise<CommissionSummary> {
+  const q = Object.entries(params)
+    .filter(([, v]) => v)
+    .map(([k, v]) => `${k}=${v}`)
+    .join("&");
+  const suffix = q ? `?${q}` : "";
+  return request({ url: `/distribution/commission/summary${suffix}`, method: "GET" });
 }
 
 /** 佣金明细（可按工作室过滤，前端再按课程分组） */
