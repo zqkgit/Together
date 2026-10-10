@@ -79,7 +79,9 @@ export default defineAppConfig({
       pages: [
         "pages/announcements/index",
         "pages/announcement-detail/index",
-        "pages/chat/index"
+        "pages/chat/index",
+        "pages/settings/index",
+        "pages/settings/about"
       ]
     }
   ],

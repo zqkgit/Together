@@ -105,7 +105,7 @@ export default function MinePage() {
   const serviceItems = [
     { icon: "⭐", title: "收藏与动态", url: "/packageSocial/pages/favorites/index" },
     { icon: "💰", title: "收益中心", url: "/packageWallet/pages/wallet/index" },
-    { icon: "⚙️", title: "设置", url: "" }
+    { icon: "⚙️", title: "设置", url: "/packageInfo/pages/settings/index" }
   ];
 
   const handleMenuTap = (item: { title: string; url: string }) => {
@@ -130,7 +130,7 @@ export default function MinePage() {
               <Text className="mine-identity-text">{roleText}</Text>
               <Text className="mine-identity-chevron">▾</Text>
             </View>
-            <View className="mine-settings-btn" onClick={handleLogout}>
+            <View className="mine-settings-btn" onClick={() => Taro.navigateTo({ url: "/packageInfo/pages/settings/index" })}>
               <Text className="mine-settings-icon">⚙</Text>
             </View>
           </View>
