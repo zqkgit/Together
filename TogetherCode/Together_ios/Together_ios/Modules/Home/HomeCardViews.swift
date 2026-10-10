@@ -304,6 +304,7 @@ final class ChildProgressCard: UIView {
         nameLabel.text = item.nickname
         nameLabel.font = .appSection(14)
         nameLabel.textColor = .white
+        nameLabel.numberOfLines = 1
         addSubview(nameLabel)
         nameLabel.snp.makeConstraints { $0.top.equalToSuperview().inset(Theme.Spacing.m); $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m) }
 

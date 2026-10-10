@@ -126,7 +126,7 @@ final class HomeViewController: BaseViewController {
             self?.navigationController?.pushViewController(vc, animated: true)
         }
         tableView.snp.makeConstraints {
-            $0.top.equalTo(searchBar.snp.bottom).offset(Theme.Spacing.s)
+            $0.top.equalTo(searchBar.snp.bottom).offset(0)
             $0.leading.trailing.bottom.equalToSuperview()
         }
     }
@@ -265,7 +265,7 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         // 固定行高 = 组内顶部间距 + 组件高度；帖子卡按内容自动
         switch rows[indexPath.section][indexPath.row] {
-        case .hero: return data.children.isEmpty ? 232 : 252   // 12 顶部间距 + Hero 220/240
+        case .hero: return UITableView.automaticDimension
         case .notice: return 64                                 // 20 顶部间距 + 公告 44
         case .courseHeader, .studioHeader, .postHeader: return 56  // 24 顶部间距 + 标题 32
         case .courseRow: return 244                             // 12 顶部间距 + 卡片 232
@@ -289,9 +289,9 @@ final class HomeHeroCell: UITableViewCell {
         backgroundColor = .clear
         selectionStyle = .none
         contentView.addSubview(hero)
-        // 顶部 12（与搜索条间距）+ 左右 12 + 底部 0
+        // 顶部 0（问候语距搜索框 16pt 由 hero 内部 inset 控制）+ 左右 12 + 底部 0
         hero.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(Theme.Spacing.m)
+            $0.top.equalToSuperview().offset(0)
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m)
             $0.bottom.equalToSuperview()
         }
@@ -461,9 +461,11 @@ final class HomeSearchBar: UIView {
 final class HomeHeroView: UIView {
 
     private let greetingLabel = UILabel()
-    private let nameLabel = UILabel()
+    private let subtitleLabel = UILabel()
+    private let childScrollView = UIScrollView()
     private let childStack = UIStackView()
     private let addChildView = HomeAddChildView()
+    private let noChildView = HomeNoChildView()
 
     var onChildTap: ((ChildItem) -> Void)?
     var onAddChild: (() -> Void)?
@@ -474,58 +476,91 @@ final class HomeHeroView: UIView {
         // 透明背景，由页面顶部渐变透出（对齐小程序 home-hero）
         backgroundColor = .clear
 
-        greetingLabel.text = Self.greetingText()
-        greetingLabel.font = .appBody(14)
-        greetingLabel.textColor = UIColor.white.withAlphaComponent(0.85)
+        // 问候语 + 名字一行大字（对齐小程序 greeting 行）
+        let name = TokenManager.shared.nickname.isEmpty ? "家长" : TokenManager.shared.nickname
+        greetingLabel.text = "\(Self.greetingText())，\(name)"
+        greetingLabel.font = .appTitle(20)
+        greetingLabel.textColor = .white
+        greetingLabel.numberOfLines = 1
         addSubview(greetingLabel)
-        greetingLabel.snp.makeConstraints { $0.top.equalToSuperview().inset(Theme.Spacing.l); $0.leading.equalToSuperview().inset(Theme.Spacing.xl) }
+        greetingLabel.snp.makeConstraints { $0.top.equalToSuperview().inset(Theme.Spacing.l); $0.leading.equalToSuperview(); $0.height.equalTo(24) }
 
-        nameLabel.text = TokenManager.shared.nickname.isEmpty ? "家长" : TokenManager.shared.nickname
-        nameLabel.font = .appTitle(24)
-        nameLabel.textColor = .white
-        addSubview(nameLabel)
-        nameLabel.snp.makeConstraints { $0.top.equalTo(greetingLabel.snp.bottom).offset(4); $0.leading.equalTo(greetingLabel) }
+        // 副标题（对齐小程序 greeting-sub）
+        subtitleLabel.text = "让每一次创作，都被看见"
+        subtitleLabel.font = .appBody(13)
+        subtitleLabel.textColor = UIColor.white.withAlphaComponent(0.75)
+        subtitleLabel.numberOfLines = 1
+        addSubview(subtitleLabel)
+        subtitleLabel.snp.makeConstraints { $0.top.equalTo(greetingLabel.snp.bottom).offset(16); $0.leading.equalTo(greetingLabel); $0.height.equalTo(18) }
 
-        // 孩子课程进度卡（双卡并排）
+        // 孩子卡片横滑（对齐小程序 hero-children ScrollView）
+        childScrollView.showsHorizontalScrollIndicator = false
+        childScrollView.alwaysBounceHorizontal = true
+        addSubview(childScrollView)
+        childScrollView.snp.makeConstraints { $0.top.equalTo(subtitleLabel.snp.bottom).offset(Theme.Spacing.m); $0.leading.trailing.equalToSuperview(); $0.bottom.equalToSuperview().inset(Theme.Spacing.s); $0.height.equalTo(childScrollView.contentLayoutGuide.snp.height) }
+
         childStack.axis = .horizontal
         childStack.spacing = Theme.Spacing.m
-        childStack.distribution = .fillEqually
-        addSubview(childStack)
-        childStack.snp.makeConstraints { $0.top.equalTo(nameLabel.snp.bottom).offset(Theme.Spacing.l); $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.xl); $0.bottom.equalToSuperview().inset(Theme.Spacing.l) }
+        childStack.alignment = .top
+        childScrollView.addSubview(childStack)
+        childStack.snp.makeConstraints { $0.top.equalTo(childScrollView.contentLayoutGuide.snp.top); $0.bottom.equalTo(childScrollView.contentLayoutGuide.snp.bottom); $0.leading.equalTo(childScrollView.contentLayoutGuide.snp.leading); $0.trailing.equalTo(childScrollView.contentLayoutGuide.snp.trailing).inset(Theme.Spacing.xl) }
 
+        // 添加孩子空态卡
         addChildView.onTap = { [weak self] in self?.onAddChild?() }
-        addSubview(addChildView)
-        addChildView.snp.makeConstraints { $0.top.equalTo(nameLabel.snp.bottom).offset(Theme.Spacing.l); $0.leading.equalToSuperview().inset(Theme.Spacing.xl); $0.height.equalTo(104) }
         addChildView.isHidden = true
 
-        snp.makeConstraints { $0.height.equalTo(240) }
+        // 无孩子提示（对齐小程序 hero-no-child）
+        noChildView.onTap = { [weak self] in self?.onAddChild?() }
+        noChildView.isHidden = true
+        addSubview(noChildView)
+        noChildView.snp.makeConstraints { $0.top.equalTo(subtitleLabel.snp.bottom).offset(Theme.Spacing.m); $0.leading.equalToSuperview(); $0.trailing.equalToSuperview().inset(Theme.Spacing.xl); $0.height.equalTo(52) }
+
+
     }
 
     func reload(children: [ChildItem]) {
         childStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         if children.isEmpty {
-            // 无孩子空态
-            childStack.isHidden = true
-            addChildView.isHidden = false
-            snp.updateConstraints { $0.height.equalTo(220) }
+            // 无孩子：显示虚线提示卡，bottom 约束挂到 noChildView
+            childScrollView.isHidden = true
+            noChildView.isHidden = false
+            childScrollView.snp.remakeConstraints {
+                $0.top.equalTo(subtitleLabel.snp.bottom).offset(Theme.Spacing.m)
+                $0.leading.trailing.equalToSuperview()
+                $0.height.equalTo(childScrollView.contentLayoutGuide.snp.height)
+            }
+            noChildView.snp.remakeConstraints {
+                $0.top.equalTo(subtitleLabel.snp.bottom).offset(Theme.Spacing.m)
+                $0.leading.equalToSuperview()
+                $0.trailing.equalToSuperview().inset(Theme.Spacing.xl)
+                $0.height.equalTo(52)
+                $0.bottom.equalToSuperview().inset(Theme.Spacing.s)
+            }
             return
         }
 
-        childStack.isHidden = false
-        addChildView.isHidden = true
-        // 双卡并排（设计图 2 个；超出显示前 2 个）
-        for item in children.prefix(2) {
+        childScrollView.isHidden = false
+        noChildView.isHidden = true
+        // bottom 约束挂到 childScrollView
+        childScrollView.snp.remakeConstraints {
+            $0.top.equalTo(subtitleLabel.snp.bottom).offset(Theme.Spacing.m)
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(childScrollView.contentLayoutGuide.snp.height)
+            $0.bottom.equalToSuperview().inset(Theme.Spacing.s)
+        }
+        noChildView.snp.remakeConstraints {
+            $0.top.equalTo(subtitleLabel.snp.bottom).offset(Theme.Spacing.m)
+            $0.leading.equalToSuperview()
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.xl)
+            $0.height.equalTo(52)
+        }
+        // 横滑孩子卡片
+        for item in children {
             let card = ChildProgressCard(item: item)
             card.onTap = { [weak self] in self?.onChildTap?(item) }
+            card.snp.makeConstraints { $0.width.greaterThanOrEqualTo(140) }
             childStack.addArrangedSubview(card)
         }
-        // 单孩时另一张卡位用空白占位（保持宽度一致）
-        if children.count == 1 {
-            let spacer = UIView()
-            spacer.backgroundColor = .clear
-            childStack.addArrangedSubview(spacer)
-        }
-        snp.updateConstraints { $0.height.equalTo(240) }
     }
 
     private static func greetingText() -> String {
@@ -540,34 +575,75 @@ final class HomeHeroView: UIView {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 }
 
-/// Hero 内「添加孩子」空态卡
+/// Hero 内「管理孩子」按钮卡（对齐小程序 child-card-add：白底+虚线边框）
 final class HomeAddChildView: UIView {
     var onTap: (() -> Void)?
 
     override init(frame: CGRect) {
         super.init(frame: .zero)
-        let icon = UIImageView(image: UIImage(systemName: "plus.circle.fill"))
-        icon.tintColor = UIColor.white.withAlphaComponent(0.7)
+        let icon = UIImageView(image: UIImage(systemName: "plus"))
+        icon.tintColor = Theme.Color.brand
         addSubview(icon)
-        icon.snp.makeConstraints { $0.top.equalToSuperview().inset(Theme.Spacing.l); $0.centerX.equalToSuperview(); $0.width.height.equalTo(28) }
+        icon.snp.makeConstraints { $0.top.equalToSuperview().inset(Theme.Spacing.m); $0.centerX.equalToSuperview(); $0.width.height.equalTo(20) }
 
         let label = UILabel()
-        label.text = "添加孩子"
-        label.font = .appSection(13)
-        label.textColor = UIColor.white.withAlphaComponent(0.7)
+        label.text = "管理孩子"
+        label.font = .appLabel(11)
+        label.textColor = Theme.Color.sub
         label.textAlignment = .center
         addSubview(label)
-        label.snp.makeConstraints { $0.top.equalTo(icon.snp.bottom).offset(Theme.Spacing.s); $0.leading.trailing.equalToSuperview(); $0.bottom.equalToSuperview().offset(-Theme.Spacing.l) }
+        label.snp.makeConstraints { $0.top.equalTo(icon.snp.bottom).offset(Theme.Spacing.xs); $0.leading.trailing.equalToSuperview(); $0.bottom.equalToSuperview().offset(-Theme.Spacing.m) }
 
-        backgroundColor = UIColor.white.withAlphaComponent(0.1)
+        backgroundColor = Theme.Color.surface
         layer.cornerRadius = Theme.Radius.card
         layer.borderWidth = 1
-        layer.borderColor = UIColor.white.withAlphaComponent(0.4).cgColor
-        snp.makeConstraints { $0.width.equalTo(96) }
+        layer.borderColor = Theme.Color.line.cgColor
+        snp.makeConstraints { $0.width.equalTo(80) }
 
         let tap = UITapGestureRecognizer(target: self, action: #selector(didTap))
         addGestureRecognizer(tap)
         isUserInteractionEnabled = true
+    }
+
+    @objc private func didTap() { onTap?() }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+}
+
+/// Hero 内「无孩子」提示卡（对齐小程序 hero-no-child：半透明+虚线边框+白色文字）
+final class HomeNoChildView: UIView {
+    var onTap: (() -> Void)?
+
+    override init(frame: CGRect) {
+        super.init(frame: .zero)
+        let label = UILabel()
+        label.text = "添加孩子，开始记录成长"
+        label.font = .appBody(14)
+        label.textColor = UIColor.white.withAlphaComponent(0.8)
+        addSubview(label)
+        label.snp.makeConstraints { $0.center.equalToSuperview() }
+
+        let arrow = UIImageView(image: UIImage(systemName: "chevron.right"))
+        arrow.tintColor = UIColor.white.withAlphaComponent(0.6)
+        addSubview(arrow)
+        arrow.snp.makeConstraints { $0.centerY.equalToSuperview(); $0.leading.equalTo(label.snp.trailing).offset(Theme.Spacing.xs); $0.width.equalTo(8) }
+
+        backgroundColor = UIColor.white.withAlphaComponent(0.12)
+        layer.cornerRadius = Theme.Radius.card
+        let border = CAShapeLayer()
+        border.strokeColor = UIColor.white.withAlphaComponent(0.3).cgColor
+        border.fillColor = UIColor.clear.cgColor
+        border.lineDashPattern = [4, 4]
+        border.lineWidth = 1
+        layer.addSublayer(border)
+
+        let tap = UITapGestureRecognizer(target: self, action: #selector(didTap))
+        addGestureRecognizer(tap)
+        isUserInteractionEnabled = true
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        (layer.sublayers?.last as? CAShapeLayer)?.path = UIBezierPath(roundedRect: bounds, cornerRadius: layer.cornerRadius).cgPath
     }
 
     @objc private func didTap() { onTap?() }
