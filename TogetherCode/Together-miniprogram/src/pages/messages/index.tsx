@@ -9,7 +9,6 @@ import {
   type NotificationItem,
   type ConversationItem,
 } from "../../services/message";
-import { connectMessageSocket } from "../../services/push";
 import { useAuthStore } from "../../store/auth";
 import "./index.scss";
 
@@ -55,21 +54,19 @@ export default function MessagesPage() {
   const [tab, setTab] = useState(0); // 0=对话 1=通知
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [convUnread, setConvUnread] = useState(0);
+  const convUnreadRef = useRef(0);
   const [convPage, setConvPage] = useState(1);
   const [convHasMore, setConvHasMore] = useState(true);
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unread, setUnread] = useState(0);
+  const notifUnreadRef = useRef(0);
   const [notifPage, setNotifPage] = useState(1);
   const [notifHasMore, setNotifHasMore] = useState(true);
 
   const [loading, setLoading] = useState(true);
-  const isLoadingRef = useRef(false);
-  const stopWsRef = useRef<(() => void) | null>(null);
 
   const loadConv = async (page: number = 1, showLoading: boolean = true) => {
-    if (isLoadingRef.current) return;
-    isLoadingRef.current = true;
     if (showLoading && page === 1) setLoading(true);
     try {
       const res = await getConversations({ page, size: 20 });
@@ -81,19 +78,18 @@ export default function MessagesPage() {
       }
       setConvPage(page);
       setConvHasMore(list.length >= 20 && (conversations.length + list.length) < (res.total || 0));
-      setConvUnread(res.unread_total || 0);
-      updateTabBarBadge(res.unread_total || 0, unread);
+      const convUn = res.unread_total || 0;
+      setConvUnread(convUn);
+      convUnreadRef.current = convUn;
+      updateTabBarBadge();
     } catch {
       // 拦截器已提示
     } finally {
-      isLoadingRef.current = false;
       setLoading(false);
     }
   };
 
   const loadNotif = async (page: number = 1, showLoading: boolean = true) => {
-    if (isLoadingRef.current) return;
-    isLoadingRef.current = true;
     if (showLoading && page === 1) setLoading(true);
     try {
       const data = await getNotifications({ page, page_size: 20 });
@@ -105,34 +101,28 @@ export default function MessagesPage() {
       }
       setNotifPage(page);
       setNotifHasMore(list.length >= 20 && (notifications.length + list.length) < (data.total || 0));
-      setUnread(data.unread_total || 0);
-      updateTabBarBadge(convUnread, data.unread_total || 0);
+      const notifUn = data.unread_total || 0;
+      setUnread(notifUn);
+      notifUnreadRef.current = notifUn;
+      updateTabBarBadge();
     } catch {
       // 拦截器已提示
     } finally {
-      isLoadingRef.current = false;
       setLoading(false);
     }
   };
 
   const loadAll = async () => {
-    isLoadingRef.current = false;
     setLoading(true);
     await Promise.all([loadConv(1, false), loadNotif(1, false)]);
     setLoading(false);
   };
 
-  // 更新 TabBar 红点（对齐 iOS updateUnreadBadge → MainTabBarController）
-  const updateTabBarBadge = (convUnreadCount: number, notifUnreadCount: number) => {
-    const total = convUnreadCount + notifUnreadCount;
-    if (total > 0) {
-      Taro.setTabBarBadge({
-        index: 3, // 消息 tab 位置（首页0/广场1/发布2/消息3/我的4）
-        text: total > 99 ? "99+" : String(total),
-      });
-    } else {
-      Taro.removeTabBarBadge({ index: 3 });
-    }
+  // 更新 TabBar 红点（通知 custom-tab-bar 渲染）
+  // 使用 ref 取最新值，避免 loadConv/loadNotif 并行时闭包读到 stale state
+  const updateTabBarBadge = () => {
+    const total = convUnreadRef.current + notifUnreadRef.current;
+    Taro.eventCenter.trigger("unread:update", total);
   };
 
   // 页面每次显示时刷新会话列表（对齐 iOS viewWillAppear → reloadCurrent）
@@ -143,10 +133,9 @@ export default function MessagesPage() {
     loadNotif(1, false);
   });
 
+  // 监听全局 WS 消息（由 app.tsx 广播）
   useEffect(() => {
-    if (!isLoggedIn) return;
-    loadAll();
-    const stop = connectMessageSocket((msg: any) => {
+    const handler = (msg: any) => {
       const evt = msg?.event || msg?.type;
       if (evt === "notification" || evt === "new_notification" || msg?.data?.notification_id) {
         loadNotif(1, false);
@@ -154,13 +143,12 @@ export default function MessagesPage() {
       if (evt === "message" || evt === "chat" || evt === "new_message" || msg?.data?.message_id) {
         loadConv(1, false);
       }
-    });
-    stopWsRef.current = stop || null;
-    return () => {
-      stopWsRef.current?.();
-      stopWsRef.current = null;
     };
-  }, [isLoggedIn]);
+    Taro.eventCenter.on("ws:message", handler);
+    return () => {
+      Taro.eventCenter.off("ws:message", handler);
+    };
+  }, []);
 
   // 下拉刷新
   usePullDownRefresh(() => {
@@ -179,12 +167,13 @@ export default function MessagesPage() {
 
   const onItemClick = async (item: NotificationItem) => {
     if (!item.is_read) {
-      const newUnread = Math.max(0, unread - 1);
+      const newUnread = Math.max(0, notifUnreadRef.current - 1);
       setUnread(newUnread);
+      notifUnreadRef.current = newUnread;
       setNotifications((prev) =>
         prev.map((n) => (n.notification_id === item.notification_id ? { ...n, is_read: true } : n))
       );
-      updateTabBarBadge(convUnread, newUnread);
+      updateTabBarBadge();
       markNotificationRead(item.notification_id).catch(() => undefined);
     }
     const id = item.ref_id;
@@ -209,10 +198,11 @@ export default function MessagesPage() {
   };
 
   const readAll = async () => {
-    if (unread === 0) return;
+    if (notifUnreadRef.current === 0) return;
     setUnread(0);
+    notifUnreadRef.current = 0;
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    updateTabBarBadge(convUnread, 0);
+    updateTabBarBadge();
     try {
       await markAllNotificationsRead();
     } catch {
@@ -230,32 +220,32 @@ export default function MessagesPage() {
 
   return (
     <View className="messages">
-      {/* 胶囊式双Tab —— 对齐 iOS segmentView */}
-      <View className="segment">
-        <View className={`seg-option ${tab === 0 ? "active" : ""}`} onClick={() => switchTab(0)}>
-          <Text className="seg-text">对话</Text>
-          {convUnread > 0 && (
-            <View className="seg-badge">
-              <Text className="seg-badge-text">{convUnread > 99 ? "99+" : convUnread}</Text>
+      {/* 胶囊式双Tab + 右侧操作 */}
+      <View className="segment-row">
+        <View className="segment">
+          <View className={`seg-option ${tab === 0 ? "active" : ""}`} onClick={() => switchTab(0)}>
+            <Text className="seg-text">对话</Text>
+            {convUnread > 0 && (
+              <View className="seg-badge">
+                <Text className="seg-badge-text">{convUnread > 99 ? "99+" : convUnread}</Text>
+              </View>
+            )}
+          </View>
+          <View className={`seg-option ${tab === 1 ? "active" : ""}`} onClick={() => switchTab(1)}>
+            <Text className="seg-text">通知</Text>
+            {unread > 0 && <View className="seg-dot" />}
+          </View>
+        </View>
+        <View className="seg-action">
+          {tab === 0 && (
+            <View className="add-btn" onClick={() => Taro.navigateTo({ url: "/packageSocial/pages/following-list/index" })}>
+              <Text className="add-icon">+</Text>
             </View>
           )}
+          {tab === 1 && unread > 0 && (
+            <Text className="read-all" onClick={readAll}>全部已读</Text>
+          )}
         </View>
-        <View className={`seg-option ${tab === 1 ? "active" : ""}`} onClick={() => switchTab(1)}>
-          <Text className="seg-text">通知</Text>
-          {unread > 0 && <View className="seg-dot" />}
-        </View>
-      </View>
-
-      {/* 右侧操作区 */}
-      <View className="head-actions">
-        {tab === 0 && (
-          <View className="add-btn" onClick={() => Taro.navigateTo({ url: "/packageSocial/pages/following-list/index" })}>
-            <Text className="add-icon">+</Text>
-          </View>
-        )}
-        {tab === 1 && unread > 0 && (
-          <Text className="read-all" onClick={readAll}>全部已读</Text>
-        )}
       </View>
 
       {/* 列表区域 */}

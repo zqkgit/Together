@@ -9,7 +9,6 @@ import {
 } from "../../../services/message";
 import { uploadImages } from "../../../services/upload";
 import { useAuthStore } from "../../../store/auth";
-import { connectMessageSocket } from "../../../services/push";
 import "./index.scss";
 
 /** 聊天时间格式：今天 HH:mm / 昨天 HH:mm / MM-DD HH:mm / yyyy-MM-dd HH:mm（对齐 iOS ChatTimeFormatter） */
@@ -69,9 +68,7 @@ export default function ChatPage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const stopWsRef = useRef<(() => void) | null>(null);
-  const scrollTopRef = useRef(0);
-  const scrollRef = useRef<any>(null);
+  const [scrollTop, setScrollTop] = useState(0);
 
   // 初始化：获取或创建会话
   useEffect(() => {
@@ -80,10 +77,6 @@ export default function ChatPage() {
       return;
     }
     initConversation();
-    return () => {
-      stopWsRef.current?.();
-      stopWsRef.current = null;
-    };
   }, []);
 
   const initConversation = async () => {
@@ -137,14 +130,14 @@ export default function ChatPage() {
 
   // 滚到底部
   const scrollToBottom = useCallback(() => {
-    scrollTopRef.current = 999999;
-    scrollRef.current?.scrollTo?.({ scrollTop: scrollTopRef.current });
+    // 用递增 scrollTop 触发 ScrollView 滚动（小程序不支持 scrollTo API）
+    setScrollTop((prev) => prev + 999);
   }, []);
 
-  // WS 实时消息
+  // 监听全局 WS 消息（由 app.tsx 广播）
   useEffect(() => {
     if (!conversationId) return;
-    const stop = connectMessageSocket((msg: any) => {
+    const handler = (msg: any) => {
       const data = msg?.data || msg;
       const evt = msg?.event || msg?.type;
       if (evt === "message" || evt === "chat_message" || evt === "new_message") {
@@ -176,16 +169,23 @@ export default function ChatPage() {
             }
             return [...prev, newMsg];
           });
-          scrollToBottom();
         }
       }
-    });
-    stopWsRef.current = stop || null;
-    return () => {
-      stopWsRef.current?.();
-      stopWsRef.current = null;
     };
-  }, [conversationId]);
+    Taro.eventCenter.on("ws:message", handler);
+    return () => {
+      Taro.eventCenter.off("ws:message", handler);
+    };
+  }, [conversationId, myUserId]);
+
+  // 消息列表变化时自动滚到底部（收到新消息 / 发送消息后）
+  const prevMsgCountRef = useRef(0);
+  useEffect(() => {
+    if (messages.length > prevMsgCountRef.current) {
+      scrollToBottom();
+    }
+    prevMsgCountRef.current = messages.length;
+  }, [messages.length]);
 
   // 发送文本消息（乐观插入，对齐 iOS）
   const handleSend = async () => {
@@ -313,11 +313,10 @@ export default function ChatPage() {
   return (
     <View className="chat-page">
       <ScrollView
-        ref={scrollRef}
         className="chat-messages"
         scrollY
         enhanced
-        scrollTop={scrollTopRef.current}
+        scrollTop={scrollTop}
         onScroll={(e) => {
           // 滚到顶部加载更早消息
           if (e.detail.scrollTop < 60 && hasMore && !isLoadingMore) {

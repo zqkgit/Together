@@ -30,11 +30,14 @@ const TAB_LIST: TabItem[] = [
   { pagePath: '/pages/mine/index', text: '我的', icon: mineIcon, selectedIcon: mineActiveIcon },
 ]
 
+/** 消息 tab 在 TAB_LIST 中的索引 */
+const MESSAGE_INDEX = 3
 /** 发布按钮在 TAB_LIST 中的索引 */
 const PUBLISH_INDEX = 2
 
 export default function CustomTabBar() {
   const [selected, setSelected] = useState(0)
+  const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
     // 页面显示时同步当前 tab 索引
@@ -56,6 +59,17 @@ export default function CustomTabBar() {
     }
   }, [])
 
+  // 监听全局未读数更新（由 app.tsx 广播）
+  useEffect(() => {
+    const onUnreadUpdate = (count: number) => {
+      setUnreadCount(count || 0)
+    }
+    Taro.eventCenter.on('unread:update', onUnreadUpdate)
+    return () => {
+      Taro.eventCenter.off('unread:update', onUnreadUpdate)
+    }
+  }, [])
+
   const handleTabClick = (index: number) => {
     // 点击发布按钮：navigateTo 发布页，不切换 tab
     if (index === PUBLISH_INDEX) {
@@ -72,6 +86,7 @@ export default function CustomTabBar() {
       {TAB_LIST.map((tab, index) => {
         const isPublish = index === PUBLISH_INDEX
         const isActive = selected === index && !isPublish
+        const isMessage = index === MESSAGE_INDEX
 
         return (
           <View
@@ -86,11 +101,25 @@ export default function CustomTabBar() {
               </View>
             ) : (
               <>
-                <Image
-                  className='tab-icon'
-                  src={isActive ? tab.selectedIcon : tab.icon}
-                  mode='aspectFit'
-                />
+                <View className='tab-icon-wrap'>
+                  <Image
+                    className='tab-icon'
+                    src={isActive ? tab.selectedIcon : tab.icon}
+                    mode='aspectFit'
+                  />
+                  {/* 消息 tab 红点/badge */}
+                  {isMessage && unreadCount > 0 && (
+                    unreadCount > 99 ? (
+                      <View className='tab-badge tab-badge--wide'>
+                        <Text className='tab-badge-text'>99+</Text>
+                      </View>
+                    ) : (
+                      <View className='tab-badge'>
+                        <Text className='tab-badge-text'>{unreadCount}</Text>
+                      </View>
+                    )
+                  )}
+                </View>
                 <Text className={`tab-text ${isActive ? 'tab-text--active' : ''}`}>
                   {tab.text}
                 </Text>

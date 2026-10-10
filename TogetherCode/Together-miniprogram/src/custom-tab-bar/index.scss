@@ -29,10 +29,41 @@
   }
 }
 
-.tab-icon {
+.tab-icon-wrap {
+  position: relative;
   width: 48rpx;
   height: 48rpx;
   margin-bottom: 4rpx;
+}
+
+.tab-icon {
+  width: 48rpx;
+  height: 48rpx;
+}
+
+/* 消息 tab 红点/badge */
+.tab-badge {
+  position: absolute;
+  top: -8rpx;
+  right: -16rpx;
+  min-width: 32rpx;
+  height: 32rpx;
+  border-radius: 16rpx;
+  background-color: #f44336;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8rpx;
+
+  &--wide {
+    min-width: 48rpx;
+  }
+}
+
+.tab-badge-text {
+  font-size: 18rpx;
+  color: #ffffff;
+  line-height: 1;
 }
 
 .tab-text {

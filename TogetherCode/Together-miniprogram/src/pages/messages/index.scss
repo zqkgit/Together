@@ -7,16 +7,21 @@
   padding-bottom: calc(100rpx + env(safe-area-inset-bottom));
   background: $color-bg;
 
-  // ── 胶囊式双Tab（对齐 iOS segmentView） ──
+  // ── Tab 行：segment + 右侧操作 ──
+
+  .segment-row {
+    display: flex;
+    align-items: center;
+    padding: 16rpx 32rpx 0;
+  }
 
   .segment {
+    flex: 1;
     display: flex;
     align-items: center;
     background: rgba($color-primary, 0.06); // surfaceAlt 浅米底
     border-radius: 40rpx;
     padding: 4rpx;
-    margin: 16rpx 32rpx 0;
-    position: relative;
   }
 
   .seg-option {
@@ -75,13 +80,12 @@
     }
   }
 
-  // ── 右侧操作区 ──
-
-  .head-actions {
+  .seg-action {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    padding: 16rpx 32rpx 8rpx;
+    justify-content: center;
+    margin-left: 16rpx;
+    flex-shrink: 0;
 
     .add-btn {
       width: 56rpx;
@@ -103,6 +107,7 @@
     .read-all {
       font-size: 24rpx;
       color: $color-primary;
+      white-space: nowrap;
     }
   }
 
