@@ -25,6 +25,8 @@ enum Theme {
         static let brand = UIColor(hex: 0x14A640)
         /// 品牌深色（按压态 / 渐变深端）
         static let brandDark = UIColor(hex: 0x0B7E2D)
+        /// 品牌浅色（渐变中间色 / Hero 渐变过渡）
+        static let brandLight = UIColor(hex: 0x4A7A5E)
         /// 品牌绿 tint（标签底）
         static let brandSoft = UIColor(hex: 0xE4F7EA)
 

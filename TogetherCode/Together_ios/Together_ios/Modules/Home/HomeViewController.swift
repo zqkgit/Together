@@ -8,6 +8,8 @@ final class HomeViewController: BaseViewController {
 
     private let tableView = UITableView(frame: .zero, style: .plain)
     private let searchBar = HomeSearchBar()
+    /// 顶部渐变背景（对齐小程序：brand → brandLight → bg）
+    private let gradientView = UIView()
     private var rows: [[HomeRow]] = []
     private var data = HomeService.HomeData()
     private var hasLoaded = false
@@ -29,14 +31,69 @@ final class HomeViewController: BaseViewController {
         title = "艺启"
         navigationController?.navigationBar.prefersLargeTitles = false
         view.backgroundColor = Theme.Color.bg
+        setupGradientBackground()
+        setupNavBarAppearance()
         setupTableView()
         loadData()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        // 离开首页时恢复导航栏默认样式
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = Theme.Color.surface
+        appearance.titleTextAttributes = [.foregroundColor: Theme.Color.ink]
+        navigationController?.navigationBar.standardAppearance = appearance
+        navigationController?.navigationBar.scrollEdgeAppearance = appearance
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        setupNavBarAppearance()
+    }
+
+    // MARK: - 渐变背景
+
+    /// 顶部渐变背景（对齐小程序 home-hero：brand → brandLight → bg 纵向渐变）
+    private func setupGradientBackground() {
+        let gradient = CAGradientLayer()
+        gradient.colors = [
+            Theme.Color.brand.cgColor,
+            Theme.Color.brandLight.cgColor,
+            Theme.Color.bg.cgColor
+        ]
+        gradient.locations = [0, 0.7, 1.0]
+        gradient.startPoint = CGPoint(x: 0.5, y: 0)
+        gradient.endPoint = CGPoint(x: 0.5, y: 1)
+        gradientView.layer.insertSublayer(gradient, at: 0)
+        view.addSubview(gradientView)
+        // 渐变从顶部延伸到 Hero 区域底部（约 320pt，覆盖搜索栏 + Hero）
+        gradientView.snp.makeConstraints {
+            $0.top.leading.trailing.equalToSuperview()
+            $0.height.equalTo(360)
+        }
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        // 更新渐变 layer frame
+        (gradientView.layer.sublayers?.first as? CAGradientLayer)?.frame = gradientView.bounds
+    }
+
+    /// 导航栏透明，文字白色（渐变背景透出）
+    private func setupNavBarAppearance() {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithTransparentBackground()
+        appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
+        navigationController?.navigationBar.standardAppearance = appearance
+        navigationController?.navigationBar.scrollEdgeAppearance = appearance
     }
 
     // MARK: - UI
 
     private func setupTableView() {
-        tableView.backgroundColor = Theme.Color.bg
+        tableView.backgroundColor = .clear
         tableView.separatorStyle = .none
         tableView.showsVerticalScrollIndicator = false
         tableView.alwaysBounceHorizontal = false
@@ -375,21 +432,19 @@ final class HomeSearchBar: UIView {
     override init(frame: CGRect) {
         super.init(frame: .zero)
         let icon = UIImageView(image: UIImage(systemName: "magnifyingglass"))
-        icon.tintColor = Theme.Color.muted
+        icon.tintColor = UIColor.white.withAlphaComponent(0.7)
         addSubview(icon)
         icon.snp.makeConstraints { $0.leading.equalToSuperview().offset(Theme.Spacing.m); $0.centerY.equalToSuperview(); $0.width.height.equalTo(16) }
 
         let label = UILabel()
         label.text = "搜索课程、工作室、作品"
         label.font = .appBody(14)
-        label.textColor = Theme.Color.muted
+        label.textColor = UIColor.white.withAlphaComponent(0.6)
         addSubview(label)
         label.snp.makeConstraints { $0.leading.equalTo(icon.snp.trailing).offset(Theme.Spacing.s); $0.centerY.equalToSuperview() }
 
-        backgroundColor = Theme.Color.surface
+        backgroundColor = UIColor.white.withAlphaComponent(0.15)
         layer.cornerRadius = Theme.Radius.input
-        layer.borderWidth = 1
-        layer.borderColor = Theme.Color.line.cgColor
         snp.makeConstraints { $0.height.equalTo(44) }
 
         let tap = UITapGestureRecognizer(target: self, action: #selector(didTap))
@@ -416,14 +471,8 @@ final class HomeHeroView: UIView {
     override init(frame: CGRect) {
         super.init(frame: .zero)
 
-        // 渐变背景
-        let gradient = CAGradientLayer()
-        gradient.colors = [Theme.Color.brand.cgColor, Theme.Color.brandDark.cgColor]
-        gradient.startPoint = CGPoint(x: 0, y: 0)
-        gradient.endPoint = CGPoint(x: 1, y: 1)
-        layer.insertSublayer(gradient, at: 0)
-        layer.cornerRadius = Theme.Radius.card
-        layer.masksToBounds = true
+        // 透明背景，由页面顶部渐变透出（对齐小程序 home-hero）
+        backgroundColor = .clear
 
         greetingLabel.text = Self.greetingText()
         greetingLabel.font = .appBody(14)
@@ -479,11 +528,6 @@ final class HomeHeroView: UIView {
         snp.updateConstraints { $0.height.equalTo(240) }
     }
 
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        layer.sublayers?.first?.frame = bounds
-    }
-
     private static func greetingText() -> String {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
@@ -503,22 +547,22 @@ final class HomeAddChildView: UIView {
     override init(frame: CGRect) {
         super.init(frame: .zero)
         let icon = UIImageView(image: UIImage(systemName: "plus.circle.fill"))
-        icon.tintColor = Theme.Color.brand
+        icon.tintColor = UIColor.white.withAlphaComponent(0.7)
         addSubview(icon)
         icon.snp.makeConstraints { $0.top.equalToSuperview().inset(Theme.Spacing.l); $0.centerX.equalToSuperview(); $0.width.height.equalTo(28) }
 
         let label = UILabel()
         label.text = "添加孩子"
         label.font = .appSection(13)
-        label.textColor = Theme.Color.ink
+        label.textColor = UIColor.white.withAlphaComponent(0.7)
         label.textAlignment = .center
         addSubview(label)
         label.snp.makeConstraints { $0.top.equalTo(icon.snp.bottom).offset(Theme.Spacing.s); $0.leading.trailing.equalToSuperview(); $0.bottom.equalToSuperview().offset(-Theme.Spacing.l) }
 
-        backgroundColor = Theme.Color.surface
+        backgroundColor = UIColor.white.withAlphaComponent(0.1)
         layer.cornerRadius = Theme.Radius.card
         layer.borderWidth = 1
-        layer.borderColor = Theme.Color.line.cgColor
+        layer.borderColor = UIColor.white.withAlphaComponent(0.4).cgColor
         snp.makeConstraints { $0.width.equalTo(96) }
 
         let tap = UITapGestureRecognizer(target: self, action: #selector(didTap))

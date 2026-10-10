@@ -303,20 +303,20 @@ final class ChildProgressCard: UIView {
 
         nameLabel.text = item.nickname
         nameLabel.font = .appSection(14)
-        nameLabel.textColor = Theme.Color.ink
+        nameLabel.textColor = .white
         addSubview(nameLabel)
         nameLabel.snp.makeConstraints { $0.top.equalToSuperview().inset(Theme.Spacing.m); $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m) }
 
         // 课种
         courseLabel.font = .appLabel(11)
-        courseLabel.textColor = Theme.Color.sub
+        courseLabel.textColor = UIColor.white.withAlphaComponent(0.8)
         courseLabel.numberOfLines = 1
         addSubview(courseLabel)
         courseLabel.snp.makeConstraints { $0.top.equalTo(nameLabel.snp.bottom).offset(Theme.Spacing.xs); $0.leading.trailing.equalTo(nameLabel) }
 
         // 进度条
-        progressView.progressTintColor = Theme.Color.brand
-        progressView.trackTintColor = Theme.Color.brandSoft
+        progressView.progressTintColor = UIColor.white.withAlphaComponent(0.9)
+        progressView.trackTintColor = UIColor.white.withAlphaComponent(0.25)
         progressView.layer.cornerRadius = 3
         progressView.clipsToBounds = true
         addSubview(progressView)
@@ -324,13 +324,13 @@ final class ChildProgressCard: UIView {
 
         // 剩余课时 · 学期%
         metaLabel.font = .appLabel(11)
-        metaLabel.textColor = Theme.Color.muted
+        metaLabel.textColor = UIColor.white.withAlphaComponent(0.7)
         addSubview(metaLabel)
         metaLabel.snp.makeConstraints { $0.top.equalTo(progressView.snp.bottom).offset(Theme.Spacing.s); $0.leading.trailing.equalTo(nameLabel); $0.bottom.equalToSuperview().offset(-Theme.Spacing.m) }
 
         // 空态（有孩子无课包）
         emptyLabel.font = .appLabel(11)
-        emptyLabel.textColor = Theme.Color.muted
+        emptyLabel.textColor = UIColor.white.withAlphaComponent(0.7)
         emptyLabel.text = "暂无课程 · 去报名"
         emptyLabel.isHidden = true
         addSubview(emptyLabel)
@@ -338,14 +338,9 @@ final class ChildProgressCard: UIView {
 
         apply(item)
 
-        backgroundColor = Theme.Color.surface
+        // 半透明白底（对齐小程序 child-card 在渐变背景上的风格）
+        backgroundColor = UIColor.white.withAlphaComponent(0.18)
         layer.cornerRadius = Theme.Radius.card
-        layer.borderWidth = 1
-        layer.borderColor = Theme.Color.line.cgColor
-        layer.shadowColor = Theme.Shadow.card.color.cgColor
-        layer.shadowOffset = Theme.Shadow.card.offset
-        layer.shadowRadius = Theme.Shadow.card.radius
-        layer.shadowOpacity = Theme.Shadow.card.opacity
 
         let tap = UITapGestureRecognizer(target: self, action: #selector(didTap))
         addGestureRecognizer(tap)
