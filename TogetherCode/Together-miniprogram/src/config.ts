@@ -1,11 +1,10 @@
 /**
  * 全局配置（集中管理，后续上线时只需改这里）
  */
+import Taro from '@tarojs/taro'
 
-// 真机无法访问 127.0.0.1，需走 Mac 局域网 IP
-const _isDevTools = typeof __wxConfig !== 'undefined'
-  ? /devtools/i.test(__wxConfig.platform || '')
-  : false
+// 模拟器共享 Mac 网络栈，127.0.0.1 恒定有效；真机需走 Mac 局域网 IP
+const _isDevTools = Taro.getSystemInfoSync().platform === 'devtools'
 
 const _DEV_BASE_URL = _isDevTools
   ? 'http://127.0.0.1:3001/v1'       // 开发者工具（模拟器）走本机
