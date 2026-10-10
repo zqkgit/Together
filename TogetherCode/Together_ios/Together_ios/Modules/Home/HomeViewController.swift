@@ -212,7 +212,7 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
         case .hero:
             let cell = tableView.dequeueReusableCell(withIdentifier: "HomeHeroCell", for: indexPath) as! HomeHeroCell
             cell.reload(children: data.children)
-            cell.onAddChild = { [weak self] in self?.showToast("添加孩子开发中") }
+            cell.onAddChild = { [weak self] in self?.navigationController?.pushViewController(MyChildrenViewController(), animated: true) }
             cell.onChildTap = { [weak self] child in
                 let vc = ChildHomeViewController(child: child)
                 self?.navigationController?.pushViewController(vc, animated: true)
@@ -501,7 +501,7 @@ final class HomeHeroView: UIView {
 
         childStack.axis = .horizontal
         childStack.spacing = Theme.Spacing.m
-        childStack.alignment = .top
+        childStack.alignment = .fill
         childScrollView.addSubview(childStack)
         childStack.snp.makeConstraints { $0.top.equalTo(childScrollView.contentLayoutGuide.snp.top); $0.bottom.equalTo(childScrollView.contentLayoutGuide.snp.bottom); $0.leading.equalTo(childScrollView.contentLayoutGuide.snp.leading); $0.trailing.equalTo(childScrollView.contentLayoutGuide.snp.trailing).inset(Theme.Spacing.xl) }
 
@@ -561,6 +561,10 @@ final class HomeHeroView: UIView {
             card.snp.makeConstraints { $0.width.greaterThanOrEqualTo(140) }
             childStack.addArrangedSubview(card)
         }
+        // 末尾"管理孩子"
+        childStack.addArrangedSubview(addChildView)
+        addChildView.isHidden = false
+        addChildView.snp.makeConstraints { $0.width.greaterThanOrEqualTo(100) }
     }
 
     private static func greetingText() -> String {
@@ -582,23 +586,21 @@ final class HomeAddChildView: UIView {
     override init(frame: CGRect) {
         super.init(frame: .zero)
         let icon = UIImageView(image: UIImage(systemName: "plus"))
-        icon.tintColor = Theme.Color.brand
+        icon.tintColor = .white
         addSubview(icon)
-        icon.snp.makeConstraints { $0.top.equalToSuperview().inset(Theme.Spacing.m); $0.centerX.equalToSuperview(); $0.width.height.equalTo(20) }
+        icon.snp.makeConstraints { $0.centerY.equalToSuperview().offset(-8); $0.centerX.equalToSuperview(); $0.width.height.equalTo(20) }
 
         let label = UILabel()
         label.text = "管理孩子"
         label.font = .appLabel(11)
-        label.textColor = Theme.Color.sub
+        label.textColor = UIColor.white.withAlphaComponent(0.8)
         label.textAlignment = .center
         addSubview(label)
-        label.snp.makeConstraints { $0.top.equalTo(icon.snp.bottom).offset(Theme.Spacing.xs); $0.leading.trailing.equalToSuperview(); $0.bottom.equalToSuperview().offset(-Theme.Spacing.m) }
+        label.snp.makeConstraints { $0.top.equalTo(icon.snp.bottom).offset(Theme.Spacing.xs); $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.m); $0.bottom.equalToSuperview().offset(-Theme.Spacing.m) }
 
-        backgroundColor = Theme.Color.surface
+        // 与孩子卡片同风格：半透明白底 + 圆角
+        backgroundColor = UIColor.white.withAlphaComponent(0.18)
         layer.cornerRadius = Theme.Radius.card
-        layer.borderWidth = 1
-        layer.borderColor = Theme.Color.line.cgColor
-        snp.makeConstraints { $0.width.equalTo(80) }
 
         let tap = UITapGestureRecognizer(target: self, action: #selector(didTap))
         addGestureRecognizer(tap)
