@@ -241,11 +241,11 @@ final class AuthService {
 
     // MARK: - 账号与安全
 
-    /// 修改登录密码
-    static func changePassword(oldPassword: String, newPassword: String,
+    /// 修改登录密码（验证码模式）
+    static func changePassword(code: String, newPassword: String,
                                completion: @escaping (Bool, String?) -> Void) {
         APIClient.shared.request("/auth/change-password", method: .post,
-                                 parameters: ["old_password": oldPassword, "new_password": newPassword]) { result in
+                                 parameters: ["code": code, "new_password": newPassword]) { result in
             switch result {
             case .success:
                 completion(true, nil)

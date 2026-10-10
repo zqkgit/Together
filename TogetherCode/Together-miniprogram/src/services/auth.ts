@@ -61,9 +61,9 @@ export function updateProfile(data: {
   return request({ url: "/auth/profile", method: "PATCH", data });
 }
 
-/** 修改登录密码 */
-export function changePassword(oldPassword: string, newPassword: string): Promise<void> {
-  return request({ url: "/auth/change-password", method: "POST", data: { old_password: oldPassword, new_password: newPassword } });
+/** 修改登录密码（验证码模式） */
+export function changePassword(code: string, newPassword: string): Promise<void> {
+  return request({ url: "/auth/change-password", method: "POST", data: { code, new_password: newPassword } });
 }
 
 /** 更换绑定手机号 */

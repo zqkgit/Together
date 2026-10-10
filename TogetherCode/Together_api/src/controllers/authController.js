@@ -205,11 +205,11 @@ async function postWxLogin(req, res) {
   }
 }
 
-// POST /v1/auth/change-password · 修改登录密码
+// POST /v1/auth/change-password · 修改登录密码（验证码模式）
 async function postChangePassword(req, res) {
   try {
     const result = await changePassword(req.user.userId, {
-      old_password: req.body.old_password,
+      code: req.body.code,
       new_password: req.body.new_password
     });
     if (result.error) {

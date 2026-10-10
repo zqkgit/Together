@@ -5,15 +5,22 @@ import SnapKit
 
 final class ChangePasswordViewController: BaseViewController {
 
-    private let oldField = UITextField()
+    private let codeField = UITextField()
+    private let codeButton = UIButton(type: .system)
     private let newField = UITextField()
     private let confirmField = UITextField()
     private let saveButton = UIButton(type: .system)
+    private var countdown = 0
+    private var timer: Timer?
+    private var currentPhone = ""
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = Theme.Color.bg
         setupUI()
+        AuthService.fetchMe { [weak self] profile, _ in
+            self?.currentPhone = profile?.phone ?? ""
+        }
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -24,31 +31,108 @@ final class ChangePasswordViewController: BaseViewController {
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         restoreSystemNav()
+        timer?.invalidate()
     }
 
     private func setupUI() {
-        let oldCard = makeFieldCard(field: oldField, placeholder: "请输入原密码", secure: true)
-        view.addSubview(oldCard)
-        oldCard.snp.makeConstraints {
+        // 当前手机号信息卡
+        let phoneCard = UIView()
+        phoneCard.backgroundColor = Theme.Color.surface
+        phoneCard.layer.cornerRadius = 12
+        view.addSubview(phoneCard)
+        phoneCard.snp.makeConstraints {
             $0.top.equalTo(view.safeAreaLayoutGuide).offset(16)
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
             $0.height.equalTo(52)
         }
 
-        let newCard = makeFieldCard(field: newField, placeholder: "请输入新密码（6-20 位）", secure: true)
-        view.addSubview(newCard)
-        newCard.snp.makeConstraints {
-            $0.top.equalTo(oldCard.snp.bottom).offset(Theme.Spacing.m)
+        let phoneLabel = UILabel()
+        phoneLabel.text = "当前手机号"
+        phoneLabel.font = .appBody(14)
+        phoneLabel.textColor = Theme.Color.sub
+        phoneCard.addSubview(phoneLabel)
+        phoneLabel.snp.makeConstraints {
+            $0.leading.equalToSuperview().inset(Theme.Spacing.l)
+            $0.centerY.equalToSuperview()
+        }
+
+        let phoneValue = UILabel()
+        phoneValue.text = currentPhone.isEmpty ? "加载中..." : maskedPhone(currentPhone)
+        phoneValue.font = .appBody(15)
+        phoneValue.textColor = Theme.Color.ink
+        phoneValue.tag = 100
+        phoneCard.addSubview(phoneValue)
+        phoneValue.snp.makeConstraints {
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.centerY.equalToSuperview()
+        }
+
+        // 延迟更新手机号显示
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            guard let self, !self.currentPhone.isEmpty else { return }
+            if let label = phoneCard.viewWithTag(100) as? UILabel {
+                label.text = maskedPhone(self.currentPhone)
+            }
+        }
+
+        // 验证码输入
+        let codeCard = UIView()
+        codeCard.backgroundColor = Theme.Color.surface
+        codeCard.layer.cornerRadius = 12
+        view.addSubview(codeCard)
+        codeCard.snp.makeConstraints {
+            $0.top.equalTo(phoneCard.snp.bottom).offset(Theme.Spacing.m)
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
             $0.height.equalTo(52)
         }
 
-        let confirmCard = makeFieldCard(field: confirmField, placeholder: "请再次输入新密码", secure: true)
+        codeField.font = .appBody(15)
+        codeField.textColor = Theme.Color.ink
+        codeField.placeholder = "请输入验证码"
+        codeField.keyboardType = .numberPad
+        codeCard.addSubview(codeField)
+        codeField.snp.makeConstraints {
+            $0.leading.equalToSuperview().inset(Theme.Spacing.cardInner)
+            $0.centerY.equalToSuperview()
+            $0.trailing.equalToSuperview().inset(110)
+        }
+
+        codeButton.setTitle("获取验证码", for: .normal)
+        codeButton.setTitleColor(Theme.Color.brand, for: .normal)
+        codeButton.titleLabel?.font = .appLabel(13)
+        codeButton.addTarget(self, action: #selector(sendCodeTapped), for: .touchUpInside)
+        codeCard.addSubview(codeButton)
+        codeButton.snp.makeConstraints {
+            $0.trailing.equalToSuperview().inset(Theme.Spacing.cardInner)
+            $0.centerY.equalToSuperview()
+        }
+
+        // 新密码
+        let newCard = makePwCard(field: newField, placeholder: "请输入新密码（6-20 位）", secure: true)
+        view.addSubview(newCard)
+        newCard.snp.makeConstraints {
+            $0.top.equalTo(codeCard.snp.bottom).offset(Theme.Spacing.m)
+            $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
+            $0.height.equalTo(52)
+        }
+
+        // 确认新密码
+        let confirmCard = makePwCard(field: confirmField, placeholder: "请再次输入新密码", secure: true)
         view.addSubview(confirmCard)
         confirmCard.snp.makeConstraints {
             $0.top.equalTo(newCard.snp.bottom).offset(Theme.Spacing.m)
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
             $0.height.equalTo(52)
+        }
+
+        let tipLabel = UILabel()
+        tipLabel.text = "密码长度 6-20 位，建议包含字母、数字和符号"
+        tipLabel.font = .appLabel(12)
+        tipLabel.textColor = Theme.Color.sub
+        view.addSubview(tipLabel)
+        tipLabel.snp.makeConstraints {
+            $0.top.equalTo(confirmCard.snp.bottom).offset(8)
+            $0.leading.equalToSuperview().inset(Theme.Spacing.l + 4)
         }
 
         saveButton.setTitle("确认修改", for: .normal)
@@ -59,13 +143,13 @@ final class ChangePasswordViewController: BaseViewController {
         saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
         view.addSubview(saveButton)
         saveButton.snp.makeConstraints {
-            $0.top.equalTo(confirmCard.snp.bottom).offset(32)
+            $0.top.equalTo(tipLabel.snp.bottom).offset(Theme.Spacing.xl)
             $0.leading.trailing.equalToSuperview().inset(Theme.Spacing.l)
             $0.height.equalTo(50)
         }
     }
 
-    private func makeFieldCard(field: UITextField, placeholder: String, secure: Bool) -> UIView {
+    private func makePwCard(field: UITextField, placeholder: String, secure: Bool) -> UIView {
         let card = UIView()
         card.backgroundColor = Theme.Color.surface
         card.layer.cornerRadius = 12
@@ -82,11 +166,48 @@ final class ChangePasswordViewController: BaseViewController {
         return card
     }
 
+    @objc private func sendCodeTapped() {
+        guard !currentPhone.isEmpty else {
+            showToast("手机号获取失败，请重试")
+            return
+        }
+        showLoading("发送中...")
+        AuthService.sendCode(phone: currentPhone) { [weak self] result in
+            guard let self else { return }
+            self.hideLoading()
+            switch result {
+            case .success:
+                self.showToast("验证码已发送")
+                self.startCountdown()
+            case .failure(let error):
+                self.showToast(error.message ?? "发送失败")
+            }
+        }
+    }
+
+    private func startCountdown() {
+        countdown = 60
+        codeButton.isEnabled = false
+        codeButton.setTitleColor(Theme.Color.sub, for: .disabled)
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            self.countdown -= 1
+            if self.countdown <= 0 {
+                self.timer?.invalidate()
+                self.timer = nil
+                self.codeButton.isEnabled = true
+                self.codeButton.setTitle("获取验证码", for: .normal)
+            } else {
+                self.codeButton.setTitle("\(self.countdown)s 后重发", for: .disabled)
+            }
+        }
+    }
+
     @objc private func saveTapped() {
-        let old = oldField.text ?? ""
+        let code = codeField.text ?? ""
         let new = newField.text ?? ""
         let confirm = confirmField.text ?? ""
-        guard !old.isEmpty, !new.isEmpty else {
+        guard !code.isEmpty, !new.isEmpty, !confirm.isEmpty else {
             showToast("请填写完整")
             return
         }
@@ -100,7 +221,7 @@ final class ChangePasswordViewController: BaseViewController {
         }
         view.endEditing(true)
         showLoading("提交中...")
-        AuthService.changePassword(oldPassword: old, newPassword: new) { [weak self] success, error in
+        AuthService.changePassword(code: code, newPassword: new) { [weak self] success, error in
             guard let self else { return }
             self.hideLoading()
             if success {

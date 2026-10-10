@@ -507,15 +507,21 @@ async function updateProfile(userId, payload = {}) {
  * 修改登录密码
  * 校验原密码后更新 password_hash
  */
-async function changePassword(userId, { old_password, new_password }) {
+async function changePassword(userId, { code, new_password }) {
   const user = await getUserById(userId);
   if (!user) {
     return { error: { status: 404, code: 40402, message: "User not found" } };
   }
 
-  const matched = bcrypt.compareSync(String(old_password || ""), user.password_hash || "");
-  if (!matched) {
-    return { error: { status: 400, code: 40001, message: "原密码不正确" } };
+  // 校验验证码（发送到当前绑定手机号）
+  const phone = user.phone;
+  if (!phone) {
+    return { error: { status: 400, code: 40000, message: "账号未绑定手机号" } };
+  }
+
+  const record = await consumeVerificationCode(phone, String(code || ""));
+  if (!record) {
+    return { error: { status: 400, code: 40001, message: "验证码错误或已过期" } };
   }
 
   const password = String(new_password || "").trim();

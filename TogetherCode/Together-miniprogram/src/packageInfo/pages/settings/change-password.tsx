@@ -1,20 +1,80 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Taro from "@tarojs/taro";
 import { View, Text, Input } from "@tarojs/components";
-import { changePassword } from "../../../services/auth";
+import { changePassword, sendSmsCode, getMe } from "../../../services/auth";
 import "./form-page.scss";
 
 export default function ChangePasswordPage() {
-  const [oldPwd, setOldPwd] = useState("");
+  const [currentPhone, setCurrentPhone] = useState("");
+  const [code, setCode] = useState("");
   const [newPwd, setNewPwd] = useState("");
   const [confirmPwd, setConfirmPwd] = useState("");
-  const [showOld, setShowOld] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [countdown, setCountdown] = useState(0);
   const [saving, setSaving] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    loadCurrentPhone();
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, []);
+
+  const loadCurrentPhone = async () => {
+    try {
+      const res = await getMe();
+      if (res.user?.phone) {
+        const p = res.user.phone;
+        setCurrentPhone(p.length === 11 ? p.slice(0, 3) + "****" + p.slice(7) : p);
+      }
+    } catch {
+      // 忽略
+    }
+  };
+
+  const startCountdown = () => {
+    setCountdown(60);
+    timerRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleSendCode = async () => {
+    if (!currentPhone) {
+      Taro.showToast({ title: "手机号获取失败", icon: "none" });
+      return;
+    }
+    if (countdown > 0) return;
+    try {
+      // 发送验证码到当前绑定手机号
+      const rawPhone = currentPhone.replace(/\*/g, "");
+      // 需要原始手机号，从 getMe 重新获取
+      const res = await getMe();
+      const phone = res.user?.phone || "";
+      if (!phone) {
+        Taro.showToast({ title: "手机号获取失败", icon: "none" });
+        return;
+      }
+      await sendSmsCode(phone);
+      Taro.showToast({ title: "验证码已发送", icon: "success" });
+      startCountdown();
+    } catch (e: any) {
+      Taro.showToast({ title: e?.message || "发送失败", icon: "none" });
+    }
+  };
 
   const handleSave = async () => {
-    if (!oldPwd || !newPwd || !confirmPwd) {
+    if (!code) {
+      Taro.showToast({ title: "请输入验证码", icon: "none" });
+      return;
+    }
+    if (!newPwd || !confirmPwd) {
       Taro.showToast({ title: "请填写完整", icon: "none" });
       return;
     }
@@ -26,13 +86,9 @@ export default function ChangePasswordPage() {
       Taro.showToast({ title: "新密码长度需为 6-20 位", icon: "none" });
       return;
     }
-    if (oldPwd === newPwd) {
-      Taro.showToast({ title: "新密码不能与原密码相同", icon: "none" });
-      return;
-    }
     setSaving(true);
     try {
-      await changePassword(oldPwd, newPwd);
+      await changePassword(code, newPwd);
       Taro.showToast({ title: "密码已修改", icon: "success" });
       setTimeout(() => Taro.navigateBack(), 800);
     } catch (e: any) {
@@ -44,10 +100,19 @@ export default function ChangePasswordPage() {
 
   return (
     <View className="form-page">
-      <Text className="fp-label">原密码</Text>
+      {currentPhone ? (
+        <View className="fp-info-card">
+          <Text className="fp-info-label">当前手机号</Text>
+          <Text className="fp-info-value">{currentPhone}</Text>
+        </View>
+      ) : null}
+
+      <Text className="fp-label">验证码</Text>
       <View className="fp-card fp-card--row">
-        <Input className="fp-input fp-input--flex" type="text" password={!showOld} value={oldPwd} onInput={(e) => setOldPwd(e.detail.value)} placeholder="请输入原密码" />
-        <Text className="fp-eye" onClick={() => setShowOld(!showOld)}>{showOld ? "👁" : "👁‍🗨"}</Text>
+        <Input className="fp-input fp-input--flex" type="number" value={code} onInput={(e) => setCode(e.detail.value)} placeholder="请输入验证码" maxlength={6} />
+        <View className={`fp-code-btn ${countdown > 0 ? "fp-code-btn--disabled" : ""}`} onClick={handleSendCode}>
+          <Text className="fp-code-btn-text">{countdown > 0 ? `${countdown}s` : "获取验证码"}</Text>
+        </View>
       </View>
 
       <Text className="fp-label">新密码</Text>
