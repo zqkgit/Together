@@ -7,58 +7,7 @@
   padding-bottom: 200rpx;
 }
 
-/* ========== 自定义导航栏（对齐 iOS：标题 + × 关闭） ========== */
-.custom-nav {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 200;
-  background: $color-card;
-}
-
-.nav-status {
-  height: env(safe-area-inset-top);
-}
-
-.nav-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 88rpx;
-  position: relative;
-}
-
-.nav-title {
-  font-size: 34rpx;
-  font-weight: $font-weight-semibold;
-  color: $color-text;
-}
-
-.close-btn {
-  position: absolute;
-  right: 24rpx;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 76rpx;
-  height: 76rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.06);
-  border-radius: 50%;
-  color: $color-text;
-  font-size: 40rpx;
-  font-weight: 300;
-  line-height: 1;
-
-  &:active { opacity: 0.6; }
-}
-
-/* ========== 内容区域（留出导航栏空间） ========== */
-.post-create .card:first-child {
-  margin-top: calc(env(safe-area-inset-top) + 88rpx + 24rpx);
-}
+/* ========== 内容区域 ========== */
 
 .card {
   background: $color-card;

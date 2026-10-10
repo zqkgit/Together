@@ -1,7 +1,7 @@
 @use '../../styles/variables.scss' as *;
 
 .home {
-  padding-bottom: 40rpx;
+  padding-bottom: calc(100rpx + env(safe-area-inset-bottom) + 20rpx);
   background: $color-bg;
 }
 

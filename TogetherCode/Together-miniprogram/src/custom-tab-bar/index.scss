@@ -1,0 +1,64 @@
+@import '../styles/variables.scss';
+
+/* ========== 自定义 TabBar（对齐 iOS 中间发布按钮风格） ========== */
+/* 微信小程序 custom-tab-bar 组件由框架自动定位底部，无需 position: fixed */
+.custom-tab-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-around;
+  height: 100rpx;
+  padding-bottom: env(safe-area-inset-bottom);
+  background-color: #ffffff;
+  border-top: 1rpx solid #e8e4dc;
+  width: 100%;
+}
+
+.tab-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  height: 100rpx;
+  background-color: #ffffff;
+
+  &--publish {
+    position: relative;
+    background-color: #ffffff;
+  }
+}
+
+.tab-icon {
+  width: 48rpx;
+  height: 48rpx;
+  margin-bottom: 4rpx;
+}
+
+.tab-text {
+  font-size: 20rpx;
+  color: #9a938a;
+  line-height: 1.2;
+
+  &--active {
+    color: #14A640;
+  }
+}
+
+/* ========== 中间发布按钮（突出大按钮，对齐 iOS 风格） ========== */
+.publish-btn {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #14A640, #0d8a32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -32rpx;
+  box-shadow: 0 4rpx 16rpx rgba(20, 166, 64, 0.35);
+}
+
+.publish-icon {
+  width: 48rpx;
+  height: 48rpx;
+}

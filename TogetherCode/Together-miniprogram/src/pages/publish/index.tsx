@@ -1,14 +1,9 @@
-import { useEffect } from "react";
-import Taro from "@tarojs/taro";
+import { View } from '@tarojs/components'
 
 /**
- * 发布跳板页（tabBar 占位）
- * iOS 发布页是 modal 弹出，小程序用 navigateTo 模拟，
- * 此页仅在 tabBar 占位，onShow 立即跳转到真正的发布页。
+ * 发布占位页（tabBar 必须注册页面，但 custom-tab-bar 已拦截点击，
+ * 此页不会实际展示，navigateTo 直接跳转 /packageSocial/pages/post-create/index）
  */
 export default function PublishPage() {
-  useEffect(() => {
-    Taro.navigateTo({ url: "/packageSocial/pages/post-create/index" });
-  }, []);
-  return null;
+  return <View />
 }

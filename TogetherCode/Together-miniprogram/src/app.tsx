@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import Taro from "@tarojs/taro";
+import Taro, { useDidShow } from "@tarojs/taro";
 import "./app.scss";
 import { useAuthStore } from "./store/auth";
 
@@ -18,6 +18,11 @@ function App(props) {
       Taro.reLaunch({ url: "/pages/login/index" });
     }
   }, [hydrated, isLoggedIn]);
+
+  // 每次页面显示时通知 custom-tab-bar 刷新选中态
+  useDidShow(() => {
+    Taro.eventCenter.trigger("onTabBarRefresh");
+  });
 
   return props.children;
 }

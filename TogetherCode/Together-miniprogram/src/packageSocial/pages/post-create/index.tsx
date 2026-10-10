@@ -26,20 +26,6 @@ export default function PostCreatePage() {
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // ── 关闭（对齐 iOS didTapClose：有内容时弹确认） ──
-  const handleClose = async () => {
-    if (content.trim() || localImages.length > 0) {
-      const res = await Taro.showModal({
-        title: "放弃编辑",
-        content: "还有未发布的内容，确定退出吗？",
-        confirmText: "退出",
-        confirmColor: "#e74c3c",
-      });
-      if (!res.confirm) return;
-    }
-    Taro.switchTab({ url: "/pages/home/index" });
-  };
-
   // ── 加载数据 ──
   useEffect(() => {
     if (!isLoggedIn) {
@@ -174,15 +160,6 @@ export default function PostCreatePage() {
   // ── 渲染 ──
   return (
     <View className="post-create">
-      {/* 自定义导航栏（对齐 iOS：标题 + 右上角 × 关闭） */}
-      <View className="custom-nav">
-        <View className="nav-status" />
-        <View className="nav-bar">
-          <Text className="nav-title">发布</Text>
-          <View className="close-btn" onClick={handleClose}>×</View>
-        </View>
-      </View>
-
       {/* Section 0: 正文（对齐 iOS TextCell） */}
       <View className="card">
         <Textarea

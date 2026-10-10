@@ -3,6 +3,7 @@
 
 .mine {
   height: 100vh;
+  padding-bottom: calc(100rpx + env(safe-area-inset-bottom));
   background: #f7f4ec;
 }
 
