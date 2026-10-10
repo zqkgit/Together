@@ -1,9 +1,19 @@
 /**
  * 全局配置（集中管理，后续上线时只需改这里）
  */
+
+// 真机无法访问 127.0.0.1，需走 Mac 局域网 IP
+const _isDevTools = typeof __wxConfig !== 'undefined'
+  ? /devtools/i.test(__wxConfig.platform || '')
+  : false
+
+const _DEV_BASE_URL = _isDevTools
+  ? 'http://127.0.0.1:3001/v1'       // 开发者工具（模拟器）走本机
+  : 'http://10.6.1.89:3001/v1'       // 真机走 Mac 局域网 IP
+
 export const APP_CONFIG = {
-  // 后端 API 地址：开发环境走本地，上线替换为正式域名
-  BASE_URL: "http://127.0.0.1:3001/v1",
+  // 后端 API 地址：开发环境自动区分模拟器/真机，上线替换为正式域名
+  BASE_URL: _DEV_BASE_URL,
 
   // 环境标识：dev / test / prod（决定日志、埋点等行为）
   ENV: "dev",

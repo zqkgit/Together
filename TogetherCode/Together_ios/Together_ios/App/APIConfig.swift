@@ -17,8 +17,8 @@ enum AppEnvironment {
             // 模拟器共享 Mac 网络栈，127.0.0.1 指向运行后端的 Mac，本机联调恒定有效、不随网络变化
             return "http://127.0.0.1:3001"
             #else
-            // 真机走 Mac 局域网 IP（换网络后需更新为当前 Mac IP；当前网络 192.168.1.x）
-            return "http://192.168.1.61:3001"
+            // 真机走 Mac 局域网 IP（换网络后需更新为当前 Mac IP；当前网络 10.6.x）
+            return "http://10.6.1.89:3001"
             #endif
         case .staging:
             return "https://staging-api.example.com"
