@@ -9,12 +9,15 @@ final class SearchService {
 
     // MARK: - 搜索课程
 
-    func searchCourses(keyword: String, page: Int = 1, size: Int = 20,
+    func searchCourses(keyword: String = "", tag: String = "", page: Int = 1, size: Int = 20,
                        completion: @escaping (Result<[CourseItem], APIError>) -> Void) {
+        var params: [String: Any] = ["page": page, "page_size": size]
+        if !keyword.isEmpty { params["keyword"] = keyword }
+        if !tag.isEmpty { params["tag"] = tag }
         APIClient.shared.request(
             "/courses",
             method: .get,
-            parameters: ["keyword": keyword, "page": page, "page_size": size],
+            parameters: params,
             encoding: URLEncoding.default
         ) { result in
             switch result {

@@ -237,7 +237,7 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
             return cell
         case .studioHeader:
             let cell = tableView.dequeueReusableCell(withIdentifier: "HomeSectionCell", for: indexPath) as! HomeSectionCell
-            cell.configure(title: "附近热门工作室", more: "更多") { [weak self] in self?.navigationController?.pushViewController(PlaceholderViewController(title: "工作室"), animated: true) }
+            cell.configure(title: "附近热门工作室", more: "更多") { [weak self] in self?.navigationController?.pushViewController(StudiosViewController(), animated: true) }
             return cell
         case .studio(let item):
             let cell = tableView.dequeueReusableCell(withIdentifier: "HomeStudioCell", for: indexPath) as! HomeStudioCell
