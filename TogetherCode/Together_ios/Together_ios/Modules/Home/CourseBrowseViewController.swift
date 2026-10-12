@@ -47,7 +47,7 @@ final class CourseBrowseViewController: BaseViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        configureImmersiveNav(titleColor: .white, backTint: .white)
+        configureImmersiveNav(title: "课程列表", titleColor: .white, backTint: .white)
     }
 
     override func viewWillDisappear(_ animated: Bool) {

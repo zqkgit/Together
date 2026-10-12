@@ -62,7 +62,7 @@ final class StudiosViewController: BaseViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        configureImmersiveNav(titleColor: .white, backTint: .white)
+        configureImmersiveNav(title: "工作室", titleColor: .white, backTint: .white)
     }
 
     override func viewWillDisappear(_ animated: Bool) {
