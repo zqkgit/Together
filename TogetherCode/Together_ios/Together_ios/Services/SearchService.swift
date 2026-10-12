@@ -2,24 +2,64 @@ import Foundation
 import Alamofire
 import SwiftyJSON
 
-/// 搜索服务：帖子搜索 + 热词
+/// 搜索服务：课程 / 工作室 / 老师搜索 + 热词
 final class SearchService {
 
     static let shared = SearchService()
 
-    // MARK: - 搜索帖子
+    // MARK: - 搜索课程
 
-    func searchPosts(keyword: String, page: Int = 1, size: Int = 20,
-                     completion: @escaping (Result<[PostItem], APIError>) -> Void) {
+    func searchCourses(keyword: String, page: Int = 1, size: Int = 20,
+                       completion: @escaping (Result<[CourseItem], APIError>) -> Void) {
         APIClient.shared.request(
-            "/posts/plaza",
+            "/courses",
             method: .get,
-            parameters: ["keyword": keyword, "page": page, "size": size, "sort": "latest"],
+            parameters: ["keyword": keyword, "page": page, "page_size": size],
             encoding: URLEncoding.default
         ) { result in
             switch result {
             case .success(let json):
-                let list = JSONKit.decodeList([PostItem].self, from: json)
+                let list = Self.decodeList([CourseItem].self, from: json)
+                completion(.success(list))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    // MARK: - 搜索工作室
+
+    func searchStudios(keyword: String, page: Int = 1, size: Int = 20,
+                       completion: @escaping (Result<[StudioItem], APIError>) -> Void) {
+        APIClient.shared.request(
+            "/studios",
+            method: .get,
+            parameters: ["keyword": keyword, "page": page, "page_size": size],
+            encoding: URLEncoding.default
+        ) { result in
+            switch result {
+            case .success(let json):
+                let list = Self.decodeList([StudioItem].self, from: json)
+                completion(.success(list))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    // MARK: - 搜索老师
+
+    func searchTeachers(keyword: String, page: Int = 1, size: Int = 20,
+                        completion: @escaping (Result<[TeacherItem], APIError>) -> Void) {
+        APIClient.shared.request(
+            "/teachers",
+            method: .get,
+            parameters: ["keyword": keyword, "page": page, "page_size": size],
+            encoding: URLEncoding.default
+        ) { result in
+            switch result {
+            case .success(let json):
+                let list = Self.decodeList([TeacherItem].self, from: json)
                 completion(.success(list))
             case .failure(let error):
                 completion(.failure(error))
@@ -33,7 +73,7 @@ final class SearchService {
         APIClient.shared.request("/search/hot-keywords", method: .get) { result in
             switch result {
             case .success(let json):
-                if let arr = json["keywords"].array {
+                if let arr = json["list"].array {
                     let keywords = arr.compactMap { $0.string }
                     completion(.success(keywords))
                 } else if let keywords = JSONKit.decode([String].self, from: json) {
@@ -45,5 +85,24 @@ final class SearchService {
                 completion(.failure(error))
             }
         }
+    }
+
+    // MARK: - 解码工具
+
+    /// 列表接口统一结构 { total, page, page_size, list: [...] }
+    private static func decodeList<T: Decodable>(_ type: [T].Type, from json: JSON) -> [T] {
+        if let list = json["list"].array {
+            let data = try? JSONSerialization.data(withJSONObject: list.map { $0.object })
+            if let data, let items = try? JSONDecoder().decode([T].self, from: data) {
+                return items
+            }
+        }
+        return decode([T].self, from: json) ?? []
+    }
+
+    /// 直接数组 / 单对象解码
+    private static func decode<T: Decodable>(_ type: [T].Type, from json: JSON) -> [T]? {
+        guard let data = try? json.rawData() else { return nil }
+        return try? JSONDecoder().decode([T].self, from: data)
     }
 }

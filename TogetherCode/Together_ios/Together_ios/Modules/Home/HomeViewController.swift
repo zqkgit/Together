@@ -28,7 +28,7 @@ final class HomeViewController: BaseViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "艺启"
+        title = "主页"
         navigationController?.navigationBar.prefersLargeTitles = false
         view.backgroundColor = Theme.Color.bg
         setupGradientBackground()
