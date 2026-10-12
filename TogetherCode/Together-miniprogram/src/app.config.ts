@@ -89,6 +89,13 @@ export default defineAppConfig({
         // "pages/settings/set-pay-password", // 暂时隐藏，不涉及支付
         "pages/settings/deactivate-account"
       ]
+    },
+    {
+      root: "packageSearch",
+      name: "search",
+      pages: [
+        "pages/search/index"
+      ]
     }
   ],
   window: {

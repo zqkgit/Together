@@ -2,7 +2,7 @@
  * 公开列表：家长端首页/找画室/找老师
  * 只暴露审核通过（工作室 status=1 / 老师 cert_status=1）的实体
  */
-const { Op } = require("sequelize");
+const { Op, Sequelize } = require("sequelize");
 const {
   StudioProfile,
   TeacherProfile,
@@ -84,9 +84,10 @@ async function listPublicTeachers(query = {}) {
   const where = { cert_status: 1 };
   if (query.keyword && String(query.keyword).trim()) {
     const kw = String(query.keyword).trim();
+    const likeKw = { [Op.like]: `%${kw}%` };
     where[Op.or] = [
-      { real_name: { [Op.like]: `%${kw}%` } },
-      { "$user.nickname$": { [Op.like]: `%${kw}%` } }
+      { real_name: likeKw },
+            Sequelize.where(Sequelize.literal('`user`.`nickname`'), likeKw)
     ];
   }
 

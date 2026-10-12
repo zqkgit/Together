@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Taro, { useDidShow } from "@tarojs/taro";
-import { View, Text, Image, ScrollView, Input } from "@tarojs/components";
+import { View, Text, Image, ScrollView } from "@tarojs/components";
 import { request } from "../../services/request";
 import { getPublicStudios, type StudioItem } from "../../services/explore";
 import { listChildren, type ChildItem } from "../../services/child";
@@ -34,8 +34,6 @@ export default function HomePage() {
   const [balanceChildren, setBalanceChildren] = useState<BalanceChild[]>([]);
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchKeyword, setSearchKeyword] = useState("");
-
   // 页面显示时同步 tabbar 选中态
   useDidShow(() => {
     Taro.eventCenter.trigger("onTabBarRefresh");
@@ -72,9 +70,7 @@ export default function HomePage() {
   };
 
   const goSearch = () => {
-    if (searchKeyword.trim()) {
-      Taro.navigateTo({ url: `/packageSocial/pages/studios/index?keyword=${encodeURIComponent(searchKeyword.trim())}` });
-    }
+    Taro.navigateTo({ url: "/packageSearch/pages/search/index" });
   };
 
   const goCourse = (id: string) => {
@@ -118,15 +114,7 @@ export default function HomePage() {
       <View className="home-search">
         <View className="search-bar" onClick={goSearch}>
           <Text className="search-icon">🔍</Text>
-          <Input
-            className="search-input"
-            placeholder="搜索课程、工作室、老师"
-            placeholderClass="search-placeholder"
-            value={searchKeyword}
-            onInput={(e) => setSearchKeyword(e.detail.value)}
-            onConfirm={goSearch}
-            confirmType="search"
-          />
+          <Text className="search-placeholder-text">搜索课程、工作室、老师</Text>
         </View>
       </View>
 
