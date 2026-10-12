@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import Taro from "@tarojs/taro";
+import Taro, { useDidShow } from "@tarojs/taro";
 import { View, Text, Image, ScrollView } from "@tarojs/components";
 import { useAuthStore } from "../../store/auth";
 import { connectMessageSocket, startNotificationPolling } from "../../services/push";
@@ -23,6 +23,11 @@ export default function MinePage() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [stats, setStats] = useState<MineStats>({ childrenCount: 0, courseCount: 0, favoriteCount: 0 });
   const cleanupRef = useRef<(() => void) | null>(null);
+
+  // 页面显示时同步 tabbar 选中态
+  useDidShow(() => {
+    Taro.eventCenter.trigger("onTabBarRefresh");
+  });
 
   // 消息推送
   useEffect(() => {

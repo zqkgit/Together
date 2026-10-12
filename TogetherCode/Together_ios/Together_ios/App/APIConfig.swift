@@ -18,7 +18,7 @@ enum AppEnvironment {
             return "http://127.0.0.1:3001"
             #else
             // 真机走 Mac 局域网 IP（换网络后需更新为当前 Mac IP；当前网络 10.6.x）
-            return "http://10.6.1.89:3001"
+            return "http://10.6.0.26:3001"
             #endif
         case .staging:
             return "https://staging-api.example.com"

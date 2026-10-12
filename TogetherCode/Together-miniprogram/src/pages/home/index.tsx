@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import Taro from "@tarojs/taro";
+import Taro, { useDidShow } from "@tarojs/taro";
 import { View, Text, Image, ScrollView, Input } from "@tarojs/components";
 import { request } from "../../services/request";
 import { getPublicStudios, type StudioItem } from "../../services/explore";
@@ -35,6 +35,11 @@ export default function HomePage() {
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchKeyword, setSearchKeyword] = useState("");
+
+  // 页面显示时同步 tabbar 选中态
+  useDidShow(() => {
+    Taro.eventCenter.trigger("onTabBarRefresh");
+  });
 
   useEffect(() => {
     if (!isLoggedIn) return;

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import Taro, { useReachBottom, usePullDownRefresh } from "@tarojs/taro";
+import Taro, { useReachBottom, usePullDownRefresh, useDidShow } from "@tarojs/taro";
 import { View, Text, Image, ScrollView } from "@tarojs/components";
 import { getPlazaPosts, type PostItem } from "../../services/post";
 import { useAuthStore } from "../../store/auth";
@@ -16,6 +16,11 @@ export default function PlazaPage() {
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const [sortIndex, setSortIndex] = useState(0);
+
+  // 页面显示时同步 tabbar 选中态
+  useDidShow(() => {
+    Taro.eventCenter.trigger("onTabBarRefresh");
+  });
 
   useEffect(() => {
     if (!isLoggedIn) return;

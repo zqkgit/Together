@@ -128,6 +128,7 @@ export default function MessagesPage() {
   // 页面每次显示时刷新会话列表（对齐 iOS viewWillAppear → reloadCurrent）
   // 从聊天页返回后，后端已自动清除该会话未读数，重新拉取即可同步红点
   useDidShow(() => {
+    Taro.eventCenter.trigger("onTabBarRefresh");
     if (!isLoggedIn) return;
     loadConv(1, false);
     loadNotif(1, false);
