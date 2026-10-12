@@ -87,12 +87,13 @@ async function listPublicTeachers(query = {}) {
     const likeKw = { [Op.like]: `%${kw}%` };
     where[Op.or] = [
       { real_name: likeKw },
-            Sequelize.where(Sequelize.literal('`user`.`nickname`'), likeKw)
+      { '$user.nickname$': likeKw }
     ];
   }
 
   const { count, rows } = await TeacherProfile.findAndCountAll({
     where,
+    subQuery: false,
     include: [
       { model: User, as: "user", attributes: ["user_id", "nickname", "avatar"] },
       {
