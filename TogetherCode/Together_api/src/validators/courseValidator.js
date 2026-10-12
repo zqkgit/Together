@@ -44,6 +44,7 @@ const listCoursesValidators = [
   query("category").optional({ values: "falsy" }).isInt({ min: 1, max: 5 }),
   query("age").optional({ values: "falsy" }).isInt({ min: 1, max: 18 }),
   query("studio_id").optional({ values: "falsy" }).isString(),
+  query("tag").optional({ values: "falsy" }).isString(),
   query("status").optional({ values: "falsy" }).isInt({ min: 0, max: 2 }),
   query("sort").optional({ values: "falsy" }).isIn(["latest", "sales", "price_asc", "price_desc"])
 ];

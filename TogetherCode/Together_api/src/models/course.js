@@ -76,6 +76,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.SMALLINT,
         allowNull: false,
         defaultValue: 0
+      },
+      tags: {
+        type: DataTypes.JSON,
+        allowNull: true
       }
     },
     {

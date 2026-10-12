@@ -130,6 +130,11 @@ struct CourseItem: Codable {
         return nil
     }
 
+    /// 将 tag_id 列表转为可读名称列表（依赖 SearchService.tagNameCache）
+    var tagNames: [String] {
+        (tags ?? []).map { SearchService.shared.tagName(for: $0) }
+    }
+
     /// 价格 + 节数「¥1,280/16节」；无节数只显示价格
     var pricePerLessonsText: String {
         if let lessons = total_lessons, lessons > 0 {

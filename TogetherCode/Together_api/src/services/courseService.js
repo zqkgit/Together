@@ -29,6 +29,7 @@ function normalizeCourseItem(course) {
     distribute_rate: Number(course.distribute_rate),
     validity_days: course.validity_days,
     status: course.status,
+    tags: course.tags || [],
     studio: course.studio
       ? {
           studio_id: String(course.studio.studio_id),
@@ -148,6 +149,21 @@ async function listCourses(params = {}) {
     where.studio_id = params.studio_id;
   }
 
+  // 按标签ID筛选：courses.tags JSON 数组包含指定的 tag_id
+  if (params.tag && String(params.tag).trim()) {
+    const tagId = String(params.tag).trim();
+    // JSON_CONTAINS(tags, '"tagId"') 返回 1 表示包含
+    const tagCond = sequelize.where(
+      sequelize.fn("JSON_CONTAINS", sequelize.col("tags"), sequelize.literal(`'"${tagId}"'`)),
+      1
+    );
+    if (where[Op.and]) {
+      where[Op.and].push(tagCond);
+    } else {
+      where[Op.and] = [tagCond];
+    }
+  }
+
   let order = [["created_at", "DESC"]];
   if (params.sort === "sales") {
     order = [["sales", "DESC"], ["created_at", "DESC"]];
@@ -184,6 +200,21 @@ async function listStudioCourses(params = {}) {
 
   if (params.studio_id) {
     where.studio_id = params.studio_id;
+  }
+
+  // 按标签ID筛选：courses.tags JSON 数组包含指定的 tag_id
+  if (params.tag && String(params.tag).trim()) {
+    const tagId = String(params.tag).trim();
+    // JSON_CONTAINS(tags, '"tagId"') 返回 1 表示包含
+    const tagCond = sequelize.where(
+      sequelize.fn("JSON_CONTAINS", sequelize.col("tags"), sequelize.literal(`'"${tagId}"'`)),
+      1
+    );
+    if (where[Op.and]) {
+      where[Op.and].push(tagCond);
+    } else {
+      where[Op.and] = [tagCond];
+    }
   }
 
   if (params.status !== undefined && params.status !== null && params.status !== "") {
@@ -310,12 +341,13 @@ async function createCourse(payload) {
         class_size: Number(payload.class_size || 12),
         distribute_rate: payload.distribute_rate ? Number(payload.distribute_rate) : 0.08,
         validity_days: Number(validityDays) || null,
-        status: payload.status !== undefined ? Number(payload.status) : 0
+        status: payload.status !== undefined ? Number(payload.status) : 0,
+        tags: Array.isArray(payload.tags) ? payload.tags : null
       },
       { transaction }
     );
 
-    // 课时包兼容：传了才创建（新流程课程固定课时，不再维护课时包）
+    // 课时包：传了才创建（新流程课程固定课时，不再维护课时包）
     if (Array.isArray(payload.packages) && payload.packages.length > 0) {
       await CoursePackage.bulkCreate(
         payload.packages.map((item) => ({
@@ -367,13 +399,14 @@ async function updateCourse(courseId, payload) {
         class_size: Number(payload.class_size || 12),
         distribute_rate: payload.distribute_rate ? Number(payload.distribute_rate) : Number(course.distribute_rate),
         validity_days: payload.validity_days || null,
-        status: payload.status !== undefined ? Number(payload.status) : Number(course.status)
+        status: payload.status !== undefined ? Number(payload.status) : Number(course.status),
+        tags: Array.isArray(payload.tags) ? payload.tags : course.tags
       },
       { transaction }
     );
 
     // 课时包兼容：不传则不重建（保持旧课时包数据）
-    if (Array.isArray(payload.packages)) {
+    if (payload.packages) {
       await CoursePackage.destroy({
         where: { course_id: course.course_id },
         transaction

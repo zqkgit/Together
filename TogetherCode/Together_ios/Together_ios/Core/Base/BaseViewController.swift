@@ -52,6 +52,8 @@ class BaseViewController: UIViewController {
         nav.navigationBar.scrollEdgeAppearance = appearance
         nav.navigationBar.compactAppearance = appearance
         nav.navigationBar.isTranslucent = true
+        // 彻底移除导航栏底部阴影线（仅 shadowColor = .clear 在部分 iOS 版本仍有 1px 白线）
+        nav.navigationBar.shadowImage = UIImage()
         // 系统返回箭头颜色
         nav.navigationBar.tintColor = backTint
         navigationItem.title = title
@@ -76,6 +78,7 @@ class BaseViewController: UIViewController {
         nav.navigationBar.compactAppearance = appearance
         // 全局统一透明导航栏，isTranslucent 恒定 true
         nav.navigationBar.isTranslucent = true
+        nav.navigationBar.shadowImage = UIImage()
         nav.navigationBar.tintColor = Theme.Color.ink
     }
 

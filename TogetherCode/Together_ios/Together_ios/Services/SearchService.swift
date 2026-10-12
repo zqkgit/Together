@@ -7,6 +7,14 @@ final class SearchService {
 
     static let shared = SearchService()
 
+    /// 标签 ID → 名称 缓存（fetchTags 时自动填充，供课程列表将 tag_id 转为显示文字）
+    private(set) var tagNameCache: [String: String] = [:]
+
+    /// 根据 tag_id 查名称；找不到时回退返回原始 id
+    func tagName(for id: String) -> String {
+        tagNameCache[id] ?? id
+    }
+
     // MARK: - 搜索课程
 
     func searchCourses(keyword: String = "", tag: String = "", page: Int = 1, size: Int = 20,
@@ -90,7 +98,34 @@ final class SearchService {
         }
     }
 
-    // MARK: - 解码工具
+    // MARK: - 兴趣标签
+
+    func fetchTags(completion: @escaping (Result<[TagItem], APIError>) -> Void) {
+        APIClient.shared.request("/tags", method: .get) { result in
+            switch result {
+            case .success(let json):
+                // 接口返回数组 [{ tag_id, name, scope, sort, status }]
+                let source = json.array ?? json["list"].array ?? []
+                let items = source.compactMap { row -> TagItem? in
+                    guard let name = row["name"].string, !name.isEmpty else { return nil }
+                    return TagItem(
+                        tagId: row["tag_id"].stringValue,
+                        name: name,
+                        scope: row["scope"].intValue,
+                        sort: row["sort"].intValue
+                    )
+                }
+                // 缓存 tag_id → name 映射，供课程列表标签显示
+                Self.shared.tagNameCache = Dictionary(uniqueKeysWithValues: items.map { ($0.tagId, $0.name) })
+
+                completion(.success(items))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    // MARK: - 解码辅助
 
     /// 列表接口统一结构 { total, page, page_size, list: [...] }
     private static func decodeList<T: Decodable>(_ type: [T].Type, from json: JSON) -> [T] {

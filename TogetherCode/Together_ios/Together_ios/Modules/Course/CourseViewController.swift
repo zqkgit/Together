@@ -210,14 +210,13 @@ final class CourseViewController: BaseViewController {
     }
 
     private func makeTagButton(_ title: String) -> UIButton {
+        var config = UIButton.Configuration.plain()
+        config.title = title
+        config.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14)
+        config.cornerStyle = .capsule
+
         let btn = UIButton(type: .custom)
-        btn.setTitle(title, for: .normal)
-        btn.titleLabel?.font = .appSection(13)
-        btn.setTitleColor(UIColor.white.withAlphaComponent(0.7), for: .normal)
-        btn.setTitleColor(.white, for: .selected)
-        btn.backgroundColor = UIColor.white.withAlphaComponent(0.15)
-        btn.layer.cornerRadius = 16
-        btn.contentEdgeInsets = UIEdgeInsets(top: 6, left: 14, bottom: 6, right: 14)
+        btn.configuration = config
         btn.snp.makeConstraints { $0.height.equalTo(28) }
         return btn
     }
@@ -225,10 +224,16 @@ final class CourseViewController: BaseViewController {
     private func updateTagStyle() {
         for (index, btn) in tagButtons.enumerated() {
             let isSelected = index == selectedTagIndex
+            guard var config = btn.configuration else { continue }
             btn.isSelected = isSelected
-            btn.titleLabel?.font = isSelected ? .appHero(13) : .appSection(13)
             btn.backgroundColor = isSelected ? .white : UIColor.white.withAlphaComponent(0.15)
-            btn.setTitleColor(isSelected ? Theme.Color.brand : UIColor.white.withAlphaComponent(0.7), for: .normal)
+            config.baseForegroundColor = isSelected ? Theme.Color.brand : UIColor.white.withAlphaComponent(0.7)
+            config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+                var outgoing = incoming
+                outgoing.font = isSelected ? .appHero(13) : .appSection(13)
+                return outgoing
+            }
+            btn.configuration = config
         }
     }
 
@@ -240,7 +245,7 @@ final class CourseViewController: BaseViewController {
         if index == -1 {
             currentTag = ""
         } else if index >= 0 && index < tags.count {
-            currentTag = tags[index].name
+            currentTag = tags[index].tagId
         }
 
         updateTagStyle()

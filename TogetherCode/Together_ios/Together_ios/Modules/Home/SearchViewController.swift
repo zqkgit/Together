@@ -809,11 +809,11 @@ final class SearchCourseCell: UITableViewCell {
         // 标题
         titleLabel.text = item.title
 
-        // 标签pill
+        // 标签pill（显示名称而非 tag_id）
         tagStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        let tags = (item.tags ?? []).prefix(3)
-        for tag in tags {
-            let pill = makeTagPill(tag)
+        let displayTags = item.tagNames.prefix(3)
+        for name in displayTags {
+            let pill = makeTagPill(name)
             tagStack.addArrangedSubview(pill)
         }
         // 年龄段标签

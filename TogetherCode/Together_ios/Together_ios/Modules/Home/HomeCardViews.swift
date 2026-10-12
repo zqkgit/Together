@@ -404,12 +404,13 @@ final class StudioRowView: UIView {
         metaLabel.snp.makeConstraints { $0.leading.trailing.equalTo(nameLabel); $0.top.equalTo(nameLabel.snp.bottom).offset(2); $0.bottom.equalToSuperview().inset(Theme.Spacing.l) }
 
         // 进店
-        enterButton.setTitle("进店 ›", for: .normal)
-        enterButton.titleLabel?.font = .appSection(13)
-        enterButton.setTitleColor(Theme.Color.brand, for: .normal)
+        var enterConfig = UIButton.Configuration.plain()
+        enterConfig.title = "进店 ›"
+        enterConfig.baseForegroundColor = Theme.Color.brand
+        enterConfig.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12)
+        enterButton.configuration = enterConfig
         enterButton.backgroundColor = Theme.Color.brandSoft
         enterButton.layer.cornerRadius = Theme.Radius.button
-        enterButton.contentEdgeInsets = UIEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
         addSubview(enterButton)
         enterButton.snp.makeConstraints { $0.trailing.equalToSuperview().inset(Theme.Spacing.m); $0.centerY.equalToSuperview() }
         enterButton.addTarget(self, action: #selector(didTapEnter), for: .touchUpInside)

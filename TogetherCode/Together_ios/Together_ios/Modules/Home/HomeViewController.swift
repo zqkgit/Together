@@ -225,7 +225,7 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
             return cell
         case .courseHeader:
             let cell = tableView.dequeueReusableCell(withIdentifier: "HomeSectionCell", for: indexPath) as! HomeSectionCell
-            cell.configure(title: "为你推荐", more: "全部") { [weak self] in self?.navigationController?.pushViewController(CourseViewController(), animated: true) }
+            cell.configure(title: "为你推荐", more: "全部") { [weak self] in self?.navigationController?.pushViewController(CourseBrowseViewController(), animated: true) }
             return cell
         case .courseRow:
             let cell = tableView.dequeueReusableCell(withIdentifier: "HomeCourseRowCell", for: indexPath) as! HomeCourseRowCell
