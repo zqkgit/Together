@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.together.app.app.TogetherApplication
 import com.together.app.core.design.AppColors
+import com.together.app.core.model.ChildItem
 import com.together.app.modules.home.ui.HomeScreen
 import com.together.app.modules.message.ui.MessageScreen
 import com.together.app.modules.mine.ui.MineScreen
@@ -59,7 +60,10 @@ import com.together.app.modules.teacher.ui.TeacherWorkbenchScreen
  * 中间"发布"为大加号按钮，点击后全屏打开发布页
  */
 @Composable
-fun MainTabScreen() {
+fun MainTabScreen(
+    onChildClick: (ChildItem) -> Unit = {},
+    onAddChild: () -> Unit = {}
+) {
     val context = LocalContext.current
     val app = context.applicationContext as TogetherApplication
     val tokenStore = app.tokenStore
@@ -110,7 +114,10 @@ fun MainTabScreen() {
                 0 -> when (role) {
                     2 -> TeacherWorkbenchScreen()
                     3 -> StudioOverviewScreen()
-                    else -> HomeScreen()
+                    else -> HomeScreen(
+                        onChildClick = onChildClick,
+                        onAddChild = onAddChild
+                    )
                 }
                 1 -> PlazaScreen()
                 2 -> { /* 发布 tab 不切内容 */ }

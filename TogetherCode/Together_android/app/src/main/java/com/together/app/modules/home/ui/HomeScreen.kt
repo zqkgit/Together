@@ -53,7 +53,11 @@ import java.time.LocalTime
  * 分区：顶部渐变(搜索+Hero) / 公告 / 为你推荐 / 附近热门工作室 / 老师动态
  */
 @Composable
-fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
+fun HomeScreen(
+    viewModel: HomeViewModel = viewModel(),
+    onChildClick: (ChildItem) -> Unit = {},
+    onAddChild: () -> Unit = {}
+) {
     val uiState by viewModel.uiState
 
     if (uiState.loading && uiState.data.courses.isEmpty()) {
@@ -73,7 +77,8 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                 HomeHeroSection(
                     nickname = uiState.nickname,
                     children = data.children,
-                    onAddChild = { /* TODO: 跳转孩子管理 */ }
+                    onChildClick = onChildClick,
+                    onAddChild = onAddChild
                 )
             }
 
@@ -123,6 +128,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
 private fun HomeHeroSection(
     nickname: String,
     children: List<ChildItem>,
+    onChildClick: (ChildItem) -> Unit = {},
     onAddChild: () -> Unit
 ) {
     // 渐变背景：Brand → BrandLight → Bg
@@ -206,7 +212,7 @@ private fun HomeHeroSection(
                 horizontalArrangement = Arrangement.spacedBy(AppDimens.M)
             ) {
                 children.forEach { child ->
-                    ChildProgressCard(item = child)
+                    ChildProgressCard(item = child, onClick = { onChildClick(child) })
                 }
                 // 管理孩子按钮
                 Column(
@@ -230,13 +236,14 @@ private fun HomeHeroSection(
 // MARK: - 孩子进度卡
 
 @Composable
-private fun ChildProgressCard(item: ChildItem) {
+private fun ChildProgressCard(item: ChildItem, onClick: () -> Unit = {}) {
     val balance = item.mainBalance
     Column(
         modifier = Modifier
             .width(148.dp)
             .clip(RoundedCornerShape(AppDimens.RadiusCard))
             .background(Color.White.copy(alpha = 0.18f))
+            .clickable { onClick() }
             .padding(AppDimens.M)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

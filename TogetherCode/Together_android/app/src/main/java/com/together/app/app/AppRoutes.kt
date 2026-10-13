@@ -16,9 +16,17 @@ object AppRoutes {
     const val OrderRefund = "order_refund/{orderId}"
     const val RefundDetail = "refund_detail/{refundId}"
 
+    // 孩子模块
+    const val MyChildren = "my_children"
+    const val AddChild = "add_child"
+    const val ChildHome = "child_home/{childId}"
+    const val ChildBalance = "child_balance/{childId}?nickname={nickname}"
+
     fun verifyCode(phone: String) = "verify_code/$phone"
     fun orderDetail(orderId: String) = "order_detail/$orderId"
     fun paymentVoucher(orderId: String) = "payment_voucher/$orderId"
     fun orderRefund(orderId: String) = "order_refund/$orderId"
     fun refundDetail(refundId: String) = "refund_detail/$refundId"
+    fun childHome(childId: String) = "child_home/$childId"
+    fun childBalance(childId: String, nickname: String) = "child_balance/$childId?nickname=$nickname"
 }

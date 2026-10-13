@@ -14,6 +14,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.together.app.core.network.ApiService
+import com.together.app.core.model.ChildItem
+import com.together.app.modules.child.ChildViewModel
+import com.together.app.modules.child.ui.AddChildScreen
+import com.together.app.modules.child.ui.ChildBalanceScreen
+import com.together.app.modules.child.ui.ChildHomeScreen
+import com.together.app.modules.child.ui.MyChildrenScreen
 import com.together.app.modules.login.ui.LoginScreen
 import com.together.app.modules.login.ui.PhoneLoginScreen
 import com.together.app.modules.login.ui.VerifyCodeScreen
@@ -117,7 +123,15 @@ fun AppNavigator() {
 
         // 家长端主界面
         composable(AppRoutes.ParentMain) {
-            MainTabScreen()
+            MainTabScreen(
+                onChildClick = { child ->
+                    ChildViewModel.navChild = child
+                    navController.navigate(AppRoutes.childHome(child.childId))
+                },
+                onAddChild = {
+                    navController.navigate(AppRoutes.MyChildren)
+                }
+            )
         }
 
         // 老师端工作台
@@ -218,6 +232,75 @@ fun AppNavigator() {
             val refundId = entry.arguments?.getString("refundId") ?: ""
             RefundDetailScreen(
                 refundId = refundId,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // MARK: - 孩子模块
+
+        // 我的孩子列表
+        composable(AppRoutes.MyChildren) {
+            MyChildrenScreen(
+                onBack = { navController.popBackStack() },
+                onChildClick = { child ->
+                    ChildViewModel.navChild = child
+                    navController.navigate(AppRoutes.childHome(child.childId))
+                },
+                onAddChild = {
+                    navController.navigate(AppRoutes.AddChild)
+                }
+            )
+        }
+
+        // 添加孩子
+        composable(AppRoutes.AddChild) {
+            AddChildScreen(
+                onClose = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() }
+            )
+        }
+
+        // 孩子主页（需从 navChild 缓存读取孩子对象）
+        composable(
+            route = AppRoutes.ChildHome,
+            arguments = listOf(navArgument("childId") { type = NavType.StringType })
+        ) {
+            val child = ChildViewModel.navChild
+            if (child != null) {
+                ChildHomeScreen(
+                    child = child,
+                    onBack = { navController.popBackStack() },
+                    onBalanceDetail = { childId, nickname ->
+                        navController.navigate(AppRoutes.childBalance(childId, nickname))
+                    },
+                    onWorkClick = { postId ->
+                        // TODO: 帖子详情（广场模块）
+                    },
+                    onCourseClick = { childId, courseId, courseTitle ->
+                        // TODO: 课程学习页（课程模块 CourseStudy）
+                    }
+                )
+            } else {
+                LaunchedEffect(Unit) { navController.popBackStack() }
+            }
+        }
+
+        // 课时明细
+        composable(
+            route = AppRoutes.ChildBalance,
+            arguments = listOf(
+                navArgument("childId") { type = NavType.StringType },
+                navArgument("nickname") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                }
+            )
+        ) { entry ->
+            val childId = entry.arguments?.getString("childId") ?: ""
+            val nickname = entry.arguments?.getString("nickname") ?: ""
+            ChildBalanceScreen(
+                childId = childId,
+                childNickname = nickname,
                 onBack = { navController.popBackStack() }
             )
         }
