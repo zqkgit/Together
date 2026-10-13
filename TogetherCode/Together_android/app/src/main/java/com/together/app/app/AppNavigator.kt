@@ -35,6 +35,23 @@ import com.together.app.modules.order.ui.OrderDetailScreen
 import com.together.app.modules.order.ui.OrderRefundScreen
 import com.together.app.modules.order.ui.PaymentVoucherScreen
 import com.together.app.modules.order.ui.RefundDetailScreen
+import com.together.app.modules.mine.CommissionNavCache
+import com.together.app.modules.mine.RoleEventBus
+import com.together.app.modules.mine.ui.AccountSecurityScreen
+import com.together.app.modules.mine.ui.AboutScreen
+import com.together.app.modules.mine.ui.ChangePasswordScreen
+import com.together.app.modules.mine.ui.ChangePhoneScreen
+import com.together.app.modules.mine.ui.CommissionWithdrawalDetailScreen
+import com.together.app.modules.mine.ui.CommissionWithdrawalsScreen
+import com.together.app.modules.mine.ui.DeactivateAccountScreen
+import com.together.app.modules.mine.ui.EditProfileScreen
+import com.together.app.modules.mine.ui.FavoritesAndDynamicsScreen
+import com.together.app.modules.mine.ui.SettingsScreen
+import com.together.app.modules.mine.ui.StudioAuthScreen
+import com.together.app.modules.mine.ui.StudioCommissionDetailScreen
+import com.together.app.modules.mine.ui.TeacherAuthScreen
+import com.together.app.modules.mine.ui.WalletScreen
+import com.together.app.modules.mine.ui.WorkManagementScreen
 import com.together.app.modules.plaza.PlazaViewModel
 import com.together.app.modules.plaza.ui.PostCreateScreen
 import com.together.app.modules.plaza.ui.PostDetailScreen
@@ -86,6 +103,15 @@ fun AppNavigator() {
         ApiService.authExpiredFlow.collect {
             tokenStore.clear()
             navController.navigate(AppRoutes.Login) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
+
+    // 角色切换全局通知：MineViewModel 切换成功后跳对应主界面
+    LaunchedEffect(Unit) {
+        RoleEventBus.events.collect { role ->
+            navController.navigate(mainRouteForRole(role)) {
                 popUpTo(0) { inclusive = true }
             }
         }
@@ -164,6 +190,19 @@ fun AppNavigator() {
                             // "withdraw" → 提现详情（工作室模块，待实现）
                         }
                     }
+                },
+                // 我的页面
+                onSettings = { navController.navigate(AppRoutes.Settings) },
+                onMyChildren = { navController.navigate(AppRoutes.MyChildren) },
+                onMyCourses = { navController.navigate(AppRoutes.CourseList) },
+                onMyOrders = { navController.navigate(AppRoutes.MyOrders) },
+                onWorkManagement = { navController.navigate(AppRoutes.WorkManagement) },
+                onFavorites = { navController.navigate(AppRoutes.Favorites) },
+                onWallet = { navController.navigate(AppRoutes.Wallet) },
+                onAuth = { role, _, _ ->
+                    navController.navigate(
+                        if (role == 2) AppRoutes.TeacherAuth else AppRoutes.StudioAuth
+                    )
                 }
             )
         }
@@ -431,6 +470,148 @@ fun AppNavigator() {
                         popUpTo(AppRoutes.FollowingList) { inclusive = true }
                     }
                 }
+            )
+        }
+
+        // MARK: - 我的模块
+
+        // 设置
+        composable(AppRoutes.Settings) {
+            SettingsScreen(
+                onBack = { navController.popBackStack() },
+                onEditProfile = { navController.navigate(AppRoutes.EditProfile) },
+                onAccountSecurity = { navController.navigate(AppRoutes.AccountSecurity) },
+                onWallet = { navController.navigate(AppRoutes.Wallet) },
+                onAbout = { navController.navigate(AppRoutes.About) },
+                onLoggedOut = {
+                    navController.navigate(AppRoutes.Login) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // 编辑资料
+        composable(AppRoutes.EditProfile) {
+            EditProfileScreen(onBack = { navController.popBackStack() })
+        }
+
+        // 账号与安全
+        composable(AppRoutes.AccountSecurity) {
+            AccountSecurityScreen(
+                onBack = { navController.popBackStack() },
+                onChangePassword = { navController.navigate(AppRoutes.ChangePassword) },
+                onChangePhone = { navController.navigate(AppRoutes.ChangePhone) },
+                onDeactivate = { navController.navigate(AppRoutes.DeactivateAccount) }
+            )
+        }
+
+        // 修改密码
+        composable(AppRoutes.ChangePassword) {
+            ChangePasswordScreen(onBack = { navController.popBackStack() })
+        }
+
+        // 更换手机号
+        composable(AppRoutes.ChangePhone) {
+            ChangePhoneScreen(onBack = { navController.popBackStack() })
+        }
+
+        // 注销账号
+        composable(AppRoutes.DeactivateAccount) {
+            DeactivateAccountScreen(
+                onBack = { navController.popBackStack() },
+                onLoggedOut = {
+                    navController.navigate(AppRoutes.Login) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // 关于艺启
+        composable(AppRoutes.About) {
+            AboutScreen(onBack = { navController.popBackStack() })
+        }
+
+        // 收益中心
+        composable(AppRoutes.Wallet) {
+            WalletScreen(
+                onBack = { navController.popBackStack() },
+                onOpenWithdrawals = { navController.navigate(AppRoutes.CommissionWithdrawals) },
+                onOpenStudioDetail = { group ->
+                    CommissionNavCache.studioGroup = group
+                    navController.navigate(AppRoutes.StudioCommissionDetail)
+                },
+                onOpenWithdrawalDetail = { item ->
+                    CommissionNavCache.withdrawal = item
+                    navController.navigate(AppRoutes.CommissionWithdrawalDetail)
+                }
+            )
+        }
+
+        // 领取记录列表
+        composable(AppRoutes.CommissionWithdrawals) {
+            CommissionWithdrawalsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenDetail = { item ->
+                    CommissionNavCache.withdrawal = item
+                    navController.navigate(AppRoutes.CommissionWithdrawalDetail)
+                }
+            )
+        }
+
+        // 领取单详情
+        composable(AppRoutes.CommissionWithdrawalDetail) {
+            CommissionWithdrawalDetailScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // 工作室佣金详情
+        composable(AppRoutes.StudioCommissionDetail) {
+            StudioCommissionDetailScreen(
+                onBack = { navController.popBackStack() },
+                onOpenWithdrawalDetail = { item ->
+                    CommissionNavCache.withdrawal = item
+                    navController.navigate(AppRoutes.CommissionWithdrawalDetail)
+                }
+            )
+        }
+
+        // 收藏与动态
+        composable(AppRoutes.Favorites) {
+            FavoritesAndDynamicsScreen(
+                onBack = { navController.popBackStack() },
+                onPostClick = { postId ->
+                    navController.navigate(AppRoutes.postDetail(postId))
+                }
+            )
+        }
+
+        // 作品管理
+        composable(AppRoutes.WorkManagement) {
+            WorkManagementScreen(
+                onBack = { navController.popBackStack() },
+                onPostClick = { postId ->
+                    navController.navigate(AppRoutes.postDetail(postId))
+                },
+                onPublish = {
+                    navController.navigate(AppRoutes.postCreate(role = 1, postType = 1))
+                }
+            )
+        }
+
+        // 老师认证
+        composable(AppRoutes.TeacherAuth) {
+            TeacherAuthScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // 工作室入驻认证
+        composable(AppRoutes.StudioAuth) {
+            StudioAuthScreen(
+                onBack = { navController.popBackStack() }
             )
         }
     }

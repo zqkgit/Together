@@ -75,7 +75,16 @@ fun MainTabScreen(
     onPublish: (Int) -> Unit = {},
     onConversationClick: (ConversationItem) -> Unit = {},
     onAddContact: () -> Unit = {},
-    onNotificationClick: (NotificationItem) -> Unit = {}
+    onNotificationClick: (NotificationItem) -> Unit = {},
+    // 我的页面回调
+    onSettings: () -> Unit = {},
+    onMyChildren: () -> Unit = {},
+    onMyCourses: () -> Unit = {},
+    onMyOrders: () -> Unit = {},
+    onWorkManagement: () -> Unit = {},
+    onFavorites: () -> Unit = {},
+    onWallet: () -> Unit = {},
+    onAuth: (role: Int, status: String, reason: String?) -> Unit = { _, _, _ -> }
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as TogetherApplication
@@ -148,7 +157,16 @@ fun MainTabScreen(
                     onAddContact = onAddContact,
                     onNotificationClick = onNotificationClick
                 )
-                4 -> MineScreen()
+                4 -> MineScreen(
+                    onSettings = onSettings,
+                    onMyChildren = onMyChildren,
+                    onMyCourses = onMyCourses,
+                    onMyOrders = onMyOrders,
+                    onWorkManagement = onWorkManagement,
+                    onFavorites = onFavorites,
+                    onWallet = onWallet,
+                    onAuth = onAuth
+                )
             }
         }
 

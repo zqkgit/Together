@@ -49,6 +49,7 @@ class TokenStore(private val context: Context) {
     suspend fun getTokenSync(): String? = accessToken.first()
     suspend fun getRoleSync(): Int = userRole.first()
     suspend fun isLoggedInSync(): Boolean = !getTokenSync().isNullOrBlank()
+    suspend fun getUserIdSync(): String? = userId.first()
 
     // MARK: - 写入
 
@@ -72,6 +73,15 @@ class TokenStore(private val context: Context) {
 
     suspend fun updateRole(role: Int) {
         context.tokenDataStore.edit { prefs ->
+            prefs[USER_ROLE] = role
+        }
+    }
+
+    /** 角色切换：只更新 token / userId / role，保留昵称头像等资料 */
+    suspend fun updateSession(accessToken: String, userId: String, role: Int) {
+        context.tokenDataStore.edit { prefs ->
+            prefs[ACCESS_TOKEN] = accessToken
+            prefs[USER_ID] = userId
             prefs[USER_ROLE] = role
         }
     }

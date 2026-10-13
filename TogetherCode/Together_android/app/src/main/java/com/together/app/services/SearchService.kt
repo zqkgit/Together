@@ -6,6 +6,8 @@ import com.together.app.core.model.TeacherItem
 import com.together.app.core.network.ApiService
 import com.together.app.core.network.JsonHelper.decodeList
 import com.together.app.core.network.JsonHelper.int
+import com.together.app.core.network.JsonHelper.intOrNull
+import com.together.app.core.network.JsonHelper.strOrNull
 import kotlinx.serialization.Serializable
 
 /**
@@ -75,6 +77,35 @@ object SearchService {
         val json = ApiService.get("/courses/tags")
         return json.decodeList<TagItem>("list")
     }
+
+    /**
+     * 公共标签库（对齐 iOS TagService.fetchTags）
+     * scope: 1=工作室 / 2=老师 / 3=通用，用于认证表单的营业类型等选项
+     */
+    suspend fun fetchScopedTags(scope: Int): List<ScopedTag> {
+        val element = ApiService.getElement("/tags", mapOf("scope" to scope))
+        val array = element as? kotlinx.serialization.json.JsonArray
+            ?: return emptyList()
+        return array.mapNotNull { item ->
+            val obj = item as? kotlinx.serialization.json.JsonObject ?: return@mapNotNull null
+            val name = obj.strOrNull("name") ?: return@mapNotNull null
+            if (name.isEmpty()) return@mapNotNull null
+            ScopedTag(
+                tagId = obj.strOrNull("tag_id") ?: "",
+                name = name,
+                scope = obj.intOrNull("scope") ?: scope,
+                sort = obj.intOrNull("sort") ?: 0
+            )
+        }.sortedBy { it.sort }
+    }
+
+    @Serializable
+    data class ScopedTag(
+        val tagId: String = "",
+        val name: String = "",
+        val scope: Int = 0,
+        val sort: Int = 0
+    )
 
     @Serializable
     data class TagItem(

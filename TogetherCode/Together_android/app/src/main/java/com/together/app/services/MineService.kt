@@ -1,9 +1,10 @@
 package com.together.app.services
 
 import com.together.app.core.network.ApiService
-import com.together.app.core.network.JsonHelper.decode
 import com.together.app.core.network.JsonHelper.decodeList
 import com.together.app.core.network.JsonHelper.int
+import com.together.app.core.network.JsonHelper.obj
+import com.together.app.core.network.JsonHelper.strOrNull
 import kotlinx.serialization.Serializable
 
 /**
@@ -15,102 +16,80 @@ object MineService {
     // MARK: - 资料 / 统计
 
     @Serializable
-    data class MineProfile(
+    data class MineUser(
         val userId: String? = null,
         val nickname: String? = null,
         val avatar: String? = null,
-        val phone: String? = null,
-        val role: Int? = null,
-        val gender: Int? = null,
-        val bio: String? = null,
-        val studioName: String? = null,
-        val studioId: String? = null,
-        val teacherTitle: String? = null,
-        val createdAt: String? = null
+        val city: String? = null
     )
 
     @Serializable
-    data class MineStats(
-        val childCount: Int? = null,
-        val courseCount: Int? = null,
-        val postCount: Int? = null,
-        val followingCount: Int? = null,
-        val followerCount: Int? = null,
-        val favoriteCount: Int? = null
-    )
-
-    /** 我的资料 + 统计（并行获取） */
-    suspend fun fetchMine(): Pair<MineProfile?, MineStats?> {
-        val profile = ApiService.get("/user/profile").decode<MineProfile>()
-        val stats = ApiService.get("/user/stats").decode<MineStats>()
-        return profile to stats
-    }
-
-    // MARK: - 钱包
-
-    @Serializable
-    data class WalletSummary(
-        val balance: Int? = null,          // 余额（分）
-        val totalIncome: Int? = null,      // 累计收入（分）
-        val totalWithdraw: Int? = null,    // 累计提现（分）
-        val frozenAmount: Int? = null,     // 冻结金额（分）
-        val pendingCommission: Int? = null // 待结算佣金（分）
-    )
-
-    /** 钱包概览 */
-    suspend fun fetchWallet(): WalletSummary? {
-        return ApiService.get("/wallet/summary").decode<WalletSummary>()
-    }
-
-    /** 佣金/收入记录（分页）→ (items, hasMore) */
-    suspend fun fetchCommissionRecords(page: Int, type: String? = null): Pair<List<CommissionRecordItem>, Boolean> {
-        val params = mutableMapOf<String, Any?>("page" to page, "page_size" to 20)
-        type?.takeIf { it.isNotEmpty() }?.let { params["type"] = it }
-        val json = ApiService.get("/wallet/commissions", params)
-        val items = json.decodeList<CommissionRecordItem>("list")
-        val total = json.int("total")
-        return items to (page * 20 < total)
-    }
-
-    @Serializable
-    data class CommissionRecordItem(
-        val id: String? = null,
-        val orderId: String? = null,
-        val courseName: String? = null,
-        val studentName: String? = null,
-        val amount: Int? = null,        // 金额（分），正=收入 负=支出
-        val type: Int? = null,          // 1=课程佣金 2=分销佣金 3=提现 4=退款
-        val status: Int? = null,        // 0=待结算 1=已结算 2=已取消
-        val createdAt: String? = null,
-        val settledAt: String? = null
+    data class MineProfile(
+        val user: MineUser? = null,
+        val currentRole: Int? = null,
+        val roles: List<Int>? = null,
+        val teacherRealName: String? = null
     ) {
-        val isIncome: Boolean get() = (amount ?: 0) > 0
-        val typeLabel: String
-            get() = when (type) {
-                1 -> "课程佣金"
-                2 -> "分销佣金"
-                3 -> "提现"
-                4 -> "退款"
-                else -> "其他"
-            }
-        val statusLabel: String
-            get() = when (status) {
-                0 -> "待结算"
-                1 -> "已结算"
-                2 -> "已取消"
-                else -> ""
-            }
+        /** 已认证老师实名（切换身份弹框展示老师名字） */
+        val teacherName: String?
+            get() = teacherRealName?.takeIf { it.isNotEmpty() }
+
+        /** 是否已开通某角色（1 家长 / 2 老师 / 3 工作室） */
+        fun hasRole(role: Int): Boolean = roles?.contains(role) ?: false
     }
+
+    /** 头部统计：孩子数 / 在学课程数 / 收藏数 */
+    data class MineStats(
+        var childrenCount: Int = 0,
+        var courseCount: Int = 0,
+        var favoriteCount: Int = 0
+    )
+
+    /** 我的资料（/auth/me） */
+    suspend fun fetchMe(): MineProfile {
+        val json = ApiService.get("/auth/me")
+        val user = json.obj("user")
+        return MineProfile(
+            user = MineUser(
+                userId = user.strOrNull("user_id"),
+                nickname = user.strOrNull("nickname"),
+                avatar = user.strOrNull("avatar"),
+                city = user.strOrNull("city")
+            ),
+            currentRole = json.int("current_role").takeIf { it != 0 },
+            roles = json["roles"]?.let { rolesEl ->
+                (rolesEl as? kotlinx.serialization.json.JsonArray)
+                    ?.mapNotNull { (it as? kotlinx.serialization.json.JsonPrimitive)?.content?.toIntOrNull() }
+            },
+            teacherRealName = json.obj("teacher_profile").strOrNull("real_name")
+        )
+    }
+
+    /** 并行聚合三项统计（任一失败不阻塞其余） */
+    suspend fun fetchStats(): MineStats {
+        val stats = MineStats()
+        // 孩子数 + 在学课程（课包 course_id 去重）
+        try {
+            val childrenJson = ApiService.get("/children")
+            val children = childrenJson.decodeList<com.together.app.core.model.ChildItem>("list")
+            stats.childrenCount = childrenJson.int("total").takeIf { it > 0 } ?: children.size
+            stats.courseCount = children.flatMap { it.balances ?: emptyList() }
+                .mapNotNull { it.courseId }
+                .filter { it.isNotEmpty() }
+                .toSet()
+                .size
+        } catch (_: Exception) { }
+        // 收藏数
+        try {
+            val favJson = ApiService.get("/favorites", mapOf("page" to 1, "page_size" to 1))
+            stats.favoriteCount = favJson.int("total")
+        } catch (_: Exception) { }
+        return stats
+    }
+
+    // 收益中心（佣金/提现）已移至 CommissionService.kt（对齐 iOS CommissionService）
 
     // MARK: - 我的评价
-
-    /** 我发表的课程评价 */
-    suspend fun fetchMyReviews(page: Int): Pair<List<MyReviewItem>, Boolean> {
-        val json = ApiService.get("/user/reviews", mapOf("page" to page, "page_size" to 10))
-        val items = json.decodeList<MyReviewItem>("list")
-        val total = json.int("total")
-        return items to (page * 10 < total)
-    }
 
     @Serializable
     data class MyReviewItem(
@@ -123,4 +102,12 @@ object MineService {
         val images: List<String>? = null,
         val createdAt: String? = null
     )
+
+    /** 我的评价列表（分页）→ (items, hasMore) */
+    suspend fun fetchMyReviews(page: Int): Pair<List<MyReviewItem>, Boolean> {
+        val json = ApiService.get("/reviews/mine", mapOf("page" to page, "page_size" to 10))
+        val items = json.decodeList<MyReviewItem>("list")
+        val total = json.int("total")
+        return items to (page * 10 < total)
+    }
 }

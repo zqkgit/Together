@@ -34,6 +34,25 @@ object AppRoutes {
     const val Chat = "chat/{conversationId}"
     const val FollowingList = "following_list"
 
+    // 收益中心（佣金）
+    const val Wallet = "wallet"
+    const val CommissionWithdrawals = "commission_withdrawals"
+    const val CommissionWithdrawalDetail = "commission_withdrawal_detail"
+    const val StudioCommissionDetail = "studio_commission_detail"
+
+    // 我的模块
+    const val Settings = "settings"
+    const val EditProfile = "edit_profile"
+    const val AccountSecurity = "account_security"
+    const val ChangePassword = "change_password"
+    const val ChangePhone = "change_phone"
+    const val DeactivateAccount = "deactivate_account"
+    const val About = "about"
+    const val TeacherAuth = "teacher_auth"
+    const val StudioAuth = "studio_auth"
+    const val Favorites = "favorites"
+    const val WorkManagement = "work_management"
+
     fun verifyCode(phone: String) = "verify_code/$phone"
     fun orderDetail(orderId: String) = "order_detail/$orderId"
     fun paymentVoucher(orderId: String) = "payment_voucher/$orderId"
