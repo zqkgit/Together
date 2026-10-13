@@ -26,10 +26,12 @@ import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,12 +40,17 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.together.app.app.TogetherApplication
 import com.together.app.core.design.AppColors
 import com.together.app.core.model.ChildItem
+import com.together.app.core.model.ConversationItem
+import com.together.app.core.model.NotificationItem
 import com.together.app.core.model.PostItem
 import com.together.app.modules.home.ui.HomeScreen
 import com.together.app.modules.message.ui.MessageScreen
@@ -51,6 +58,7 @@ import com.together.app.modules.mine.ui.MineScreen
 import com.together.app.modules.plaza.ui.PlazaScreen
 import com.together.app.modules.studio.ui.StudioOverviewScreen
 import com.together.app.modules.teacher.ui.TeacherWorkbenchScreen
+import kotlinx.coroutines.launch
 
 /**
  * 主 Tab 框架（对齐 iOS MainTabBarController）
@@ -64,11 +72,15 @@ fun MainTabScreen(
     onChildClick: (ChildItem) -> Unit = {},
     onAddChild: () -> Unit = {},
     onPostClick: (PostItem) -> Unit = {},
-    onPublish: (Int) -> Unit = {}
+    onPublish: (Int) -> Unit = {},
+    onConversationClick: (ConversationItem) -> Unit = {},
+    onAddContact: () -> Unit = {},
+    onNotificationClick: (NotificationItem) -> Unit = {}
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as TogetherApplication
     val tokenStore = app.tokenStore
+    val scope = rememberCoroutineScope()
 
     var role by remember { mutableIntStateOf(1) }
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -79,12 +91,21 @@ fun MainTabScreen(
         role = tokenStore.getRoleSync()
     }
 
-    // 拉取未读数
-    LaunchedEffect(Unit) {
-        try {
-            val (_, _, u) = com.together.app.services.MessageService.fetchConversations(page = 1)
-            unread = u
-        } catch (_: Exception) { }
+    // 拉取未读数（ON_RESUME 刷新：首次进入 + 从聊天页返回）
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                scope.launch {
+                    try {
+                        val (_, _, u) = com.together.app.services.MessageService.fetchConversations(page = 1)
+                        unread = u
+                    } catch (_: Exception) { }
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     // Tab 定义：第 1 个和第 5 个按角色切换
@@ -122,7 +143,11 @@ fun MainTabScreen(
                 }
                 1 -> PlazaScreen(onPostClick = onPostClick)
                 2 -> { /* 发布 tab 不切内容 */ }
-                3 -> MessageScreen()
+                3 -> MessageScreen(
+                    onConversationClick = onConversationClick,
+                    onAddContact = onAddContact,
+                    onNotificationClick = onNotificationClick
+                )
                 4 -> MineScreen()
             }
         }

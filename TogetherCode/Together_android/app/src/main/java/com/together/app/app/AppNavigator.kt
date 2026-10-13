@@ -26,6 +26,9 @@ import com.together.app.modules.login.ui.LoginScreen
 import com.together.app.modules.login.ui.PhoneLoginScreen
 import com.together.app.modules.login.ui.VerifyCodeScreen
 import com.together.app.modules.main.ui.MainTabScreen
+import com.together.app.modules.message.MessageViewModel
+import com.together.app.modules.message.ui.ChatScreen
+import com.together.app.modules.message.ui.FollowingListScreen
 import com.together.app.modules.order.OrderViewModel
 import com.together.app.modules.order.ui.MyOrdersScreen
 import com.together.app.modules.order.ui.OrderDetailScreen
@@ -141,6 +144,26 @@ fun AppNavigator() {
                 },
                 onPublish = { role ->
                     navController.navigate(AppRoutes.postCreate(role, 1))
+                },
+                onConversationClick = { conversation ->
+                    MessageViewModel.navConversation = conversation
+                    navController.navigate(AppRoutes.chat(conversation.conversationId))
+                },
+                onAddContact = {
+                    navController.navigate(AppRoutes.FollowingList)
+                },
+                onNotificationClick = { notification ->
+                    // 按 ref_type 跳转对应详情
+                    val refId = notification.refId
+                    if (refId != null) {
+                        when (notification.refType) {
+                            "post" -> navController.navigate(AppRoutes.postDetail(refId))
+                            "order" -> navController.navigate(AppRoutes.orderDetail(refId))
+                            "refund" -> navController.navigate(AppRoutes.refundDetail(refId))
+                            "course" -> navController.navigate(AppRoutes.courseDetail(refId))
+                            // "withdraw" → 提现详情（工作室模块，待实现）
+                        }
+                    }
                 }
             )
         }
@@ -380,6 +403,33 @@ fun AppNavigator() {
             CourseListScreen(
                 onCourseClick = { courseId ->
                     navController.navigate(AppRoutes.courseDetail(courseId))
+                }
+            )
+        }
+
+        // MARK: - 消息模块
+
+        // 聊天页（会话对象通过 navConversation 缓存传递）
+        composable(
+            route = AppRoutes.Chat,
+            arguments = listOf(navArgument("conversationId") { type = NavType.StringType })
+        ) { entry ->
+            val conversationId = entry.arguments?.getString("conversationId") ?: ""
+            ChatScreen(
+                conversationId = conversationId,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // 关注列表（选人发起聊天）
+        composable(AppRoutes.FollowingList) {
+            FollowingListScreen(
+                onBack = { navController.popBackStack() },
+                onConversationCreated = { conversation ->
+                    MessageViewModel.navConversation = conversation
+                    navController.navigate(AppRoutes.chat(conversation.conversationId)) {
+                        popUpTo(AppRoutes.FollowingList) { inclusive = true }
+                    }
                 }
             )
         }

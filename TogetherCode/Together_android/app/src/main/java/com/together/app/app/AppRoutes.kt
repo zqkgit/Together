@@ -30,6 +30,10 @@ object AppRoutes {
     const val CourseDetail = "course_detail/{courseId}"
     const val CourseList = "course_list"
 
+    // 消息模块
+    const val Chat = "chat/{conversationId}"
+    const val FollowingList = "following_list"
+
     fun verifyCode(phone: String) = "verify_code/$phone"
     fun orderDetail(orderId: String) = "order_detail/$orderId"
     fun paymentVoucher(orderId: String) = "payment_voucher/$orderId"
@@ -40,4 +44,5 @@ object AppRoutes {
     fun postDetail(postId: String) = "post_detail/$postId"
     fun postCreate(role: Int, postType: Int) = "post_create/$role/$postType"
     fun courseDetail(courseId: String) = "course_detail/$courseId"
+    fun chat(conversationId: String) = "chat/$conversationId"
 }
