@@ -154,7 +154,12 @@ object ApiService {
     private fun handleResponse(response: ApiResponse<JsonElement>): JsonObject {
         return when {
             response.code == 0 -> {
-                response.data?.jsonObject ?: JsonObject(emptyMap())
+                when (val data = response.data) {
+                    is JsonObject -> data
+                    is kotlinx.serialization.json.JsonArray ->
+                        kotlinx.serialization.json.JsonObject(mapOf("list" to data))
+                    else -> JsonObject(emptyMap())
+                }
             }
             response.code == 401 -> {
                 notifyAuthExpired()

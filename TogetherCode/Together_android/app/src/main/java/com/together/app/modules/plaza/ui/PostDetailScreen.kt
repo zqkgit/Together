@@ -283,6 +283,7 @@ fun PostDetailScreen(
 
         // 底部操作栏
         PostBottomBar(
+            modifier = Modifier.align(Alignment.BottomCenter),
             text = commentText,
             onTextChange = { commentText = it },
             replyingTo = state.replyingTo?.authorName,
@@ -671,6 +672,7 @@ private fun CommentRowItem(
 
 @Composable
 private fun PostBottomBar(
+    modifier: Modifier = Modifier,
     text: String,
     onTextChange: (String) -> Unit,
     replyingTo: String?,
@@ -683,8 +685,7 @@ private fun PostBottomBar(
     onSend: () -> Unit
 ) {
     Column(
-        modifier = Modifier
-            .align(Alignment.BottomCenter)
+        modifier = modifier
             .fillMaxWidth()
             .background(AppColors.Surface)
             .navigationBarsPadding()

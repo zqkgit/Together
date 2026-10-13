@@ -71,6 +71,7 @@ fun StudioCommissionDetailScreen(
     val submitting by viewModel.submitting.collectAsState()
 
     val group = CommissionNavCache.studioGroup
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.loadRecords(group?.studioId)
@@ -79,7 +80,7 @@ fun StudioCommissionDetailScreen(
     LaunchedEffect(toast) {
         if (toast != null) {
             android.widget.Toast.makeText(
-                LocalContext.current, toast, android.widget.Toast.LENGTH_SHORT
+                context, toast, android.widget.Toast.LENGTH_SHORT
             ).show()
             viewModel.clearToast()
         }

@@ -25,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -62,7 +63,7 @@ fun ChildHomeScreen(
     onWorkClick: (postId: String) -> Unit = {},
     onCourseClick: (childId: String, courseId: String, courseTitle: String) -> Unit = { _, _, _ -> }
 ) {
-    val homeState by viewModel.homeState
+    val homeState by viewModel.homeState.collectAsState()
 
     LaunchedEffect(child.childId) {
         viewModel.loadChildHome(child.childId)

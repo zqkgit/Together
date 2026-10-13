@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
  */
 class LoginViewModel(app: Application) : AndroidViewModel(app) {
 
-    private val tokenStore get() = (app as TogetherApplication).tokenStore
+    private val tokenStore get() = getApplication<TogetherApplication>().tokenStore
 
     // MARK: - 状态
 

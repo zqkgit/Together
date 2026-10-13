@@ -45,7 +45,7 @@ object CourseService {
         classId?.takeIf { it.isNotEmpty() }?.let { params["class_id"] = it }
         distributionCode?.takeIf { it.isNotEmpty() }?.let { params["distribution_code"] = it }
         val json = ApiService.post("/orders", params)
-        return json.obj().let { it["order_id"]?.toString()?.trim('"') ?: "" }
+        return json.let { it["order_id"]?.toString()?.trim('"') ?: "" }
     }
 
     // MARK: - 课程评价

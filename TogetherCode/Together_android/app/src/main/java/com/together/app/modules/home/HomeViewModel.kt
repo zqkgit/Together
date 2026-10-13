@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
  */
 class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
-    private val tokenStore get() = (app as TogetherApplication).tokenStore
+    private val tokenStore get() = getApplication<TogetherApplication>().tokenStore
 
     data class HomeUiState(
         val loading: Boolean = false,

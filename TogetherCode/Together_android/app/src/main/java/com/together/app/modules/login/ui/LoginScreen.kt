@@ -17,13 +17,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Paint
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -53,13 +55,14 @@ fun LoginScreen(
     viewModel: LoginViewModel = viewModel()
 ) {
     var agreed by remember { mutableStateOf(false) }
-    val uiState by viewModel.uiState
+    val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
 
     // toast 处理
     LaunchedEffect(uiState.toast) {
         uiState.toast?.let {
             android.widget.Toast.makeText(
-                androidx.compose.ui.platform.LocalContext.current, it, android.widget.Toast.LENGTH_SHORT
+                context, it, android.widget.Toast.LENGTH_SHORT
             ).show()
             viewModel.consumeToast()
         }
@@ -106,7 +109,7 @@ fun LoginScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Default.Paint,
+                    Icons.Default.Palette,
                     contentDescription = "艺启",
                     tint = Color.White,
                     modifier = Modifier.size(40.dp)
@@ -144,7 +147,7 @@ fun LoginScreen(
                     .clickable {
                         if (!agreed) {
                             android.widget.Toast.makeText(
-                                androidx.compose.ui.platform.LocalContext.current,
+                                context,
                                 "请先阅读并同意用户协议与隐私政策",
                                 android.widget.Toast.LENGTH_SHORT
                             ).show()
@@ -173,7 +176,7 @@ fun LoginScreen(
                     .background(AppColors.Surface)
                     .border(1.dp, AppColors.Line, RoundedCornerShape(AppDimens.RadiusButton))
                     .clickable {
-                        val ctx = androidx.compose.ui.platform.LocalContext.current
+                        val ctx = context
                         if (!agreed) {
                             android.widget.Toast.makeText(
                                 ctx, "请先阅读并同意用户协议与隐私政策", android.widget.Toast.LENGTH_SHORT
@@ -237,7 +240,7 @@ fun LoginScreen(
                     color = AppColors.Brand,
                     fontSize = 12.sp,
                     modifier = Modifier.clickable {
-                        val ctx = androidx.compose.ui.platform.LocalContext.current
+                        val ctx = context
                         android.widget.Toast.makeText(ctx, "《用户协议》即将开放", android.widget.Toast.LENGTH_SHORT).show()
                     }
                 )
@@ -251,7 +254,7 @@ fun LoginScreen(
                     color = AppColors.Brand,
                     fontSize = 12.sp,
                     modifier = Modifier.clickable {
-                        val ctx = androidx.compose.ui.platform.LocalContext.current
+                        val ctx = context
                         android.widget.Toast.makeText(ctx, "《隐私政策》即将开放", android.widget.Toast.LENGTH_SHORT).show()
                     }
                 )

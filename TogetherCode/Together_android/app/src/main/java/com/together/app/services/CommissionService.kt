@@ -60,7 +60,7 @@ object CommissionService {
         val params = mutableMapOf<String, Any>()
         startDate?.let { params["start_date"] = it }
         endDate?.let { params["end_date"] = it }
-        return ApiService.get("/distribution/commission/summary", params).decode<CommissionSummary>()
+        return ApiService.get("/distribution/commission/summary", params).decode<CommissionSummary>()!!
     }
 
     // MARK: - 佣金领取单
@@ -124,7 +124,7 @@ object CommissionService {
     suspend fun requestWithdraw(studioId: String, method: String): CommissionWithdrawal {
         return ApiService.post("/distribution/commission/withdraw", mapOf(
             "studio_id" to studioId, "method" to method
-        )).decode<CommissionWithdrawal>()
+        )).decode<CommissionWithdrawal>()!!
     }
 
     /** 领取单列表（分页）→ (items, hasMore) */
@@ -139,12 +139,12 @@ object CommissionService {
 
     /** 领取单详情 */
     suspend fun fetchWithdrawalDetail(id: String): CommissionWithdrawal {
-        return ApiService.get("/distribution/commission/withdrawals/$id").decode<CommissionWithdrawal>()
+        return ApiService.get("/distribution/commission/withdrawals/$id").decode<CommissionWithdrawal>()!!
     }
 
     /** 推广人确认已在线下收到佣金（status=1 → 3） */
     suspend fun confirmWithdrawal(id: String): CommissionWithdrawal {
-        return ApiService.post("/distribution/commission/withdrawals/$id/confirm").decode<CommissionWithdrawal>()
+        return ApiService.post("/distribution/commission/withdrawals/$id/confirm").decode<CommissionWithdrawal>()!!
     }
 
     // MARK: - 佣金明细

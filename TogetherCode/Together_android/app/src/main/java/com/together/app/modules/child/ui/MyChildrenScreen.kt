@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,7 +58,7 @@ fun MyChildrenScreen(
     onChildClick: (ChildItem) -> Unit = {},
     onAddChild: () -> Unit = {}
 ) {
-    val uiState by viewModel.listState
+    val uiState by viewModel.listState.collectAsState()
 
     // 每次页面可见时刷新（含从添加孩子页返回）
     val lifecycleOwner = LocalLifecycleOwner.current

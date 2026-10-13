@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.together.app.modules.mine.ui
 
 import android.app.Application
@@ -146,13 +148,14 @@ fun WorkManagementScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val toast by viewModel.toast.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) { viewModel.loadWorks(reset = true) }
 
     LaunchedEffect(toast) {
         if (toast != null) {
             android.widget.Toast.makeText(
-                LocalContext.current, toast, android.widget.Toast.LENGTH_SHORT
+                context, toast, android.widget.Toast.LENGTH_SHORT
             ).show()
             viewModel.clearToast()
         }

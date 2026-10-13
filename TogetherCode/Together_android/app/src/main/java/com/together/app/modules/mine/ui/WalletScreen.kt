@@ -79,6 +79,7 @@ fun WalletScreen(
     val submitting by viewModel.submitting.collectAsState()
 
     var showDateSheet by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     // 首次加载
     LaunchedEffect(Unit) { viewModel.refresh() }
@@ -87,7 +88,7 @@ fun WalletScreen(
     LaunchedEffect(toast) {
         if (toast != null) {
             android.widget.Toast.makeText(
-                LocalContext.current, toast, android.widget.Toast.LENGTH_SHORT
+                context, toast, android.widget.Toast.LENGTH_SHORT
             ).show()
             viewModel.clearToast()
         }

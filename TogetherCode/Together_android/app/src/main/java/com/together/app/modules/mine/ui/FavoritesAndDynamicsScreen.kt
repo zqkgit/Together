@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.together.app.modules.mine.ui
 
 import android.app.Application
@@ -154,13 +156,14 @@ fun FavoritesAndDynamicsScreen(
     val state by viewModel.state.collectAsState()
     val toast by viewModel.toast.collectAsState()
     var currentTab by remember { mutableIntStateOf(0) } // 0=收藏 1=动态
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) { viewModel.loadFavorites(reset = true) }
 
     LaunchedEffect(toast) {
         if (toast != null) {
             android.widget.Toast.makeText(
-                LocalContext.current, toast, android.widget.Toast.LENGTH_SHORT
+                context, toast, android.widget.Toast.LENGTH_SHORT
             ).show()
             viewModel.clearToast()
         }

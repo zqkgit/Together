@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.together.app.modules.mine.ui
 
 import androidx.compose.foundation.background
@@ -59,13 +61,14 @@ fun CommissionWithdrawalsScreen(
 ) {
     val state by viewModel.listState.collectAsState()
     val toast by viewModel.toast.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) { viewModel.loadList(reset = true) }
 
     LaunchedEffect(toast) {
         if (toast != null) {
             android.widget.Toast.makeText(
-                LocalContext.current, toast, android.widget.Toast.LENGTH_SHORT
+                context, toast, android.widget.Toast.LENGTH_SHORT
             ).show()
             viewModel.clearToast()
         }
@@ -256,6 +259,7 @@ fun CommissionWithdrawalDetailScreen(
     val state by viewModel.detailState.collectAsState()
     val toast by viewModel.toast.collectAsState()
     var showConfirmDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     // 从缓存初始化
     LaunchedEffect(Unit) {
@@ -265,7 +269,7 @@ fun CommissionWithdrawalDetailScreen(
     LaunchedEffect(toast) {
         if (toast != null) {
             android.widget.Toast.makeText(
-                LocalContext.current, toast, android.widget.Toast.LENGTH_SHORT
+                context, toast, android.widget.Toast.LENGTH_SHORT
             ).show()
             viewModel.clearToast()
         }

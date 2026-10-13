@@ -5,26 +5,25 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 
 /**
- * JsonObject 便捷取值工具（对齐 iOS SwiftyJSON 用法）
- * 安全取值：字段不存在或类型不匹配时返回默认值
+ * JsonObject / JsonElement 便捷取值工具（基于 kotlinx.serialization）
+ * 对齐 iOS SwiftyJSON 用法：安全取值，字段缺失或类型不匹配返回默认值
  */
 object JsonHelper {
 
-    // MARK: - 基本类型
+    // MARK: - 基本类型（JsonObject 扩展）
 
     fun JsonObject.str(key: String): String =
         (this[key] as? JsonPrimitive)?.content ?: ""
 
     fun JsonObject.strOrNull(key: String): String? =
-        (this[key] as? JsonPrimitive)?.takeIf { it !is kotlinx.serialization.json.JsonNull }?.content
+        (this[key] as? JsonPrimitive)?.content
 
     fun JsonObject.int(key: String): Int =
         (this[key] as? JsonPrimitive)?.intOrNull ?: 0
@@ -49,12 +48,14 @@ object JsonHelper {
 
     // MARK: - 对象 / 数组
 
+    /** 取子对象，不存在返回空 JsonObject */
     fun JsonObject.obj(key: String): JsonObject =
         (this[key] as? JsonObject) ?: JsonObject(emptyMap())
 
     fun JsonObject.objOrNull(key: String): JsonObject? =
         this[key] as? JsonObject
 
+    /** 取数组，不存在返回空数组 */
     fun JsonObject.array(key: String): JsonArray =
         (this[key] as? JsonArray) ?: JsonArray(emptyList())
 
@@ -64,9 +65,7 @@ object JsonHelper {
     /** 列表字段便捷 map */
     fun <T> JsonObject.listOf(key: String, transform: (JsonObject) -> T): List<T> {
         val arr = (this[key] as? JsonArray) ?: return emptyList()
-        return arr.mapNotNull { element ->
-            (element as? JsonObject)?.let(transform)
-        }
+        return arr.mapNotNull { (it as? JsonObject)?.let(transform) }
     }
 
     /** 字符串数组 */
@@ -75,35 +74,38 @@ object JsonHelper {
         return arr.mapNotNull { (it as? JsonPrimitive)?.content }
     }
 
-    // MARK: - 解码为 data class
+    // MARK: - 解码为 data class（kotlinx.serialization）
 
-    inline fun <reified T> decode(from: JsonObject): T? {
-        return try {
-            ApiJson.decodeFromJsonElement<T>(from)
-        } catch (e: Exception) {
-            null
-        }
-    }
+    /** 将 JsonObject 解码为 data class T，失败返回 null */
+    inline fun <reified T> JsonObject.decode(): T? = try {
+        ApiJson.decodeFromJsonElement<T>(this)
+    } catch (e: Exception) { null }
 
-    inline fun <reified T> decodeList(from: JsonArray): List<T> {
-        return from.mapNotNull { element ->
-            try {
-                ApiJson.decodeFromJsonElement<T>(element)
-            } catch (e: Exception) {
-                null
-            }
-        }
-    }
+    /** 将 JsonElement 解码为 data class T（自动处理 JsonObject / JsonNull），失败返回 null */
+    inline fun <reified T> JsonElement.decode(): T? = try {
+        ApiJson.decodeFromJsonElement<T>(this)
+    } catch (e: Exception) { null }
 
-    inline fun <reified T> JsonObject.decodeList(key: String): List<T> {
+    /** 从 JsonObject 指定 key 解码列表，默认 key = "list" */
+    inline fun <reified T> JsonObject.decodeList(key: String = "list"): List<T> {
         val arr = (this[key] as? JsonArray) ?: return emptyList()
-        return decodeList<T>(arr)
+        return decodeArray<T>(arr)
     }
+
+    /** 将 JsonElement 解码列表：JsonArray 直接解码，JsonObject 从 "list" 字段取 */
+    inline fun <reified T> JsonElement.decodeList(): List<T> = when (this) {
+        is JsonArray -> decodeArray<T>(this)
+        is JsonObject -> decodeList<T>("list")
+        else -> emptyList()
+    }
+
+    /** 将 JsonArray 解码为列表，跳过失败元素 */
+    inline fun <reified T> decodeArray(arr: JsonArray): List<T> =
+        arr.mapNotNull { el -> try { ApiJson.decodeFromJsonElement<T>(el) } catch (_: Exception) { null } }
 
     /** 列表接口统一结构 { total, page, page_size, list: [...] } */
-    inline fun <reified T> JsonObject.decodePageList(key: String = "list"): List<T> {
-        return decodeList<T>(key)
-    }
+    inline fun <reified T> JsonObject.decodePageList(key: String = "list"): List<T> =
+        decodeList<T>(key)
 }
 
 /** 全局 Json 实例（供 decodeFromJsonElement 使用） */

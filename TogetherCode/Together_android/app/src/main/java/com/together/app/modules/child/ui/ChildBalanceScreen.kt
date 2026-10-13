@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -55,7 +56,7 @@ fun ChildBalanceScreen(
     viewModel: ChildViewModel = viewModel(),
     onBack: () -> Unit = {}
 ) {
-    val balanceState by viewModel.balanceState
+    val balanceState by viewModel.balanceState.collectAsState()
     var selectedTab by remember { mutableIntStateOf(0) }
     var logsLoaded by remember { mutableStateOf(false) }
 

@@ -73,7 +73,7 @@ fun MineScreen(
     onWorkManagement: () -> Unit = {},
     onFavorites: () -> Unit = {},
     onWallet: () -> Unit = {},
-    onAuth: (role: Int, status: String, reason: String?) -> Unit = {},
+    onAuth: (role: Int, status: String, reason: String?) -> Unit = { _, _, _ -> },
     viewModel: MineViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -342,11 +342,11 @@ private fun MineHeader(
                     .background(Color.White.copy(alpha = 0.13f))
                     .padding(vertical = 12.dp)
             ) {
-                StatCell("我的孩子", stats.childrenCount, 0, onStatTapped)
+                StatCell(Modifier.weight(1f), "我的孩子", stats.childrenCount, 0, onStatTapped)
                 StatDivider()
-                StatCell("在学课程", stats.courseCount, 1, onStatTapped)
+                StatCell(Modifier.weight(1f), "在学课程", stats.courseCount, 1, onStatTapped)
                 StatDivider()
-                StatCell("收藏作品", stats.favoriteCount, 2, onStatTapped)
+                StatCell(Modifier.weight(1f), "收藏作品", stats.favoriteCount, 2, onStatTapped)
             }
 
             Spacer(modifier = Modifier.height(AppDimens.S))
@@ -355,10 +355,9 @@ private fun MineHeader(
 }
 
 @Composable
-private fun StatCell(label: String, value: Int, index: Int, onTap: (Int) -> Unit) {
+private fun StatCell(modifier: Modifier, label: String, value: Int, index: Int, onTap: (Int) -> Unit) {
     Column(
-        modifier = Modifier
-            .weight(1f)
+        modifier = modifier
             .fillMaxWidth()
             .clickable { onTap(index) },
         horizontalAlignment = Alignment.CenterHorizontally,

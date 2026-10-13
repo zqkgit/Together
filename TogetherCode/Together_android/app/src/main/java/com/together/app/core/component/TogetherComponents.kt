@@ -112,6 +112,7 @@ fun TogetherButton(
         style == ButtonStyle.Secondary -> AppColors.BrandSoft
         style == ButtonStyle.Danger -> AppColors.Danger
         style == ButtonStyle.Wechat -> AppColors.Wechat
+        else -> AppColors.Brand
     }
     val textColor = when {
         !enabled -> AppColors.Surface

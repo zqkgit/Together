@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -67,7 +68,7 @@ fun AddChildScreen(
     onSaved: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val addState by viewModel.addState
+    val addState by viewModel.addState.collectAsState()
 
     // 头像：5 emoji + 相册自定义
     val avatarOptions = remember { listOf("🌻", "🦊", "🐟", "🍀", "🎀") }

@@ -115,6 +115,7 @@ fun CourseDetailScreen(
         // 底部报名栏（仅家长角色）
         if (viewModel.canEnroll) {
             BottomEnrollBar(
+                modifier = Modifier.align(Alignment.BottomCenter),
                 priceText = course.priceText,
                 enrolling = uiState.enrolling,
                 onEnroll = { showEnrollSheet = true }
@@ -419,10 +420,9 @@ private fun ReviewRow(item: CourseReviewItem) {
 // MARK: - 底部报名栏
 
 @Composable
-private fun BottomEnrollBar(priceText: String, enrolling: Boolean, onEnroll: () -> Unit) {
+private fun BottomEnrollBar(modifier: Modifier = Modifier, priceText: String, enrolling: Boolean, onEnroll: () -> Unit) {
     Column(
-        modifier = Modifier
-            .align(Alignment.BottomCenter)
+        modifier = modifier
             .fillMaxWidth()
             .background(AppColors.Surface)
     ) {

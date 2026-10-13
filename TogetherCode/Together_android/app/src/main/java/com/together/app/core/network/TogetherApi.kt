@@ -1,6 +1,6 @@
 package com.together.app.core.network
 
-import kotlinx.serialization.JsonElement
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import okhttp3.MultipartBody
 import retrofit2.http.Body

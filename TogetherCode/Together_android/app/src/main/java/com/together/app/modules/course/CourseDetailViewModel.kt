@@ -39,7 +39,14 @@ class CourseDetailViewModel(app: Application) : AndroidViewModel(app) {
     private val tokenStore get() = getApplication<TogetherApplication>().tokenStore
 
     /** 仅家长角色可报名 */
-    val canEnroll: Boolean get() = tokenStore.getRoleSync() == 1
+    private var _canEnroll = true
+    val canEnroll: Boolean get() = _canEnroll
+
+    init {
+        viewModelScope.launch {
+            _canEnroll = try { tokenStore.getRoleSync() == 1 } catch (_: Exception) { true }
+        }
+    }
 
     fun load(courseId: String) {
         viewModelScope.launch {
