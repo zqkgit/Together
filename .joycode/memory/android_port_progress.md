@@ -4,14 +4,13 @@ description: iOS→Android(Kotlin+Compose) 全功能还原的模块进度与技�
 type: project
 ---
 
-# Android 移植进度（10/15 模块完成）
+# Android 移植进度（12/15 模块完成）
 
 **Why:** iOS 是全功能主端，逐步还原到 Android。本机无 Java 无法编译，只能手动检查引用。
 **How to apply:** 接续开发按模块清单找下一项，遵循已固化模式。
 
-已完成：网络层/存储层/主题组件/Models+9 Services/登录/MainTab/首页/课程/订单/孩子模块。
-待做：广场→消息→我的→老师→工作室。
+已完成：网络/存储/组件/Models+Services/登录/MainTab/首页/课程/订单/孩子/广场。待做：消息→我的→老师→工作室。
 
-关键模式：Service 用 object+suspend+ApiService；ViewModel 用 AndroidViewModel+StateFlow；复杂对象导航用 ViewModel 伴生对象 navOrder/navChild 缓存；PayMethod String 枚举；订单 UI 自行映射状态色；PickMultipleVisualMedia 选图 + ApiService.upload 上传；页面刷新用 LifecycleEventObserver ON_RESUME；分段 Tab 用自定义 SurfaceAlt 底+Brand 选中胶囊；FlowRow 需 @OptIn(ExperimentalLayoutApi)；LocalLifecycleOwner 用 compose.ui.platform 版（未引 lifecycle-runtime-compose）。
+关键模式：Service=object+suspend；ViewModel=AndroidViewModel+StateFlow；复杂对象导航用伴生 navOrder/navChild/navPost/navEditPost 缓存；ON_RESUME 刷新；FlowRow 需 OptIn；LocalLifecycleOwner 用 compose.ui.platform 版；HorizontalPager 稳定；icons-extended 已引入。
 
-孩子模块细节：ChildViewModel 含 4 组状态（listState/addState/homeState/balanceState）+ aggregateCourses 课程聚合（status=4 已退款不累加仅标记）；ChildHome 深绿渐变头部+statusBarsPadding 沉浸式；HomeScreen→MainTabScreen→AppNavigator 回调穿透 onChildClick/onAddChild；CourseStudy/帖子详情为 TODO 待后续模块。
+广场细节：PlazaViewModel 三组状态(plaza/detail/create)；评论两级树 BFS 降级 level2 带"回复@xx："前缀；家长选课程=type2/纯动态=type1；老师作品关联学生消课；老师孩子作品不可删；详情 ON_RESUME 刷新；CourseDetail/CourseList 已接线；中间加号→onPublish(role)→postCreate(role,1)。

@@ -29,7 +29,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -45,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import com.together.app.app.TogetherApplication
 import com.together.app.core.design.AppColors
 import com.together.app.core.model.ChildItem
+import com.together.app.core.model.PostItem
 import com.together.app.modules.home.ui.HomeScreen
 import com.together.app.modules.message.ui.MessageScreen
 import com.together.app.modules.mine.ui.MineScreen
@@ -62,7 +62,9 @@ import com.together.app.modules.teacher.ui.TeacherWorkbenchScreen
 @Composable
 fun MainTabScreen(
     onChildClick: (ChildItem) -> Unit = {},
-    onAddChild: () -> Unit = {}
+    onAddChild: () -> Unit = {},
+    onPostClick: (PostItem) -> Unit = {},
+    onPublish: (Int) -> Unit = {}
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as TogetherApplication
@@ -71,7 +73,6 @@ fun MainTabScreen(
     var role by remember { mutableIntStateOf(1) }
     var selectedTab by remember { mutableIntStateOf(0) }
     var unread by remember { mutableIntStateOf(0) }
-    var showPublish by remember { mutableStateOf(false) }
 
     // 读取角色
     LaunchedEffect(Unit) {
@@ -119,7 +120,7 @@ fun MainTabScreen(
                         onAddChild = onAddChild
                     )
                 }
-                1 -> PlazaScreen()
+                1 -> PlazaScreen(onPostClick = onPostClick)
                 2 -> { /* 发布 tab 不切内容 */ }
                 3 -> MessageScreen()
                 4 -> MineScreen()
@@ -152,8 +153,7 @@ fun MainTabScreen(
                                 .clip(CircleShape)
                                 .background(AppColors.Brand)
                                 .clickable {
-                                    // TODO: 打开发布页（后续广场模块实现）
-                                    showPublish = true
+                                    onPublish(role)
                                 },
                             contentAlignment = Alignment.Center
                         ) {

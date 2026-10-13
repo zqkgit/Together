@@ -73,6 +73,30 @@ object ApiService {
         return execute { api.get(path, cleanQuery(query)) }
     }
 
+    /** 返回 data 层原始 JsonElement（data 为数组时使用，如 /topics） */
+    suspend fun getElement(path: String, query: Map<String, Any?> = emptyMap()): JsonElement {
+        val response = try {
+            api.get(path, cleanQuery(query))
+        } catch (e: HttpException) {
+            if (e.code() == 401) {
+                notifyAuthExpired()
+                throw ApiException.Unauthorized()
+            }
+            throw ApiException.Network("请求失败(${e.code()})")
+        } catch (e: Exception) {
+            if (e is ApiException) throw e
+            throw ApiException.Network(e.message ?: "网络连接失败")
+        }
+        return when {
+            response.code == 0 -> response.data ?: kotlinx.serialization.json.JsonNull
+            response.code == 401 -> {
+                notifyAuthExpired()
+                throw ApiException.Unauthorized(response.message)
+            }
+            else -> throw ApiException.Business(response.code, response.message)
+        }
+    }
+
     suspend fun post(path: String, body: JsonObject = JsonObject(emptyMap())): JsonObject {
         return execute { api.post(path, body) }
     }

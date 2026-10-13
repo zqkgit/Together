@@ -22,6 +22,14 @@ object AppRoutes {
     const val ChildHome = "child_home/{childId}"
     const val ChildBalance = "child_balance/{childId}?nickname={nickname}"
 
+    // 广场模块
+    const val PostDetail = "post_detail/{postId}"
+    const val PostCreate = "post_create/{role}/{postType}"
+
+    // 课程模块
+    const val CourseDetail = "course_detail/{courseId}"
+    const val CourseList = "course_list"
+
     fun verifyCode(phone: String) = "verify_code/$phone"
     fun orderDetail(orderId: String) = "order_detail/$orderId"
     fun paymentVoucher(orderId: String) = "payment_voucher/$orderId"
@@ -29,4 +37,7 @@ object AppRoutes {
     fun refundDetail(refundId: String) = "refund_detail/$refundId"
     fun childHome(childId: String) = "child_home/$childId"
     fun childBalance(childId: String, nickname: String) = "child_balance/$childId?nickname=$nickname"
+    fun postDetail(postId: String) = "post_detail/$postId"
+    fun postCreate(role: Int, postType: Int) = "post_create/$role/$postType"
+    fun courseDetail(courseId: String) = "course_detail/$courseId"
 }

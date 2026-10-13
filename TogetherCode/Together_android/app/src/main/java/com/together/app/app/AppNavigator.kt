@@ -20,6 +20,8 @@ import com.together.app.modules.child.ui.AddChildScreen
 import com.together.app.modules.child.ui.ChildBalanceScreen
 import com.together.app.modules.child.ui.ChildHomeScreen
 import com.together.app.modules.child.ui.MyChildrenScreen
+import com.together.app.modules.course.ui.CourseDetailScreen
+import com.together.app.modules.course.ui.CourseListScreen
 import com.together.app.modules.login.ui.LoginScreen
 import com.together.app.modules.login.ui.PhoneLoginScreen
 import com.together.app.modules.login.ui.VerifyCodeScreen
@@ -30,6 +32,9 @@ import com.together.app.modules.order.ui.OrderDetailScreen
 import com.together.app.modules.order.ui.OrderRefundScreen
 import com.together.app.modules.order.ui.PaymentVoucherScreen
 import com.together.app.modules.order.ui.RefundDetailScreen
+import com.together.app.modules.plaza.PlazaViewModel
+import com.together.app.modules.plaza.ui.PostCreateScreen
+import com.together.app.modules.plaza.ui.PostDetailScreen
 import com.together.app.modules.studio.ui.StudioOverviewScreen
 import com.together.app.modules.teacher.ui.TeacherWorkbenchScreen
 import kotlinx.coroutines.launch
@@ -130,6 +135,12 @@ fun AppNavigator() {
                 },
                 onAddChild = {
                     navController.navigate(AppRoutes.MyChildren)
+                },
+                onPostClick = { post ->
+                    navController.navigate(AppRoutes.postDetail(post.postId))
+                },
+                onPublish = { role ->
+                    navController.navigate(AppRoutes.postCreate(role, 1))
                 }
             )
         }
@@ -274,7 +285,7 @@ fun AppNavigator() {
                         navController.navigate(AppRoutes.childBalance(childId, nickname))
                     },
                     onWorkClick = { postId ->
-                        // TODO: 帖子详情（广场模块）
+                        navController.navigate(AppRoutes.postDetail(postId))
                     },
                     onCourseClick = { childId, courseId, courseTitle ->
                         // TODO: 课程学习页（课程模块 CourseStudy）
@@ -302,6 +313,74 @@ fun AppNavigator() {
                 childId = childId,
                 childNickname = nickname,
                 onBack = { navController.popBackStack() }
+            )
+        }
+
+        // MARK: - 广场模块
+
+        // 帖子详情
+        composable(
+            route = AppRoutes.PostDetail,
+            arguments = listOf(navArgument("postId") { type = NavType.StringType })
+        ) { entry ->
+            val postId = entry.arguments?.getString("postId") ?: ""
+            PostDetailScreen(
+                postId = postId,
+                onBack = { navController.popBackStack() },
+                onEdit = { post ->
+                    PlazaViewModel.navEditPost = post
+                    navController.navigate(
+                        AppRoutes.postCreate(post.author?.role ?: 1, post.type)
+                    )
+                },
+                onEnroll = { courseId ->
+                    navController.navigate(AppRoutes.courseDetail(courseId))
+                },
+                onDeleted = { navController.popBackStack() }
+            )
+        }
+
+        // 发帖 / 编辑帖子（编辑模式通过 navEditPost 缓存触发）
+        composable(
+            route = AppRoutes.PostCreate,
+            arguments = listOf(
+                navArgument("role") { type = NavType.IntType },
+                navArgument("postType") { type = NavType.IntType }
+            )
+        ) { entry ->
+            val role = entry.arguments?.getInt("role") ?: 1
+            val postType = entry.arguments?.getInt("postType") ?: 1
+            PostCreateScreen(
+                role = role,
+                postType = postType,
+                onClose = { navController.popBackStack() },
+                onPublished = { navController.popBackStack() }
+            )
+        }
+
+        // MARK: - 课程模块
+
+        // 课程详情
+        composable(
+            route = AppRoutes.CourseDetail,
+            arguments = listOf(navArgument("courseId") { type = NavType.StringType })
+        ) { entry ->
+            val courseId = entry.arguments?.getString("courseId") ?: ""
+            CourseDetailScreen(
+                courseId = courseId,
+                onBack = { navController.popBackStack() },
+                onEnrollSuccess = { orderId ->
+                    navController.navigate(AppRoutes.orderDetail(orderId))
+                }
+            )
+        }
+
+        // 课程列表（搜索）
+        composable(AppRoutes.CourseList) {
+            CourseListScreen(
+                onCourseClick = { courseId ->
+                    navController.navigate(AppRoutes.courseDetail(courseId))
+                }
             )
         }
     }
