@@ -61,7 +61,7 @@ import com.together.app.modules.order.OrderViewModel.OrderTab
 fun MyOrdersScreen(
     onBack: () -> Unit,
     onOrderClick: (String) -> Unit,
-    onUploadVoucher: (String) -> Unit,
+    onUploadVoucher: (OrderItem) -> Unit,
     onStudy: (childId: String, courseId: String, title: String) -> Unit,
     onRefundDetail: (String) -> Unit,
     onReorder: (String) -> Unit,
@@ -100,7 +100,7 @@ fun MyOrdersScreen(
                             order = order,
                             onClick = { order.orderId?.let(onOrderClick) },
                             onCancel = { cancelTarget = order },
-                            onVoucher = { order.orderId?.let(onUploadVoucher) },
+                            onVoucher = { onUploadVoucher(order) },
                             onStudy = {
                                 val childId = order.child?.childId ?: return@OrderCard
                                 val courseId = order.course?.courseId ?: return@OrderCard

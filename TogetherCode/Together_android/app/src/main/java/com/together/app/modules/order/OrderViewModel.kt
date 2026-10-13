@@ -26,6 +26,11 @@ import java.io.File
  */
 class OrderViewModel(app: Application) : AndroidViewModel(app) {
 
+    companion object {
+        /** 页面间传递订单对象（Navigation Compose 不支持复杂对象参数，进程被杀后需重新进入） */
+        var navOrder: OrderItem? = null
+    }
+
     // MARK: - 订单列表（MyOrdersScreen）
 
     /** Tab：全部 / 待付款0 / 待确认1 / 已报名2 / 已取消6 / 已退款5 */
@@ -213,6 +218,11 @@ class OrderViewModel(app: Application) : AndroidViewModel(app) {
 
     fun resetRefundRequestState() {
         _refundRequestState.value = RefundRequestState()
+    }
+
+    /** 清除退款申请错误（Toast 展示后调用） */
+    fun clearRefundRequestError() {
+        _refundRequestState.value = _refundRequestState.value.copy(error = null)
     }
 
     // MARK: - 退款详情（RefundDetailScreen）

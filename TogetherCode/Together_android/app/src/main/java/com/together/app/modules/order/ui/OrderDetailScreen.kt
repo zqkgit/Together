@@ -67,11 +67,11 @@ import com.together.app.modules.order.OrderViewModel
 fun OrderDetailScreen(
     orderId: String,
     onBack: () -> Unit,
-    onUploadVoucher: (String) -> Unit,
+    onUploadVoucher: (OrderItem) -> Unit,
     onStudy: (childId: String, courseId: String, title: String) -> Unit,
     onRefundDetail: (String) -> Unit,
     onReorder: (String) -> Unit,
-    onRefund: (String) -> Unit,
+    onRefund: (OrderItem) -> Unit,
     viewModel: OrderViewModel = viewModel()
 ) {
     val detailState by viewModel.detailState.collectAsState()
@@ -127,7 +127,7 @@ fun OrderDetailScreen(
             BottomActionBar(
                 order = order,
                 onCancel = { showCancelDialog = true },
-                onVoucher = { order.orderId?.let(onUploadVoucher) },
+                onVoucher = { onUploadVoucher(order) },
                 onStudy = {
                     val childId = order.child?.childId
                     val courseId = order.course?.courseId
@@ -147,7 +147,7 @@ fun OrderDetailScreen(
                     if (courseId != null) onReorder(courseId)
                     else Toast.makeText(context, "课程信息缺失", Toast.LENGTH_SHORT).show()
                 },
-                onRefund = { order.orderId?.let(onRefund) }
+                onRefund = { onRefund(order) }
             )
         }
     }

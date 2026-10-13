@@ -18,6 +18,12 @@ import com.together.app.modules.login.ui.LoginScreen
 import com.together.app.modules.login.ui.PhoneLoginScreen
 import com.together.app.modules.login.ui.VerifyCodeScreen
 import com.together.app.modules.main.ui.MainTabScreen
+import com.together.app.modules.order.OrderViewModel
+import com.together.app.modules.order.ui.MyOrdersScreen
+import com.together.app.modules.order.ui.OrderDetailScreen
+import com.together.app.modules.order.ui.OrderRefundScreen
+import com.together.app.modules.order.ui.PaymentVoucherScreen
+import com.together.app.modules.order.ui.RefundDetailScreen
 import com.together.app.modules.studio.ui.StudioOverviewScreen
 import com.together.app.modules.teacher.ui.TeacherWorkbenchScreen
 import kotlinx.coroutines.launch
@@ -122,6 +128,98 @@ fun AppNavigator() {
         // 工作室端总览
         composable(AppRoutes.StudioMain) {
             StudioOverviewScreen()
+        }
+
+        // MARK: - 订单模块
+
+        // 我的订单
+        composable(AppRoutes.MyOrders) {
+            MyOrdersScreen(
+                onBack = { navController.popBackStack() },
+                onOrderClick = { orderId ->
+                    navController.navigate(AppRoutes.orderDetail(orderId))
+                },
+                onUploadVoucher = { order ->
+                    OrderViewModel.navOrder = order
+                    navController.navigate(AppRoutes.paymentVoucher(order.orderId ?: ""))
+                },
+                onStudy = { _, _, _ -> /* TODO: 学习页（孩子模块） */ },
+                onRefundDetail = { refundId ->
+                    navController.navigate(AppRoutes.refundDetail(refundId))
+                },
+                onReorder = { _ -> /* TODO: 课程详情重新报名 */ }
+            )
+        }
+
+        // 订单详情
+        composable(
+            route = AppRoutes.OrderDetail,
+            arguments = listOf(navArgument("orderId") { type = NavType.StringType })
+        ) { entry ->
+            val orderId = entry.arguments?.getString("orderId") ?: ""
+            OrderDetailScreen(
+                orderId = orderId,
+                onBack = { navController.popBackStack() },
+                onUploadVoucher = { order ->
+                    OrderViewModel.navOrder = order
+                    navController.navigate(AppRoutes.paymentVoucher(order.orderId ?: ""))
+                },
+                onStudy = { _, _, _ -> /* TODO: 学习页（孩子模块） */ },
+                onRefundDetail = { refundId ->
+                    navController.navigate(AppRoutes.refundDetail(refundId))
+                },
+                onReorder = { _ -> /* TODO: 课程详情重新报名 */ },
+                onRefund = { order ->
+                    OrderViewModel.navOrder = order
+                    navController.navigate(AppRoutes.orderRefund(order.orderId ?: ""))
+                }
+            )
+        }
+
+        // 上传付款凭证（需从 navOrder 缓存读取订单对象）
+        composable(
+            route = AppRoutes.PaymentVoucher,
+            arguments = listOf(navArgument("orderId") { type = NavType.StringType })
+        ) {
+            val order = OrderViewModel.navOrder
+            if (order != null) {
+                PaymentVoucherScreen(
+                    order = order,
+                    onBack = { navController.popBackStack() },
+                    onSubmitted = { /* 返回后列表/详情自动刷新 */ }
+                )
+            } else {
+                LaunchedEffect(Unit) { navController.popBackStack() }
+            }
+        }
+
+        // 申请退款（需从 navOrder 缓存读取订单对象）
+        composable(
+            route = AppRoutes.OrderRefund,
+            arguments = listOf(navArgument("orderId") { type = NavType.StringType })
+        ) {
+            val order = OrderViewModel.navOrder
+            if (order != null) {
+                OrderRefundScreen(
+                    order = order,
+                    onBack = { navController.popBackStack() },
+                    onSuccess = { /* 返回后详情自动刷新 */ }
+                )
+            } else {
+                LaunchedEffect(Unit) { navController.popBackStack() }
+            }
+        }
+
+        // 退款详情
+        composable(
+            route = AppRoutes.RefundDetail,
+            arguments = listOf(navArgument("refundId") { type = NavType.StringType })
+        ) { entry ->
+            val refundId = entry.arguments?.getString("refundId") ?: ""
+            RefundDetailScreen(
+                refundId = refundId,
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }
