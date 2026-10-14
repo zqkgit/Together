@@ -9,7 +9,7 @@ object ApiConfig {
     var customBaseUrl: String? = null
 
     val hostBaseUrl: String
-        get() = customBaseUrl ?: "http://10.6.0.26:3001"
+        get() = customBaseUrl ?: "http://127.0.0.1:3001"
 
     val baseUrl: String
         get() = hostBaseUrl + API_PREFIX + "/"

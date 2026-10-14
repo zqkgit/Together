@@ -70,13 +70,13 @@ object ApiService {
     // MARK: - 统一请求方法（返回 data 层 JsonObject）
 
     suspend fun get(path: String, query: Map<String, Any?> = emptyMap()): JsonObject {
-        return execute { api.get(path, cleanQuery(query)) }
+        return execute { api.get(path.trimStart('/'), cleanQuery(query)) }
     }
 
     /** 返回 data 层原始 JsonElement（data 为数组时使用，如 /topics） */
     suspend fun getElement(path: String, query: Map<String, Any?> = emptyMap()): JsonElement {
         val response = try {
-            api.get(path, cleanQuery(query))
+            api.get(path.trimStart('/'), cleanQuery(query))
         } catch (e: HttpException) {
             if (e.code() == 401) {
                 notifyAuthExpired()
@@ -98,23 +98,23 @@ object ApiService {
     }
 
     suspend fun post(path: String, body: JsonObject = JsonObject(emptyMap())): JsonObject {
-        return execute { api.post(path, body) }
+        return execute { api.post(path.trimStart('/'), body) }
     }
 
     suspend fun post(path: String, body: Map<String, Any?>): JsonObject {
-        return execute { api.post(path, toJson(body)) }
+        return execute { api.post(path.trimStart('/'), toJson(body)) }
     }
 
     suspend fun put(path: String, body: JsonObject = JsonObject(emptyMap())): JsonObject {
-        return execute { api.put(path, body) }
+        return execute { api.put(path.trimStart('/'), body) }
     }
 
     suspend fun put(path: String, body: Map<String, Any?>): JsonObject {
-        return execute { api.put(path, toJson(body)) }
+        return execute { api.put(path.trimStart('/'), toJson(body)) }
     }
 
     suspend fun delete(path: String): JsonObject {
-        return execute { api.delete(path) }
+        return execute { api.delete(path.trimStart('/')) }
     }
 
     // MARK: - 上传
