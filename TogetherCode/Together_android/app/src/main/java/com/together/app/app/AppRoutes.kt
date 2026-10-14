@@ -58,6 +58,14 @@ object AppRoutes {
     const val StudioOrderList = "studio_order_list"
     const val StudioOrderDetail = "studio_order_detail/{orderId}"
     const val StudioRefund = "studio_refund"
+    const val StudioTeacherList = "studio_teacher_list"
+    const val StudioTeacherDetail = "studio_teacher_detail/{teacherId}?name={name}"
+    const val StudioTeacherApplication = "studio_teacher_application"
+    const val StudioStudentList = "studio_student_list"
+    const val StudioStudentDetail = "studio_student_detail/{childId}?name={name}"
+    const val StudioCommissionReview = "studio_commission_review"
+    const val StudioRevenue = "studio_revenue"
+    const val StudioCourseList = "studio_course_list"
 
     fun verifyCode(phone: String) = "verify_code/$phone"
     fun orderDetail(orderId: String) = "order_detail/$orderId"
@@ -71,4 +79,6 @@ object AppRoutes {
     fun courseDetail(courseId: String) = "course_detail/$courseId"
     fun chat(conversationId: String) = "chat/$conversationId"
     fun studioOrderDetail(orderId: String) = "studio_order_detail/$orderId"
+    fun studioTeacherDetail(teacherId: String, name: String) = "studio_teacher_detail/$teacherId?name=$name"
+    fun studioStudentDetail(childId: String, name: String) = "studio_student_detail/$childId?name=$name"
 }

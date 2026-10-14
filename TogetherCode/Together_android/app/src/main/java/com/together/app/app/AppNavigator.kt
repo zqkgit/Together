@@ -55,10 +55,18 @@ import com.together.app.modules.mine.ui.WorkManagementScreen
 import com.together.app.modules.plaza.PlazaViewModel
 import com.together.app.modules.plaza.ui.PostCreateScreen
 import com.together.app.modules.plaza.ui.PostDetailScreen
+import com.together.app.modules.studio.ui.StudioCommissionReviewScreen
+import com.together.app.modules.studio.ui.StudioCourseListScreen
 import com.together.app.modules.studio.ui.StudioOrderDetailScreen
 import com.together.app.modules.studio.ui.StudioOrderListScreen
 import com.together.app.modules.studio.ui.StudioOverviewScreen
 import com.together.app.modules.studio.ui.StudioRefundScreen
+import com.together.app.modules.studio.ui.StudioRevenueScreen
+import com.together.app.modules.studio.ui.StudioStudentDetailScreen
+import com.together.app.modules.studio.ui.StudioStudentListScreen
+import com.together.app.modules.studio.ui.StudioTeacherApplicationScreen
+import com.together.app.modules.studio.ui.StudioTeacherDetailScreen
+import com.together.app.modules.studio.ui.StudioTeacherListScreen
 import com.together.app.modules.teacher.ui.TeacherTimetableScreen
 import com.together.app.modules.teacher.ui.TeacherWorkbenchScreen
 import kotlinx.coroutines.launch
@@ -210,7 +218,12 @@ fun AppNavigator() {
                     )
                 },
                 onStudioOrders = { navController.navigate(AppRoutes.StudioOrderList) },
-                onStudioRefunds = { navController.navigate(AppRoutes.StudioRefund) }
+                onStudioRefunds = { navController.navigate(AppRoutes.StudioRefund) },
+                onStudioCourses = { navController.navigate(AppRoutes.StudioCourseList) },
+                onStudioStudents = { navController.navigate(AppRoutes.StudioStudentList) },
+                onStudioTeachers = { navController.navigate(AppRoutes.StudioTeacherList) },
+                onStudioRevenue = { navController.navigate(AppRoutes.StudioRevenue) },
+                onStudioCommissions = { navController.navigate(AppRoutes.StudioCommissionReview) }
             )
         }
 
@@ -228,7 +241,9 @@ fun AppNavigator() {
 
         // 工作室端总览（独立路由，备用；主入口已统一走 MainTabScreen）
         composable(AppRoutes.StudioMain) {
-            StudioOverviewScreen()
+            StudioOverviewScreen(
+                onRevenue = { navController.navigate(AppRoutes.StudioRevenue) }
+            )
         }
 
         // 工作室订单列表
@@ -258,6 +273,105 @@ fun AppNavigator() {
             StudioRefundScreen(
                 initialStatus = 0,
                 onBack = { navController.popBackStack() }
+            )
+        }
+
+        // 工作室老师管理
+        composable(AppRoutes.StudioTeacherList) {
+            StudioTeacherListScreen(
+                onBack = { navController.popBackStack() },
+                onTeacherClick = { teacher ->
+                    navController.navigate(
+                        AppRoutes.studioTeacherDetail(teacher.teacherId, teacher.displayName)
+                    )
+                },
+                onApplications = {
+                    navController.navigate(AppRoutes.StudioTeacherApplication)
+                }
+            )
+        }
+
+        // 工作室老师详情
+        composable(
+            AppRoutes.StudioTeacherDetail,
+            arguments = listOf(
+                navArgument("teacherId") { type = NavType.StringType },
+                navArgument("name") {
+                    type = NavType.StringType
+                    defaultValue = "老师详情"
+                }
+            )
+        ) { entry ->
+            val teacherId = entry.arguments?.getString("teacherId") ?: return@composable
+            val name = entry.arguments?.getString("name") ?: "老师详情"
+            StudioTeacherDetailScreen(
+                teacherId = teacherId,
+                teacherName = name,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // 工作室合作申请
+        composable(AppRoutes.StudioTeacherApplication) {
+            StudioTeacherApplicationScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // 工作室学员管理
+        composable(AppRoutes.StudioStudentList) {
+            StudioStudentListScreen(
+                onBack = { navController.popBackStack() },
+                onStudentClick = { student ->
+                    navController.navigate(
+                        AppRoutes.studioStudentDetail(student.childId, student.displayName)
+                    )
+                }
+            )
+        }
+
+        // 工作室学员详情
+        composable(
+            AppRoutes.StudioStudentDetail,
+            arguments = listOf(
+                navArgument("childId") { type = NavType.StringType },
+                navArgument("name") {
+                    type = NavType.StringType
+                    defaultValue = "学员详情"
+                }
+            )
+        ) { entry ->
+            val childId = entry.arguments?.getString("childId") ?: return@composable
+            val name = entry.arguments?.getString("name") ?: "学员详情"
+            StudioStudentDetailScreen(
+                childId = childId,
+                studentName = name,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // 工作室佣金审核
+        composable(AppRoutes.StudioCommissionReview) {
+            StudioCommissionReviewScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // 工作室收益中心
+        composable(AppRoutes.StudioRevenue) {
+            StudioRevenueScreen(
+                onBack = { navController.popBackStack() },
+                onWithdrawals = { navController.navigate(AppRoutes.CommissionWithdrawals) }
+            )
+        }
+
+        // 工作室课程管理
+        composable(AppRoutes.StudioCourseList) {
+            StudioCourseListScreen(
+                onBack = { navController.popBackStack() },
+                onPreview = { courseId ->
+                    navController.navigate(AppRoutes.courseDetail(courseId))
+                }
             )
         }
 
