@@ -75,7 +75,6 @@ fun TeacherTimetableScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.Bg)
-            .statusBarsPadding()
     ) {
         TogetherTopBar(title = "课表与排课", onBack = onBack)
 

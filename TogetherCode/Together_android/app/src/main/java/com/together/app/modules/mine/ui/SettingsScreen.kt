@@ -79,7 +79,6 @@ fun SettingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.Bg)
-            .statusBarsPadding()
     ) {
         TogetherTopBar(title = "设置", onBack = onBack)
 
@@ -276,7 +275,6 @@ fun AboutScreen(onBack: () -> Unit = {}) {
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.Bg)
-            .statusBarsPadding()
             .navigationBarsPadding()
     ) {
         TogetherTopBar(title = "关于艺启", onBack = onBack)

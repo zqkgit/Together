@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -48,32 +49,38 @@ fun TogetherTopBar(
     onBack: (() -> Unit)? = null,
     actions: @Composable () -> Unit = {}
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(AppDimens.TopBarHeight)
             .background(AppColors.Surface)
-            .padding(horizontal = AppDimens.S),
-        verticalAlignment = Alignment.CenterVertically
+            .statusBarsPadding()
     ) {
-        if (onBack != null) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "返回",
-                    tint = AppColors.Ink
-                )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(AppDimens.TopBarHeight)
+                .padding(horizontal = AppDimens.S),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (onBack != null) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "返回",
+                        tint = AppColors.Ink
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.width(AppDimens.M))
             }
-        } else {
-            Spacer(modifier = Modifier.width(AppDimens.M))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                color = AppColors.Ink,
+                modifier = Modifier.weight(1f)
+            )
+            actions()
         }
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            color = AppColors.Ink,
-            modifier = Modifier.weight(1f)
-        )
-        actions()
     }
 }
 

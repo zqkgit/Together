@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -135,7 +136,7 @@ fun AddChildScreen(
         )
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(AppColors.Bg)) {
+    Column(modifier = Modifier.fillMaxSize().background(AppColors.Bg).statusBarsPadding()) {
         // 顶栏：关闭 + 标题 + 保存
         Row(
             modifier = Modifier

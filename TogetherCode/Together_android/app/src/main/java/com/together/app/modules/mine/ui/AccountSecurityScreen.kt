@@ -80,7 +80,6 @@ fun AccountSecurityScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.Bg)
-            .statusBarsPadding()
     ) {
         TogetherTopBar(title = "账号与安全", onBack = onBack)
 
@@ -172,7 +171,7 @@ fun ChangePasswordScreen(onBack: () -> Unit = {}) {
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().background(AppColors.Bg).statusBarsPadding()
+        modifier = Modifier.fillMaxSize().background(AppColors.Bg)
     ) {
         TogetherTopBar(title = "修改登录密码", onBack = onBack)
         Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())
@@ -242,7 +241,7 @@ fun ChangePhoneScreen(onBack: () -> Unit = {}) {
         if (countdown > 0) { delay(1000); countdown-- }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(AppColors.Bg).statusBarsPadding()) {
+    Column(modifier = Modifier.fillMaxSize().background(AppColors.Bg)) {
         TogetherTopBar(title = "更换手机号", onBack = onBack)
         Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())
             .padding(horizontal = AppDimens.L)) {
@@ -309,7 +308,7 @@ fun DeactivateAccountScreen(onBack: () -> Unit = {}, onLoggedOut: () -> Unit = {
         if (countdown > 0) { delay(1000); countdown-- }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(AppColors.Bg).statusBarsPadding()) {
+    Column(modifier = Modifier.fillMaxSize().background(AppColors.Bg)) {
         TogetherTopBar(title = "注销账号", onBack = onBack)
         Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())
             .padding(horizontal = AppDimens.L)) {

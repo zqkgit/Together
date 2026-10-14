@@ -111,7 +111,6 @@ fun EditProfileScreen(onBack: () -> Unit = {}) {
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.Bg)
-            .statusBarsPadding()
     ) {
         TogetherTopBar(title = "个人资料", onBack = onBack)
 
