@@ -385,7 +385,12 @@ fun AppNavigator() {
                 studioId = studioId,
                 onBack = { navController.popBackStack() },
                 onCourseClick = { courseId -> navController.navigate(AppRoutes.courseDetail(courseId)) },
-                onTeacherClick = { teacherId -> navController.navigate(AppRoutes.teacherProfile(teacherId)) }
+                onTeacherClick = { teacherId -> navController.navigate(AppRoutes.teacherProfile(teacherId)) },
+                onPostClick = { postId -> navController.navigate(AppRoutes.postDetail(postId)) },
+                onChat = { conversation ->
+                    MessageViewModel.navConversation = conversation
+                    navController.navigate(AppRoutes.chat(conversation.conversationId))
+                }
             )
         }
 

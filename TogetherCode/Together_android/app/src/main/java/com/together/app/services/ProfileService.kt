@@ -1,5 +1,6 @@
 package com.together.app.services
 
+import com.together.app.core.model.fenToYuanText
 import com.together.app.core.network.ApiService
 import com.together.app.core.network.JsonHelper.decode
 import com.together.app.core.network.JsonHelper.decodeList
@@ -195,7 +196,26 @@ object ProfileService {
         @SerialName("age_min") val ageMin: Int? = null,
         @SerialName("age_max") val ageMax: Int? = null,
         @SerialName("lesson_count") val lessonCount: Int? = null
-    )
+    ) {
+        val priceText: String get() = price.fenToYuanText()
+        val ageRangeText: String?
+            get() {
+                if (ageMin == null && ageMax == null) return null
+                if (ageMin != null && ageMax != null && ageMax > ageMin) return "${ageMin}-${ageMax}岁"
+                if (ageMin != null) return "${ageMin}岁+"
+                if (ageMax != null) return "${ageMax}岁以内"
+                return null
+            }
+        /** 「¥1,280/16节 · 4-8岁」 */
+        val detailText: String
+            get() {
+                val parts = mutableListOf<String>()
+                val lessons = lessonCount ?: 0
+                parts.add(if (lessons > 0) "${priceText}/${lessons}节" else priceText)
+                ageRangeText?.let { parts.add(it) }
+                return parts.joinToString(" · ")
+            }
+    }
 
     @Serializable
     data class StudioCoursePage(
