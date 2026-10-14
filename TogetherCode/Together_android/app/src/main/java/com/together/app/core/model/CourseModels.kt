@@ -19,16 +19,19 @@ data class CourseDetail(
     @SerialName("age_max") val ageMax: Int? = null,
     @SerialName("total_lessons") val totalLessons: Int? = null,
     @SerialName("lesson_minutes") val lessonMinutes: Int? = null,
+    @SerialName("class_size") val classSize: Int? = null,
+    @SerialName("duration_min") val durationMin: Int? = null,
     @SerialName("tags") val tags: List<String>? = null,
     @SerialName("images") val images: List<String>? = null,
     @SerialName("studio") val studio: CourseStudio? = null,
     @SerialName("teacher") val teacher: CourseTeacher? = null,
     @SerialName("packages") val packages: List<PackageItem>? = null,
     @SerialName("classes") val classes: List<CourseClassItem>? = null,
+    @SerialName("lessons") val lessons: List<CourseLesson>? = null,
     @SerialName("reviews") val reviews: List<CourseReviewItem>? = null,
     @SerialName("schedule") val schedule: List<CourseScheduleSummary>? = null
 ) {
-    val priceText: String get() = price.fenToYuanText()
+    val priceText: String get() = if (price > 0) price.fenToYuanText() else "价格咨询"
     val ratingText: String
         get() {
             val r = rating ?: return "新课程"
@@ -43,9 +46,42 @@ data class CourseDetail(
             if (max != null) return "${max}岁以内"
             return null
         }
+    /** 班型标签「小班 N 人」 */
+    val classSizeText: String?
+        get() {
+            val s = classSize ?: return null
+            return if (s > 0) "小班 ${s}人" else null
+        }
+    /** 标签行（年龄 · 班型） */
+    val tagTexts: List<String>
+        get() = listOfNotNull(ageRangeText, classSizeText)
+    /** 课时标题行「1. xxx」；无课时数据返回 null */
+    val lessonTitles: List<String>?
+        get() {
+            val ls = lessons ?: return null
+            if (ls.isEmpty()) return null
+            return ls.sortedBy { it.lessonNo ?: 0 }
+                .map { l -> "${l.lessonNo ?: 0}. ${l.title?.takeIf { it.isNotEmpty() } ?: "第${l.lessonNo ?: 0}课"}" }
+        }
+    /** 副标题：机构 · 总课时 */
+    val subtitleText: String
+        get() {
+            val parts = mutableListOf<String>()
+            studio?.name?.takeIf { it.isNotEmpty() }?.let { parts.add(it) }
+            totalLessons?.takeIf { it > 0 }?.let { parts.add("$it 课时") }
+            return parts.joinToString(" · ")
+        }
     val studioName: String get() = studio?.name ?: ""
     val teacherName: String get() = teacher?.realName ?: ""
 }
+
+/** 课程课时（详情页课时安排） */
+@Serializable
+data class CourseLesson(
+    @SerialName("lesson_id") val lessonId: String? = null,
+    @SerialName("lesson_no") val lessonNo: Int? = null,
+    @SerialName("title") val title: String? = null
+)
 
 // MARK: - 课程套餐
 
@@ -112,9 +148,12 @@ data class CourseReviewItem(
     @SerialName("rating") val rating: Int = 0,
     @SerialName("content") val content: String = "",
     @SerialName("images") val images: List<String>? = null,
+    @SerialName("reply_content") val replyContent: String? = null,
+    @SerialName("teacher_reply_content") val teacherReplyContent: String? = null,
     @SerialName("created_at") val createdAt: String? = null
 ) {
     val timeText: String get() = createdAt.shortRelativeTime()
+    val authorName: String get() = nickname.takeIf { it.isNotEmpty() } ?: "艺启家长"
 }
 
 // MARK: - 我的课程

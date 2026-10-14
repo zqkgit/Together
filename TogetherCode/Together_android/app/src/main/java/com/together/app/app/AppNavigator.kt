@@ -752,6 +752,13 @@ fun AppNavigator() {
                 },
                 onAllReviews = {
                     navController.navigate(AppRoutes.courseReviews(courseId))
+                },
+                onWriteReview = { courseTitle ->
+                    navController.navigate(AppRoutes.reviewCompose(courseId, courseTitle))
+                },
+                onChat = { conversation ->
+                    MessageViewModel.navConversation = conversation
+                    navController.navigate(AppRoutes.chat(conversation.conversationId))
                 }
             )
         }

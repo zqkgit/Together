@@ -9,6 +9,8 @@ import com.together.app.core.model.CourseClassItem
 import com.together.app.core.model.CourseDetail
 import com.together.app.core.model.CourseReviewItem
 import com.together.app.services.CourseService
+import com.together.app.services.MessageService
+import com.together.app.core.model.ConversationItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -30,7 +32,10 @@ class CourseDetailViewModel(app: Application) : AndroidViewModel(app) {
         val selectedClassId: String = "",
         val enrolling: Boolean = false,
         val enrollError: String? = null,
-        val enrolledOrderId: String? = null
+        val enrolledOrderId: String? = null,
+        // 咨询工作室
+        val chatCreating: Boolean = false,
+        val chatError: String? = null
     )
 
     private val _uiState = MutableStateFlow(UiState())
@@ -115,6 +120,22 @@ class CourseDetailViewModel(app: Application) : AndroidViewModel(app) {
                 onSuccess(orderId)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(enrolling = false, enrollError = e.message ?: "报名失败")
+            }
+        }
+    }
+
+    /** 咨询工作室：创建会话（对齐 iOS didTapChat） */
+    fun createConversation(peerUserId: String, onResult: (ConversationItem?) -> Unit) {
+        if (_uiState.value.chatCreating) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(chatCreating = true, chatError = null)
+            try {
+                val conversation = MessageService.createConversation(peerUserId)
+                _uiState.value = _uiState.value.copy(chatCreating = false)
+                onResult(conversation)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(chatCreating = false, chatError = e.message ?: "创建会话失败")
+                onResult(null)
             }
         }
     }

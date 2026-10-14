@@ -137,6 +137,7 @@ data class CourseItem(
 @Serializable
 data class CourseStudio(
     @SerialName("studio_id") val studioId: String = "",
+    @SerialName("user_id") val userId: String? = null,
     @SerialName("name") val name: String? = null,
     @SerialName("address") val address: String? = null,
     @SerialName("phone") val phone: String? = null
@@ -146,6 +147,7 @@ data class CourseStudio(
 data class CourseTeacher(
     @SerialName("teacher_id") val teacherId: String = "",
     @SerialName("real_name") val realName: String? = null,
+    @SerialName("intro") val intro: String? = null,
     @SerialName("rating") val rating: Double? = null
 )
 

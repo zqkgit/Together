@@ -54,9 +54,13 @@ object CourseService {
     @Serializable
     data class CourseReviewSummary(
         val rating: Double? = null,
-        val ratingCount: Int? = null,
-        val distribution: Map<String, Int>? = null
-    )
+        @SerialName("rating_count") val ratingCount: Int? = null,
+        @SerialName("rating_distribution") val distribution: Map<String, Int>? = null
+    ) {
+        val total: Int get() = ratingCount ?: 0
+        /** 1...5 星数量（缺失补 0） */
+        fun count(star: Int): Int = distribution?.get(star.toString()) ?: 0
+    }
 
     /** 课程评价（详情页家长评价）+ 评分汇总 */
     suspend fun fetchReviews(courseId: String): Pair<List<CourseReviewItem>, CourseReviewSummary?> {

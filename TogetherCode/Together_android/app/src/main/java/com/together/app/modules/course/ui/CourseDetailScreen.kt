@@ -1,12 +1,15 @@
 package com.together.app.modules.course.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,13 +19,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,10 +39,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,15 +56,15 @@ import com.together.app.core.component.TogetherAvatar
 import com.together.app.core.component.resolveImageUrl
 import com.together.app.core.design.AppColors
 import com.together.app.core.design.AppDimens
-import com.together.app.core.model.CourseClassItem
+import com.together.app.core.model.ConversationItem
 import com.together.app.core.model.CourseDetail
 import com.together.app.core.model.CourseReviewItem
-import com.together.app.core.model.fenToYuanText
 import com.together.app.modules.course.CourseDetailViewModel
+import com.together.app.services.CourseService
 
 /**
  * 课程详情（对齐 iOS CourseDetailViewController / PR #courseDetail）
- * 封面 → 标签/标题/副标题 → 机构卡 → 介绍 → 班级 → 家长评价 → 底部报名栏
+ * 顶栏 → 封面卡 → 标签/标题/副标题 → 机构卡 → 介绍 → 课时安排 → 家长评价 → 底部报名栏
  */
 @Composable
 fun CourseDetailScreen(
@@ -65,9 +72,12 @@ fun CourseDetailScreen(
     viewModel: CourseDetailViewModel = viewModel(),
     onBack: () -> Unit = {},
     onEnrollSuccess: (String) -> Unit = {},
-    onAllReviews: () -> Unit = {}
+    onAllReviews: () -> Unit = {},
+    onWriteReview: (String) -> Unit = {},
+    onChat: (ConversationItem) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(courseId) {
         viewModel.load(courseId)
@@ -88,29 +98,50 @@ fun CourseDetailScreen(
         return
     }
 
-    // 报名弹窗
     var showEnrollSheet by remember { mutableStateOf(false) }
+    val reviewTotal = uiState.reviewSummary?.total ?: 0
 
     Box(modifier = Modifier.fillMaxSize().background(AppColors.Bg)) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = if (viewModel.canEnroll) 80.dp else 16.dp)
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = if (viewModel.canEnroll) 90.dp else 16.dp)
         ) {
-            // 封面
-            item { CourseCoverSection(course = course, onBack = onBack) }
-            // 信息
-            item { CourseInfoSection(course = course) }
+            // 顶栏
+            item { CourseTopBar(onBack = onBack) }
+            // 封面卡
+            item { CourseCoverCard(course = course) }
+            // 信息卡
+            item { CourseInfoCard(course = course) }
             // 机构卡
-            item { CourseStudioCard(course = course) }
-            // 介绍
-            item { CourseIntroSection(course = course) }
-            // 班级列表
-            if (!course.classes.isNullOrEmpty()) {
-                item { CourseClassesSection(classes = course.classes!!) }
+            if (course.studio != null || course.teacher?.realName?.isNotEmpty() == true) {
+                item { CourseInstitutionCard(course = course) }
+            }
+            // 课程介绍
+            course.intro?.takeIf { it.isNotBlank() }?.let {
+                item { CourseIntroCard(intro = it) }
+            }
+            // 课时安排
+            course.lessonTitles?.let { titles ->
+                item { CourseLessonsCard(titles = titles) }
             }
             // 家长评价
-            if (uiState.reviews.isNotEmpty()) {
-                item { CourseReviewsSection(reviews = uiState.reviews, summary = uiState.reviewSummary, onAllReviews = onAllReviews) }
+            item {
+                CourseReviewsHeader(
+                    total = reviewTotal,
+                    canWrite = viewModel.canEnroll,
+                    summary = uiState.reviewSummary,
+                    onWriteReview = { onWriteReview(course.title) }
+                )
+            }
+            if (uiState.reviews.isEmpty()) {
+                item { ReviewEmptyRow() }
+            } else {
+                items(uiState.reviews.take(2)) { review ->
+                    CourseReviewCard(review = review)
+                }
+                if (uiState.reviews.size > 2) {
+                    item { ReviewViewAllRow(count = uiState.reviews.size, onClick = onAllReviews) }
+                }
             }
         }
 
@@ -119,6 +150,22 @@ fun CourseDetailScreen(
             BottomEnrollBar(
                 modifier = Modifier.align(Alignment.BottomCenter),
                 priceText = course.priceText,
+                totalLessons = course.totalLessons,
+                chatCreating = uiState.chatCreating,
+                onChat = {
+                    val uid = course.studio?.userId
+                    if (uid.isNullOrEmpty()) {
+                        Toast.makeText(context, "该课程暂无工作室信息", Toast.LENGTH_SHORT).show()
+                    } else {
+                        viewModel.createConversation(uid) { conversation ->
+                            if (conversation != null) {
+                                onChat(conversation)
+                            } else {
+                                Toast.makeText(context, uiState.chatError ?: "创建会话失败", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                },
                 enrolling = uiState.enrolling,
                 onEnroll = { showEnrollSheet = true }
             )
@@ -139,14 +186,43 @@ fun CourseDetailScreen(
     }
 }
 
-// MARK: - 封面区
+// MARK: - 顶栏
 
 @Composable
-private fun CourseCoverSection(course: CourseDetail, onBack: () -> Unit) {
+private fun CourseTopBar(onBack: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .height(AppDimens.TopBarHeight)
+            .padding(horizontal = AppDimens.S),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .clickable { onBack() },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回", tint = AppColors.Ink, modifier = Modifier.size(22.dp))
+        }
+        Spacer(modifier = Modifier.width(AppDimens.S))
+        Text("课程详情", color = AppColors.Ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+// MARK: - 封面卡
+
+@Composable
+private fun CourseCoverCard(course: CourseDetail) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(240.dp)
+            .padding(horizontal = AppDimens.M)
+            .padding(bottom = AppDimens.S)
+            .aspectRatio(1f / 0.78f)
+            .clip(RoundedCornerShape(AppDimens.RadiusCard))
             .background(AppColors.SurfaceAlt)
     ) {
         if (!course.cover.isNullOrBlank()) {
@@ -157,302 +233,369 @@ private fun CourseCoverSection(course: CourseDetail, onBack: () -> Unit) {
                 contentScale = ContentScale.Crop
             )
         }
-        // 返回按钮
-        Box(
-            modifier = Modifier
-                .statusBarsPadding()
-                .padding(12.dp)
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(Color.Black.copy(alpha = 0.3f))
-                .clickable { onBack() },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回", tint = Color.White, modifier = Modifier.size(20.dp))
-        }
     }
 }
 
-// MARK: - 信息区
+// MARK: - 信息卡
 
 @Composable
-private fun CourseInfoSection(course: CourseDetail) {
+private fun CourseInfoCard(course: CourseDetail) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = AppDimens.M)
+            .padding(bottom = AppDimens.S)
+            .clip(RoundedCornerShape(AppDimens.RadiusCard))
             .background(AppColors.Surface)
             .padding(AppDimens.L)
     ) {
-        // 标签行
-        Row(horizontalArrangement = Arrangement.spacedBy(AppDimens.Xs)) {
-            course.ageRangeText?.let { age ->
-                InfoTag(text = age, bg = AppColors.BrandSoft, fg = AppColors.Brand)
+        // 标签行（年龄 · 班型）
+        if (course.tagTexts.isNotEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(AppDimens.S)) {
+                course.tagTexts.forEach { text -> InfoTag(text) }
             }
-            course.totalLessons?.let { lessons ->
-                if (lessons > 0) InfoTag(text = "${lessons}课时", bg = AppColors.InfoTint, fg = AppColors.Info)
-            }
-            course.ratingText.let { rating ->
-                if (rating != "新课程") InfoTag(text = "★ $rating", bg = AppColors.WarnTint, fg = AppColors.Warn)
-            }
+            Spacer(modifier = Modifier.height(AppDimens.S))
         }
-        Spacer(modifier = Modifier.height(AppDimens.S))
         // 标题
-        Text(
-            text = course.title,
-            color = AppColors.Ink,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            lineHeight = 28.sp
-        )
-        Spacer(modifier = Modifier.height(AppDimens.Xs))
-        // 副标题：机构 · 课时
-        Text(
-            text = course.studioName,
-            color = AppColors.Muted,
-            fontSize = 13.sp
-        )
+        Text(course.title, color = AppColors.Ink, fontSize = 19.sp, fontWeight = FontWeight.Bold, lineHeight = 26.sp)
         Spacer(modifier = Modifier.height(AppDimens.S))
-        // 价格行
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text(course.priceText, color = AppColors.Clay, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.width(AppDimens.Xs))
-            course.originalPrice?.let { op ->
-                if (op > course.price) {
-                    Text(op.fenToYuanText(), color = AppColors.Muted, fontSize = 13.sp, textDecoration = TextDecoration.LineThrough)
-                }
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            course.sales?.let { sales ->
-                if (sales > 0) Text("已售 $sales", color = AppColors.Muted, fontSize = 12.sp)
-            }
+        // 副标题：机构 · 总课时
+        if (course.subtitleText.isNotEmpty()) {
+            Text(course.subtitleText, color = AppColors.Sub, fontSize = 13.sp)
         }
     }
 }
 
 @Composable
-private fun InfoTag(text: String, bg: Color, fg: Color) {
+private fun InfoTag(text: String) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(AppDimens.RadiusTag))
-            .background(bg)
+            .clip(RoundedCornerShape(10.dp))
+            .background(AppColors.BrandSoft)
             .padding(horizontal = 8.dp, vertical = 3.dp)
     ) {
-        Text(text, color = fg, fontSize = 11.sp)
+        Text(text, color = AppColors.Brand, fontSize = 11.sp)
     }
 }
 
 // MARK: - 机构卡
 
 @Composable
-private fun CourseStudioCard(course: CourseDetail) {
+private fun CourseInstitutionCard(course: CourseDetail) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = AppDimens.L, vertical = AppDimens.S)
+            .padding(horizontal = AppDimens.M)
+            .padding(bottom = AppDimens.S)
             .clip(RoundedCornerShape(AppDimens.RadiusCard))
             .background(AppColors.Surface)
             .padding(AppDimens.M)
     ) {
-        Text("授课机构", color = AppColors.Muted, fontSize = 12.sp)
-        Spacer(modifier = Modifier.height(AppDimens.S))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TogetherAvatar(url = null, name = course.studioName, size = 40.dp)
+        course.studio?.let { studio ->
+            val parts = mutableListOf<String>()
+            course.rating?.takeIf { it > 0 }?.let { parts.add("评分 ${String.format("%.1f", it)}") }
+            course.sales?.takeIf { it > 0 }?.let { parts.add("$it 人学过") }
+            studio.address?.takeIf { it.isNotEmpty() }?.let { parts.add(it) }
+            InstitutionRow(
+                icon = Icons.Default.Business,
+                title = studio.name ?: "未知机构",
+                subtitle = parts.takeIf { it.isNotEmpty() }?.joinToString(" · ")
+            )
+        }
+        course.teacher?.realName?.takeIf { it.isNotEmpty() }?.let { name ->
+            if (course.studio != null) Spacer(modifier = Modifier.height(AppDimens.M))
+            val subtitle = course.teacher?.intro?.takeIf { it.isNotEmpty() }
+                ?: course.teacher?.rating?.takeIf { it > 0 }?.let { "评分 ${String.format("%.1f", it)}" }
+            InstitutionRow(
+                icon = Icons.Default.Person,
+                title = name,
+                subtitle = subtitle
+            )
+        }
+    }
+}
+
+@Composable
+private fun InstitutionRow(icon: ImageVector, title: String, subtitle: String?) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, tint = AppColors.Brand, modifier = Modifier.size(20.dp))
+        Spacer(modifier = Modifier.width(AppDimens.M))
+        Text(
+            title,
+            color = AppColors.Ink,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        if (subtitle != null) {
             Spacer(modifier = Modifier.width(AppDimens.M))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(course.studioName, color = AppColors.Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                course.studio?.address?.let { addr ->
-                    if (addr.isNotEmpty()) {
-                        Text(addr, color = AppColors.Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
-                }
-            }
-        }
-        // 老师
-        course.teacher?.realName?.let { teacherName ->
-            if (teacherName.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(AppDimens.S))
-                HorizontalDivider(color = AppColors.Line)
-                Spacer(modifier = Modifier.height(AppDimens.S))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("主讲老师", color = AppColors.Muted, fontSize = 12.sp)
-                    Spacer(modifier = Modifier.weight(1f))
-                    Text(teacherName, color = AppColors.Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                }
-            }
+            Text(
+                subtitle,
+                color = AppColors.Muted,
+                fontSize = 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.End,
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
-
-// MARK: - 介绍
+// MARK: - 课程介绍
 
 @Composable
-private fun CourseIntroSection(course: CourseDetail) {
-    val intro = course.intro ?: return
-    if (intro.isBlank()) return
+private fun CourseIntroCard(intro: String) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = AppDimens.L, vertical = AppDimens.S)
+            .padding(horizontal = AppDimens.M)
+            .padding(bottom = AppDimens.S)
             .clip(RoundedCornerShape(AppDimens.RadiusCard))
             .background(AppColors.Surface)
-            .padding(AppDimens.M)
+            .padding(AppDimens.L)
     ) {
-        Text("课程介绍", color = AppColors.Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text("课程介绍", color = AppColors.Ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(AppDimens.S))
-        Text(
-            text = intro,
-            color = AppColors.Sub,
-            fontSize = 14.sp,
-            lineHeight = 22.sp
-        )
+        Text(intro, color = AppColors.Sub, fontSize = 14.sp, lineHeight = 22.sp)
     }
 }
 
-// MARK: - 班级列表
+// MARK: - 课时安排
 
 @Composable
-private fun CourseClassesSection(classes: List<CourseClassItem>) {
+private fun CourseLessonsCard(titles: List<String>) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = AppDimens.L, vertical = AppDimens.S)
+            .padding(horizontal = AppDimens.M)
+            .padding(bottom = AppDimens.S)
             .clip(RoundedCornerShape(AppDimens.RadiusCard))
             .background(AppColors.Surface)
-            .padding(AppDimens.M)
+            .padding(AppDimens.L)
     ) {
-        Text("开班信息", color = AppColors.Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(AppDimens.M))
-        classes.forEach { cls ->
-            ClassRow(item = cls)
-            Spacer(modifier = Modifier.height(AppDimens.S))
+        Text("课时安排", color = AppColors.Ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(AppDimens.S))
+        titles.forEach { title ->
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Box(
+                    modifier = Modifier
+                        .padding(top = 7.dp)
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(AppColors.Brand)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(title, color = AppColors.Sub, fontSize = 14.sp, lineHeight = 20.sp)
+            }
         }
-    }
-}
-
-@Composable
-private fun ClassRow(item: CourseClassItem) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(AppDimens.RadiusButton))
-            .background(AppColors.SurfaceAlt)
-            .padding(AppDimens.M),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(item.title, color = AppColors.Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(modifier = Modifier.height(2.dp))
-            item.teacherName?.let { if (it.isNotEmpty()) Text(it, color = AppColors.Muted, fontSize = 12.sp) }
-            item.scheduleText?.let { if (it.isNotEmpty()) Text(it, color = AppColors.Muted, fontSize = 12.sp) }
-        }
-        Spacer(modifier = Modifier.width(AppDimens.S))
-        Text(
-            text = item.enrollmentText,
-            color = if (item.isFull) AppColors.Muted else AppColors.Brand,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold
-        )
     }
 }
 
 // MARK: - 家长评价
 
 @Composable
-private fun CourseReviewsSection(
-    reviews: List<CourseReviewItem>,
-    summary: com.together.app.services.CourseService.CourseReviewSummary?,
-    onAllReviews: () -> Unit = {}
+private fun CourseReviewsHeader(
+    total: Int,
+    canWrite: Boolean,
+    summary: CourseService.CourseReviewSummary?,
+    onWriteReview: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = AppDimens.L, vertical = AppDimens.S)
-            .clip(RoundedCornerShape(AppDimens.RadiusCard))
-            .background(AppColors.Surface)
-            .padding(AppDimens.M)
+            .padding(horizontal = AppDimens.M)
+            .padding(top = AppDimens.S, bottom = AppDimens.S)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("家长评价", color = AppColors.Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.width(AppDimens.S))
+            Text("$total 条", color = AppColors.Muted, fontSize = 12.sp)
             Spacer(modifier = Modifier.weight(1f))
-            summary?.rating?.let { rating ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Star, contentDescription = null, tint = AppColors.Warn, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Text(String.format("%.1f", rating), color = AppColors.Warn, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                    summary.ratingCount?.let { count ->
-                        Text(" ($count)", color = AppColors.Muted, fontSize = 12.sp)
-                    }
+            if (canWrite) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(AppColors.BrandSoft)
+                        .clickable { onWriteReview() }
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text("写评价", color = AppColors.Brand, fontSize = 13.sp)
                 }
             }
-            Spacer(modifier = Modifier.width(AppDimens.S))
-            Text(
-                "查看全部 ›",
-                color = AppColors.Brand,
-                fontSize = 13.sp,
-                modifier = Modifier.clickable { onAllReviews() }
-            )
         }
-        Spacer(modifier = Modifier.height(AppDimens.M))
-        reviews.take(5).forEach { review ->
-            ReviewRow(item = review)
-            Spacer(modifier = Modifier.height(AppDimens.M))
+        // 评分分布条
+        if (total > 0 && summary != null) {
+            Spacer(modifier = Modifier.height(AppDimens.S))
+            for (star in 5 downTo 1) {
+                DistributionBar(star = star, count = summary.count(star), total = total)
+                if (star > 1) Spacer(modifier = Modifier.height(4.dp))
+            }
         }
     }
 }
 
 @Composable
-private fun ReviewRow(item: CourseReviewItem) {
-    Column {
+private fun DistributionBar(star: Int, count: Int, total: Int) {
+    Row(
+        modifier = Modifier.fillMaxWidth().height(14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("${star}★", color = AppColors.Muted, fontSize = 10.sp, modifier = Modifier.width(26.dp))
+        Spacer(modifier = Modifier.width(4.dp))
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(AppColors.SurfaceAlt)
+        ) {
+            val ratio = if (total > 0) count.toFloat() / total else 0f
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(ratio)
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(AppColors.Clay)
+            )
+        }
+        Spacer(modifier = Modifier.width(4.dp))
+        Text("$count", color = AppColors.Muted, fontSize = 10.sp, modifier = Modifier.width(24.dp))
+    }
+}
+
+@Composable
+private fun CourseReviewCard(review: CourseReviewItem) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = AppDimens.M)
+            .padding(bottom = AppDimens.S)
+            .clip(RoundedCornerShape(AppDimens.RadiusCard))
+            .background(AppColors.Surface)
+            .padding(AppDimens.L)
+    ) {
+        // 头像 + 昵称 + 时间
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TogetherAvatar(url = item.avatar, name = item.nickname, size = 28.dp)
+            TogetherAvatar(url = review.avatar, name = review.authorName, size = 32.dp)
             Spacer(modifier = Modifier.width(AppDimens.S))
-            Text(item.nickname, color = AppColors.Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-            // 星级
-            Row {
-                repeat(5) { i ->
-                    Icon(
-                        Icons.Default.Star,
-                        contentDescription = null,
-                        tint = if (i < item.rating) AppColors.Warn else AppColors.Line,
-                        modifier = Modifier.size(12.dp)
-                    )
-                }
+            Column {
+                Text(review.authorName, color = AppColors.Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(review.timeText, color = AppColors.Muted, fontSize = 11.sp)
             }
         }
-        Spacer(modifier = Modifier.height(AppDimens.Xs))
-        if (item.content.isNotEmpty()) {
-            Text(item.content, color = AppColors.Sub, fontSize = 13.sp, lineHeight = 20.sp)
+        Spacer(modifier = Modifier.height(AppDimens.S))
+        if (review.content.isNotEmpty()) {
+            Text(review.content, color = AppColors.Ink, fontSize = 14.sp, lineHeight = 22.sp)
         }
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(item.timeText, color = AppColors.Muted, fontSize = 11.sp)
+        // 工作室回复
+        review.replyContent?.takeIf { it.isNotEmpty() }?.let { reply ->
+            Spacer(modifier = Modifier.height(AppDimens.S))
+            ReviewReplyRow(tag = "工作室", tagColor = AppColors.Info, tintColor = AppColors.InfoTint, text = reply)
+        }
+        // 老师回复
+        review.teacherReplyContent?.takeIf { it.isNotEmpty() }?.let { reply ->
+            Spacer(modifier = Modifier.height(AppDimens.S))
+            ReviewReplyRow(tag = "老师", tagColor = AppColors.Violet, tintColor = AppColors.VioletTint, text = reply)
+        }
+    }
+}
+
+/** 评价回复条（工作室蓝 / 老师紫） */
+@Composable
+private fun ReviewReplyRow(tag: String, tagColor: Color, tintColor: Color, text: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(6.dp))
+            .background(tintColor)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(tag, color = tagColor, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(34.dp))
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(text, color = AppColors.Sub, fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun ReviewEmptyRow() {
+    Box(
+        modifier = Modifier.fillMaxWidth().padding(vertical = AppDimens.Xl),
+        contentAlignment = Alignment.Center
+    ) {
+        Text("暂无评价，快来写下第一条吧", color = AppColors.Muted, fontSize = 14.sp)
+    }
+}
+
+@Composable
+private fun ReviewViewAllRow(count: Int, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = AppDimens.M)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Text("查看全部 $count 条评价 ›", color = AppColors.Sub, fontSize = 14.sp)
     }
 }
 
 // MARK: - 底部报名栏
 
 @Composable
-private fun BottomEnrollBar(modifier: Modifier = Modifier, priceText: String, enrolling: Boolean, onEnroll: () -> Unit) {
+private fun BottomEnrollBar(
+    modifier: Modifier = Modifier,
+    priceText: String,
+    totalLessons: Int?,
+    chatCreating: Boolean,
+    onChat: () -> Unit,
+    enrolling: Boolean,
+    onEnroll: () -> Unit
+) {
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .shadow(8.dp, spotColor = Color.Black.copy(alpha = 0.06f))
             .background(AppColors.Surface)
     ) {
-        HorizontalDivider(color = AppColors.Line, thickness = 0.5.dp)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = AppDimens.L, vertical = AppDimens.S),
+                .padding(horizontal = AppDimens.M, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(priceText, color = AppColors.Clay, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            // 价格（¥xx/N节）
+            val priceDisplay = if (totalLessons != null && totalLessons > 0) "$priceText/${totalLessons}节" else priceText
+            Text(priceDisplay, color = AppColors.Clay, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.weight(1f))
+            // 咨询工作室（线框风格）
             Box(
                 modifier = Modifier
+                    .size(width = 90.dp, height = 46.dp)
+                    .clip(RoundedCornerShape(23.dp))
+                    .border(1.dp, AppColors.Brand, RoundedCornerShape(23.dp))
+                    .clickable { onChat() },
+                contentAlignment = Alignment.Center
+            ) {
+                if (chatCreating) {
+                    CircularProgressIndicator(color = AppColors.Brand, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                } else {
+                    Text("咨询工作室", color = AppColors.Brand, fontSize = 14.sp)
+                }
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            // 我要报名
+            Box(
+                modifier = Modifier
+                    .size(width = 120.dp, height = 46.dp)
                     .clip(RoundedCornerShape(23.dp))
                     .background(AppColors.Brand)
-                    .clickable { onEnroll() }
-                    .padding(horizontal = 32.dp, vertical = 12.dp),
+                    .clickable { onEnroll() },
                 contentAlignment = Alignment.Center
             ) {
                 if (enrolling) {
