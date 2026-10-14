@@ -25,10 +25,18 @@ object AppRoutes {
     // 广场模块
     const val PostDetail = "post_detail/{postId}"
     const val PostCreate = "post_create/{role}/{postType}"
+    const val Search = "search"
+    const val TeacherProfile = "teacher_profile/{teacherId}"
+    const val StudioHomepage = "studio_homepage/{studioId}"
 
     // 课程模块
     const val CourseDetail = "course_detail/{courseId}"
     const val CourseList = "course_list"
+    const val MyCourses = "my_courses?childId={childId}&childName={childName}"
+    const val CourseStudy = "course_study/{childId}/{courseId}?title={title}"
+    const val CourseReviews = "course_reviews/{courseId}"
+    const val ReviewCompose = "review_compose/{courseId}?courseTitle={courseTitle}&isEdit={isEdit}"
+    const val MyReviews = "my_reviews"
 
     // 消息模块
     const val Chat = "chat/{conversationId}"
@@ -50,6 +58,16 @@ object AppRoutes {
     const val About = "about"
     const val TeacherAuth = "teacher_auth"
     const val TeacherTimetable = "teacher_timetable"
+    const val ScheduleDetail = "schedule_detail"
+    const val ClassList = "class_list"
+    const val ClassStudents = "class_students"
+
+    // 工作室更多页
+    const val Studios = "studios"
+    const val MyTeachingCourses = "my_teaching_courses"
+    const val MyStudents = "my_students"
+    const val LeaveApproval = "leave_approval"
+    const val TeacherReputation = "teacher_reputation"
     const val StudioAuth = "studio_auth"
     const val Favorites = "favorites"
     const val WorkManagement = "work_management"
@@ -77,7 +95,21 @@ object AppRoutes {
     fun postDetail(postId: String) = "post_detail/$postId"
     fun postCreate(role: Int, postType: Int) = "post_create/$role/$postType"
     fun courseDetail(courseId: String) = "course_detail/$courseId"
+    fun myCourses(childId: String? = null, childName: String? = null): String {
+        val cid = childId?.takeIf { it.isNotEmpty() } ?: ""
+        val cname = childName?.takeIf { it.isNotEmpty() } ?: ""
+        return "my_courses?childId=$cid&childName=$cname"
+    }
+    fun courseStudy(childId: String, courseId: String, title: String = ""): String {
+        return "course_study/$childId/$courseId?title=$title"
+    }
+    fun courseReviews(courseId: String) = "course_reviews/$courseId"
+    fun reviewCompose(courseId: String, courseTitle: String = "", isEdit: Boolean = false): String {
+        return "review_compose/$courseId?courseTitle=${courseTitle}&isEdit=$isEdit"
+    }
     fun chat(conversationId: String) = "chat/$conversationId"
+    fun teacherProfile(teacherId: String) = "teacher_profile/$teacherId"
+    fun studioHomepage(studioId: String) = "studio_homepage/$studioId"
     fun studioOrderDetail(orderId: String) = "studio_order_detail/$orderId"
     fun studioTeacherDetail(teacherId: String, name: String) = "studio_teacher_detail/$teacherId?name=$name"
     fun studioStudentDetail(childId: String, name: String) = "studio_student_detail/$childId?name=$name"

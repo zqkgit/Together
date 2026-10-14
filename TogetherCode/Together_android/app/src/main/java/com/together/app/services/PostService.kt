@@ -379,7 +379,9 @@ object PostService {
         @kotlinx.serialization.SerialName("student_count") val studentCount: Int? = null,
         @kotlinx.serialization.SerialName("leave_count") val leaveCount: Int? = null,
         @kotlinx.serialization.SerialName("consumed_count") val consumedCount: Int? = null,
-        val status: Int? = null
+        val status: Int? = null,
+        @kotlinx.serialization.SerialName("class") val classInfo: TeacherTimetableClassRef? = null,
+        val course: TeacherTimetableCourse? = null
     ) {
         val displayName: String
             get() {
@@ -395,4 +397,18 @@ object PostService {
                 else -> null
             }
     }
+
+    @Serializable
+    data class TeacherTimetableClassRef(
+        @kotlinx.serialization.SerialName("class_id") val classId: String = "",
+        val name: String? = null,
+        val enrolled: Int? = null
+    )
+
+    @Serializable
+    data class TeacherTimetableCourse(
+        @kotlinx.serialization.SerialName("course_id") val courseId: String = "",
+        val title: String? = null,
+        @kotlinx.serialization.SerialName("duration_min") val durationMin: Int? = null
+    )
 }

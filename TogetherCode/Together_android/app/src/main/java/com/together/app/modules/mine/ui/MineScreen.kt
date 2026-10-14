@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.ChevronRight
@@ -70,6 +71,7 @@ fun MineScreen(
     onMyChildren: () -> Unit = {},
     onMyCourses: () -> Unit = {},
     onMyOrders: () -> Unit = {},
+    onMyReviews: () -> Unit = {},
     onWorkManagement: () -> Unit = {},
     onFavorites: () -> Unit = {},
     onWallet: () -> Unit = {},
@@ -121,11 +123,10 @@ fun MineScreen(
                 onIdentityTapped = { viewModel.showRoleSheet() },
                 onSettings = onSettings,
                 onStatTapped = { index ->
-                    if (index == 0) {
-                        onMyChildren()
-                    } else {
-                        val titles = listOf("我的孩子", "在学课程", "收藏作品")
-                        Toast.makeText(context, "「${titles[index]}」功能开发中", Toast.LENGTH_SHORT).show()
+                    when (index) {
+                        0 -> onMyChildren()
+                        1 -> onMyCourses()
+                        2 -> onFavorites()
                     }
                 }
             )
@@ -143,6 +144,7 @@ fun MineScreen(
                                 "我的孩子" -> onMyChildren()
                                 "我的课程" -> onMyCourses()
                                 "我的订单" -> onMyOrders()
+                                "我的评价" -> onMyReviews()
                                 "作品管理" -> onWorkManagement()
                                 "收藏与动态" -> onFavorites()
                                 "收益中心" -> onWallet()
@@ -182,6 +184,7 @@ private val contentMenuItems = listOf(
     MineMenuItem(Icons.Filled.ChildCare, "我的孩子"),
     MineMenuItem(Icons.Filled.MenuBook, "我的课程"),
     MineMenuItem(Icons.Filled.ReceiptLong, "我的订单"),
+    MineMenuItem(Icons.Filled.Star, "我的评价"),
     MineMenuItem(Icons.Filled.PhotoLibrary, "作品管理")
 )
 

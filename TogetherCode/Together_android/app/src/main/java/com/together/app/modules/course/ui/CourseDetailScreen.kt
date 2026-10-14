@@ -63,7 +63,8 @@ fun CourseDetailScreen(
     courseId: String,
     viewModel: CourseDetailViewModel = viewModel(),
     onBack: () -> Unit = {},
-    onEnrollSuccess: (String) -> Unit = {}
+    onEnrollSuccess: (String) -> Unit = {},
+    onAllReviews: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -108,7 +109,7 @@ fun CourseDetailScreen(
             }
             // 家长评价
             if (uiState.reviews.isNotEmpty()) {
-                item { CourseReviewsSection(reviews = uiState.reviews, summary = uiState.reviewSummary) }
+                item { CourseReviewsSection(reviews = uiState.reviews, summary = uiState.reviewSummary, onAllReviews = onAllReviews) }
             }
         }
 
@@ -357,7 +358,8 @@ private fun ClassRow(item: CourseClassItem) {
 @Composable
 private fun CourseReviewsSection(
     reviews: List<CourseReviewItem>,
-    summary: com.together.app.services.CourseService.CourseReviewSummary?
+    summary: com.together.app.services.CourseService.CourseReviewSummary?,
+    onAllReviews: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -380,6 +382,13 @@ private fun CourseReviewsSection(
                     }
                 }
             }
+            Spacer(modifier = Modifier.width(AppDimens.S))
+            Text(
+                "查看全部 ›",
+                color = AppColors.Brand,
+                fontSize = 13.sp,
+                modifier = Modifier.clickable { onAllReviews() }
+            )
         }
         Spacer(modifier = Modifier.height(AppDimens.M))
         reviews.take(5).forEach { review ->

@@ -173,4 +173,193 @@ class TeacherViewModel(app: Application) : AndroidViewModel(app) {
         _timetableState.value = _timetableState.value.copy(selectedDate = date)
         loadTimetable()
     }
+
+    // MARK: - 我教的课程
+
+    data class TeachingCoursesState(
+        val loading: Boolean = false,
+        val allItems: List<TeacherService.CourseItem> = emptyList(),
+        val selectedStudioId: String? = null,
+        val error: String? = null
+    ) {
+        /** 从数据中提取去重工作室列表 */
+        val studios: List<Pair<String, String>>
+            get() = allItems.mapNotNull { item ->
+                val sid = item.studioId?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+                val name = item.studioName?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+                sid to name
+            }.distinctBy { it.first }.sortedBy { it.second }
+        val filteredItems: List<TeacherService.CourseItem>
+            get() = if (selectedStudioId != null) allItems.filter { it.studioId == selectedStudioId } else allItems
+    }
+
+    private val _coursesState = MutableStateFlow(TeachingCoursesState())
+    val coursesState: StateFlow<TeachingCoursesState> = _coursesState.asStateFlow()
+
+    fun loadTeachingCourses() {
+        viewModelScope.launch {
+            _coursesState.value = _coursesState.value.copy(loading = true, error = null)
+            try {
+                val list = TeacherService.fetchCourses()
+                _coursesState.value = TeachingCoursesState(loading = false, allItems = list)
+            } catch (e: Exception) {
+                _coursesState.value = _coursesState.value.copy(loading = false, error = e.message ?: "加载失败")
+            }
+        }
+    }
+
+    fun selectCourseStudio(studioId: String?) {
+        _coursesState.value = _coursesState.value.copy(selectedStudioId = studioId)
+    }
+
+    // MARK: - 我的学生
+
+    data class StudentsState(
+        val loading: Boolean = false,
+        val studios: List<TeacherService.StudentStudioSummary> = emptyList(),
+        val students: List<TeacherService.StudentRow> = emptyList(),
+        val selectedStudioId: String? = null,
+        val error: String? = null
+    )
+
+    private val _studentsState = MutableStateFlow(StudentsState())
+    val studentsState: StateFlow<StudentsState> = _studentsState.asStateFlow()
+
+    fun loadStudents(studioId: String? = null) {
+        viewModelScope.launch {
+            _studentsState.value = _studentsState.value.copy(loading = true, error = null)
+            try {
+                val data = TeacherService.fetchStudents(studioId = studioId)
+                _studentsState.value = StudentsState(
+                    loading = false,
+                    studios = if (studioId == null) data.studios ?: emptyList() else _studentsState.value.studios,
+                    students = data.list ?: emptyList(),
+                    selectedStudioId = studioId
+                )
+            } catch (e: Exception) {
+                _studentsState.value = _studentsState.value.copy(loading = false, error = e.message ?: "加载失败")
+            }
+        }
+    }
+
+    // MARK: - 请假审批
+
+    data class LeaveState(
+        val loading: Boolean = false,
+        val pending: List<TeacherService.LeaveItem> = emptyList(),
+        val approved: List<TeacherService.LeaveItem> = emptyList(),
+        val studioOptions: List<Pair<String, String>> = emptyList(),
+        val selectedStudioId: String? = null,
+        val error: String? = null,
+        val toast: String? = null
+    )
+
+    private val _leaveState = MutableStateFlow(LeaveState())
+    val leaveState: StateFlow<LeaveState> = _leaveState.asStateFlow()
+
+    fun loadLeaves(studioId: String? = null) {
+        viewModelScope.launch {
+            _leaveState.value = _leaveState.value.copy(loading = true, error = null)
+            try {
+                val pending = TeacherService.fetchPendingLeaves(studioId)
+                val approved = TeacherService.fetchApprovedLeaves(studioId)
+                val studios = if (studioId == null) {
+                    (pending + approved).mapNotNull { item ->
+                        val sid = item.studioId?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+                        val name = item.studioName?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+                        sid to name
+                    }.distinctBy { it.first }
+                } else _leaveState.value.studioOptions
+                _leaveState.value = LeaveState(
+                    loading = false,
+                    pending = pending,
+                    approved = approved,
+                    studioOptions = studios,
+                    selectedStudioId = studioId
+                )
+            } catch (e: Exception) {
+                _leaveState.value = _leaveState.value.copy(loading = false, error = e.message ?: "加载失败")
+            }
+        }
+    }
+
+    fun reviewLeave(leaveId: String, action: String, studioId: String?) {
+        viewModelScope.launch {
+            try {
+                TeacherService.reviewLeave(leaveId, action)
+                _leaveState.value = _leaveState.value.copy(
+                    toast = if (action == "agree") "已同意请假，课时已保留" else "已婉拒请假"
+                )
+                loadLeaves(studioId)
+            } catch (e: Exception) {
+                _leaveState.value = _leaveState.value.copy(toast = e.message ?: "操作失败")
+            }
+        }
+    }
+
+    fun arrangeMakeup(leaveId: String, makeupScheduleId: String, studioId: String?) {
+        viewModelScope.launch {
+            try {
+                TeacherService.updateMakeup(leaveId, makeupScheduleId)
+                _leaveState.value = _leaveState.value.copy(toast = "补课已安排")
+                loadLeaves(studioId)
+            } catch (e: Exception) {
+                _leaveState.value = _leaveState.value.copy(toast = e.message ?: "操作失败")
+            }
+        }
+    }
+
+    fun abandonMakeup(leaveId: String, studioId: String?) {
+        viewModelScope.launch {
+            try {
+                TeacherService.updateMakeup(leaveId, abandon = true)
+                _leaveState.value = _leaveState.value.copy(toast = "已放弃补课")
+                loadLeaves(studioId)
+            } catch (e: Exception) {
+                _leaveState.value = _leaveState.value.copy(toast = e.message ?: "操作失败")
+            }
+        }
+    }
+
+    fun clearLeaveToast() {
+        _leaveState.value = _leaveState.value.copy(toast = null)
+    }
+
+    /** 加载补课候选课次（供 UI 弹窗使用） */
+    fun loadMakeupCandidates(
+        leaveId: String,
+        onResult: (List<TeacherService.MakeupCandidate>) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val list = TeacherService.fetchMakeupCandidates(leaveId)
+                onResult(list)
+            } catch (e: Exception) {
+                onResult(emptyList())
+            }
+        }
+    }
+
+    // MARK: - 评价与口碑
+
+    data class ReviewState(
+        val loading: Boolean = false,
+        val data: TeacherService.ReviewData? = null,
+        val error: String? = null
+    )
+
+    private val _reviewState = MutableStateFlow(ReviewState())
+    val reviewState: StateFlow<ReviewState> = _reviewState.asStateFlow()
+
+    fun loadReviews() {
+        viewModelScope.launch {
+            _reviewState.value = _reviewState.value.copy(loading = true, error = null)
+            try {
+                val data = TeacherService.fetchReviews()
+                _reviewState.value = ReviewState(loading = false, data = data)
+            } catch (e: Exception) {
+                _reviewState.value = _reviewState.value.copy(loading = false, error = e.message ?: "加载失败")
+            }
+        }
+    }
 }

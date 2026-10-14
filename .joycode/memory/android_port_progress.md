@@ -4,12 +4,15 @@ description: iOS→Android(Kotlin+Compose) 全功能还原的模块进度与技�
 type: project
 ---
 
-# Android 移植进度（15/15 模块，工作室 UI 层进行中）
+# Android 移植进度（全部完成，TODO 清零）
 
-已完成：网络/存储/组件/Models+Services/登录/MainTab/首页/课程/订单/孩子/广场/消息/我的/老师端(Workbench+Timetable+MineScreen)/工作室(Service+ViewModel+Overview+Mine+Refund+Todo+OrderList+OrderDetail)。
+基础层+老师端+工作室端+增量批次(Phase1-5)均已完成：
+- Phase1: MyCourses+CourseStudy；Phase2: 老师端4页+TeacherViewModel
+- SearchScreen+Home入口；TeacherProfile+StudioHomepage
+- Phase3: CourseReviews+ReviewCompose+MyReviews+接线
+- Phase4: ScheduleDetailScreen(排课详情消课)+Timetable点击导航
+- Phase5: StudiosScreen(找画室/找老师)+ClassList/ClassStudents(班级管理)+HomeScreen三处TODO接线+onStudy/onReorder/withdraw通知跳转
 
-**关键修复**：mainRouteForRole 统一返回 ParentMain（所有角色走 MainTabScreen 5-Tab）；tab4 按角色分：role=2→TeacherMineScreen，else→MineScreen；TeacherMineScreen 复用 MineViewModel 做身份切换 + TeacherService.fetchMine() 拉老师数据。
+iOS→Android 差异处理：CourseEnroll内嵌CourseDetail弹窗(非独立页)；LocationPicker用GPS定位简化(无地图SDK)；StudioPlaceholder跳过。
 
-**工作室待完成**：TeacherList/Detail/Application + StudentList/Detail + CommissionReview/Revenue + CourseList + 导航接线。
-
-模式：Service=object+suspend；ViewModel=AndroidViewModel+StateFlow；PullToRefreshBox需OptIn；ON_RESUME=DisposableEffect+LifecycleEventObserver；TogetherCard内置padding(CardInner)勿重复；weight需RowScope内。
+模式：Service=object+suspend；ViewModel=AndroidViewModel+StateFlow；传对象用VM companion或object静态变量；ON_RESUME=DisposableEffect+LifecycleEventObserver；TogetherCard内置padding(CardInner)；自定义顶栏需手动statusBarsPadding；collectAsState不支持lambda选择器。

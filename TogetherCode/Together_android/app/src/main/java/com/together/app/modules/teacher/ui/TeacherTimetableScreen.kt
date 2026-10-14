@@ -61,6 +61,7 @@ import java.util.Locale
 @Composable
 fun TeacherTimetableScreen(
     onBack: () -> Unit = {},
+    onScheduleClick: (TeacherService.TimetableItem) -> Unit = {},
     viewModel: TeacherViewModel = viewModel()
 ) {
     val state by viewModel.timetableState.collectAsState()
@@ -113,7 +114,10 @@ fun TeacherTimetableScreen(
                     verticalArrangement = Arrangement.spacedBy(AppDimens.S)
                 ) {
                     items(state.items.size) { index ->
-                        TimetableCard(item = state.items[index])
+                        TimetableCard(
+                            item = state.items[index],
+                            onClick = { onScheduleClick(state.items[index]) }
+                        )
                     }
                 }
             }
@@ -180,12 +184,16 @@ private fun WeekDayBar(
 // MARK: - 排课卡
 
 @Composable
-private fun TimetableCard(item: TeacherService.TimetableItem) {
+private fun TimetableCard(
+    item: TeacherService.TimetableItem,
+    onClick: () -> Unit = {}
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(AppDimens.RadiusCard))
             .background(AppColors.Surface)
+            .clickable { onClick() }
             .padding(AppDimens.M),
         verticalAlignment = Alignment.CenterVertically
     ) {

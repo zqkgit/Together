@@ -3,13 +3,14 @@ package com.together.app.services
 import com.together.app.core.model.ChildItem
 import com.together.app.core.model.CourseDetail
 import com.together.app.core.model.CourseReviewItem
-import com.together.app.core.model.CourseScheduleSummary
+import com.together.app.core.model.CourseStudySummary
 import com.together.app.core.model.MyCourseItem
 import com.together.app.core.network.ApiService
 import com.together.app.core.network.JsonHelper.decode
 import com.together.app.core.network.JsonHelper.decodeList
 import com.together.app.core.network.JsonHelper.int
 import com.together.app.core.network.JsonHelper.obj
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 
@@ -93,9 +94,11 @@ object CourseService {
 
     @Serializable
     data class ChildBrief(
-        val childId: String = "",
-        val nickname: String = ""
-    )
+        @SerialName("child_id") val childId: String = "",
+        @SerialName("child_name") val childName: String = ""
+    ) {
+        val name: String get() = childName.takeIf { it.isNotEmpty() } ?: "孩子"
+    }
 
     /** 我的课程（childId 为 null 时返回所有孩子的课程 + 筛选用 children 数组） */
     suspend fun fetchMyCourses(childId: String? = null): Pair<List<ChildBrief>, List<MyCourseItem>> {
@@ -108,11 +111,11 @@ object CourseService {
     }
 
     /** 课时进度（课程详情下的排课 + 出勤状态） */
-    suspend fun fetchCourseSchedules(childId: String, courseId: String): CourseScheduleSummary? {
+    suspend fun fetchCourseSchedules(childId: String, courseId: String): CourseStudySummary? {
         val json = ApiService.get("/parent/course-schedules", mapOf(
             "child_id" to childId, "course_id" to courseId
         ))
-        return json.decode<CourseScheduleSummary>()
+        return json.decode<CourseStudySummary>()
     }
 
     // MARK: - 请假

@@ -79,6 +79,10 @@ fun TeacherMineScreen(
     onWorkManagement: () -> Unit = {},
     onWallet: () -> Unit = {},
     onAuth: (role: Int, status: String, reason: String?) -> Unit = { _, _, _ -> },
+    onMyTeachingCourses: () -> Unit = {},
+    onMyStudents: () -> Unit = {},
+    onLeaveApproval: () -> Unit = {},
+    onReputation: () -> Unit = {},
     viewModel: MineViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -150,13 +154,13 @@ fun TeacherMineScreen(
                         groups = listOf(teachingItems, serviceItems),
                         onSelect = { title ->
                             when (title) {
-                                "我教的课程" -> Toast.makeText(context, "「我教的课程」功能开发中", Toast.LENGTH_SHORT).show()
-                                "我的学生" -> Toast.makeText(context, "「我的学生」功能开发中", Toast.LENGTH_SHORT).show()
-                                "请假审批" -> Toast.makeText(context, "「请假审批」功能开发中", Toast.LENGTH_SHORT).show()
+                                "我教的课程" -> onMyTeachingCourses()
+                                "我的学生" -> onMyStudents()
+                                "请假审批" -> onLeaveApproval()
                                 "课表与排课" -> onTimetable()
                                 "作品管理" -> onWorkManagement()
                                 "收益中心" -> onWallet()
-                                "评价与口碑" -> Toast.makeText(context, "「评价与口碑」功能开发中", Toast.LENGTH_SHORT).show()
+                                "评价与口碑" -> onReputation()
                                 "设置" -> onSettings()
                             }
                         }

@@ -122,6 +122,8 @@ data class CourseReviewItem(
 @Serializable
 data class MyCourseItem(
     @SerialName("balance_id") val balanceId: String = "",
+    @SerialName("child_id") val childId: String? = null,
+    @SerialName("child_name") val childName: String? = null,
     @SerialName("course_id") val courseId: String = "",
     @SerialName("course_title") val courseTitle: String = "",
     @SerialName("course_cover") val courseCover: String? = null,
@@ -132,11 +134,12 @@ data class MyCourseItem(
     @SerialName("total_lessons") val totalLessons: Int = 0,
     @SerialName("consumed_lessons") val consumedLessons: Int = 0,
     @SerialName("remaining_lessons") val remainingLessons: Int = 0,
+    @SerialName("percent") val percent: Int = 0,
     @SerialName("valid_from") val validFrom: String? = null,
     @SerialName("valid_to") val validTo: String? = null,
     @SerialName("status") val status: Int = 1,
     @SerialName("status_text") val statusText: String? = null,
-    @SerialName("next_schedule") val nextSchedule: CourseScheduleSummary? = null
+    @SerialName("next_lesson") val nextLesson: NextLessonItem? = null
 ) {
     val progressPercent: Int
         get() = if (totalLessons > 0) minOf(100, (consumedLessons * 100 / totalLessons)) else 0
@@ -147,7 +150,30 @@ data class MyCourseItem(
             val to = validTo?.take(10) ?: return null
             return "有效期 $from ~ $to"
         }
+    /** 机构 · 老师（老师缺失时只显示机构） */
+    val studioTeacherText: String
+        get() {
+            val studio = studioName?.takeIf { it.isNotEmpty() }
+            val teacher = teacherName?.takeIf { it.isNotEmpty() && it != "-" }
+            return if (studio != null && teacher != null) "$studio·$teacher" else studio ?: "未知机构"
+        }
+    /** 下次课文案 */
+    val nextLessonText: String
+        get() {
+            val next = nextLesson ?: return "待开课"
+            val date = next.lessonDate?.takeIf { it.isNotEmpty() } ?: return "待开课"
+            val wd = date.weekdayText()
+            return "${wd} ${next.startTime ?: ""}".trim()
+        }
 }
+
+@Serializable
+data class NextLessonItem(
+    @SerialName("schedule_id") val scheduleId: String? = null,
+    @SerialName("lesson_date") val lessonDate: String? = null,
+    @SerialName("start_time") val startTime: String? = null,
+    @SerialName("end_time") val endTime: String? = null
+)
 
 // MARK: - 课程排课
 
@@ -182,6 +208,57 @@ data class CourseScheduleSummary(
         get() {
             val t = totalLessons ?: return "第${lessonNo}节"
             return "第${lessonNo}/$t 节"
+        }
+}
+
+// MARK: - 课时进度（课程学习页）
+
+@Serializable
+data class CourseScheduleItem(
+    @SerialName("schedule_id") val scheduleId: String? = null,
+    @SerialName("class_id") val classId: String? = null,
+    @SerialName("lesson_no") val lessonNo: Int = 0,
+    @SerialName("lesson_title") val lessonTitle: String? = null,
+    @SerialName("lesson_date") val lessonDate: String? = null,
+    @SerialName("start_time") val startTime: String? = null,
+    @SerialName("end_time") val endTime: String? = null,
+    /** 0 待上 / 1 已上 / 2 今天 / 3 待排课 */
+    @SerialName("status") val status: Int = 0,
+    /** 请假状态：0 无 / 1 待处理 / 2 已同意 / 3 已婉拒 / 4 已取消 */
+    @SerialName("leave_status") val leaveStatus: Int = 0
+) {
+    val titleText: String
+        get() {
+            val t = lessonTitle?.takeIf { it.isNotEmpty() && it != "第${lessonNo}课" }
+            return if (t != null) "第${lessonNo}课·$t" else "第${lessonNo}课"
+        }
+    val dateText: String get() = lessonDate?.takeIf { it.length >= 10 }?.substring(5, 10) ?: ""
+    val timeText: String get() = startTime?.take(5) ?: ""
+}
+
+@Serializable
+data class CourseStudySummary(
+    @SerialName("child_id") val childId: String? = null,
+    @SerialName("child_name") val childName: String? = null,
+    @SerialName("course_id") val courseId: String? = null,
+    @SerialName("course_title") val courseTitle: String? = null,
+    @SerialName("course_cover") val courseCover: String? = null,
+    @SerialName("class_id") val classId: String? = null,
+    @SerialName("studio_name") val studioName: String? = null,
+    @SerialName("teacher_name") val teacherName: String? = null,
+    @SerialName("total_lessons") val totalLessons: Int = 0,
+    @SerialName("consumed_lessons") val consumedLessons: Int = 0,
+    @SerialName("remaining_lessons") val remainingLessons: Int = 0,
+    @SerialName("scheduled_count") val scheduledCount: Int? = null,
+    @SerialName("pending_lessons") val pendingLessons: Int? = null,
+    @SerialName("list") val list: List<CourseScheduleItem> = emptyList()
+) {
+    /** 机构 · 老师 */
+    val studioTeacherText: String
+        get() {
+            val studio = studioName?.takeIf { it.isNotEmpty() }
+            val teacher = teacherName?.takeIf { it.isNotEmpty() && it != "-" }
+            return if (studio != null && teacher != null) "$studio·$teacher" else studio ?: "未知机构"
         }
 }
 

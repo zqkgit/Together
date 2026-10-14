@@ -73,6 +73,9 @@ import kotlinx.coroutines.launch
 fun MainTabScreen(
     onChildClick: (ChildItem) -> Unit = {},
     onAddChild: () -> Unit = {},
+    onSearch: () -> Unit = {},
+    onAllCourses: () -> Unit = {},
+    onAllStudios: () -> Unit = {},
     onPostClick: (PostItem) -> Unit = {},
     onPublish: (Int) -> Unit = {},
     onConversationClick: (ConversationItem) -> Unit = {},
@@ -83,11 +86,17 @@ fun MainTabScreen(
     onMyChildren: () -> Unit = {},
     onMyCourses: () -> Unit = {},
     onMyOrders: () -> Unit = {},
+    onMyReviews: () -> Unit = {},
     onWorkManagement: () -> Unit = {},
     onFavorites: () -> Unit = {},
     onWallet: () -> Unit = {},
     onTimetable: () -> Unit = {},
     onAuth: (role: Int, status: String, reason: String?) -> Unit = { _, _, _ -> },
+    // 老师端「我的」页面回调
+    onMyTeachingCourses: () -> Unit = {},
+    onMyStudents: () -> Unit = {},
+    onLeaveApproval: () -> Unit = {},
+    onReputation: () -> Unit = {},
     // 工作室「我的」页面回调
     onStudioOrders: () -> Unit = {},
     onStudioRefunds: () -> Unit = {},
@@ -158,7 +167,11 @@ fun MainTabScreen(
                     3 -> StudioOverviewScreen(onRevenue = onStudioRevenue)
                     else -> HomeScreen(
                         onChildClick = onChildClick,
-                        onAddChild = onAddChild
+                        onAddChild = onAddChild,
+                        onSearch = onSearch,
+                        onAllCourses = onAllCourses,
+                        onAllStudios = onAllStudios,
+                        onAllPosts = { selectedTab = 1 }
                     )
                 }
                 1 -> PlazaScreen(onPostClick = onPostClick)
@@ -174,7 +187,11 @@ fun MainTabScreen(
                         onTimetable = onTimetable,
                         onWorkManagement = onWorkManagement,
                         onWallet = onWallet,
-                        onAuth = onAuth
+                        onAuth = onAuth,
+                        onMyTeachingCourses = onMyTeachingCourses,
+                        onMyStudents = onMyStudents,
+                        onLeaveApproval = onLeaveApproval,
+                        onReputation = onReputation
                     )
                     3 -> StudioMineScreen(
                         onSettings = onSettings,
@@ -192,6 +209,7 @@ fun MainTabScreen(
                         onMyChildren = onMyChildren,
                         onMyCourses = onMyCourses,
                         onMyOrders = onMyOrders,
+                        onMyReviews = onMyReviews,
                         onWorkManagement = onWorkManagement,
                         onFavorites = onFavorites,
                         onWallet = onWallet,

@@ -5,6 +5,7 @@ import com.together.app.core.network.JsonHelper.decodeList
 import com.together.app.core.network.JsonHelper.int
 import com.together.app.core.network.JsonHelper.obj
 import com.together.app.core.network.JsonHelper.strOrNull
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -93,14 +94,31 @@ object MineService {
 
     @Serializable
     data class MyReviewItem(
-        val reviewId: String? = null,
-        val courseId: String? = null,
-        val courseName: String? = null,
-        val studioName: String? = null,
+        @SerialName("review_id") val reviewId: String? = null,
         val rating: Int? = null,
         val content: String? = null,
         val images: List<String>? = null,
-        val createdAt: String? = null
+        val status: Int? = null,           // 0 待审核 / 1 通过 / 2 驳回
+        @SerialName("reject_reason") val rejectReason: String? = null,
+        @SerialName("reply_content") val replyContent: String? = null,
+        @SerialName("teacher_reply_content") val teacherReplyContent: String? = null,
+        @SerialName("created_at") val createdAt: String? = null,
+        val course: CourseBrief? = null
+    ) {
+        val statusText: String
+            get() = when (status ?: 0) {
+                1 -> "已通过"
+                2 -> "已驳回"
+                else -> "待审核"
+            }
+        val timeText: String get() = createdAt?.takeIf { it.length >= 10 }?.take(10) ?: ""
+    }
+
+    @Serializable
+    data class CourseBrief(
+        @SerialName("course_id") val courseId: String? = null,
+        val title: String? = null,
+        val cover: String? = null
     )
 
     /** 我的评价列表（分页）→ (items, hasMore) */

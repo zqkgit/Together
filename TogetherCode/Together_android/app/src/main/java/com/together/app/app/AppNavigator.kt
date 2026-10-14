@@ -22,6 +22,12 @@ import com.together.app.modules.child.ui.ChildHomeScreen
 import com.together.app.modules.child.ui.MyChildrenScreen
 import com.together.app.modules.course.ui.CourseDetailScreen
 import com.together.app.modules.course.ui.CourseListScreen
+import com.together.app.modules.course.ui.CourseStudyScreen
+import com.together.app.modules.course.ui.MyCoursesScreen
+import com.together.app.modules.course.ui.CourseReviewsScreen
+import com.together.app.modules.course.ui.ReviewComposeScreen
+import com.together.app.modules.course.ui.ReviewComposeViewModel
+import com.together.app.modules.course.ui.MyReviewsScreen
 import com.together.app.modules.login.ui.LoginScreen
 import com.together.app.modules.login.ui.PhoneLoginScreen
 import com.together.app.modules.login.ui.VerifyCodeScreen
@@ -68,6 +74,20 @@ import com.together.app.modules.studio.ui.StudioTeacherApplicationScreen
 import com.together.app.modules.studio.ui.StudioTeacherDetailScreen
 import com.together.app.modules.studio.ui.StudioTeacherListScreen
 import com.together.app.modules.teacher.ui.TeacherTimetableScreen
+import com.together.app.modules.teacher.ui.ScheduleDetailScreen
+import com.together.app.modules.teacher.ui.ScheduleDetailViewModel
+import com.together.app.modules.teacher.ui.ClassListScreen
+import com.together.app.modules.teacher.ui.ClassListData
+import com.together.app.modules.teacher.ui.ClassStudentsScreen
+import com.together.app.modules.teacher.ui.ClassStudentsData
+import com.together.app.modules.home.ui.StudiosScreen
+import com.together.app.modules.teacher.ui.MyTeachingCoursesScreen
+import com.together.app.modules.teacher.ui.MyStudentsScreen
+import com.together.app.modules.teacher.ui.LeaveApprovalScreen
+import com.together.app.modules.teacher.ui.ReputationScreen
+import com.together.app.modules.search.ui.SearchScreen
+import com.together.app.modules.profile.ui.TeacherProfileScreen
+import com.together.app.modules.profile.ui.StudioHomepageScreen
 import com.together.app.modules.teacher.ui.TeacherWorkbenchScreen
 import kotlinx.coroutines.launch
 
@@ -199,15 +219,16 @@ fun AppNavigator() {
                             "order" -> navController.navigate(AppRoutes.orderDetail(refId))
                             "refund" -> navController.navigate(AppRoutes.refundDetail(refId))
                             "course" -> navController.navigate(AppRoutes.courseDetail(refId))
-                            // "withdraw" → 提现详情（工作室模块，待实现）
+                            "withdraw" -> navController.navigate(AppRoutes.CommissionWithdrawals)
                         }
                     }
                 },
                 // 我的页面
                 onSettings = { navController.navigate(AppRoutes.Settings) },
                 onMyChildren = { navController.navigate(AppRoutes.MyChildren) },
-                onMyCourses = { navController.navigate(AppRoutes.CourseList) },
+                onMyCourses = { navController.navigate(AppRoutes.myCourses()) },
                 onMyOrders = { navController.navigate(AppRoutes.MyOrders) },
+                onMyReviews = { navController.navigate(AppRoutes.MyReviews) },
                 onWorkManagement = { navController.navigate(AppRoutes.WorkManagement) },
                 onFavorites = { navController.navigate(AppRoutes.Favorites) },
                 onWallet = { navController.navigate(AppRoutes.Wallet) },
@@ -217,6 +238,13 @@ fun AppNavigator() {
                         if (role == 2) AppRoutes.TeacherAuth else AppRoutes.StudioAuth
                     )
                 },
+                onMyTeachingCourses = { navController.navigate(AppRoutes.MyTeachingCourses) },
+                onMyStudents = { navController.navigate(AppRoutes.MyStudents) },
+                onLeaveApproval = { navController.navigate(AppRoutes.LeaveApproval) },
+                onReputation = { navController.navigate(AppRoutes.TeacherReputation) },
+                onSearch = { navController.navigate(AppRoutes.Search) },
+                onAllCourses = { navController.navigate(AppRoutes.CourseList) },
+                onAllStudios = { navController.navigate(AppRoutes.Studios) },
                 onStudioOrders = { navController.navigate(AppRoutes.StudioOrderList) },
                 onStudioRefunds = { navController.navigate(AppRoutes.StudioRefund) },
                 onStudioCourses = { navController.navigate(AppRoutes.StudioCourseList) },
@@ -235,7 +263,120 @@ fun AppNavigator() {
         // 老师课表与排课
         composable(AppRoutes.TeacherTimetable) {
             TeacherTimetableScreen(
+                onBack = { navController.popBackStack() },
+                onScheduleClick = { item ->
+                    ScheduleDetailViewModel.schedule = item
+                    navController.navigate(AppRoutes.ScheduleDetail)
+                }
+            )
+        }
+
+        // 排课详情（消课管理）
+        composable(AppRoutes.ScheduleDetail) {
+            ScheduleDetailScreen(
                 onBack = { navController.popBackStack() }
+            )
+        }
+
+        // 班级列表（课程下的班级）
+        composable(AppRoutes.ClassList) {
+            ClassListScreen(
+                onBack = { navController.popBackStack() },
+                onClassClick = { cls ->
+                    ClassStudentsData.classId = cls.classId ?: ""
+                    ClassStudentsData.className = cls.name ?: ""
+                    navController.navigate(AppRoutes.ClassStudents)
+                }
+            )
+        }
+
+        // 班级学生列表
+        composable(AppRoutes.ClassStudents) {
+            ClassStudentsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // 工作室更多页（找画室/找老师）
+        composable(AppRoutes.Studios) {
+            StudiosScreen(
+                onBack = { navController.popBackStack() },
+                onStudioClick = { studioId ->
+                    navController.navigate(AppRoutes.studioHomepage(studioId))
+                },
+                onTeacherClick = { teacherId ->
+                    navController.navigate(AppRoutes.teacherProfile(teacherId))
+                }
+            )
+        }
+
+        // 老师我教的课程
+        composable(AppRoutes.MyTeachingCourses) {
+            MyTeachingCoursesScreen(
+                onBack = { navController.popBackStack() },
+                onViewClassList = { item ->
+                    ClassListData.courseTitle = item.title ?: ""
+                    ClassListData.classes = item.classes ?: emptyList()
+                    navController.navigate(AppRoutes.ClassList)
+                }
+            )
+        }
+
+        // 老师我的学生
+        composable(AppRoutes.MyStudents) {
+            MyStudentsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // 老师请假审批
+        composable(AppRoutes.LeaveApproval) {
+            LeaveApprovalScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // 老师评价与口碑
+        composable(AppRoutes.TeacherReputation) {
+            ReputationScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // 综合搜索
+        composable(AppRoutes.Search) {
+            SearchScreen(
+                onBack = { navController.popBackStack() },
+                onCourseClick = { courseId -> navController.navigate(AppRoutes.courseDetail(courseId)) },
+                onStudioClick = { studioId -> navController.navigate(AppRoutes.studioHomepage(studioId)) },
+                onTeacherClick = { teacherId -> navController.navigate(AppRoutes.teacherProfile(teacherId)) }
+            )
+        }
+
+        // 老师主页（公开）
+        composable(
+            route = AppRoutes.TeacherProfile,
+            arguments = listOf(navArgument("teacherId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val teacherId = backStackEntry.arguments?.getString("teacherId") ?: return@composable
+            TeacherProfileScreen(
+                teacherId = teacherId,
+                onBack = { navController.popBackStack() },
+                onCourseClick = { courseId -> navController.navigate(AppRoutes.courseDetail(courseId)) }
+            )
+        }
+
+        // 工作室主页（公开）
+        composable(
+            route = AppRoutes.StudioHomepage,
+            arguments = listOf(navArgument("studioId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val studioId = backStackEntry.arguments?.getString("studioId") ?: return@composable
+            StudioHomepageScreen(
+                studioId = studioId,
+                onBack = { navController.popBackStack() },
+                onCourseClick = { courseId -> navController.navigate(AppRoutes.courseDetail(courseId)) },
+                onTeacherClick = { teacherId -> navController.navigate(AppRoutes.teacherProfile(teacherId)) }
             )
         }
 
@@ -388,11 +529,15 @@ fun AppNavigator() {
                     OrderViewModel.navOrder = order
                     navController.navigate(AppRoutes.paymentVoucher(order.orderId ?: ""))
                 },
-                onStudy = { _, _, _ -> /* TODO: 学习页（孩子模块） */ },
+                onStudy = { childId, courseId, title ->
+                    navController.navigate(AppRoutes.courseStudy(childId, courseId, title))
+                },
                 onRefundDetail = { refundId ->
                     navController.navigate(AppRoutes.refundDetail(refundId))
                 },
-                onReorder = { _ -> /* TODO: 课程详情重新报名 */ }
+                onReorder = { courseId ->
+                    navController.navigate(AppRoutes.courseDetail(courseId))
+                }
             )
         }
 
@@ -409,11 +554,15 @@ fun AppNavigator() {
                     OrderViewModel.navOrder = order
                     navController.navigate(AppRoutes.paymentVoucher(order.orderId ?: ""))
                 },
-                onStudy = { _, _, _ -> /* TODO: 学习页（孩子模块） */ },
+                onStudy = { childId, courseId, title ->
+                    navController.navigate(AppRoutes.courseStudy(childId, courseId, title))
+                },
                 onRefundDetail = { refundId ->
                     navController.navigate(AppRoutes.refundDetail(refundId))
                 },
-                onReorder = { _ -> /* TODO: 课程详情重新报名 */ },
+                onReorder = { courseId ->
+                    navController.navigate(AppRoutes.courseDetail(courseId))
+                },
                 onRefund = { order ->
                     OrderViewModel.navOrder = order
                     navController.navigate(AppRoutes.orderRefund(order.orderId ?: ""))
@@ -508,7 +657,7 @@ fun AppNavigator() {
                         navController.navigate(AppRoutes.postDetail(postId))
                     },
                     onCourseClick = { childId, courseId, courseTitle ->
-                        // TODO: 课程学习页（课程模块 CourseStudy）
+                        navController.navigate(AppRoutes.courseStudy(childId, courseId, courseTitle))
                     }
                 )
             } else {
@@ -591,6 +740,9 @@ fun AppNavigator() {
                 onBack = { navController.popBackStack() },
                 onEnrollSuccess = { orderId ->
                     navController.navigate(AppRoutes.orderDetail(orderId))
+                },
+                onAllReviews = {
+                    navController.navigate(AppRoutes.courseReviews(courseId))
                 }
             )
         }
@@ -600,6 +752,91 @@ fun AppNavigator() {
             CourseListScreen(
                 onCourseClick = { courseId ->
                     navController.navigate(AppRoutes.courseDetail(courseId))
+                }
+            )
+        }
+
+        // 我的课程（在学课程列表）
+        composable(
+            route = AppRoutes.MyCourses,
+            arguments = listOf(
+                navArgument("childId") { type = NavType.StringType; defaultValue = "" },
+                navArgument("childName") { type = NavType.StringType; defaultValue = "" }
+            )
+        ) { entry ->
+            val childId = entry.arguments?.getString("childId")?.takeIf { it.isNotEmpty() }
+            val childName = entry.arguments?.getString("childName")?.takeIf { it.isNotEmpty() }
+            MyCoursesScreen(
+                childId = childId,
+                childName = childName,
+                onBack = { navController.popBackStack() },
+                onCourseClick = { cid, courseId, title ->
+                    navController.navigate(AppRoutes.courseStudy(cid, courseId, title))
+                }
+            )
+        }
+
+        // 课程学习（课时进度 + 请假）
+        composable(
+            route = AppRoutes.CourseStudy,
+            arguments = listOf(
+                navArgument("childId") { type = NavType.StringType },
+                navArgument("courseId") { type = NavType.StringType },
+                navArgument("title") { type = NavType.StringType; defaultValue = "" }
+            )
+        ) { entry ->
+            val childId = entry.arguments?.getString("childId") ?: ""
+            val courseId = entry.arguments?.getString("courseId") ?: ""
+            val title = entry.arguments?.getString("title") ?: ""
+            CourseStudyScreen(
+                childId = childId,
+                courseId = courseId,
+                courseTitle = title,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // 课程完整评价列表
+        composable(
+            route = AppRoutes.CourseReviews,
+            arguments = listOf(navArgument("courseId") { type = NavType.StringType })
+        ) { entry ->
+            val courseId = entry.arguments?.getString("courseId") ?: return@composable
+            CourseReviewsScreen(
+                courseId = courseId,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // 写评价 / 编辑评价
+        composable(
+            route = AppRoutes.ReviewCompose,
+            arguments = listOf(
+                navArgument("courseId") { type = NavType.StringType },
+                navArgument("courseTitle") { type = NavType.StringType; defaultValue = "" },
+                navArgument("isEdit") { type = NavType.BoolType; defaultValue = false }
+            )
+        ) { entry ->
+            val courseId = entry.arguments?.getString("courseId") ?: return@composable
+            val courseTitle = entry.arguments?.getString("courseTitle") ?: ""
+            val isEdit = entry.arguments?.getBoolean("isEdit") ?: false
+            ReviewComposeScreen(
+                courseId = courseId,
+                courseTitle = courseTitle,
+                isEditMode = isEdit,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // 我的评价
+        composable(AppRoutes.MyReviews) {
+            MyReviewsScreen(
+                onBack = { navController.popBackStack() },
+                onEditReview = { review ->
+                    ReviewComposeViewModel.editReview = review
+                    val courseId = review.course?.courseId ?: ""
+                    val courseTitle = review.course?.title ?: ""
+                    navController.navigate(AppRoutes.reviewCompose(courseId, courseTitle, isEdit = true))
                 }
             )
         }

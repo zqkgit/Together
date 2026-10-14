@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
@@ -57,7 +58,11 @@ import java.time.LocalTime
 fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
     onChildClick: (ChildItem) -> Unit = {},
-    onAddChild: () -> Unit = {}
+    onAddChild: () -> Unit = {},
+    onSearch: () -> Unit = {},
+    onAllCourses: () -> Unit = {},
+    onAllStudios: () -> Unit = {},
+    onAllPosts: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -79,7 +84,8 @@ fun HomeScreen(
                     nickname = uiState.nickname,
                     children = data.children,
                     onChildClick = onChildClick,
-                    onAddChild = onAddChild
+                    onAddChild = onAddChild,
+                    onSearch = onSearch
                 )
             }
 
@@ -93,7 +99,7 @@ fun HomeScreen(
             // 为你推荐
             if (data.courses.isNotEmpty()) {
                 item {
-                    HomeSectionTitle(title = "为你推荐", moreText = "全部", onMore = { /* TODO: 课程列表 */ })
+                    HomeSectionTitle(title = "为你推荐", moreText = "全部", onMore = onAllCourses)
                 }
                 item {
                     HomeCourseRow(courses = data.courses)
@@ -103,7 +109,7 @@ fun HomeScreen(
             // 附近热门工作室
             if (data.studios.isNotEmpty()) {
                 item {
-                    HomeSectionTitle(title = "附近热门工作室", moreText = "更多", onMore = { /* TODO: 工作室列表 */ })
+                    HomeSectionTitle(title = "附近热门工作室", moreText = "更多", onMore = onAllStudios)
                 }
                 items(data.studios.size) { index ->
                     HomeStudioRow(item = data.studios[index])
@@ -113,7 +119,7 @@ fun HomeScreen(
             // 老师动态
             if (data.posts.isNotEmpty()) {
                 item {
-                    HomeSectionTitle(title = "老师动态", moreText = "更多", onMore = { /* TODO: 切到广场 */ })
+                    HomeSectionTitle(title = "老师动态", moreText = "更多", onMore = onAllPosts)
                 }
                 items(data.posts.size) { index ->
                     HomePostCard(item = data.posts[index])
@@ -130,7 +136,8 @@ private fun HomeHeroSection(
     nickname: String,
     children: List<ChildItem>,
     onChildClick: (ChildItem) -> Unit = {},
-    onAddChild: () -> Unit
+    onAddChild: () -> Unit,
+    onSearch: () -> Unit = {}
 ) {
     // 渐变背景：Brand → BrandLight → Bg
     val gradient = Brush.verticalGradient(
@@ -143,8 +150,9 @@ private fun HomeHeroSection(
         modifier = Modifier
             .fillMaxWidth()
             .background(gradient)
+            .statusBarsPadding()
             .padding(horizontal = AppDimens.L)
-            .padding(top = 48.dp, bottom = AppDimens.L)
+            .padding(top = AppDimens.S, bottom = AppDimens.L)
     ) {
         // 搜索栏
         Row(
@@ -152,7 +160,7 @@ private fun HomeHeroSection(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(AppDimens.RadiusInput))
                 .background(Color.White.copy(alpha = 0.15f))
-                .clickable { /* TODO: 跳搜索页 */ }
+                .clickable { onSearch() }
                 .padding(horizontal = AppDimens.M, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
