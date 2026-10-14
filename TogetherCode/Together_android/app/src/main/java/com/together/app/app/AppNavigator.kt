@@ -56,6 +56,7 @@ import com.together.app.modules.plaza.PlazaViewModel
 import com.together.app.modules.plaza.ui.PostCreateScreen
 import com.together.app.modules.plaza.ui.PostDetailScreen
 import com.together.app.modules.studio.ui.StudioOverviewScreen
+import com.together.app.modules.teacher.ui.TeacherTimetableScreen
 import com.together.app.modules.teacher.ui.TeacherWorkbenchScreen
 import kotlinx.coroutines.launch
 
@@ -199,6 +200,7 @@ fun AppNavigator() {
                 onWorkManagement = { navController.navigate(AppRoutes.WorkManagement) },
                 onFavorites = { navController.navigate(AppRoutes.Favorites) },
                 onWallet = { navController.navigate(AppRoutes.Wallet) },
+                onTimetable = { navController.navigate(AppRoutes.TeacherTimetable) },
                 onAuth = { role, _, _ ->
                     navController.navigate(
                         if (role == 2) AppRoutes.TeacherAuth else AppRoutes.StudioAuth
@@ -207,12 +209,19 @@ fun AppNavigator() {
             )
         }
 
-        // 老师端工作台
+        // 老师端工作台（独立路由，备用；主入口已统一走 MainTabScreen）
         composable(AppRoutes.TeacherMain) {
             TeacherWorkbenchScreen()
         }
 
-        // 工作室端总览
+        // 老师课表与排课
+        composable(AppRoutes.TeacherTimetable) {
+            TeacherTimetableScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // 工作室端总览（独立路由，备用；主入口已统一走 MainTabScreen）
         composable(AppRoutes.StudioMain) {
             StudioOverviewScreen()
         }
@@ -617,9 +626,5 @@ fun AppNavigator() {
     }
 }
 
-/** 按角色返回主界面路由 */
-private fun mainRouteForRole(role: Int): String = when (role) {
-    2 -> AppRoutes.TeacherMain
-    3 -> AppRoutes.StudioMain
-    else -> AppRoutes.ParentMain
-}
+/** 按角色返回主界面路由：所有角色统一走 MainTabScreen（5 Tab），tab 内容按角色切换 */
+private fun mainRouteForRole(role: Int): String = AppRoutes.ParentMain

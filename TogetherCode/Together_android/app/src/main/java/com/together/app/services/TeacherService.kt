@@ -182,6 +182,15 @@ object TeacherService {
         val subjectText: String
             get() = subjects?.takeIf { it.isNotEmpty() }?.joinToString("/") ?: "未设置科目"
         val yearsText: String get() = "教龄${years ?: 0}年"
+        /** 副标题：工作室 · 科目 · 教龄（对齐 iOS subtitle） */
+        val subtitle: String
+            get() {
+                val parts = mutableListOf<String>()
+                studio?.name?.takeIf { it.isNotEmpty() }?.let { parts.add(it) }
+                if (subjectText != "未设置科目") parts.add(subjectText)
+                parts.add(yearsText)
+                return parts.joinToString(" · ")
+            }
     }
 
     @Serializable

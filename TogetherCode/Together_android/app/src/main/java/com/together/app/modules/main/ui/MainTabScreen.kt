@@ -57,6 +57,7 @@ import com.together.app.modules.message.ui.MessageScreen
 import com.together.app.modules.mine.ui.MineScreen
 import com.together.app.modules.plaza.ui.PlazaScreen
 import com.together.app.modules.studio.ui.StudioOverviewScreen
+import com.together.app.modules.teacher.ui.TeacherMineScreen
 import com.together.app.modules.teacher.ui.TeacherWorkbenchScreen
 import kotlinx.coroutines.launch
 
@@ -84,6 +85,7 @@ fun MainTabScreen(
     onWorkManagement: () -> Unit = {},
     onFavorites: () -> Unit = {},
     onWallet: () -> Unit = {},
+    onTimetable: () -> Unit = {},
     onAuth: (role: Int, status: String, reason: String?) -> Unit = { _, _, _ -> }
 ) {
     val context = LocalContext.current
@@ -157,16 +159,25 @@ fun MainTabScreen(
                     onAddContact = onAddContact,
                     onNotificationClick = onNotificationClick
                 )
-                4 -> MineScreen(
-                    onSettings = onSettings,
-                    onMyChildren = onMyChildren,
-                    onMyCourses = onMyCourses,
-                    onMyOrders = onMyOrders,
-                    onWorkManagement = onWorkManagement,
-                    onFavorites = onFavorites,
-                    onWallet = onWallet,
-                    onAuth = onAuth
-                )
+                4 -> when (role) {
+                    2 -> TeacherMineScreen(
+                        onSettings = onSettings,
+                        onTimetable = onTimetable,
+                        onWorkManagement = onWorkManagement,
+                        onWallet = onWallet,
+                        onAuth = onAuth
+                    )
+                    else -> MineScreen(
+                        onSettings = onSettings,
+                        onMyChildren = onMyChildren,
+                        onMyCourses = onMyCourses,
+                        onMyOrders = onMyOrders,
+                        onWorkManagement = onWorkManagement,
+                        onFavorites = onFavorites,
+                        onWallet = onWallet,
+                        onAuth = onAuth
+                    )
+                }
             }
         }
 

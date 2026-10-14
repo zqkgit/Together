@@ -49,6 +49,7 @@ object AppRoutes {
     const val DeactivateAccount = "deactivate_account"
     const val About = "about"
     const val TeacherAuth = "teacher_auth"
+    const val TeacherTimetable = "teacher_timetable"
     const val StudioAuth = "studio_auth"
     const val Favorites = "favorites"
     const val WorkManagement = "work_management"
