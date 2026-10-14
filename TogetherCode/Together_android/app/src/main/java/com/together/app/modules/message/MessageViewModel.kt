@@ -10,7 +10,9 @@ import com.together.app.core.model.NotificationItem
 import com.together.app.core.network.ApiService
 import com.together.app.core.network.JsonHelper.strList
 import com.together.app.services.MessageService
+import com.together.app.services.MessageSocketService
 import com.together.app.services.PostService
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -230,6 +232,7 @@ class MessageViewModel(app: Application) : AndroidViewModel(app) {
     private var chatPage = 1
     private var chatHasMore = true
     private var chatLoading = false
+    private var realtimeJob: Job? = null
 
     fun initChat(conversation: ConversationItem, myUserId: String) {
         serverMessages = emptyList()
@@ -242,6 +245,36 @@ class MessageViewModel(app: Application) : AndroidViewModel(app) {
             loading = true
         )
         loadMessages(reset = true)
+        observeRealtimeMessages()
+    }
+
+    // MARK: - 实时消息（WebSocket）
+
+    /** 监听 WebSocket 实时消息，收到当前会话消息时追加显示（去重） */
+    private fun observeRealtimeMessages() {
+        realtimeJob?.cancel()
+        realtimeJob = viewModelScope.launch {
+            MessageSocketService.messageFlow.collect { event ->
+                val conversation = _chatState.value.conversation ?: return@collect
+                if (event.conversationId == conversation.conversationId) {
+                    if (serverMessages.none { it.messageId == event.message.messageId }) {
+                        serverMessages = listOf(event.message) + serverMessages
+                        rebuildDisplay()
+                    }
+                }
+            }
+        }
+    }
+
+    /** 消息中心：监听任意会话来消息 → 静默刷新会话列表（幂等，重复调用无副作用） */
+    private var convRealtimeJob: Job? = null
+    fun observeConversationUpdates() {
+        if (convRealtimeJob != null) return
+        convRealtimeJob = viewModelScope.launch {
+            MessageSocketService.messageFlow.collect {
+                silentRefreshConversations()
+            }
+        }
     }
 
     /** 判断消息是否自己发送 */

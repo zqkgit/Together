@@ -80,6 +80,11 @@ fun MessageScreen(
 ) {
     val state by viewModel.messageState.collectAsState()
 
+    // 监听 WebSocket 实时消息 → 静默刷新会话列表
+    LaunchedEffect(Unit) {
+        viewModel.observeConversationUpdates()
+    }
+
     // ON_RESUME 刷新当前 Tab（首次进入 + 从聊天页返回 + 切 Tab 回来）
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {

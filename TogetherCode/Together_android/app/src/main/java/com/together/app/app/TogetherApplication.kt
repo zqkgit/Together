@@ -3,6 +3,7 @@ package com.together.app.app
 import android.app.Application
 import com.together.app.core.network.ApiService
 import com.together.app.core.storage.TokenStore
+import com.together.app.services.MessageSocketService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -24,6 +25,8 @@ class TogetherApplication : Application() {
         applicationScope.launch {
             tokenStore.accessToken.collect { token ->
                 ApiService.tokenProvider = { token }
+                // WebSocket 重连时判断登录态
+                MessageSocketService.loginStateProvider = { !token.isNullOrBlank() }
             }
         }
     }

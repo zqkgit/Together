@@ -89,6 +89,7 @@ import com.together.app.modules.search.ui.SearchScreen
 import com.together.app.modules.profile.ui.TeacherProfileScreen
 import com.together.app.modules.profile.ui.StudioHomepageScreen
 import com.together.app.modules.teacher.ui.TeacherWorkbenchScreen
+import com.together.app.services.MessageSocketService
 import kotlinx.coroutines.launch
 
 /**
@@ -112,6 +113,7 @@ fun AppNavigator() {
     fun goMain() {
         scope.launch {
             val role = tokenStore.getRoleSync()
+            MessageSocketService.connect()
             navController.navigate(mainRouteForRole(role)) {
                 popUpTo(0) { inclusive = true }
             }
@@ -126,6 +128,7 @@ fun AppNavigator() {
         val loggedIn = tokenStore.isLoggedInSync()
         if (loggedIn) {
             startDestination = mainRouteForRole(tokenStore.getRoleSync())
+            MessageSocketService.connect()
         }
         startChecked = true
     }
@@ -133,6 +136,7 @@ fun AppNavigator() {
     // 401 全局处理：清 token → 回登录页
     LaunchedEffect(Unit) {
         ApiService.authExpiredFlow.collect {
+            MessageSocketService.disconnect()
             tokenStore.clear()
             navController.navigate(AppRoutes.Login) {
                 popUpTo(0) { inclusive = true }
@@ -143,6 +147,9 @@ fun AppNavigator() {
     // 角色切换全局通知：MineViewModel 切换成功后跳对应主界面
     LaunchedEffect(Unit) {
         RoleEventBus.events.collect { role ->
+            // 角色切换后 token 变化，重连 WebSocket
+            MessageSocketService.disconnect()
+            MessageSocketService.connect()
             navController.navigate(mainRouteForRole(role)) {
                 popUpTo(0) { inclusive = true }
             }
@@ -879,6 +886,7 @@ fun AppNavigator() {
                 onWallet = { navController.navigate(AppRoutes.Wallet) },
                 onAbout = { navController.navigate(AppRoutes.About) },
                 onLoggedOut = {
+                    MessageSocketService.disconnect()
                     navController.navigate(AppRoutes.Login) {
                         popUpTo(0) { inclusive = true }
                     }
@@ -916,6 +924,7 @@ fun AppNavigator() {
             DeactivateAccountScreen(
                 onBack = { navController.popBackStack() },
                 onLoggedOut = {
+                    MessageSocketService.disconnect()
                     navController.navigate(AppRoutes.Login) {
                         popUpTo(0) { inclusive = true }
                     }
