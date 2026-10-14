@@ -1,5 +1,6 @@
 package com.together.app.modules.studio.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +33,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -40,6 +43,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -49,6 +53,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.together.app.core.design.AppColors
 import com.together.app.core.design.AppDimens
+import com.together.app.modules.mine.MineViewModel
+import com.together.app.modules.mine.ui.RoleSwitchSheet
 import com.together.app.modules.studio.StudioViewModel
 
 /**
@@ -68,9 +74,18 @@ fun StudioMineScreen(
     onRevenue: () -> Unit = {},
     onCommissions: () -> Unit = {},
     onToast: (String) -> Unit = {},
-    viewModel: StudioViewModel = viewModel()
+    onAuth: (role: Int, status: String, reason: String?) -> Unit = { _, _, _ -> },
+    viewModel: StudioViewModel = viewModel(),
+    mineViewModel: MineViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val state by viewModel.mineState.collectAsState()
+
+    // 身份切换状态
+    val mineState by mineViewModel.state.collectAsState()
+    val showSheet by mineViewModel.showRoleSheet.collectAsState()
+    val authStatuses by mineViewModel.authStatuses.collectAsState()
+    val toast by mineViewModel.toast.collectAsState()
 
     // ON_RESUME 刷新
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -78,20 +93,37 @@ fun StudioMineScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 viewModel.loadMine()
+                mineViewModel.refreshData()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    // Toast
+    LaunchedEffect(toast) {
+        toast?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            mineViewModel.clearToast()
+        }
+    }
+
+    // 认证页跳转
+    LaunchedEffect(Unit) {
+        mineViewModel.authNavigation.collect { nav ->
+            onAuth(nav.role, nav.status, nav.reason)
+        }
+    }
+
     val profile = state.profile
     val stats = state.stats
     val name = profile?.displayName ?: "未命名工作室"
+    val mineProfile = mineState.profile
 
+    Box(modifier = Modifier.fillMaxSize().background(AppColors.Bg)) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColors.Bg)
     ) {
         // 封面区（渐变绿）
         Box(
@@ -106,7 +138,8 @@ fun StudioMineScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 48.dp)
+                    .statusBarsPadding()
+                    .padding(top = AppDimens.S)
             ) {
                 // 身份胶囊 + 设置按钮
                 Row(
@@ -119,6 +152,7 @@ fun StudioMineScreen(
                         modifier = Modifier
                             .clip(RoundedCornerShape(15.dp))
                             .background(Color.White.copy(alpha = 0.2f))
+                            .clickable { mineViewModel.showRoleSheet() }
                             .padding(horizontal = 14.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -287,6 +321,19 @@ fun StudioMineScreen(
             )
 
             Spacer(modifier = Modifier.height(AppDimens.Xl))
+        }
+    }
+
+        // 身份切换弹窗
+        if (showSheet) {
+            RoleSwitchSheet(
+                roles = mineProfile?.roles ?: listOf(1, 3),
+                currentRole = mineProfile?.currentRole ?: 3,
+                authStatuses = authStatuses,
+                teacherName = mineProfile?.teacherName,
+                onRoleTapped = { role -> mineViewModel.onRoleRowTapped(role) },
+                onDismiss = { mineViewModel.dismissRoleSheet() }
+            )
         }
     }
 }

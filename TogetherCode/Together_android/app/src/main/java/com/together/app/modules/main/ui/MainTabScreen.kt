@@ -1,5 +1,6 @@
 package com.together.app.modules.main.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -56,6 +57,7 @@ import com.together.app.modules.home.ui.HomeScreen
 import com.together.app.modules.message.ui.MessageScreen
 import com.together.app.modules.mine.ui.MineScreen
 import com.together.app.modules.plaza.ui.PlazaScreen
+import com.together.app.modules.studio.ui.StudioMineScreen
 import com.together.app.modules.studio.ui.StudioOverviewScreen
 import com.together.app.modules.teacher.ui.TeacherMineScreen
 import com.together.app.modules.teacher.ui.TeacherWorkbenchScreen
@@ -86,7 +88,10 @@ fun MainTabScreen(
     onFavorites: () -> Unit = {},
     onWallet: () -> Unit = {},
     onTimetable: () -> Unit = {},
-    onAuth: (role: Int, status: String, reason: String?) -> Unit = { _, _, _ -> }
+    onAuth: (role: Int, status: String, reason: String?) -> Unit = { _, _, _ -> },
+    // 工作室「我的」页面回调
+    onStudioOrders: () -> Unit = {},
+    onStudioRefunds: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as TogetherApplication
@@ -165,6 +170,17 @@ fun MainTabScreen(
                         onTimetable = onTimetable,
                         onWorkManagement = onWorkManagement,
                         onWallet = onWallet,
+                        onAuth = onAuth
+                    )
+                    3 -> StudioMineScreen(
+                        onSettings = onSettings,
+                        onOrders = onStudioOrders,
+                        onRefunds = onStudioRefunds,
+                        onCourses = { Toast.makeText(context, "「课程管理」功能开发中", Toast.LENGTH_SHORT).show() },
+                        onStudents = { Toast.makeText(context, "「学员管理」功能开发中", Toast.LENGTH_SHORT).show() },
+                        onTeachers = { Toast.makeText(context, "「老师管理」功能开发中", Toast.LENGTH_SHORT).show() },
+                        onRevenue = { Toast.makeText(context, "「收益中心」功能开发中", Toast.LENGTH_SHORT).show() },
+                        onCommissions = { Toast.makeText(context, "「佣金审核」功能开发中", Toast.LENGTH_SHORT).show() },
                         onAuth = onAuth
                     )
                     else -> MineScreen(

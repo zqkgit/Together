@@ -55,7 +55,10 @@ import com.together.app.modules.mine.ui.WorkManagementScreen
 import com.together.app.modules.plaza.PlazaViewModel
 import com.together.app.modules.plaza.ui.PostCreateScreen
 import com.together.app.modules.plaza.ui.PostDetailScreen
+import com.together.app.modules.studio.ui.StudioOrderDetailScreen
+import com.together.app.modules.studio.ui.StudioOrderListScreen
 import com.together.app.modules.studio.ui.StudioOverviewScreen
+import com.together.app.modules.studio.ui.StudioRefundScreen
 import com.together.app.modules.teacher.ui.TeacherTimetableScreen
 import com.together.app.modules.teacher.ui.TeacherWorkbenchScreen
 import kotlinx.coroutines.launch
@@ -205,7 +208,9 @@ fun AppNavigator() {
                     navController.navigate(
                         if (role == 2) AppRoutes.TeacherAuth else AppRoutes.StudioAuth
                     )
-                }
+                },
+                onStudioOrders = { navController.navigate(AppRoutes.StudioOrderList) },
+                onStudioRefunds = { navController.navigate(AppRoutes.StudioRefund) }
             )
         }
 
@@ -224,6 +229,36 @@ fun AppNavigator() {
         // 工作室端总览（独立路由，备用；主入口已统一走 MainTabScreen）
         composable(AppRoutes.StudioMain) {
             StudioOverviewScreen()
+        }
+
+        // 工作室订单列表
+        composable(AppRoutes.StudioOrderList) {
+            StudioOrderListScreen(
+                onBack = { navController.popBackStack() },
+                onOrderClick = { order ->
+                    navController.navigate(AppRoutes.studioOrderDetail(order.orderId))
+                }
+            )
+        }
+
+        // 工作室订单详情
+        composable(
+            AppRoutes.StudioOrderDetail,
+            arguments = listOf(navArgument("orderId") { type = NavType.StringType })
+        ) { entry ->
+            val orderId = entry.arguments?.getString("orderId") ?: return@composable
+            StudioOrderDetailScreen(
+                orderId = orderId,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // 工作室退款审核
+        composable(AppRoutes.StudioRefund) {
+            StudioRefundScreen(
+                initialStatus = 0,
+                onBack = { navController.popBackStack() }
+            )
         }
 
         // MARK: - 订单模块

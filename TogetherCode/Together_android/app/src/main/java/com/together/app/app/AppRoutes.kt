@@ -54,6 +54,11 @@ object AppRoutes {
     const val Favorites = "favorites"
     const val WorkManagement = "work_management"
 
+    // 工作室模块
+    const val StudioOrderList = "studio_order_list"
+    const val StudioOrderDetail = "studio_order_detail/{orderId}"
+    const val StudioRefund = "studio_refund"
+
     fun verifyCode(phone: String) = "verify_code/$phone"
     fun orderDetail(orderId: String) = "order_detail/$orderId"
     fun paymentVoucher(orderId: String) = "payment_voucher/$orderId"
@@ -65,4 +70,5 @@ object AppRoutes {
     fun postCreate(role: Int, postType: Int) = "post_create/$role/$postType"
     fun courseDetail(courseId: String) = "course_detail/$courseId"
     fun chat(conversationId: String) = "chat/$conversationId"
+    fun studioOrderDetail(orderId: String) = "studio_order_detail/$orderId"
 }
