@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -220,6 +222,7 @@ private fun HomeHeroSection(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(IntrinsicSize.Min)
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(AppDimens.M)
             ) {
@@ -230,11 +233,12 @@ private fun HomeHeroSection(
                 Column(
                     modifier = Modifier
                         .width(100.dp)
+                        .fillMaxHeight()
                         .clip(RoundedCornerShape(AppDimens.RadiusCard))
                         .background(Color.White.copy(alpha = 0.18f))
-                        .clickable { onAddChild() }
-                        .padding(vertical = AppDimens.M),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .clickable { onAddChild() },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.height(4.dp))
