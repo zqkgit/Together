@@ -392,9 +392,9 @@ private fun TeacherMenuCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .shadow(AppDimens.CardShadowElevation, RoundedCornerShape(AppDimens.RadiusCard))
                     .clip(RoundedCornerShape(AppDimens.RadiusCard))
                     .background(AppColors.Surface)
-                    .shadow(AppDimens.CardShadowElevation, RoundedCornerShape(AppDimens.RadiusCard))
             ) {
                 items.forEachIndexed { index, item ->
                     TeacherMenuRow(item, showDivider = index < items.size - 1, onClick = { onSelect(item.title) })
