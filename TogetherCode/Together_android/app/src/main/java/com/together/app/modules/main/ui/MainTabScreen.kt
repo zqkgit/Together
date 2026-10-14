@@ -52,6 +52,8 @@ import com.together.app.core.model.ChildItem
 import com.together.app.core.model.ConversationItem
 import com.together.app.core.model.NotificationItem
 import com.together.app.core.model.PostItem
+import com.together.app.core.model.CourseItem
+import com.together.app.core.model.StudioItem
 import com.together.app.modules.home.ui.HomeScreen
 import com.together.app.modules.message.ui.MessageScreen
 import com.together.app.modules.mine.ui.MineScreen
@@ -77,6 +79,8 @@ fun MainTabScreen(
     onAllCourses: () -> Unit = {},
     onAllStudios: () -> Unit = {},
     onPostClick: (PostItem) -> Unit = {},
+    onCourseClick: (CourseItem) -> Unit = {},
+    onStudioClick: (StudioItem) -> Unit = {},
     onPublish: (Int) -> Unit = {},
     onConversationClick: (ConversationItem) -> Unit = {},
     onAddContact: () -> Unit = {},
@@ -171,7 +175,10 @@ fun MainTabScreen(
                         onSearch = onSearch,
                         onAllCourses = onAllCourses,
                         onAllStudios = onAllStudios,
-                        onAllPosts = { selectedTab = 1 }
+                        onAllPosts = { selectedTab = 1 },
+                        onCourseClick = onCourseClick,
+                        onStudioClick = onStudioClick,
+                        onPostClick = onPostClick
                     )
                 }
                 1 -> PlazaScreen(onPostClick = onPostClick)

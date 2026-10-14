@@ -40,7 +40,7 @@ object SearchService {
     suspend fun searchCourses(keyword: String, page: Int, tagId: String? = null): Pair<List<CourseItem>, Boolean> {
         val params = mutableMapOf<String, Any?>("keyword" to keyword, "page" to page, "page_size" to 10)
         tagId?.takeIf { it.isNotEmpty() }?.let { params["tag_id"] = it }
-        val json = ApiService.get("/search/courses", params)
+        val json = ApiService.get("/courses", params)
         val items = json.decodeList<CourseItem>("list")
         val total = json.int("total")
         return items to (page * 10 < total)
@@ -49,7 +49,7 @@ object SearchService {
     /** 搜索工作室（分页）→ (items, hasMore) */
     suspend fun searchStudios(keyword: String, page: Int): Pair<List<StudioItem>, Boolean> {
         val params = mapOf("keyword" to keyword, "page" to page, "page_size" to 10)
-        val json = ApiService.get("/search/studios", params)
+        val json = ApiService.get("/studios", params)
         val items = json.decodeList<StudioItem>("list")
         val total = json.int("total")
         return items to (page * 10 < total)
@@ -58,7 +58,7 @@ object SearchService {
     /** 搜索老师（分页）→ (items, hasMore) */
     suspend fun searchTeachers(keyword: String, page: Int): Pair<List<TeacherItem>, Boolean> {
         val params = mapOf("keyword" to keyword, "page" to page, "page_size" to 10)
-        val json = ApiService.get("/search/teachers", params)
+        val json = ApiService.get("/teachers", params)
         val items = json.decodeList<TeacherItem>("list")
         val total = json.int("total")
         return items to (page * 10 < total)

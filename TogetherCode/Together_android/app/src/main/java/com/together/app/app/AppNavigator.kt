@@ -252,6 +252,8 @@ fun AppNavigator() {
                 onSearch = { navController.navigate(AppRoutes.Search) },
                 onAllCourses = { navController.navigate(AppRoutes.CourseList) },
                 onAllStudios = { navController.navigate(AppRoutes.Studios) },
+                onCourseClick = { course -> navController.navigate(AppRoutes.courseDetail(course.courseId)) },
+                onStudioClick = { studio -> navController.navigate(AppRoutes.studioHomepage(studio.studioId)) },
                 onStudioOrders = { navController.navigate(AppRoutes.StudioOrderList) },
                 onStudioRefunds = { navController.navigate(AppRoutes.StudioRefund) },
                 onStudioCourses = { navController.navigate(AppRoutes.StudioCourseList) },

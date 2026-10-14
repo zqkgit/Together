@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -159,6 +160,7 @@ private fun CourseCoverSection(course: CourseDetail, onBack: () -> Unit) {
         // 返回按钮
         Box(
             modifier = Modifier
+                .statusBarsPadding()
                 .padding(12.dp)
                 .size(36.dp)
                 .clip(CircleShape)

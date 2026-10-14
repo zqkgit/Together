@@ -62,7 +62,10 @@ fun HomeScreen(
     onSearch: () -> Unit = {},
     onAllCourses: () -> Unit = {},
     onAllStudios: () -> Unit = {},
-    onAllPosts: () -> Unit = {}
+    onAllPosts: () -> Unit = {},
+    onCourseClick: (CourseItem) -> Unit = {},
+    onStudioClick: (StudioItem) -> Unit = {},
+    onPostClick: (PostItem) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -102,7 +105,7 @@ fun HomeScreen(
                     HomeSectionTitle(title = "为你推荐", moreText = "全部", onMore = onAllCourses)
                 }
                 item {
-                    HomeCourseRow(courses = data.courses)
+                    HomeCourseRow(courses = data.courses, onCourseClick = onCourseClick)
                 }
             }
 
@@ -112,7 +115,7 @@ fun HomeScreen(
                     HomeSectionTitle(title = "附近热门工作室", moreText = "更多", onMore = onAllStudios)
                 }
                 items(data.studios.size) { index ->
-                    HomeStudioRow(item = data.studios[index])
+                    HomeStudioRow(item = data.studios[index], onClick = { onStudioClick(data.studios[index]) })
                 }
             }
 
@@ -122,7 +125,7 @@ fun HomeScreen(
                     HomeSectionTitle(title = "老师动态", moreText = "更多", onMore = onAllPosts)
                 }
                 items(data.posts.size) { index ->
-                    HomePostCard(item = data.posts[index])
+                    HomePostCard(item = data.posts[index], onClick = { onPostClick(data.posts[index]) })
                 }
             }
         }
@@ -350,7 +353,7 @@ private fun HomeSectionTitle(title: String, moreText: String, onMore: () -> Unit
 // MARK: - 课程横滑卡
 
 @Composable
-private fun HomeCourseRow(courses: List<CourseItem>) {
+private fun HomeCourseRow(courses: List<CourseItem>, onCourseClick: (CourseItem) -> Unit = {}) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -359,19 +362,19 @@ private fun HomeCourseRow(courses: List<CourseItem>) {
         horizontalArrangement = Arrangement.spacedBy(AppDimens.M)
     ) {
         courses.forEach { course ->
-            CourseCard(item = course)
+            CourseCard(item = course, onClick = { onCourseClick(course) })
         }
     }
 }
 
 @Composable
-private fun CourseCard(item: CourseItem) {
+private fun CourseCard(item: CourseItem, onClick: () -> Unit = {}) {
     Column(
         modifier = Modifier
             .width(148.dp)
             .clip(RoundedCornerShape(AppDimens.RadiusCard))
             .background(AppColors.Surface)
-            .clickable { }
+            .clickable { onClick() }
     ) {
         // 封面
         Box(
@@ -440,7 +443,7 @@ private fun CourseCard(item: CourseItem) {
 // MARK: - 工作室行
 
 @Composable
-private fun HomeStudioRow(item: StudioItem) {
+private fun HomeStudioRow(item: StudioItem, onClick: () -> Unit = {}) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -448,7 +451,7 @@ private fun HomeStudioRow(item: StudioItem) {
             .padding(top = AppDimens.S)
             .clip(RoundedCornerShape(AppDimens.RadiusCard))
             .background(AppColors.Surface)
-            .clickable { }
+            .clickable { onClick() }
             .padding(AppDimens.M),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -498,7 +501,7 @@ private fun HomeStudioRow(item: StudioItem) {
 // MARK: - 老师动态帖子卡
 
 @Composable
-private fun HomePostCard(item: PostItem) {
+private fun HomePostCard(item: PostItem, onClick: () -> Unit = {}) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -506,7 +509,7 @@ private fun HomePostCard(item: PostItem) {
             .padding(top = AppDimens.S)
             .clip(RoundedCornerShape(AppDimens.RadiusCard))
             .background(AppColors.Surface)
-            .clickable { }
+            .clickable { onClick() }
             .padding(AppDimens.M)
     ) {
         // 作者行
