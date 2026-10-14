@@ -113,6 +113,10 @@ object ApiService {
         return execute { api.put(path.trimStart('/'), toJson(body)) }
     }
 
+    suspend fun patch(path: String, body: Map<String, Any?>): JsonObject {
+        return execute { api.patch(path.trimStart('/'), toJson(body)) }
+    }
+
     suspend fun delete(path: String): JsonObject {
         return execute { api.delete(path.trimStart('/')) }
     }
