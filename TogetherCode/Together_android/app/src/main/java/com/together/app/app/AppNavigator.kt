@@ -145,15 +145,12 @@ fun AppNavigator() {
         }
     }
 
-    // 角色切换全局通知：MineViewModel 切换成功后跳对应主界面
+    // 角色切换全局通知：MainTabScreen 内部监听 RoleEventBus 更新 role 并保持当前 Tab；
+    // 此处仅负责 WebSocket 重连（token 已变化）
     LaunchedEffect(Unit) {
-        RoleEventBus.events.collect { role ->
-            // 角色切换后 token 变化，重连 WebSocket
+        RoleEventBus.events.collect { _ ->
             MessageSocketService.disconnect()
             MessageSocketService.connect()
-            navController.navigate(mainRouteForRole(role)) {
-                popUpTo(0) { inclusive = true }
-            }
         }
     }
 

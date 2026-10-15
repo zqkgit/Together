@@ -35,6 +35,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,6 +60,7 @@ import com.together.app.core.model.CourseItem
 import com.together.app.core.model.StudioItem
 import com.together.app.modules.home.ui.HomeScreen
 import com.together.app.modules.message.ui.MessageScreen
+import com.together.app.modules.mine.RoleEventBus
 import com.together.app.modules.mine.ui.MineScreen
 import com.together.app.modules.plaza.ui.PlazaScreen
 import com.together.app.modules.studio.ui.StudioMineScreen
@@ -118,14 +120,17 @@ fun MainTabScreen(
     val tokenStore = app.tokenStore
     val scope = rememberCoroutineScope()
 
-    var role by remember { mutableIntStateOf(1) }
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var role by rememberSaveable { mutableIntStateOf(1) }
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     var unread by remember { mutableIntStateOf(0) }
     var showPublishTypeDialog by remember { mutableStateOf(false) }
 
-    // 读取角色
+    // 读取角色 + 监听角色切换（对齐 iOS MainTabBarController.handleRoleDidChange：重建 tab 内容但保持当前选中）
     LaunchedEffect(Unit) {
         role = tokenStore.getRoleSync()
+        RoleEventBus.events.collect { newRole ->
+            role = newRole
+        }
     }
 
     // 拉取未读数（ON_RESUME 刷新：首次进入 + 从聊天页返回）

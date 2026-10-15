@@ -205,9 +205,9 @@ private fun MineHeader(
     onStatTapped: (Int) -> Unit
 ) {
     val roleText = when (profile?.currentRole) {
-        2 -> "老师"
-        3 -> "工作室"
-        else -> "家长"
+        2 -> "当前身份：老师"
+        3 -> "当前身份：工作室"
+        else -> "当前身份：家长"
     }
     val nickname = profile?.user?.nickname ?: "未登录"
     val avatar = profile?.user?.avatar
