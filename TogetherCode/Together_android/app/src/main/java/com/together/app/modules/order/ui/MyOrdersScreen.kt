@@ -21,6 +21,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.together.app.core.component.AppPullRefreshBox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -57,6 +59,7 @@ import com.together.app.modules.order.OrderViewModel.OrderTab
  * Tab：全部 / 待付款 / 待确认 / 已报名 / 已取消 / 已退款
  * 平台不经手资金：待付款订单线下付款后上传凭证，机构确认收款发课时。
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyOrdersScreen(
     onBack: () -> Unit,
@@ -85,30 +88,36 @@ fun MyOrdersScreen(
         // 内容区
         Box(modifier = Modifier.weight(1f)) {
             when {
-                listState.loading -> LoadingView()
-                listState.error != null -> ErrorView(
+                listState.loading && listState.orders.isEmpty() -> LoadingView()
+                listState.error != null && listState.orders.isEmpty() -> ErrorView(
                     message = listState.error!!,
                     onRetry = { viewModel.loadOrders() }
                 )
                 listState.orders.isEmpty() -> EmptyStateView(message = "暂无订单")
-                else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = AppDimens.L, vertical = AppDimens.Xs)
+                else -> AppPullRefreshBox(
+                    isRefreshing = listState.loading,
+                    onRefresh = { viewModel.loadOrders() },
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    items(listState.orders, key = { it.orderId ?: it.orderNo ?: "" }) { order ->
-                        OrderCard(
-                            order = order,
-                            onClick = { order.orderId?.let(onOrderClick) },
-                            onCancel = { cancelTarget = order },
-                            onVoucher = { onUploadVoucher(order) },
-                            onStudy = {
-                                val childId = order.child?.childId ?: return@OrderCard
-                                val courseId = order.course?.courseId ?: return@OrderCard
-                                onStudy(childId, courseId, order.course?.title ?: "课程学习")
-                            },
-                            onRefundDetail = { order.latestRefundId?.let(onRefundDetail) },
-                            onReorder = { order.course?.courseId?.let(onReorder) }
-                        )
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = AppDimens.L, vertical = AppDimens.Xs)
+                    ) {
+                        items(listState.orders, key = { it.orderId ?: it.orderNo ?: "" }) { order ->
+                            OrderCard(
+                                order = order,
+                                onClick = { order.orderId?.let(onOrderClick) },
+                                onCancel = { cancelTarget = order },
+                                onVoucher = { onUploadVoucher(order) },
+                                onStudy = {
+                                    val childId = order.child?.childId ?: return@OrderCard
+                                    val courseId = order.course?.courseId ?: return@OrderCard
+                                    onStudy(childId, courseId, order.course?.title ?: "课程学习")
+                                },
+                                onRefundDetail = { order.latestRefundId?.let(onRefundDetail) },
+                                onReorder = { order.course?.courseId?.let(onReorder) }
+                            )
+                        }
                     }
                 }
             }

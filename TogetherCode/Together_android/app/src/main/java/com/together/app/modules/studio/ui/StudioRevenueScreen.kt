@@ -25,7 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import com.together.app.core.component.AppPullRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -122,7 +122,7 @@ fun StudioRevenueScreen(
         }
 
         // 内容
-        PullToRefreshBox(
+        AppPullRefreshBox(
             isRefreshing = state.loading,
             onRefresh = {
                 val (s, e) = selectedPreset.dates()

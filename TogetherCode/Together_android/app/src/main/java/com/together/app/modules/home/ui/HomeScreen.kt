@@ -26,6 +26,8 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import com.together.app.core.component.AppPullRefreshBox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -56,6 +58,7 @@ import java.time.LocalTime
  * 首页（对齐 iOS HomeViewController / PR 设计图 #parentHome）
  * 分区：顶部渐变(搜索+Hero) / 公告 / 为你推荐 / 附近热门工作室 / 老师动态
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
@@ -79,6 +82,11 @@ fun HomeScreen(
     val data = uiState.data
 
     Box(modifier = Modifier.fillMaxSize().background(AppColors.Bg)) {
+        AppPullRefreshBox(
+            isRefreshing = uiState.loading,
+            onRefresh = { viewModel.refresh() },
+            modifier = Modifier.fillMaxSize()
+        ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 80.dp)
@@ -130,6 +138,7 @@ fun HomeScreen(
                     HomePostCard(item = data.posts[index], onClick = { onPostClick(data.posts[index]) })
                 }
             }
+        }
         }
     }
 }

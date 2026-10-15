@@ -25,17 +25,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import com.together.app.core.component.AppRefreshLoadMoreBox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,7 +64,7 @@ import com.together.app.services.SearchService
  * 课程更多页（对齐 iOS CourseViewController）
  * 搜索栏 + 标签横滑 + 热词/历史面板 + 课程列表 + 分页
  */
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun CourseListScreen(
     viewModel: CourseViewModel = viewModel(),
@@ -151,39 +151,24 @@ fun CourseListScreen(
             ListState.RESULT -> {
                 // 课程列表 + 分页
                 val listState = rememberLazyListState()
-                // 触底加载更多
-                val shouldLoadMore by remember {
-                    derivedStateOf {
-                        val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                        last >= uiState.courses.size - 3 && uiState.hasMore && !uiState.loading
-                    }
-                }
-                LaunchedEffect(shouldLoadMore) {
-                    if (shouldLoadMore) viewModel.loadMore()
-                }
 
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                        top = AppDimens.M, bottom = 100.dp
-                    )
+                AppRefreshLoadMoreBox(
+                    isRefreshing = false, // search 会切到 SEARCHING 态显示全屏 Loading
+                    isLoadingMore = uiState.loading,
+                    hasMore = uiState.hasMore,
+                    onRefresh = { viewModel.search(uiState.keyword) },
+                    onLoadMore = { viewModel.loadMore() },
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    items(uiState.courses, key = { it.courseId }) { course ->
-                        CourseListCard(item = course, onClick = { onCourseClick(course.courseId) })
-                    }
-                    if (uiState.loading) {
-                        item {
-                            Box(
-                                modifier = Modifier.fillMaxWidth().padding(AppDimens.L),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    color = AppColors.Brand,
-                                    strokeWidth = 2.dp
-                                )
-                            }
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                            top = AppDimens.M, bottom = 100.dp
+                        )
+                    ) {
+                        items(uiState.courses, key = { it.courseId }) { course ->
+                            CourseListCard(item = course, onClick = { onCourseClick(course.courseId) })
                         }
                     }
                 }
@@ -302,7 +287,7 @@ private fun TagPill(text: String, selected: Boolean, onClick: () -> Unit) {
 
 // MARK: - 热词/历史卡片
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun KeywordCard(
     title: String,

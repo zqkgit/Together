@@ -24,6 +24,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import com.together.app.core.component.AppPullRefreshBox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -90,6 +92,10 @@ class StudiosViewModel(app: android.app.Application) : AndroidViewModel(app) {
         load(s.tab, refresh = false)
     }
 
+    fun refresh() {
+        load(_state.value.tab, refresh = true)
+    }
+
     private fun load(tab: Int, refresh: Boolean) {
         viewModelScope.launch {
             if (refresh) page = 1
@@ -112,6 +118,7 @@ class StudiosViewModel(app: android.app.Application) : AndroidViewModel(app) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudiosScreen(
     onBack: () -> Unit = {},
@@ -198,24 +205,30 @@ fun StudiosScreen(
             if (state.studios.isEmpty() && !state.loading) {
                 EmptyText("暂无工作室")
             } else {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        start = AppDimens.M,
-                        end = AppDimens.M,
-                        top = AppDimens.S,
-                        bottom = AppDimens.Xl
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(AppDimens.S)
+                AppPullRefreshBox(
+                    isRefreshing = state.loading && state.studios.isNotEmpty(),
+                    onRefresh = { viewModel.refresh() },
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    items(state.studios.size) { index ->
-                        StudioListCard(item = state.studios[index]) {
-                            onStudioClick(state.studios[index].studioId)
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            start = AppDimens.M,
+                            end = AppDimens.M,
+                            top = AppDimens.S,
+                            bottom = AppDimens.Xl
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(AppDimens.S)
+                    ) {
+                        items(state.studios.size) { index ->
+                            StudioListCard(item = state.studios[index]) {
+                                onStudioClick(state.studios[index].studioId)
+                            }
                         }
-                    }
-                    if (state.loading) {
-                        item { LoadingText() }
+                        if (state.loading) {
+                            item { LoadingText() }
+                        }
                     }
                 }
             }
@@ -223,24 +236,30 @@ fun StudiosScreen(
             if (state.teachers.isEmpty() && !state.loading) {
                 EmptyText("暂无老师")
             } else {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        start = AppDimens.M,
-                        end = AppDimens.M,
-                        top = AppDimens.S,
-                        bottom = AppDimens.Xl
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(AppDimens.S)
+                AppPullRefreshBox(
+                    isRefreshing = state.loading && state.teachers.isNotEmpty(),
+                    onRefresh = { viewModel.refresh() },
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    items(state.teachers.size) { index ->
-                        TeacherListCard(item = state.teachers[index]) {
-                            onTeacherClick(state.teachers[index].teacherId)
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            start = AppDimens.M,
+                            end = AppDimens.M,
+                            top = AppDimens.S,
+                            bottom = AppDimens.Xl
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(AppDimens.S)
+                    ) {
+                        items(state.teachers.size) { index ->
+                            TeacherListCard(item = state.teachers[index]) {
+                                onTeacherClick(state.teachers[index].teacherId)
+                            }
                         }
-                    }
-                    if (state.loading) {
-                        item { LoadingText() }
+                        if (state.loading) {
+                            item { LoadingText() }
+                        }
                     }
                 }
             }

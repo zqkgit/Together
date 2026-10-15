@@ -22,7 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import com.together.app.core.component.AppPullRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -86,7 +86,7 @@ fun TeacherTimetableScreen(
         )
 
         // 排课列表
-        PullToRefreshBox(
+        AppPullRefreshBox(
             isRefreshing = state.loading,
             onRefresh = { viewModel.loadTimetable() },
             modifier = Modifier.fillMaxSize()

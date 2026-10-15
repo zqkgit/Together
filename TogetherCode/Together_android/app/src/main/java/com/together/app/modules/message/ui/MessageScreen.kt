@@ -35,7 +35,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import com.together.app.core.component.AppPullRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -252,7 +252,7 @@ private fun ConversationList(
         .collect { viewModel.loadMoreConversations() }
     }
 
-    PullToRefreshBox(
+    AppPullRefreshBox(
         isRefreshing = state.refreshing,
         onRefresh = { viewModel.refreshConversations() }
     ) {
@@ -376,7 +376,7 @@ private fun NotificationList(
         .collect { viewModel.loadMoreNotifications() }
     }
 
-    PullToRefreshBox(
+    AppPullRefreshBox(
         isRefreshing = state.refreshing,
         onRefresh = { viewModel.refreshNotifications() }
     ) {

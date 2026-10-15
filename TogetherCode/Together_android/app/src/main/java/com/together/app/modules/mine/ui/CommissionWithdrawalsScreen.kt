@@ -24,7 +24,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import com.together.app.core.component.AppPullRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -77,7 +77,7 @@ fun CommissionWithdrawalsScreen(
     Column(modifier = Modifier.fillMaxSize().background(AppColors.Bg)) {
         TogetherTopBar(title = "领取记录", onBack = onBack)
 
-        PullToRefreshBox(
+        AppPullRefreshBox(
             isRefreshing = state.refreshing,
             onRefresh = { viewModel.loadList(reset = true) }
         ) {

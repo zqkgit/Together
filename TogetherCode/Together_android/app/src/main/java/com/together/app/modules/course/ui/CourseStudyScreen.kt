@@ -23,7 +23,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import com.together.app.core.component.AppPullRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -95,7 +95,7 @@ fun CourseStudyScreen(
                     onRetry = { viewModel.loadStudy(childId, courseId) }
                 )
                 schedules.isEmpty() -> EmptyStateView(message = "暂无课时安排")
-                else -> PullToRefreshBox(
+                else -> AppPullRefreshBox(
                     isRefreshing = state.loading,
                     onRefresh = { viewModel.loadStudy(childId, courseId) },
                     modifier = Modifier.fillMaxSize()

@@ -19,7 +19,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import com.together.app.core.component.AppPullRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -100,7 +100,7 @@ fun StudioOrderListScreen(
                     onRetry = { viewModel.loadOrders() }
                 )
                 state.orders.isEmpty() -> EmptyStateView(message = state.selectedFilter.emptyText)
-                else -> PullToRefreshBox(
+                else -> AppPullRefreshBox(
                     isRefreshing = state.loading,
                     onRefresh = { viewModel.loadOrders() },
                     modifier = Modifier.fillMaxSize()

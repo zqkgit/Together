@@ -19,7 +19,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import com.together.app.core.component.AppPullRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -108,7 +108,7 @@ fun MyCoursesScreen(
                 state.filteredItems.isEmpty() -> EmptyStateView(
                     message = "${childName ?: "孩子"}还没有报名课程"
                 )
-                else -> PullToRefreshBox(
+                else -> AppPullRefreshBox(
                     isRefreshing = state.loading,
                     onRefresh = { viewModel.loadMyCourses(childId) },
                     modifier = Modifier.fillMaxSize()

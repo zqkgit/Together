@@ -83,6 +83,12 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("io.coil-kt:coil-compose:2.7.0")
 
+    // UltraSwipeRefresh：Compose 下拉刷新 + 上拉加载更多（经典动画指示器）
+    implementation("com.github.jenly1314.UltraSwipeRefresh:refresh:1.6.0")
+    implementation("com.github.jenly1314.UltraSwipeRefresh:refresh-indicator-classic:1.6.0")
+    // 显式声明 startup-runtime，修复传递依赖 R 类被 R8 丢失导致 NoClassDefFoundError
+    implementation("androidx.startup:startup-runtime:1.1.1")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 

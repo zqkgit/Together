@@ -27,7 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import com.together.app.core.component.AppPullRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -100,7 +100,7 @@ fun StudioCommissionDetailScreen(
         Column(modifier = Modifier.fillMaxSize().background(AppColors.Bg)) {
             TogetherTopBar(title = group?.name ?: "工作室收益", onBack = onBack)
 
-            PullToRefreshBox(
+            AppPullRefreshBox(
                 isRefreshing = state.refreshing,
                 onRefresh = { viewModel.loadRecords(group?.studioId, silent = true) }
             ) {

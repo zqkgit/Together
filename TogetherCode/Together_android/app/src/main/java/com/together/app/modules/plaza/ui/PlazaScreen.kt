@@ -31,7 +31,7 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import com.together.app.core.component.AppPullRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -146,7 +146,7 @@ fun PlazaScreen(
             if (shouldLoadMore) viewModel.loadMore()
         }
 
-        PullToRefreshBox(
+        AppPullRefreshBox(
             isRefreshing = state.refreshing,
             onRefresh = { viewModel.refresh() },
             modifier = Modifier.fillMaxSize()

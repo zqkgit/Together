@@ -26,7 +26,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import com.together.app.core.component.AppPullRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -232,7 +232,7 @@ private fun FavoritesTab(
     viewModel: FavoritesViewModel,
     onPostClick: (String) -> Unit
 ) {
-    PullToRefreshBox(
+    AppPullRefreshBox(
         isRefreshing = state.refreshing,
         onRefresh = { viewModel.loadFavorites(reset = true) }
     ) {
@@ -282,7 +282,7 @@ private fun ChildFeedTab(
     viewModel: FavoritesViewModel,
     onPostClick: (String) -> Unit
 ) {
-    PullToRefreshBox(
+    AppPullRefreshBox(
         isRefreshing = state.refreshing,
         onRefresh = { viewModel.loadChildFeed(reset = true) }
     ) {

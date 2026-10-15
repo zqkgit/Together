@@ -173,7 +173,11 @@ async function listCourses(params = {}) {
     order = [["price", "DESC"], ["created_at", "DESC"]];
   }
 
-  const rows = await Course.findAll({
+  const page = Math.max(1, Number(params.page) || 1);
+  const pageSize = Math.max(1, Number(params.page_size) || 20);
+  const offset = (page - 1) * pageSize;
+
+  const { count, rows } = await Course.findAndCountAll({
     where,
     include: [
       { model: StudioProfile, as: "studio", attributes: ["studio_id", "name", "address", "phone"] },
@@ -186,11 +190,16 @@ async function listCourses(params = {}) {
         attributes: ["package_id", "name", "lessons", "price", "original_price", "status"]
       }
     ],
-    order
+    order,
+    limit: pageSize,
+    offset,
+    distinct: true
   });
 
   return {
-    total: rows.length,
+    total: count,
+    page,
+    page_size: pageSize,
     list: rows.map(normalizeCourseItem)
   };
 }

@@ -23,12 +23,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import com.together.app.core.component.AppRefreshLoadMoreBox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -58,6 +58,7 @@ import kotlinx.coroutines.launch
  * 课程浏览页（对齐 iOS CourseBrowseViewController）
  * 首页「为你推荐 → 全部」入口：品牌色背景 + 标签横滑筛选 + 课程卡片列表，无搜索栏
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseBrowseScreen(
     onBack: () -> Unit = {},
@@ -71,6 +72,7 @@ fun CourseBrowseScreen(
     var currentPage by remember { mutableIntStateOf(1) }
     var hasMore by remember { mutableStateOf(true) }
     var isLoading by remember { mutableStateOf(false) }
+    var isRefreshing by remember { mutableStateOf(false) }
     var initialLoaded by remember { mutableStateOf(false) }
 
     // 加载标签
@@ -79,19 +81,29 @@ fun CourseBrowseScreen(
             .onSuccess { tags = it }
     }
 
-    // 加载课程
+    // 加载课程（page==1 时为刷新）
     fun loadCourses(page: Int) {
         if (isLoading) return
         scope.launch {
             isLoading = true
+            if (page == 1) isRefreshing = true
             try {
                 val tagId = if (selectedTagIndex == 0) "" else tags.getOrNull(selectedTagIndex - 1)?.id ?: ""
                 val (list, more) = SearchService.searchCourses("", page, tagId.ifEmpty { null })
-                if (page == 1) courses = list else courses = courses + list
-                hasMore = more && list.isNotEmpty()
+                if (page == 1) {
+                    courses = list
+                    hasMore = more && list.isNotEmpty()
+                } else {
+                    // 去重：后端分页可能返回重复数据，无新增则停止翻页
+                    val existing = courses.map { it.courseId }.toSet()
+                    val newItems = list.filter { it.courseId !in existing }
+                    courses = courses + newItems
+                    hasMore = more && newItems.isNotEmpty()
+                }
                 currentPage = page
             } catch (_: Exception) { }
             isLoading = false
+            isRefreshing = false
             initialLoaded = true
         }
     }
@@ -105,15 +117,6 @@ fun CourseBrowseScreen(
     }
 
     val listState = rememberLazyListState()
-    val shouldLoadMore by remember {
-        derivedStateOf {
-            val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            last >= courses.size - 3 && hasMore && !isLoading
-        }
-    }
-    LaunchedEffect(shouldLoadMore) {
-        if (shouldLoadMore) loadCourses(currentPage + 1)
-    }
 
     Column(modifier = Modifier.fillMaxSize().background(AppColors.Bg)) {
         // 品牌色头部：返回按钮 + 标题 + 标签横滑
@@ -179,26 +182,21 @@ fun CourseBrowseScreen(
                 }
             }
         } else {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = AppDimens.S, bottom = 100.dp)
+            AppRefreshLoadMoreBox(
+                isRefreshing = isRefreshing,
+                isLoadingMore = isLoading && !isRefreshing,
+                hasMore = hasMore,
+                onRefresh = { loadCourses(1) },
+                onLoadMore = { loadCourses(currentPage + 1) },
+                modifier = Modifier.fillMaxSize()
             ) {
-                items(courses, key = { it.courseId }) { course ->
-                    BrowseCourseCard(item = course, onClick = { onCourseClick(course.courseId) })
-                }
-                if (isLoading) {
-                    item {
-                        Box(
-                            modifier = Modifier.fillMaxWidth().padding(AppDimens.L),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                color = AppColors.Brand,
-                                strokeWidth = 2.dp
-                            )
-                        }
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(top = AppDimens.S, bottom = 100.dp)
+                ) {
+                    items(courses, key = { it.courseId }) { course ->
+                        BrowseCourseCard(item = course, onClick = { onCourseClick(course.courseId) })
                     }
                 }
             }
