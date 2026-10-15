@@ -60,6 +60,7 @@ import com.together.app.modules.mine.ui.TeacherAuthScreen
 import com.together.app.modules.mine.ui.WalletScreen
 import com.together.app.modules.mine.ui.WorkManagementScreen
 import com.together.app.modules.plaza.PlazaViewModel
+import com.together.app.modules.plaza.ui.LocationSearchScreen
 import com.together.app.modules.plaza.ui.PostCreateScreen
 import com.together.app.modules.plaza.ui.PostDetailScreen
 import com.together.app.modules.studio.ui.StudioCommissionReviewScreen
@@ -744,7 +745,19 @@ fun AppNavigator() {
                 role = role,
                 postType = postType,
                 onClose = { navController.popBackStack() },
-                onPublished = { navController.popBackStack() }
+                onPublished = { navController.popBackStack() },
+                onLocationSearch = { navController.navigate(AppRoutes.LocationSearch) }
+            )
+        }
+
+        // 位置搜索（免费原生 Geocoder，对齐 iOS LocationSearchViewController）
+        composable(AppRoutes.LocationSearch) {
+            LocationSearchScreen(
+                onBack = { navController.popBackStack() },
+                onSelect = { lat, lng, name ->
+                    PlazaViewModel.pendingLocationSelect?.invoke(lat, lng, name)
+                    PlazaViewModel.pendingLocationSelect = null
+                }
             )
         }
 

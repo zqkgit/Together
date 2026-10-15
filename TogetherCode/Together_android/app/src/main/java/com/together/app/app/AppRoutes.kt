@@ -25,6 +25,7 @@ object AppRoutes {
     // 广场模块
     const val PostDetail = "post_detail/{postId}"
     const val PostCreate = "post_create/{role}/{postType}"
+    const val LocationSearch = "location_search"
     const val Search = "search"
     const val TeacherProfile = "teacher_profile/{teacherId}"
     const val StudioHomepage = "studio_homepage/{studioId}"

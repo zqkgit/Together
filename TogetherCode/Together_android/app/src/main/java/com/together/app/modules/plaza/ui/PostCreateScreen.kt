@@ -86,7 +86,8 @@ fun PostCreateScreen(
     postType: Int = 1,
     viewModel: PlazaViewModel = viewModel(),
     onClose: () -> Unit = {},
-    onPublished: () -> Unit = {}
+    onPublished: () -> Unit = {},
+    onLocationSearch: () -> Unit = {}
 ) {
     val state by viewModel.createState.collectAsState()
     val context = LocalContext.current
@@ -285,7 +286,7 @@ fun PostCreateScreen(
             CardSpacer()
 
             // 位置（对齐 iOS PickerCell locationCell）
-            FormCard { LocationSection(viewModel) }
+            FormCard { LocationSection(viewModel, onLocationSearch) }
 
             Spacer(Modifier.height(AppDimens.Xl))
         }
@@ -708,17 +709,19 @@ private fun VisibilitySection(viewModel: PlazaViewModel) {
     }
 }
 
-// MARK: - 位置（对齐 iOS PickerCell locationCell + ActionSheet）
+// MARK: - 位置（对齐 iOS LocationSearchViewController 选点回传）
 
 @Composable
-private fun LocationSection(viewModel: PlazaViewModel) {
+private fun LocationSection(viewModel: PlazaViewModel, onLocationSearch: () -> Unit = {}) {
     val state by viewModel.createState.collectAsState()
     var showLocationDialog by remember { mutableStateOf(false) }
 
-    val acquireLocation: () -> Unit = {
-        viewModel.getCurrentLocationForCreate { lat, lng ->
-            viewModel.setLocation(lat, lng, "当前位置")
+    /** 打开位置搜索页，注册回传回调 */
+    val openLocationSearch: () -> Unit = {
+        PlazaViewModel.pendingLocationSelect = { lat, lng, name ->
+            viewModel.setLocation(lat, lng, name)
         }
+        onLocationSearch()
     }
 
     Box {
@@ -733,7 +736,7 @@ private fun LocationSection(viewModel: PlazaViewModel) {
             PickerRow(
                 title = "添加位置",
                 detail = "",
-                onClick = acquireLocation
+                onClick = openLocationSearch
             )
         }
     }
@@ -747,7 +750,7 @@ private fun LocationSection(viewModel: PlazaViewModel) {
             confirmButton = {
                 TextButton(onClick = {
                     showLocationDialog = false
-                    acquireLocation()
+                    openLocationSearch()
                 }) { Text("重新选择", color = AppColors.Brand) }
             },
             dismissButton = {

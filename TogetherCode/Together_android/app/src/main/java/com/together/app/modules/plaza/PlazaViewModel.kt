@@ -30,6 +30,8 @@ class PlazaViewModel(app: Application) : AndroidViewModel(app) {
         var navPost: PostItem? = null
         /** 编辑帖子缓存（详情页 → 发帖页） */
         var navEditPost: PostItem? = null
+        /** 位置选择回调缓存（发帖页 → 位置搜索页 → 回传 lat/lng/name） */
+        var pendingLocationSelect: ((Double, Double, String) -> Unit)? = null
     }
 
     // MARK: - 广场流
