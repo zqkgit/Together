@@ -414,10 +414,12 @@ class PlazaViewModel(app: Application) : AndroidViewModel(app) {
         pendingEditCourseId = post.course?.courseId
         pendingEditClassId = post.classId
         pendingEditChildIds = post.studentList.map { it.childId }
+        // 工作室(role 3)帖子走 /posts 链路，按家长(role 1)编辑
+        val effectiveRole = (post.author?.role ?: 1).let { if (it == 3) 1 else it }
         _createState.value = CreateState(
             isEditing = true,
             editingPostId = post.postId,
-            editingRole = post.author?.role ?: 1,
+            editingRole = effectiveRole,
             postType = post.type,
             content = post.bodyText,
             images = post.imageList.map { PostImage.Existing(it) },
@@ -588,7 +590,8 @@ class PlazaViewModel(app: Application) : AndroidViewModel(app) {
             _createState.value = cur.copy(error = "请至少上传一张作品图片")
             return
         }
-        if (cur.editingRole == 1 && cur.selectedChildId == null) {
+        // 孩子必选仅在有孩子时生效（工作室无孩子可跳过，对齐后端 child_id 可空）
+        if (cur.editingRole == 1 && cur.childList.isNotEmpty() && cur.selectedChildId == null) {
             _createState.value = cur.copy(error = "请选择关联孩子")
             return
         }

@@ -200,7 +200,7 @@ object PostService {
         val body = buildJsonObject {
             put("content", content)
             put("images", JsonArray(images.map { JsonPrimitive(it) }))
-            put("child_id", childId)
+            childId.takeIf { it.isNotEmpty() }?.let { put("child_id", it) }
             put("visibility", visibility)
             put("type", type)
             courseId?.takeIf { it.isNotEmpty() }?.let { put("course_id", it) }
@@ -274,7 +274,7 @@ object PostService {
     ) {
         val body = buildJsonObject {
             put("content", content)
-            put("child_id", childId)
+            childId.takeIf { it.isNotEmpty() }?.let { put("child_id", it) }
             put("visibility", visibility)
             images?.takeIf { it.isNotEmpty() }?.let { put("images", JsonArray(it.map { p -> JsonPrimitive(p) })) }
             courseId?.takeIf { it.isNotEmpty() }?.let { put("course_id", it) }

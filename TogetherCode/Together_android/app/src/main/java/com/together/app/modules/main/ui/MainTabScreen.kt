@@ -21,15 +21,18 @@ import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Work
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -81,7 +84,7 @@ fun MainTabScreen(
     onPostClick: (PostItem) -> Unit = {},
     onCourseClick: (CourseItem) -> Unit = {},
     onStudioClick: (StudioItem) -> Unit = {},
-    onPublish: (Int) -> Unit = {},
+    onPublish: (Int, Int) -> Unit = { _, _ -> },
     onConversationClick: (ConversationItem) -> Unit = {},
     onAddContact: () -> Unit = {},
     onNotificationClick: (NotificationItem) -> Unit = {},
@@ -118,6 +121,7 @@ fun MainTabScreen(
     var role by remember { mutableIntStateOf(1) }
     var selectedTab by remember { mutableIntStateOf(0) }
     var unread by remember { mutableIntStateOf(0) }
+    var showPublishTypeDialog by remember { mutableStateOf(false) }
 
     // 读取角色
     LaunchedEffect(Unit) {
@@ -252,7 +256,12 @@ fun MainTabScreen(
                                 .clip(CircleShape)
                                 .background(AppColors.Brand)
                                 .clickable {
-                                    onPublish(role)
+                                    // 对齐 iOS：老师先选发布类型；家长/工作室直接发孩子作品
+                                    if (role == 2) {
+                                        showPublishTypeDialog = true
+                                    } else {
+                                        onPublish(role, 2)
+                                    }
                                 },
                             contentAlignment = Alignment.Center
                         ) {
@@ -323,5 +332,26 @@ fun MainTabScreen(
                 .height(0.5.dp)
                 .background(AppColors.Line)
         )
+
+        // 老师发布类型选择（对齐 iOS ThemeActionSheet："孩子作品" / "老师作品"）
+        if (showPublishTypeDialog) {
+            AlertDialog(
+                onDismissRequest = { showPublishTypeDialog = false },
+                title = { Text("发布类型", fontWeight = FontWeight.SemiBold) },
+                text = null,
+                confirmButton = {
+                    TextButton(onClick = {
+                        showPublishTypeDialog = false
+                        onPublish(2, 2) // 孩子作品
+                    }) { Text("孩子作品", color = AppColors.Brand) }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showPublishTypeDialog = false
+                        onPublish(2, 1) // 老师作品
+                    }) { Text("老师作品", color = AppColors.Ink) }
+                }
+            )
+        }
     }
 }

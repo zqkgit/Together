@@ -208,8 +208,10 @@ fun AppNavigator() {
                 onPostClick = { post ->
                     navController.navigate(AppRoutes.postDetail(post.postId))
                 },
-                onPublish = { role ->
-                    navController.navigate(AppRoutes.postCreate(role, 1))
+                onPublish = { role, postType ->
+                    // 对齐 iOS：工作室(role 3)走家长通用发帖链路(/posts)
+                    val effectiveRole = if (role == 3) 1 else role
+                    navController.navigate(AppRoutes.postCreate(effectiveRole, postType))
                 },
                 onConversationClick = { conversation ->
                     MessageViewModel.navConversation = conversation
@@ -328,6 +330,10 @@ fun AppNavigator() {
                     ClassListData.courseTitle = item.title ?: ""
                     ClassListData.classes = item.classes ?: emptyList()
                     navController.navigate(AppRoutes.ClassList)
+                },
+                onPublishConsume = {
+                    // 对齐 iOS：发作品消课 → TeacherPostCreateViewController(postType: 2)
+                    navController.navigate(AppRoutes.postCreate(role = 2, postType = 2))
                 }
             )
         }
@@ -713,8 +719,10 @@ fun AppNavigator() {
                 onBack = { navController.popBackStack() },
                 onEdit = { post ->
                     PlazaViewModel.navEditPost = post
+                    // 工作室帖子按家长链路编辑（对齐发布侧 role 3→1）
+                    val editRole = (post.author?.role ?: 1).let { if (it == 3) 1 else it }
                     navController.navigate(
-                        AppRoutes.postCreate(post.author?.role ?: 1, post.type)
+                        AppRoutes.postCreate(editRole, post.type)
                     )
                 },
                 onEnroll = { courseId ->
