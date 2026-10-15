@@ -209,9 +209,10 @@ fun AppNavigator() {
                     navController.navigate(AppRoutes.postDetail(post.postId))
                 },
                 onPublish = { role, postType ->
-                    // 对齐 iOS：工作室(role 3)走家长通用发帖链路(/posts)
+                    // 对齐 iOS：工作室(role 3)走家长通用发帖链路(/posts)，仅发动态
                     val effectiveRole = if (role == 3) 1 else role
-                    navController.navigate(AppRoutes.postCreate(effectiveRole, postType))
+                    val effectivePostType = if (role == 3) 1 else postType
+                    navController.navigate(AppRoutes.postCreate(effectiveRole, effectivePostType))
                 },
                 onConversationClick = { conversation ->
                     MessageViewModel.navConversation = conversation

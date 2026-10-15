@@ -447,7 +447,12 @@ class PlazaViewModel(app: Application) : AndroidViewModel(app) {
                 if (role == 1) {
                     val children = ChildService.fetchChildren()
                     val cur = _createState.value
-                    val selectedChild = pendingEditChildId ?: children.firstOrNull()?.childId
+                    // 仅孩子作品(postType=2)自动选第一个孩子；动态不关联孩子
+                    val selectedChild = if (cur.postType == 2) {
+                        pendingEditChildId ?: children.firstOrNull()?.childId
+                    } else {
+                        pendingEditChildId
+                    }
                     _createState.value = cur.copy(
                         childList = children,
                         selectedChildId = selectedChild
@@ -590,8 +595,8 @@ class PlazaViewModel(app: Application) : AndroidViewModel(app) {
             _createState.value = cur.copy(error = "请至少上传一张作品图片")
             return
         }
-        // 孩子必选仅在有孩子时生效（工作室无孩子可跳过，对齐后端 child_id 可空）
-        if (cur.editingRole == 1 && cur.childList.isNotEmpty() && cur.selectedChildId == null) {
+        // 仅孩子作品(postType=2)需关联孩子；动态不关联孩子
+        if (cur.editingRole == 1 && cur.postType == 2 && cur.selectedChildId == null) {
             _createState.value = cur.copy(error = "请选择关联孩子")
             return
         }

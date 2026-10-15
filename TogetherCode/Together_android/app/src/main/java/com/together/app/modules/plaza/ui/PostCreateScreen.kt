@@ -317,8 +317,8 @@ fun PostCreateScreen(
 
             Spacer(Modifier.height(AppDimens.M))
 
-            // 家长分支：关联孩子 + 关联课程（工作室无孩子时隐藏整块）
-            if (state.editingRole == 1 && state.childList.isNotEmpty()) {
+            // 家长分支：仅孩子作品(postType=2)显示关联孩子+关联课程；动态不关联孩子
+            if (state.editingRole == 1 && state.postType == 2 && state.childList.isNotEmpty()) {
                 ParentSection(viewModel)
             }
 

@@ -20,7 +20,8 @@ final class ParentPostCreateViewController: BasePostCreateViewController {
             switch result {
             case .success(let list):
                 self.childList = list
-                if self.selectedChildId == nil { self.selectedChildId = list.first?.child_id }
+                // 仅孩子作品自动选第一个孩子；动态不关联孩子
+                if self.selectedChildId == nil && self.postType == 2 { self.selectedChildId = list.first?.child_id }
                 // 编辑模式：用帖子原孩子/课程覆盖默认选择
                 if self.isEditingPost { self.applyPendingEditSelection() }
                 self.tableView.reloadData()
@@ -37,7 +38,8 @@ final class ParentPostCreateViewController: BasePostCreateViewController {
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         switch section {
-        case 3: return selectedParentCourseTitle != nil ? 1 : 0 // 关联课程：孩子无课程时隐藏
+        case 2: return (postType == 2 && !childList.isEmpty) ? 1 : 0 // 关联孩子：仅孩子作品显示；动态不关联
+        case 3: return (postType == 2 && selectedParentCourseTitle != nil) ? 1 : 0 // 关联课程：仅孩子作品显示
         default: return 1
         }
     }
@@ -139,9 +141,12 @@ final class ParentPostCreateViewController: BasePostCreateViewController {
     // MARK: - 校验与发布
 
     override func validateForm() -> Bool {
-        guard selectedChildId != nil else {
-            showToast("请选择关联孩子")
-            return false
+        // 仅孩子作品(postType=2)需关联孩子；动态不关联孩子
+        if postType == 2 {
+            guard !childList.isEmpty, selectedChildId != nil else {
+                showToast("请选择关联孩子")
+                return false
+            }
         }
         return true
     }

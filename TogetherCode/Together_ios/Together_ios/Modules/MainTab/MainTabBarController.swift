@@ -76,7 +76,7 @@ extension MainTabBarController: UITabBarControllerDelegate {
             return true
         }
         // 点击中间大加号 → 发布：老师先选类型（孩子作品/动态）
-        // 家长与工作室走通用动态发布（/v1/posts 无角色限制；
+        // 家长发孩子作品；工作室仅发日常动态（课程发布在 PC 管理后台）
         // 老师作品链路 /v1/teacher/posts 目前 requireRole(2)，工作室如需发布作品需后端放行）
         if TokenManager.shared.userRole == 2 {
             let sheet = ThemeActionSheet(title: "发布类型", actions: [("孩子作品", false), ("老师作品", false)])
@@ -91,6 +91,13 @@ extension MainTabBarController: UITabBarControllerDelegate {
                 }
             }
             present(sheet, animated: false)
+        } else if TokenManager.shared.userRole == 3 {
+            // 工作室：仅发日常动态，无关联孩子/课程
+            let vc = ParentPostCreateViewController(postType: 1)
+            vc.customNavTitle = "发布动态"
+            let publish = BaseNavigationController(rootViewController: vc)
+            publish.modalPresentationStyle = .fullScreen
+            present(publish, animated: true)
         } else {
             let vc = ParentPostCreateViewController(postType: 2)
             let publish = BaseNavigationController(rootViewController: vc)

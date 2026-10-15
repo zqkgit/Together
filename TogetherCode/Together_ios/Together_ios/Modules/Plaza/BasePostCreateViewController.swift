@@ -34,6 +34,9 @@ class BasePostCreateViewController: BaseViewController, UITableViewDataSource, U
     /// 帖子类型：1 动态 / 2 孩子作品（发布由入口传，编辑由详情回填）
     var postType: Int = 1
 
+    /// 自定义导航标题（工作室发动态时覆盖默认标题）
+    var customNavTitle: String?
+
     convenience init(postId: String, role: Int, postType: Int = 1) {
         self.init(nibName: nil, bundle: nil)
         editingPostId = postId
@@ -46,8 +49,9 @@ class BasePostCreateViewController: BaseViewController, UITableViewDataSource, U
         self.postType = postType
     }
 
-    /// 导航标题：按模式 + 类型区分（孩子作品 / 老师作品）
+    /// 导航标题：自定义优先，否则按模式 + 类型区分（孩子作品 / 老师作品）
     var navTitle: String {
+        if let customNavTitle { return customNavTitle }
         if isEditingPost {
             return postType == 2 ? "编辑孩子作品" : "编辑老师作品"
         }
