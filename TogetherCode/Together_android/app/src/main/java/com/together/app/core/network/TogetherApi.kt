@@ -6,6 +6,7 @@ import okhttp3.MultipartBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.HTTP
 import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
@@ -44,6 +45,13 @@ interface TogetherApi {
     @DELETE("{path}")
     suspend fun delete(
         @Path(value = "path", encoded = true) path: String
+    ): ApiResponse<JsonElement>
+
+    /** DELETE with body（解绑设备等场景） */
+    @HTTP(method = "DELETE", path = "{path}", hasBody = true)
+    suspend fun deleteBody(
+        @Path(value = "path", encoded = true) path: String,
+        @Body body: JsonObject
     ): ApiResponse<JsonElement>
 
     @Multipart

@@ -20,6 +20,11 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // 极光推送（AppKey 留空则 PushManager.isEnabled=false，SDK 静默跳过）
+        manifestPlaceholders["JPUSH_PKGNAME"] = applicationId ?: "com.together.app"
+        manifestPlaceholders["JPUSH_APPKEY"] = ""
+        manifestPlaceholders["JPUSH_CHANNEL"] = "developer"
     }
 
     buildTypes {
@@ -88,6 +93,10 @@ dependencies {
     implementation("com.github.jenly1314.UltraSwipeRefresh:refresh-indicator-classic:1.6.0")
     // 显式声明 startup-runtime，修复传递依赖 R 类被 R8 丢失导致 NoClassDefFoundError
     implementation("androidx.startup:startup-runtime:1.1.1")
+
+    // 极光推送（AppKey 留空时 PushManager 静默跳过，不影响开发环境）
+    implementation("cn.jiguang.sdk:jpush:5.6.0")
+    implementation("cn.jiguang.sdk:jcore:4.8.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

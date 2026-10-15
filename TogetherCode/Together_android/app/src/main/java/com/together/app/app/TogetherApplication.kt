@@ -2,6 +2,7 @@ package com.together.app.app
 
 import android.app.Application
 import com.together.app.core.network.ApiService
+import com.together.app.core.push.PushManager
 import com.together.app.core.storage.TokenStore
 import com.together.app.services.MessageSocketService
 import kotlinx.coroutines.CoroutineScope
@@ -20,6 +21,9 @@ class TogetherApplication : Application() {
         super.onCreate()
         instance = this
         tokenStore = TokenStore(this)
+
+        // 极光推送（AppKey 未配置时自动跳过）
+        PushManager.setup(this)
 
         // 注入 token 提供者（同步缓存，避免每次请求都读 DataStore）
         applicationScope.launch {

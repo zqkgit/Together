@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.together.app.core.push.PushManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -69,6 +70,8 @@ class TokenStore(private val context: Context) {
             prefs[PHONE] = phone
             if (avatar != null) prefs[AVATAR] = avatar
         }
+        // 登录/注册成功：上报极光设备（未配置 AppKey 或无 registrationID 时静默跳过）
+        PushManager.reportDevice()
     }
 
     suspend fun updateRole(role: Int) {
@@ -95,6 +98,8 @@ class TokenStore(private val context: Context) {
     }
 
     suspend fun clear() {
+        // 解绑极光推送（先捕获 token 再发请求；未配置/无 registrationID 时静默跳过）
+        PushManager.unbindDevice(getTokenSync())
         context.tokenDataStore.edit { prefs ->
             prefs.clear()
         }

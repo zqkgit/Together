@@ -121,6 +121,11 @@ object ApiService {
         return execute { api.delete(path.trimStart('/')) }
     }
 
+    /** DELETE with body（解绑推送设备等） */
+    suspend fun delete(path: String, body: Map<String, Any?>): JsonObject {
+        return execute { api.deleteBody(path.trimStart('/'), toJson(body)) }
+    }
+
     // MARK: - 上传
 
     /** 上传文件（POST /upload，files ≤ 9，folder 白名单） */
