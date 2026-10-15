@@ -7,11 +7,37 @@ const {
   Class,
   StudioProfile,
   TeacherProfile,
-  TeacherStudioBinding
+  TeacherStudioBinding,
+  Tag
 } = require("../models");
 const { generateId } = require("../utils/id");
 
-function normalizeCourseItem(course) {
+/**
+ * 批量解析标签 ID → 名称映射
+ * courses.tags 存的是 tag_id 数组，对外返回时需转为文字
+ */
+async function buildTagNameMap(tagIds) {
+  const ids = [...new Set(tagIds.filter(Boolean))];
+  if (ids.length === 0) return {};
+  const rows = await Tag.findAll({
+    where: { tag_id: { [Op.in]: ids } },
+    attributes: ["tag_id", "name"]
+  });
+  const map = {};
+  rows.forEach((r) => { map[String(r.tag_id)] = r.name; });
+  return map;
+}
+
+// 从课程行集合中收集所有 tag_id
+function collectTagIds(rows) {
+  const ids = [];
+  rows.forEach((row) => {
+    (row.tags || []).forEach((id) => ids.push(String(id)));
+  });
+  return ids;
+}
+
+function normalizeCourseItem(course, tagNameMap = {}) {
   return {
     course_id: String(course.course_id),
     title: course.title,
@@ -29,7 +55,7 @@ function normalizeCourseItem(course) {
     distribute_rate: Number(course.distribute_rate),
     validity_days: course.validity_days,
     status: course.status,
-    tags: course.tags || [],
+    tags: (course.tags || []).map((id) => tagNameMap[String(id)] || String(id)),
     studio: course.studio
       ? {
           studio_id: String(course.studio.studio_id),
@@ -196,11 +222,12 @@ async function listCourses(params = {}) {
     distinct: true
   });
 
+  const tagNameMap = await buildTagNameMap(collectTagIds(rows));
   return {
     total: count,
     page,
     page_size: pageSize,
-    list: rows.map(normalizeCourseItem)
+    list: rows.map((row) => normalizeCourseItem(row, tagNameMap))
   };
 }
 
@@ -257,9 +284,10 @@ async function listStudioCourses(params = {}) {
     order: [["created_at", "DESC"]]
   });
 
+  const tagNameMap = await buildTagNameMap(collectTagIds(rows));
   return {
     total: rows.length,
-    list: rows.map(normalizeCourseItem)
+    list: rows.map((row) => normalizeCourseItem(row, tagNameMap))
   };
 }
 
@@ -299,7 +327,8 @@ async function getCourseDetail(courseId, options = {}) {
     return null;
   }
 
-  const payload = normalizeCourseItem(row);
+  const tagNameMap = await buildTagNameMap(collectTagIds([row]));
+  const payload = normalizeCourseItem(row, tagNameMap);
   payload.lessons = (row.lessons || [])
     .slice()
     .sort((a, b) => Number(a.lesson_no) - Number(b.lesson_no))
