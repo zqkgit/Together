@@ -4,12 +4,14 @@ package com.together.app.modules.mine.ui
 
 import android.app.Application
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,8 +26,14 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import coil.compose.AsyncImage
 import com.together.app.core.component.AppPullRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,8 +46,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
@@ -47,10 +60,11 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.together.app.core.component.TogetherAvatar
 import com.together.app.core.component.TogetherTopBar
+import com.together.app.core.component.resolveImageUrl
 import com.together.app.core.design.AppColors
 import com.together.app.core.design.AppDimens
 import com.together.app.core.model.PostItem
-import com.together.app.modules.plaza.ui.WorkCard
+import com.together.app.modules.plaza.ui.topicPalette
 import com.together.app.services.PostService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -267,7 +281,7 @@ private fun FavoritesTab(
                 verticalArrangement = Arrangement.spacedBy(AppDimens.M)
             ) {
                 items(state.favorites, key = { it.postId }) { item ->
-                    WorkCard(item = item, onClick = { onPostClick(item.postId) })
+                    FavoriteWorkCard(item = item, onClick = { onPostClick(item.postId) })
                 }
             }
         }
@@ -331,7 +345,72 @@ private fun ChildFeedTab(
     }
 }
 
-// MARK: - 孩子动态卡片
+// MARK: - 收藏作品卡片（对齐 iOS FavoriteWorkCell：封面0.8比例 + 标题1行 + 作者 + 点赞）
+
+@Composable
+private fun FavoriteWorkCard(item: PostItem, onClick: () -> Unit) {
+    val colorPair = topicPalette(item.safeTopic)
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(AppColors.Surface)
+            .clickable(onClick = onClick)
+    ) {
+        // 封面（高 = 宽 × 0.8，无图按话题色渐变占位）
+        val firstImage = item.imageList.firstOrNull()
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f / 0.8f)
+                .background(Brush.linearGradient(listOf(colorPair.first, colorPair.second)))
+        ) {
+            if (firstImage != null) {
+                AsyncImage(
+                    model = resolveImageUrl(firstImage),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                item.safeTopic?.let { topic ->
+                    Text(
+                        text = "#$topic",
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+            }
+        }
+        // 标题（1行）
+        Text(
+            text = item.bodyText.ifEmpty { "作品分享" },
+            fontSize = 14.sp,
+            color = AppColors.Ink,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 10.dp, start = AppDimens.M, end = AppDimens.M)
+        )
+        // 作者 + 点赞
+        Row(
+            modifier = Modifier.padding(top = 6.dp, start = AppDimens.M, end = AppDimens.M, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = item.authorName,
+                fontSize = 11.sp,
+                color = AppColors.Sub,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            Text(text = "♥ ${item.likeText}", fontSize = 11.sp, color = AppColors.Sub)
+        }
+    }
+}
+
+// MARK: - 孩子动态卡片（对齐 iOS PostCardView：头像36 + 角色徽章 + 九宫格图 + 点赞评论栏 + 边框阴影）
 
 @Composable
 private fun FeedCard(item: PostItem, onClick: () -> Unit) {
@@ -339,51 +418,135 @@ private fun FeedCard(item: PostItem, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = AppDimens.L, vertical = AppDimens.S)
+            .shadow(AppDimens.CardShadowElevation, RoundedCornerShape(AppDimens.RadiusCard))
             .clip(RoundedCornerShape(AppDimens.RadiusCard))
             .background(AppColors.Surface)
+            .border(1.dp, AppColors.Line, RoundedCornerShape(AppDimens.RadiusCard))
             .clickable(onClick = onClick)
-            .padding(AppDimens.L)
+            .padding(bottom = AppDimens.M)
     ) {
-        // 头部：头像 + 昵称/角色 + 时间
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TogetherAvatar(
-                url = item.authorAvatar,
-                name = item.authorName,
-                size = AppDimens.AvatarS
-            )
-            Spacer(modifier = Modifier.width(AppDimens.S))
-            Column(modifier = Modifier.weight(1f)) {
+        // 头部：头像36 + 名字 + 角色徽章 + 时间
+        Row(
+            modifier = Modifier.padding(start = AppDimens.M, top = AppDimens.M, end = AppDimens.M),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TogetherAvatar(url = item.authorAvatar, name = item.authorName, size = 36.dp)
+            Spacer(Modifier.width(AppDimens.M))
+            Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = item.authorName,
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = AppColors.Ink
+                    color = AppColors.Ink,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 if (item.roleText.isNotEmpty()) {
-                    Text(text = item.roleText, fontSize = 11.sp, color = AppColors.Muted)
+                    Spacer(Modifier.width(AppDimens.Xs))
+                    Box(
+                        modifier = Modifier
+                            .height(16.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(AppColors.BrandSoft)
+                            .padding(horizontal = 6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(item.roleText, fontSize = 10.sp, color = AppColors.Brand)
+                    }
                 }
             }
             Text(text = item.timeText, fontSize = 11.sp, color = AppColors.Muted)
         }
-        Spacer(modifier = Modifier.height(AppDimens.S))
-        // 正文
+        // 正文（3行，左对齐名字避开头像）
         if (item.bodyText.isNotEmpty()) {
             Text(
                 text = item.bodyText,
                 fontSize = 14.sp,
                 color = AppColors.Ink,
-                lineHeight = 21.sp
+                lineHeight = 21.sp,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(start = 60.dp, top = AppDimens.S, end = AppDimens.M)
             )
-            Spacer(modifier = Modifier.height(AppDimens.S))
         }
-        // 关联课程/孩子
-        item.relationText?.let { relation ->
-            Text(text = relation, fontSize = 12.sp, color = AppColors.Sub)
-            Spacer(modifier = Modifier.height(AppDimens.Xs))
+        // 九宫格图片
+        if (item.imageList.isNotEmpty()) {
+            PostImageGrid(
+                urls = item.imageList,
+                modifier = Modifier.padding(start = 60.dp, top = AppDimens.S, end = AppDimens.M)
+            )
         }
-        // 话题
-        item.safeTopic?.let { topic ->
-            Text(text = "#$topic", fontSize = 12.sp, color = AppColors.Brand)
+        // 底部栏：点赞 + 评论 + 关联文案
+        Row(
+            modifier = Modifier.padding(start = AppDimens.M, top = AppDimens.M, end = AppDimens.M),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = if (item.isLiked == true) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                contentDescription = null,
+                tint = AppColors.Muted,
+                modifier = Modifier.size(14.dp)
+            )
+            Text(text = " ${item.likeText}", fontSize = 11.sp, color = AppColors.Muted)
+            Spacer(Modifier.width(AppDimens.L))
+            Icon(Icons.Filled.ChatBubble, contentDescription = null, tint = AppColors.Muted, modifier = Modifier.size(14.dp))
+            Text(text = " ${item.commentText}", fontSize = 11.sp, color = AppColors.Muted)
+            Spacer(Modifier.weight(1f))
+            item.relationText?.let { relation ->
+                Text(
+                    text = relation,
+                    fontSize = 11.sp,
+                    color = AppColors.Brand,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+// MARK: - 九宫格图片（对齐 iOS PostImageGridView）
+
+@Composable
+private fun PostImageGrid(urls: List<String>, modifier: Modifier = Modifier) {
+    if (urls.isEmpty()) return
+    val spacing = 6.dp
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(spacing)) {
+        if (urls.size == 1) {
+            // 单张：宽 2/3 容器，4:3 比例
+            AsyncImage(
+                model = resolveImageUrl(urls[0]),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth(2f / 3f)
+                    .aspectRatio(4f / 3f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(AppColors.SurfaceAlt)
+            )
+        } else {
+            // 多张：2张=2列、3张=3列、4张=2列、5~9张=3列，正方形
+            val columns = if (urls.size == 4) 2 else minOf(urls.size, 3)
+            urls.chunked(columns).forEach { rowUrls ->
+                Row(horizontalArrangement = Arrangement.spacedBy(spacing)) {
+                    rowUrls.forEach { url ->
+                        AsyncImage(
+                            model = resolveImageUrl(url),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(AppColors.SurfaceAlt)
+                        )
+                    }
+                    // 补齐空位保持等宽
+                    repeat(columns - rowUrls.size) {
+                        Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
         }
     }
 }

@@ -312,7 +312,7 @@ fun WorkCard(item: PostItem, onClick: () -> Unit) {
 }
 
 /** 话题 → 色系（对齐 iOS WorkCardView.palette） */
-private fun topicPalette(topic: String?): Pair<Color, Color> {
+internal fun topicPalette(topic: String?): Pair<Color, Color> {
     return when (topic) {
         "水彩" -> Color(0xFF7FB5C8) to Color(0xFF4A7C9B)
         "黏土" -> Color(0xFFE0A878) to Color(0xFFC15F2C)
