@@ -536,6 +536,7 @@ async function getMyCourses(userId, query = {}) {
       const total = Number(item.total_lessons);
       const consumed = Number(item.consumed_lessons);
       return {
+        balance_id: String(item.balance_id),
         child_id: String(child.child_id),
         child_name: child.nickname,
         course_id: String(item.course_id),
