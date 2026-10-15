@@ -9,6 +9,7 @@ import com.together.app.core.network.JsonHelper.int
 import com.together.app.core.network.JsonHelper.intOrNull
 import com.together.app.core.network.JsonHelper.strOrNull
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 /**
  * 搜索相关接口（课程 / 工作室 / 老师 / 热门词 / 标签）
@@ -39,7 +40,7 @@ object SearchService {
     /** 搜索课程（分页）→ (items, hasMore) */
     suspend fun searchCourses(keyword: String, page: Int, tagId: String? = null): Pair<List<CourseItem>, Boolean> {
         val params = mutableMapOf<String, Any?>("keyword" to keyword, "page" to page, "page_size" to 10)
-        tagId?.takeIf { it.isNotEmpty() }?.let { params["tag_id"] = it }
+        tagId?.takeIf { it.isNotEmpty() }?.let { params["tag"] = it }
         val json = ApiService.get("/courses", params)
         val items = json.decodeList<CourseItem>("list")
         val total = json.int("total")
@@ -72,10 +73,28 @@ object SearchService {
         return json.decodeList<String>("list")
     }
 
-    /** 课程标签列表 */
+    /** 课程标签列表（/tags 返回数组 [{tag_id, name, scope, sort, status}]） */
     suspend fun fetchTags(): List<TagItem> {
-        val json = ApiService.get("/courses/tags")
-        return json.decodeList<TagItem>("list")
+        val element = ApiService.getElement("/tags")
+        val array = element as? kotlinx.serialization.json.JsonArray
+            ?: (element as? JsonObject)?.let { obj ->
+                (obj["list"] as? kotlinx.serialization.json.JsonArray)
+            } ?: return emptyList()
+        val items = array.mapNotNull { item ->
+            val obj = item as? JsonObject ?: return@mapNotNull null
+            val name = obj.strOrNull("name") ?: return@mapNotNull null
+            if (name.isEmpty()) return@mapNotNull null
+            TagItem(
+                id = obj.strOrNull("tag_id"),
+                name = name,
+                icon = obj.strOrNull("icon")
+            )
+        }
+        // 填充 tag_id → name 缓存，供课程列表标签显示
+        items.forEach { tag ->
+            tag.id?.let { id -> tag.name?.let { nm -> tagNameCache[id] = nm } }
+        }
+        return items
     }
 
     /**
@@ -116,6 +135,9 @@ object SearchService {
 
     /** 标签名缓存（tagId → tagName），避免列表页重复请求 */
     private val tagNameCache = mutableMapOf<String, String>()
+
+    /** 同步查标签名：命中缓存返回名称，未命中返回原始 id（UI 层轻量查询） */
+    fun cachedTagName(tagId: String): String = tagNameCache[tagId] ?: tagId
 
     /** 获取标签名（优先走缓存） */
     suspend fun tagName(tagId: String): String {

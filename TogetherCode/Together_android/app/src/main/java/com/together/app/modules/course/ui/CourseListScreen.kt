@@ -58,6 +58,7 @@ import com.together.app.core.design.AppDimens
 import com.together.app.core.model.CourseItem
 import com.together.app.modules.course.CourseViewModel
 import com.together.app.modules.course.CourseViewModel.ListState
+import com.together.app.services.SearchService
 
 /**
  * 课程更多页（对齐 iOS CourseViewController）
@@ -386,38 +387,40 @@ private fun CourseListCard(item: CourseItem, onClick: () -> Unit) {
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
-            Text(
-                text = item.studioName,
-                color = AppColors.Muted,
-                fontSize = 12.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                item.ageRangeText?.let { age ->
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(AppDimens.RadiusTag))
-                            .background(AppColors.BrandSoft)
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(age, color = AppColors.Brand, fontSize = 10.sp)
-                    }
-                    Spacer(modifier = Modifier.width(AppDimens.Xs))
-                }
-                Text(item.ratingText, color = AppColors.Warn, fontSize = 12.sp)
+            // 标签 pill（tag_id → 名称，取3个）+ 年龄段
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                (item.tags ?: emptyList())
+                    .take(3)
+                    .map { SearchService.cachedTagName(it) }
+                    .filter { it.isNotEmpty() }
+                    .forEach { name -> ListTagPill(name) }
+                item.ageRangeText?.let { ListTagPill(it) }
             }
+            // 价格行
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(item.priceText, color = AppColors.Clay, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    if (item.price > 0) item.priceText else "免费",
+                    color = AppColors.Danger,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
                 Spacer(modifier = Modifier.width(4.dp))
                 item.originalPriceText?.let { original ->
-                    Text(original, color = AppColors.Muted, fontSize = 11.sp, textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough)
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                item.sales?.let { sales ->
-                    if (sales > 0) Text("已售${sales}", color = AppColors.Muted, fontSize = 11.sp)
+                    Text(original, color = AppColors.Muted, fontSize = 12.sp, textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ListTagPill(text: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(AppColors.BrandSoft)
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+    ) {
+        Text(text, color = AppColors.Brand, fontSize = 10.sp)
     }
 }

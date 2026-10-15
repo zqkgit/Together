@@ -21,6 +21,7 @@ import com.together.app.modules.child.ui.ChildBalanceScreen
 import com.together.app.modules.child.ui.ChildHomeScreen
 import com.together.app.modules.child.ui.MyChildrenScreen
 import com.together.app.modules.course.ui.CourseDetailScreen
+import com.together.app.modules.course.ui.CourseBrowseScreen
 import com.together.app.modules.course.ui.CourseListScreen
 import com.together.app.modules.course.ui.CourseStudyScreen
 import com.together.app.modules.course.ui.MyCoursesScreen
@@ -250,7 +251,7 @@ fun AppNavigator() {
                 onLeaveApproval = { navController.navigate(AppRoutes.LeaveApproval) },
                 onReputation = { navController.navigate(AppRoutes.TeacherReputation) },
                 onSearch = { navController.navigate(AppRoutes.Search) },
-                onAllCourses = { navController.navigate(AppRoutes.CourseList) },
+                onAllCourses = { navController.navigate(AppRoutes.CourseBrowse) },
                 onAllStudios = { navController.navigate(AppRoutes.Studios) },
                 onCourseClick = { course -> navController.navigate(AppRoutes.courseDetail(course.courseId)) },
                 onStudioClick = { studio -> navController.navigate(AppRoutes.studioHomepage(studio.studioId)) },
@@ -764,6 +765,16 @@ fun AppNavigator() {
                 onChat = { conversation ->
                     MessageViewModel.navConversation = conversation
                     navController.navigate(AppRoutes.chat(conversation.conversationId))
+                }
+            )
+        }
+
+        // 课程浏览（首页「全部」入口，标签筛选列表）
+        composable(AppRoutes.CourseBrowse) {
+            CourseBrowseScreen(
+                onBack = { navController.popBackStack() },
+                onCourseClick = { courseId ->
+                    navController.navigate(AppRoutes.courseDetail(courseId))
                 }
             )
         }

@@ -32,6 +32,7 @@ object AppRoutes {
     // 课程模块
     const val CourseDetail = "course_detail/{courseId}"
     const val CourseList = "course_list"
+    const val CourseBrowse = "course_browse"
     const val MyCourses = "my_courses?childId={childId}&childName={childName}"
     const val CourseStudy = "course_study/{childId}/{courseId}?title={title}"
     const val CourseReviews = "course_reviews/{courseId}"

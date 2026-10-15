@@ -63,6 +63,7 @@ import com.together.app.core.model.CourseItem
 import com.together.app.core.model.StudioItem
 import com.together.app.core.model.TeacherItem
 import com.together.app.modules.search.SearchViewModel
+import com.together.app.services.SearchService
 
 /**
  * 综合搜索页：品牌色头部 + 三Tab（课程/工作室/老师）+ 热词历史 + 行卡结果
@@ -349,9 +350,11 @@ private fun SearchCourseCard(item: CourseItem, onClick: () -> Unit) {
             Text(item.title, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = AppColors.Ink, maxLines = 2)
             Spacer(modifier = Modifier.height(4.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                (item.tags ?: emptyList()).take(2).forEach { tag ->
-                    TagPill(tag)
-                }
+                (item.tags ?: emptyList())
+                    .take(3)
+                    .map { SearchService.cachedTagName(it) }
+                    .filter { it.isNotEmpty() }
+                    .forEach { tag -> TagPill(tag) }
                 item.ageRangeText?.let { TagPill(it) }
             }
             Spacer(modifier = Modifier.height(4.dp))
@@ -392,7 +395,7 @@ private fun SearchStudioCard(item: StudioItem, onClick: () -> Unit) {
             Text(item.name, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = AppColors.Ink, maxLines = 1)
             Spacer(modifier = Modifier.height(4.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                (item.typeTags ?: emptyList()).take(2).forEach { tag -> TagPill(tag) }
+                (item.typeTags ?: emptyList()).take(3).forEach { tag -> TagPill(tag) }
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(item.rowMetaText, fontSize = 12.sp, color = AppColors.Muted, maxLines = 1)
@@ -420,16 +423,21 @@ private fun SearchTeacherCard(item: TeacherItem, onClick: () -> Unit) {
         )
         Spacer(modifier = Modifier.width(AppDimens.M))
         Column(modifier = Modifier.weight(1f)) {
-            Text(item.displayName, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = AppColors.Ink)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(item.displayName, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = AppColors.Ink)
+                if (item.subjectText.isNotEmpty()) {
+                    Spacer(modifier = Modifier.width(AppDimens.S))
+                    TagPill(item.subjectText)
+                }
+            }
             val studioText = (item.studios ?: emptyList()).mapNotNull { it.name }.take(2).joinToString(" · ")
-            if (studioText.isNotEmpty()) {
-                Text(studioText, fontSize = 12.sp, color = AppColors.Muted, maxLines = 1)
-            }
-            if (item.subjectText.isNotEmpty()) {
-                Text(item.subjectText, fontSize = 12.sp, color = AppColors.Sub, maxLines = 1)
-            }
+            Text(
+                if (studioText.isNotEmpty()) studioText else "暂无工作室",
+                fontSize = 12.sp,
+                color = AppColors.Muted,
+                maxLines = 1
+            )
         }
-        Text(item.ratingText, fontSize = 14.sp, color = AppColors.Wood, fontWeight = FontWeight.Medium)
     }
 }
 
