@@ -12,6 +12,7 @@ final class MineViewController: BaseViewController {
         MineMenuItem(icon: "figure.2.and.child.holdinghands", title: "我的孩子"),
         MineMenuItem(icon: "book.closed", title: "我的课程"),
         MineMenuItem(icon: "list.clipboard", title: "我的订单"),
+        MineMenuItem(icon: "star", title: "我的评价"),
         MineMenuItem(icon: "photo.on.rectangle.angled", title: "作品管理")
     ]
 
@@ -300,6 +301,8 @@ final class MineViewController: BaseViewController {
             openMyCourses()
         case "我的订单":
             push(MyOrdersViewController())
+        case "我的评价":
+            push(MyReviewsViewController())
         case "作品管理":
             push(WorkManagementViewController())
         case "收藏与动态":

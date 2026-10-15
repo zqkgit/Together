@@ -108,7 +108,12 @@ final class CourseReviewsViewController: BaseViewController, UITableViewDataSour
                 }
                 self.hasMore = more
             }
-            self.emptyView.isHidden = !self.items.isEmpty
+            if self.items.isEmpty {
+                self.emptyView.show(style: .empty("暂无评价\n上完课后可以给课程写评价哦"))
+                self.emptyView.isHidden = false
+            } else {
+                self.emptyView.isHidden = true
+            }
             self.tableView.reloadData()
         }
     }
